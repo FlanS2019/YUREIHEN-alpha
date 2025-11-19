@@ -134,7 +134,9 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="box.cpp" />
     <ClCompile Include="camera.cpp" />
+    <ClCompile Include="component.h" />
     <ClCompile Include="debug_ostream.cpp" />
     <ClCompile Include="direct3d.cpp" />
     <ClCompile Include="field.cpp" />
@@ -156,6 +158,7 @@
     <ClInclude Include="debug_ostream.h" />
     <ClInclude Include="direct3d.h" />
     <ClInclude Include="DirectXTex.h" />
+    <ClInclude Include="box.h" />
     <ClInclude Include="keyboard.h" />
     <ClInclude Include="main.h" />
     <ClInclude Include="model.h" />
