@@ -4,14 +4,16 @@
 #include "direct3d.h"
 #include "keyboard.h"
 #include "texture.h"
+#include "title.h"
 
-SCENE scene = SCENE_GAME;
+SCENE scene = SCENE_TITLE;
 
 void Init(void)
 {
 	switch (scene)
 	{
 	case SCENE_TITLE:
+		Title_Initialize(Direct3D_GetDevice(), Direct3D_GetDeviceContext());
 		break;
 	case SCENE_GAME:
 		Game_Initialize(Direct3D_GetDevice(), Direct3D_GetDeviceContext());
@@ -40,6 +42,7 @@ void Update(void)
 	switch (scene)
 	{
 	case SCENE_TITLE:
+		Title_Update();
 		break;
 	case SCENE_GAME:
 		Game_Update();
@@ -68,6 +71,7 @@ void Draw(void)
 	switch (scene)
 	{
 	case SCENE_TITLE:
+		Title_Draw();
 		break;
 	case SCENE_GAME:
 		Game_Draw();
@@ -96,6 +100,7 @@ void Finalize(void)
 	switch (scene)
 	{
 	case SCENE_TITLE:
+		Title_Finalize();
 		break;
 	case SCENE_GAME:
 		Game_Finalize();

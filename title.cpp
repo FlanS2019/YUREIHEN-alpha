@@ -1,37 +1,50 @@
 #include "title.h"
-#include "shader.h"
 #include "main.h"
 #include "sprite.h"
 #include "texture.h"
 #include "keyboard.h"
 #include "debug_ostream.h"
 
-ID3D11ShaderResourceView* g_Texture = nullptr;
+// ①Spriteのインスタンス、ポインタ用意
+static Sprite* g_pTitleSprite = nullptr;
 
 void Title_Initialize(ID3D11Device* pDevice, ID3D11DeviceContext* pContext)
 {
-	//描画用設定
-	pos = { SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2 };
-	size = { SCREEN_WIDTH, SCREEN_HEIGHT };
-	col = { 1.0f,1.0f,1.0f,1.0f };
-	texcoord = { 0.0f,0.0f };
-
-	g_Texture = LoadTexture(L"asset\\texture\\16_9.png");
-}
-
-void Title_Finalize(void)
-{
+	// ②各種初期化
+	g_pTitleSprite = new Sprite(
+		{ SCREEN_WIDTH / 2.0f, SCREEN_HEIGHT / 2.0f },	//位置
+		{ SCREEN_WIDTH, SCREEN_HEIGHT },				//サイズ
+		0.0f,											//回転（度）
+		{ 1.0f, 1.0f, 1.0f, 1.0f },						//RGBA
+		BLENDSTATE_NONE,								//BlendState
+		L"asset\\texture\\16_9.png"						//テクスチャパス
+	);
 }
 
 void Title_Update(void)
 {
-	if (Keyboard_IsKeyDownTrigger(KK_SPACE))
+	// ③適当な処理　アニメーションなどもここで
+	if (Keyboard_IsKeyDown(KK_SPACE))
 	{
-		//StartFade(SCENE_GAME);
+		g_pTitleSprite->AddRot(1.0f);
 	}
 }
 
 void Title_Draw(void)
 {
-	Sprite_Draw(pos, size, col, BLENDSTATE_NONE, g_Texture);
+	// ④Drawするだけでいい！！！！！！！
+	g_pTitleSprite->Draw(); 
 }
+
+void Title_Finalize(void)
+{
+	if (g_pTitleSprite) {
+		delete g_pTitleSprite;
+		g_pTitleSprite = nullptr;
+	}
+}
+
+//正直、ここまで機能盛りだくさんなクラスはSOLID原則の"単一責任の原則"に反している気がするが……
+//今回はいいや。やっとまともな進捗を得れたので。
+//ってかこのコメントすらもCopilotが補完してくれるのウケる
+
