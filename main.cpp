@@ -11,11 +11,11 @@
 #include "scene.h"
 #include "direct3d.h"
 #include "shader.h"
-
 #include "debug_ostream.h"
 #include "main.h"
 #include "keyboard.h"
 #include "mouse.h"
+#include "sprite.h"
 
 //==================================
 //グローバル変数
@@ -86,6 +86,7 @@ int APIENTRY WinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance,
 	Keyboard_Initialize();
 	Mouse_Initialize(hWnd);
 	Shader_Initialize(Direct3D_GetDevice(), Direct3D_GetDeviceContext());
+	Sprite_Initialize();
 	Init();
 
 	//メッセージループ
@@ -149,6 +150,7 @@ int APIENTRY WinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance,
 	} while (msg.message != WM_QUIT);//windowsから終了メッセージが来たらループ終了
 
 	Finalize();
+	Sprite_Finalize();
 	Shader_Finalize();
 	Direct3D_Finalize();
 
