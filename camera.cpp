@@ -3,7 +3,7 @@
 #include "DirectXMath.h"
 using namespace DirectX;
 #include "direct3d.h"
-#include "newShader.h"
+#include "shader.h"
 #include "keyboard.h"
 #include "mouse.h"
 #include "texture.h"

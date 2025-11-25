@@ -8,7 +8,7 @@
 using namespace DirectX;
 #include "direct3d.h"
 #include "main.h"
-#include "newShader.h"
+#include "shader.h"
 #include "debug_ostream.h"
 #include "game.h"
 #include "field.h"

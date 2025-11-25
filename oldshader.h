@@ -11,16 +11,11 @@
 
 #include <d3d11.h>
 #include <DirectXMath.h>
-#include "direct3d.h"
-
 
 bool Shader_Initialize(ID3D11Device* pDevice, ID3D11DeviceContext* pContext);
 void Shader_Finalize();
 
 void Shader_SetMatrix(const DirectX::XMMATRIX& matrix);
-
-void Shader_SetWorldMatrix(const DirectX::XMMATRIX& matrix);
-void Shader_SetLight(Light* light);
 
 void Shader_Begin();
 

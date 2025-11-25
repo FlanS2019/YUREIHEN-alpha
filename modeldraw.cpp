@@ -1,6 +1,6 @@
 #include "modeldraw.h"
 #include "Camera.h"
-#include "newShader.h"
+#include "shader.h"
 
 // ƒOƒ[ƒoƒ‹•Ï”
 static ID3D11Device* g_pDevice = NULL;

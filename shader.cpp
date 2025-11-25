@@ -12,12 +12,16 @@ using namespace DirectX;
 #include "direct3d.h"
 #include "debug_ostream.h"
 #include <fstream>
+#include "shader.h"
 
 
-static ID3D11VertexShader* g_pVertexShader = nullptr;
-static ID3D11InputLayout* g_pInputLayout = nullptr;
-static ID3D11Buffer* g_pVSConstantBuffer = nullptr;
-static ID3D11PixelShader* g_pPixelShader = nullptr;
+static ID3D11VertexShader* g_pVertexShader = nullptr;//頂点シェーダー
+static ID3D11InputLayout* g_pInputLayout = nullptr;//頂点レイアウト
+static ID3D11Buffer* g_pVSConstantBuffer = nullptr;//定数バッファ1個
+static ID3D11PixelShader* g_pPixelShader = nullptr;//ピクセルシェーダー
+
+static ID3D11Buffer* g_pLightConstantBuffer = nullptr;//定数バッファ1個
+static ID3D11Buffer* g_pWorldConstantBuffer = nullptr;//定数バッファ1個
 
 // 注意！初期化で外部から設定されるもの。Release不要。
 static ID3D11Device* g_pDevice = nullptr;
@@ -40,6 +44,7 @@ bool Shader_Initialize(ID3D11Device* pDevice, ID3D11DeviceContext* pContext)
 
 
 	// 事前コンパイル済み頂点シェーダーの読み込み
+	//csoはhlslファイルの実行形式ファイル
 	std::ifstream ifs_vs("shader_vertex_2d.cso", std::ios::binary);
 
 	if (!ifs_vs) {
@@ -68,9 +73,10 @@ bool Shader_Initialize(ID3D11Device* pDevice, ID3D11DeviceContext* pContext)
 	}
 
 
-	// 頂点レイアウトの定義
+	// 頂点レイアウトの定義<<<<<<<NORMAL追加
 	D3D11_INPUT_ELEMENT_DESC layout[] = {
 		{ "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT,    0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0 },
+		{ "NORMAL", 0, DXGI_FORMAT_R32G32B32_FLOAT,    0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0 },
 		{ "COLOR", 0, DXGI_FORMAT_R32G32B32A32_FLOAT,    0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0 },
 		{ "TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT,    0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0 },
 	};
@@ -88,13 +94,21 @@ bool Shader_Initialize(ID3D11Device* pDevice, ID3D11DeviceContext* pContext)
 	}
 
 
+
 	// 頂点シェーダー用定数バッファの作成
 	D3D11_BUFFER_DESC buffer_desc{};
-	buffer_desc.ByteWidth = sizeof(XMFLOAT4X4); // バッファのサイズ
+	buffer_desc.ByteWidth = sizeof(XMFLOAT4X4); // バッファのサイズ //<<<<<<<<<<XMFLOAT4X4に変更
 	buffer_desc.BindFlags = D3D11_BIND_CONSTANT_BUFFER; // バインドフラグ
 
 	g_pDevice->CreateBuffer(&buffer_desc, nullptr, &g_pVSConstantBuffer);
+	g_pContext->VSSetConstantBuffers(0, 1, &g_pVSConstantBuffer); // 定数バッファを頂点シェーダーにセット
 
+	g_pDevice->CreateBuffer(&buffer_desc, nullptr, &g_pWorldConstantBuffer);
+	g_pContext->VSSetConstantBuffers(1, 1, &g_pWorldConstantBuffer); // 定数バッファを頂点シェーダーにセット
+
+	buffer_desc.ByteWidth = sizeof(Light); // バッファのサイズ //<<<<<<<<<<XMFLOAT4X4に変更
+	g_pDevice->CreateBuffer(&buffer_desc, nullptr, &g_pLightConstantBuffer);
+	g_pContext->VSSetConstantBuffers(2, 1, &g_pLightConstantBuffer); // 定数バッファを頂点シェーダーにセット
 
 	// 事前コンパイル済みピクセルシェーダーの読み込み
 	std::ifstream ifs_ps("shader_pixel_2d.cso", std::ios::binary);
@@ -130,6 +144,9 @@ void Shader_Finalize()
 	SAFE_RELEASE(g_pVSConstantBuffer);
 	SAFE_RELEASE(g_pInputLayout);
 	SAFE_RELEASE(g_pVertexShader);
+
+	SAFE_RELEASE(g_pWorldConstantBuffer);
+	SAFE_RELEASE(g_pLightConstantBuffer);
 }
 
 void Shader_SetMatrix(const DirectX::XMMATRIX& matrix)
@@ -142,6 +159,24 @@ void Shader_SetMatrix(const DirectX::XMMATRIX& matrix)
 
 	// 定数バッファに行列をセット
 	g_pContext->UpdateSubresource(g_pVSConstantBuffer, 0, nullptr, &transpose, 0, 0);
+}
+
+void Shader_SetWorldMatrix(const DirectX::XMMATRIX& matrix)
+{
+	// 定数バッファ格納用行列の構造体を定義
+	XMFLOAT4X4 transpose;
+
+	// 行列を転置して定数バッファ格納用行列に変換
+	XMStoreFloat4x4(&transpose, XMMatrixTranspose(matrix));
+
+	// 定数バッファに行列をセット
+	g_pContext->UpdateSubresource(g_pWorldConstantBuffer, 0, nullptr, &transpose, 0, 0);
+}
+
+void Shader_SetLight(Light* light)
+{
+	// 定数バッファにlight構造体をセット
+	g_pContext->UpdateSubresource(g_pLightConstantBuffer, 0, nullptr, light, 0, 0);
 }
 
 void Shader_Begin()

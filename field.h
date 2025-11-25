@@ -5,7 +5,7 @@
 #include <DirectXMath.h>
 #include "direct3d.h"
 
-#include "newShader.h"
+#include "shader.h"
 
 using namespace DirectX;
 

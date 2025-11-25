@@ -10,7 +10,7 @@
 #include <algorithm>
 #include "scene.h"
 #include "direct3d.h"
-#include "newShader.h"
+#include "shader.h"
 
 #include "debug_ostream.h"
 #include "main.h"
