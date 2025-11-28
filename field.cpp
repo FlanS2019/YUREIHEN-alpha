@@ -21,7 +21,7 @@ XMFLOAT3 rotateBox = XMFLOAT3(0, 0, 0);
 MAPDATA Map[] =
 {
 	//1çsñ⁄
-	XMFLOAT3(1.0f, 2.0f, 1.0f), FIELD_BOX,
+	//XMFLOAT3(1.0f, 2.0f, 1.0f), FIELD_BOX,
 	XMFLOAT3(2.0f, 2.0f, 1.0f), FIELD_BOX,
 	XMFLOAT3(3.0f, 2.0f, 1.0f), FIELD_BOX,
 	XMFLOAT3(4.0f, 2.0f, 1.0f), FIELD_BOX,

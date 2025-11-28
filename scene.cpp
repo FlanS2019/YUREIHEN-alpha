@@ -6,7 +6,7 @@
 #include "texture.h"
 #include "title.h"
 
-SCENE scene = SCENE_TITLE;
+SCENE scene = SCENE_GAME;
 
 void Init(void)
 {
