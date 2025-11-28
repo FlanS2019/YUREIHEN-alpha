@@ -50,7 +50,7 @@ void Game_Initialize(ID3D11Device* pDevice, ID3D11DeviceContext* pContext)
 
 	Camera_Initialize();
 	Field_Initialize(pDevice, pContext);
-	ModelDraw_Initialize(pDevice, pContext);
+	ModelDraw_Initialize();
 }
 
 void Game_Update(void)

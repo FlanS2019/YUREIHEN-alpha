@@ -4,36 +4,23 @@
 #include "keyboard.h"
 #include "sprite3d.h"
 
-// グローバル変数
-static ID3D11Device* g_pDevice = NULL;
-static ID3D11DeviceContext* g_pContext = NULL;
-
-// モデル
+// ①モデルを入れる変数を宣言
 Sprite3D* g_Ghost = NULL;
-Sprite3D* g_Box = NULL;
 
-void ModelDraw_Initialize(ID3D11Device* pDevice, ID3D11DeviceContext* pContext)
+void ModelDraw_Initialize(void)
 {
-	g_pDevice = pDevice;
-	g_pContext = pContext;
-
+	// ②変数を初期化
 	g_Ghost = new Sprite3D(
 		{ 0.0f, 2.0f, 0.0f },			//位置
 		{ 1.0f, 1.0f, 1.0f },			//スケール
 		{ 0.0f, 0.0f, 0.0f },			//回転（度）
 		"asset\\model\\ghost.fbx"		//モデルパス
 	);
-
-	g_Box = new Sprite3D(
-		{ 0.0f, 2.0f, 0.0f },			//位置
-		{ 0.2f, 0.2f, 0.2f },			//スケール
-		{ 0.0f, 0.0f, 0.0f },			//回転（度）
-		"asset\\model\\kirby2.fbx"		//モデルパス
-	);
 }
 
 void ModelDraw_Update(void)
 {
+	// ③処理
 	// スペースキーが押されたらy軸回転
 	if (Keyboard_IsKeyDown(KK_I))
 	{
@@ -42,22 +29,18 @@ void ModelDraw_Update(void)
 		{
 			g_Ghost->SetRotY(0.0f);
 		}
-
-		//サイズをデバッグ出力
-		hal::dout << "Model Size: (" << g_Box->GetDisplaySize().x << ", " << g_Box->GetDisplaySize().y << ", " << g_Box->GetDisplaySize().z << ")" << std::endl;
 	}
 }
 
 void ModelDraw_Draw(void)
 {
-	// モデル描画
+	// ④モデル描画
 	g_Ghost->Draw();
-	g_Box->Draw();
 }
 
 void ModelDraw_Finalize(void)
 {
+	// ⑤終了処理
 	delete g_Ghost;
-	delete g_Box;
 }
 

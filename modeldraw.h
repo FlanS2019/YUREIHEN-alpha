@@ -6,7 +6,7 @@
 
 using namespace DirectX;
 
-void ModelDraw_Initialize(ID3D11Device* pDevice, ID3D11DeviceContext* pContext);
+void ModelDraw_Initialize(void);
 void ModelDraw_Update(void);
 void ModelDraw_Draw(void);
 void ModelDraw_Finalize(void);
