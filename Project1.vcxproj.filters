@@ -145,6 +145,8 @@
       <Filter>ヘッダー ファイル</Filter>
     </None>
     <None Include="fbxexport.md" />
+    <None Include="MODEL_RENDER_CHECKLIST.md" />
+    <None Include="MODEL_CPP_IMPROVEMENTS.md" />
   </ItemGroup>
   <ItemGroup>
     <Library Include="DirectXTex_Debug.lib" />
