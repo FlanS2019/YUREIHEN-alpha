@@ -150,6 +150,7 @@
     <ClCompile Include="modeldraw.cpp" />
     <ClCompile Include="mouse.cpp" />
     <ClCompile Include="game.cpp" />
+    <ClCompile Include="result.cpp" />
     <ClCompile Include="shader.cpp" />
     <ClCompile Include="scene.cpp" />
     <ClCompile Include="scene.h" />
@@ -172,6 +173,7 @@
     <ClInclude Include="modeldraw.h" />
     <ClInclude Include="mouse.h" />
     <ClInclude Include="game.h" />
+    <ClInclude Include="result.h" />
     <ClInclude Include="shader.h" />
     <ClInclude Include="sprite.h" />
     <ClInclude Include="sprite3d.h" />

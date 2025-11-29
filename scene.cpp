@@ -5,6 +5,7 @@
 #include "keyboard.h"
 #include "texture.h"
 #include "title.h"
+#include "result.h"
 
 SCENE scene = SCENE_ANM_LOGO;
 
@@ -19,6 +20,7 @@ void Init(void)
 		Game_Initialize(Direct3D_GetDevice(), Direct3D_GetDeviceContext());
 		break;
 	case SCENE_RESULT:
+		Result_Initialize(Direct3D_GetDevice(), Direct3D_GetDeviceContext());
 		break;
 	case SCENE_ANM_LOGO:
 		Animation_Logo_Initialize(Direct3D_GetDevice(), Direct3D_GetDeviceContext());
@@ -48,6 +50,7 @@ void Update(void)
 		Game_Update();
 		break;
 	case SCENE_RESULT:
+		Result_Update();
 		break;
 	case SCENE_ANM_LOGO:
 		Animation_Logo_Update();
@@ -77,6 +80,7 @@ void Draw(void)
 		Game_Draw();
 		break;
 	case SCENE_RESULT:
+		Result_Draw();
 		break;
 	case SCENE_ANM_LOGO:
 		Animation_Logo_Draw();
@@ -106,6 +110,7 @@ void Finalize(void)
 		Game_Finalize();
 		break;
 	case SCENE_RESULT:
+		Result_Finalize();
 		break;
 	case SCENE_ANM_LOGO:
 		Animation_Logo_Finalize();
