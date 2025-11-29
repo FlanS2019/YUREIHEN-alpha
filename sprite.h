@@ -68,12 +68,13 @@ protected:
 	ID3D11ShaderResourceView* m_Texture; // テクスチャ
 	int m_DivideX;       // 横分割数
 	int m_DivideY;       // 縦分割数
+	int m_TextureNumber; // 描画するテクスチャ番号
 public:
 	// pos: 中心位置, size: 幅と高さ, rotation: 角度(度)
 	// divideX: 横分割数, divideY: 縦分割数, textureNumber: 描画するテクスチャ番号
 	// texturePath: テクスチャファイルパス(LoadTexture関数で読み込み)
 	SplitSprite(const XMFLOAT2& pos, const XMFLOAT2& size, float rotation, const XMFLOAT4& color, BLENDSTATE bstate, const wchar_t* texturePath, int divideX, int divideY)
-		: Transform2D(pos, rotation, size), m_Color(color), m_BlendState(bstate), m_Texture(nullptr), m_DivideX(divideX), m_DivideY(divideY)
+		: Transform2D(pos, rotation, size), m_Color(color), m_BlendState(bstate), m_Texture(nullptr), m_DivideX(divideX), m_DivideY(divideY), m_TextureNumber(0)
 	{
 		if (texturePath) {
 			m_Texture = LoadTexture(texturePath);
@@ -92,10 +93,12 @@ public:
 	int GetDivideX(void) const { return m_DivideX; }
 	int GetDivideY(void) const { return m_DivideY; }
 
+	void SetTextureNumber(int textureNumber) { m_TextureNumber = textureNumber; }
+
 	// インスタンスごとに描画する
 	//　描画するテクスチャ番号を引数で指定（デフォルト0）
-	void Draw(int texnum = 0)
+	void Draw()
 	{
-		Sprite_Split_Draw(m_Position, m_Scale, m_Rotation, m_Color, m_BlendState, m_Texture, m_DivideX, m_DivideY, texnum);
+		Sprite_Split_Draw(m_Position, m_Scale, m_Rotation, m_Color, m_BlendState, m_Texture, m_DivideX, m_DivideY, m_TextureNumber);
 	}
 };

@@ -22,8 +22,6 @@ using namespace DirectX;
 
 Light* MainLight;
 
-Sprite* g_TestSprite = nullptr;
-
 void Game_Initialize(ID3D11Device* pDevice, ID3D11DeviceContext* pContext)
 {
 	// デバイスとデバイスコンテキストのチェック
@@ -37,16 +35,6 @@ void Game_Initialize(ID3D11Device* pDevice, ID3D11DeviceContext* pContext)
 		XMFLOAT4(0.0f, -10.0f, -10.0f, 1.0f),	//向き
 		XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f),	//光の色
 		XMFLOAT4(0.5f, 0.5f, 0.5f, 1.0f)	//環境光
-	);
-
-	// ②各種初期化
-	g_TestSprite = new Sprite(
-		{ SCREEN_WIDTH / 2.0f, SCREEN_HEIGHT / 2.0f },	//位置
-		{ 30.0f, 30.0f },								//サイズ
-		0.0f,											//回転（度）
-		{ 1.0f, 1.0f, 1.0f, 0.5f },						//RGBA
-		BLENDSTATE_ALFA,								//BlendState
-		L"asset\\texture\\grass.png"					//テクスチャパス
 	);
 
 	Camera_Initialize();
@@ -79,14 +67,12 @@ void Game_Draw(void)
 	Shader_SetLight(MainLight);
 
 	//2D描画処理ここから
-	g_TestSprite->Draw();
 	UI_Draw();
 }
 
 void Game_Finalize(void)
 {
 	delete MainLight;
-	delete g_TestSprite;
 
 	Camera_Finalize();
 	Field_Finalize();
