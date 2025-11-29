@@ -18,6 +18,7 @@ using namespace DirectX;
 #include "camera.h"
 #include "modeldraw.h"
 #include "sprite.h"
+#include "UI.h"
 
 Light* MainLight;
 
@@ -51,6 +52,7 @@ void Game_Initialize(ID3D11Device* pDevice, ID3D11DeviceContext* pContext)
 	Camera_Initialize();
 	Field_Initialize(pDevice, pContext);
 	ModelDraw_Initialize();
+	UI_Initialize();
 }
 
 void Game_Update(void)
@@ -58,6 +60,7 @@ void Game_Update(void)
 	Camera_Update();
 	Field_Update();
 	ModelDraw_Update();
+	UI_Update();
 }
 
 void Game_Draw(void)
@@ -77,6 +80,7 @@ void Game_Draw(void)
 
 	//2D•`‰æˆ—‚±‚±‚©‚ç
 	g_TestSprite->Draw();
+	UI_Draw();
 }
 
 void Game_Finalize(void)
@@ -87,5 +91,5 @@ void Game_Finalize(void)
 	Camera_Finalize();
 	Field_Finalize();
 	ModelDraw_Finalize();
-
+	UI_Finalize();
 }

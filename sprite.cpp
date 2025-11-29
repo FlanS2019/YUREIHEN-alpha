@@ -104,6 +104,84 @@ void Sprite_Single_Draw(XMFLOAT2 pos, XMFLOAT2 size,float rot, XMFLOAT4 color, B
 }
 
 //----------------------------
+//分割テクスチャ描画（テクスチャを分割して指定したパターンのみ描画）
+//----------------------------
+void Sprite_Split_Draw(XMFLOAT2 pos, XMFLOAT2 size, float rot, XMFLOAT4 color, BLENDSTATE bstate, ID3D11ShaderResourceView* texture, int divideX, int divideY, int textureNumber)
+{
+	// シェーダー開始
+	Shader_Begin();
+
+	// スクリーン空間用の直交投影を設定
+	Shader_SetMatrix(XMMatrixOrthographicOffCenterLH(0.0f, SCREEN_WIDTH, SCREEN_HEIGHT, 0.0f, 0.0f, 1.0f));
+
+	// 2D描画用にマテリアル色を白に設定（テクスチャ × 白 = テクスチャ）
+	Shader_SetMaterialColor({ 1.0f, 1.0f, 1.0f, 1.0f });
+
+	g_pDevice = Direct3D_GetDevice();
+	g_pContext = Direct3D_GetDeviceContext();
+
+	// テクスチャ設定
+	ID3D11ShaderResourceView* tex = texture;
+	g_pContext->PSSetShaderResources(0, 1, &tex);
+	SetBlendState(bstate);
+
+	// 頂点データ
+	D3D11_MAPPED_SUBRESOURCE msr;
+	g_pContext->Map(g_pVertexBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &msr);
+	Vertex* v = (Vertex*)msr.pData;
+
+	float halfX = size.x * 0.5f;
+	float halfY = size.y * 0.5f;
+
+	// 回転（度->ラジアン）
+	float rotDeg = rot;
+	float rad = XMConvertToRadians(rotDeg);
+	float co = cosf(rad);
+	float si = sinf(rad);
+
+	// ローカル頂点（中心原点）
+	float lx[4] = { -halfX, halfX, -halfX, halfX };
+	float ly[4] = { -halfY, -halfY, halfY, halfY };
+
+	// 回転・平行移動後の頂点座標計算
+	for (int i = 0; i < 4; ++i) {
+		float rx = lx[i] * co - ly[i] * si;
+		float ry = lx[i] * si + ly[i] * co;
+		v[i].position = { rx + pos.x, ry + pos.y, 0.0f };
+		v[i].normal = { 0.0f, 0.0f, 0.0f };
+		v[i].color = color;
+	}
+
+	// 分割されたテクスチャの対応する部分のUV座標を計算
+	float texWidth = 1.0f / divideX;		// 1つのテクスチャの横幅
+	float texHeight = 1.0f / divideY;		// 1つのテクスチャの縦幅
+
+	// textureNumberから行・列を計算
+	int col = textureNumber % divideX;
+	int row = textureNumber / divideX;
+
+	// テクスチャ座標の最小・最大値を計算
+	float texMinU = col * texWidth;
+	float texMaxU = (col + 1) * texWidth;
+	float texMinV = row * texHeight;
+	float texMaxV = (row + 1) * texHeight;
+
+	// テクスチャ座標を設定
+	v[0].texCoord = { texMinU, texMinV };
+	v[1].texCoord = { texMaxU, texMinV };
+	v[2].texCoord = { texMinU, texMaxV };
+	v[3].texCoord = { texMaxU, texMaxV };
+
+	g_pContext->Unmap(g_pVertexBuffer, 0);
+
+	UINT stride = sizeof(Vertex);
+	UINT offset = 0;
+	g_pContext->IASetVertexBuffers(0, 1, &g_pVertexBuffer, &stride, &offset);
+	g_pContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
+	g_pContext->Draw(4, 0);
+}
+
+//----------------------------
 //シンプルな四角形描画 (以前のユーティリティ、必要なら回転対応を追加して再有効化)
 //----------------------------
 //void Sprite_Draw(XMFLOAT2 pos, XMFLOAT2 size, XMFLOAT4 color, BLENDSTATE bstate, ID3D11ShaderResourceView* g_Texture)
