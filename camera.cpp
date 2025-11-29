@@ -59,11 +59,11 @@ void Camera_Update(void)
     }
     
     // Rキーでカメラ回転をリセット
-    if (Keyboard_IsKeyDownTrigger(KK_R))
-    {
-        g_pitch = 0.0f;
-        g_yaw = 0.0f;
-    }
+    //if (Keyboard_IsKeyDownTrigger(KK_R))
+    //{
+    //    g_pitch = 0.0f;
+    //    g_yaw = 0.0f;
+    //}
     
     // マウスロック状態でない場合は視点操作をスキップ
     if (mouseState.positionMode == MOUSE_POSITION_MODE_ABSOLUTE)
