@@ -59,7 +59,7 @@ public:
 			// ‰½‚à‚µ‚È‚¢
 			break;
 		case FADE_OUT:
-			m_Color.w += 0.04f;
+			m_Color.w += 0.05f;
 			if (m_Color.w >= 1.0f)
 			{
 				m_Color.w = 1.0f;
@@ -71,7 +71,7 @@ public:
 			}
 			break;
 		case FADE_IN:
-			m_Color.w -= 0.04f;
+			m_Color.w -= 0.05f;
 			if (m_Color.w <= 0.0f)
 			{
 				m_Color.w = 0.0f;
