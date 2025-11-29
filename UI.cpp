@@ -9,7 +9,7 @@
 static Timer* g_Clock = nullptr;
 static Gauge* g_ScareGauge = nullptr;
 Sprite* g_Reticle = nullptr;
-static Number* g_TimeScore = nullptr;
+static Number* g_ScareCombo = nullptr;
 static DWORD g_LastScoreUpdateTime = 0;
 
 //----------------------------
@@ -50,8 +50,8 @@ void UI_Initialize(void)
 		L"asset\\texture\\grass.png"					//テクスチャパス
 	);
 
-	// スコア表示用テクスチャの読み込み
-	g_TimeScore = new Number(
+	// 恐怖コンボ
+	g_ScareCombo = new Number(
 		{ SCREEN_WIDTH - 110.0f, 170.0f },// 位置
 		{ 70.0f, 70.0f },								// サイズ
 		{ 1.0f, 1.0f, 1.0f, 1.0f },						// RGBA
@@ -61,7 +61,7 @@ void UI_Initialize(void)
 		55.0f											// 桁間隔												
 	);
 
-	g_TimeScore->SetShowX(true); // 倍数接頭子「x」を表示
+	g_ScareCombo->SetShowX(true); // 倍数接頭子「x」を表示
 
 }
 
@@ -95,7 +95,8 @@ void UI_Update(void)
 	// テスト用：右矢印キーでゲージを増やす
 	if (Keyboard_IsKeyDownTrigger(KK_RIGHT))
 	{
-		g_ScareGauge->AddValue(10.0f);
+		g_ScareGauge->AddValue(5.0f * g_ScareCombo->GetNumber());
+		hal::dout << "加算: " << 5.0f * g_ScareCombo->GetNumber();
 		hal::dout << "ゲージ値: " << g_ScareGauge->GetValue() << std::endl;
 	}
 
@@ -103,10 +104,10 @@ void UI_Update(void)
 	DWORD currentTime = GetTickCount64();
 	if (currentTime - g_LastScoreUpdateTime >= 1000) // 1秒ごとに更新
 	{
-		g_TimeScore->AddNumber(1); // スコアを加算
+		g_ScareCombo->AddNumber(1); // スコアを加算
+		if (g_ScareCombo->GetNumber() > 5) g_ScareCombo->SetNumber(1);// スコアが5を超えたらリセット（テスト用）
 		g_LastScoreUpdateTime = currentTime;
 	}
-
 }
 
 //----------------------------
@@ -117,7 +118,7 @@ void UI_Draw(void)
 	g_Clock->Draw(); // 時計を描画
 	g_ScareGauge->Draw(); // ゲージを描画
 	g_Reticle->Draw();
-	g_TimeScore->Draw(); // スコアを描画
+	g_ScareCombo->Draw(); // スコアを描画
 }
 
 //----------------------------
@@ -128,5 +129,5 @@ void UI_Finalize(void)
 	delete g_Clock;
 	delete g_ScareGauge;
 	delete g_Reticle;
-	delete g_TimeScore;
+	delete g_ScareCombo;
 }

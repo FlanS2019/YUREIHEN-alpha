@@ -229,17 +229,20 @@ public:
 		}
 	}
 
+	// Number クラスの Draw メソッドを改善
 	void Draw()
 	{
-		// 各桁を描画
+		// テクスチャのUV座標の端をクリップするためにオフセットを追加
 		XMFLOAT2 originalPos = m_Position;
 		XMFLOAT2 currentPos = m_Position;
 
-		// 基準点を下一桁（右端）にして、左方向に描画
+		// 右から左へ描画
 		for (int i = static_cast<int>(m_DigitTextures.size()) - 1; i >= 0; --i)
 		{
 			m_TextureNumber = m_DigitTextures[i];
-			m_Position = currentPos;
+			// 座標を整数値に丸める（ピクセル単位での正確な配置）
+			m_Position.x = floorf(currentPos.x);
+			m_Position.y = floorf(currentPos.y);
 			SplitSprite::Draw();
 			currentPos.x -= m_DigitSpacing;
 		}
