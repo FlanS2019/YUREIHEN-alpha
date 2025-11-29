@@ -5,6 +5,7 @@
 #include "sprite.h"
 #include <DirectXMath.h>
 #include <windows.h>
+#include <vector>
 using namespace DirectX;
 
 #define CLOCK_POS_X (120.0f)
@@ -162,6 +163,96 @@ public:
 	}
 	void SetMaxValue(float maxValue) { m_MaxValue = maxValue; }
 	void Reset() { m_Value = m_MaxValue; }
+};
+
+// Number クラス テクスチャ分割で数字列を表示
+class Number : public SplitSprite
+{
+protected:
+	int m_Number;           // 表示する数値
+	std::vector<int> m_DigitTextures;  // 各桁のテクスチャ番号
+	XMFLOAT2 m_DigitSize;   // 1桁あたりのサイズ
+	float m_DigitSpacing;   // 桁間の間隔
+	bool m_ShowMultiplier;  // 倍数接頭子「x」を表示するかどうか
+
+public:
+	Number(const XMFLOAT2& pos, const XMFLOAT2& digitSize, const XMFLOAT4& col, BLENDSTATE bstate, const wchar_t* texturePath, int divideX, int divideY, float spacing)
+		: SplitSprite(pos, digitSize, 0.0f, col, bstate, texturePath, divideX, divideY),
+		m_Number(0), m_DigitSize(digitSize), m_DigitSpacing(spacing), m_ShowMultiplier(false)
+	{
+	}
+
+	// 表示する数値を設定
+	void SetNumber(int number)
+	{
+		m_Number = number;
+		UpdateDigitTextures();
+	}
+
+	// 倍数接頭子「x」を表示するかどうかを設定
+	void SetShowX(bool show)
+	{
+		m_ShowMultiplier = show;
+		UpdateDigitTextures();
+	}
+
+	// 数値から各桁のテクスチャ番号を計算
+	void UpdateDigitTextures()
+	{
+		m_DigitTextures.clear();
+
+		// 倍数接頭子を表示する場合
+		if (m_ShowMultiplier)
+		{
+			m_DigitTextures.push_back(10); // テクスチャ番号10は「x'
+		}
+
+		// 数値を桁ごとに分解
+		if (m_Number == 0)
+		{
+			m_DigitTextures.push_back(0); // 0
+		}
+		else
+		{
+			int tempNum = m_Number;
+			std::vector<int> digits;
+			while (tempNum > 0)
+			{
+				digits.push_back(tempNum % 10);
+				tempNum /= 10;
+			}
+			// 逆順に格納（高位の桁から）
+			for (int i = static_cast<int>(digits.size()) - 1; i >= 0; --i)
+			{
+				m_DigitTextures.push_back(digits[i]);
+			}
+		}
+	}
+
+	void Draw()
+	{
+		// 各桁を描画
+		XMFLOAT2 originalPos = m_Position;
+		XMFLOAT2 currentPos = m_Position;
+
+		// 基準点を下一桁（右端）にして、左方向に描画
+		for (int i = static_cast<int>(m_DigitTextures.size()) - 1; i >= 0; --i)
+		{
+			m_TextureNumber = m_DigitTextures[i];
+			m_Position = currentPos;
+			SplitSprite::Draw();
+			currentPos.x -= m_DigitSpacing;
+		}
+
+		// 位置を元に戻す
+		m_Position = originalPos;
+	}
+
+	// ゲッター・セッター
+	int GetNumber() const { return m_Number; }
+	bool GetShowMultiplier() const { return m_ShowMultiplier; }
+	void SetDigitSpacing(float spacing) { m_DigitSpacing = spacing; }
+	void AddNumber(int value) { SetNumber(m_Number + value); }
 };
 
 // UI初期化

@@ -102,9 +102,9 @@ bool Direct3D_Initialize(HWND hWnd)
 	// サンプラーステート設定
 	D3D11_SAMPLER_DESC samplerDesc;
 	ZeroMemory(&samplerDesc, sizeof(samplerDesc));
-	samplerDesc.Filter = D3D11_FILTER_ANISOTROPIC;//ちょっといいフィルターにする
-	samplerDesc.AddressU = D3D11_TEXTURE_ADDRESS_WRAP;//横の座標範囲外は画像繰り返し
-	samplerDesc.AddressV = D3D11_TEXTURE_ADDRESS_WRAP;//縦の座標範囲外は画像繰り返し
+	samplerDesc.Filter = D3D11_FILTER_ANISOTROPIC;//異方性とというフィルターによる
+	samplerDesc.AddressU = D3D11_TEXTURE_ADDRESS_CLAMP;  //テクスチャの縁で折り返さない
+	samplerDesc.AddressV = D3D11_TEXTURE_ADDRESS_CLAMP;  //テクスチャの縁で折り返さない
 	samplerDesc.AddressW = D3D11_TEXTURE_ADDRESS_WRAP;//未使用
 	samplerDesc.MipLODBias = 0;
 	samplerDesc.MaxAnisotropy = 16;
@@ -113,7 +113,7 @@ bool Direct3D_Initialize(HWND hWnd)
 	samplerDesc.MaxLOD = D3D11_FLOAT32_MAX;
 	ID3D11SamplerState* samplerState = NULL;
 	g_pDevice->CreateSamplerState(&samplerDesc, &samplerState);
-	//サンプラーをシェーダーへセット
+	//サンプラーをシェーダーに設定
 	g_pDeviceContext->PSSetSamplers(0, 1, &samplerState);
 
 
