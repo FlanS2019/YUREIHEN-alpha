@@ -16,10 +16,10 @@ using namespace DirectX;
 #include "keyboard.h"
 #include "scene.h"
 #include "camera.h"
-#include "modeldraw.h"
 #include "sprite.h"
 #include "UI.h"
 #include "ghost.h"
+#include "furniture.h"
 
 Light* MainLight;
 
@@ -41,8 +41,8 @@ void Game_Initialize(ID3D11Device* pDevice, ID3D11DeviceContext* pContext)
 	Camera_Initialize();
 	Ghost_Initialize(pDevice, pContext);
 	Field_Initialize(pDevice, pContext);
-	ModelDraw_Initialize();
 	UI_Initialize();
+	Furniture_Initialize();
 }
 
 void Game_Update(void)
@@ -50,8 +50,8 @@ void Game_Update(void)
 	Ghost_Update();
 	Camera_Update();
 	Field_Update();
-	ModelDraw_Update();
 	UI_Update();
+	Furniture_Update();
 }
 
 void Game_Draw(void)
@@ -64,7 +64,7 @@ void Game_Draw(void)
 
 	Field_Draw();
 	Ghost_Draw();
-	ModelDraw_Draw();
+	Furniture_Draw();
 
 	SetDepthTest(false);
 	MainLight->SetEnable(false);
@@ -81,6 +81,6 @@ void Game_Finalize(void)
 	Camera_Finalize();
 	Ghost_Finalize();
 	Field_Finalize();
-	ModelDraw_Finalize();
 	UI_Finalize();
+	Furniture_Finalize();
 }

@@ -85,30 +85,6 @@ void UI_Update(void)
 		StartFade(SCENE_ANM_LOSE);
 	}
 
-	////qキーでリセット（デバッグ用）
-	//if (Keyboard_IsKeyDownTrigger(KK_Q))
-	//{
-	//	g_Clock->Reset();
-	//	hal::dout << "Qキーでタイマーをリセットしました" << std::endl;
-	//}
-
-	// デバッグ用：左矢印キーでゲージを減らす
-	if (Keyboard_IsKeyDownTrigger(KK_LEFT))
-	{
-		g_ScareGauge->AddValue(-10.0f);
-		hal::dout << "ゲージ値: " << g_ScareGauge->GetValue() << std::endl;
-	}
-
-	// デバッグ用：右矢印キーでゲージを増やす
-	if (Keyboard_IsKeyDownTrigger(KK_RIGHT))
-	{
-		g_ScareGauge->AddValue(5.0f * g_ScareCombo->GetNumber());
-		hal::dout << "加算: " << 5.0f * g_ScareCombo->GetNumber();
-		hal::dout << "ゲージ値: " << g_ScareGauge->GetValue() << std::endl;
-	}
-
-
-
 	// 恐怖コンボ更新処理（デバッグ用に秒数で増やしているだけ）
 	DWORD currentTime = GetTickCount64();
 	if (currentTime - g_LastScoreUpdateTime >= 1000) // 1秒ごとに更新
@@ -139,4 +115,13 @@ void UI_Finalize(void)
 	delete g_ScareGauge;
 	delete g_Reticle;
 	delete g_ScareCombo;
+}
+
+//恐怖ゲージ加算
+void AddScareGauge(float value)
+{
+	if (g_ScareGauge)
+	{
+		g_ScareGauge->AddValue(value * g_ScareCombo->GetNumber());
+	}
 }

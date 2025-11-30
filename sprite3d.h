@@ -29,7 +29,7 @@ public:
 		ModelRelease(m_Model);
 	}
 
-	void Draw(void)
+	virtual void Draw(void)
 	{
 		if (m_Model)
 		{
@@ -38,7 +38,8 @@ public:
 				m_Model,
 				GetPos(),
 				GetRot(),
-				GetScale()
+				GetScale(),
+				XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f)  // デフォルト色は白
 			);
 		}
 		else
@@ -57,4 +58,6 @@ public:
 			m_ModelSize.z * scale.z
 		);
 	}
+
+	XMFLOAT4 GetModelColor(void) const { return ModelGetAverageMaterialColor(m_Model); }
 };

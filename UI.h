@@ -80,6 +80,7 @@ public:
 #define GAUGE_BAR_YELLOW (2)
 #define GAUGE_BAR_FRAME (0)
 #define GAUGE_OFFSET ((GAUGE_SIZE / 1000 ) * 160)
+#define GAUGE_SCORE_DEF (5.0f)
 
 // Gaugeクラス テクスチャを伸縮して値を表現
 class Gauge : public SplitSprite
@@ -164,6 +165,10 @@ public:
 	void SetMaxValue(float maxValue) { m_MaxValue = maxValue; }
 	void Reset() { m_Value = m_MaxValue; }
 };
+
+// 恐怖ゲージ加算
+void AddScareGauge(float value = GAUGE_SCORE_DEF);
+
 
 // Number クラス テクスチャ分割で数字列を表示
 class Number : public SplitSprite

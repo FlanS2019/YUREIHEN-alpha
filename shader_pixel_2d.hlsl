@@ -37,11 +37,10 @@ struct PS_INPUT
 
 float4 main(PS_INPUT ps_in) : SV_TARGET
 {
-    // マテリアル色とテクスチャを組み合わせる
     // テクスチャサンプル
     float4 texColor = g_Texture.Sample(g_SamplerState, ps_in.texcoord);
     
-    // ベースカラー決定：テクスチャがない場合はマテリアル色を使用
+    // ベースカラー決定：テクスチャカラー × マテリアル色 × 頂点カラー
     float4 baseColor = texColor * MaterialColor * ps_in.color;
     
     // ライティング計算（Lambert）

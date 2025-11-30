@@ -42,5 +42,6 @@ struct MODEL
 
 MODEL* ModelLoad(const char* FileName);
 void ModelRelease(MODEL* model);
-void ModelDraw(MODEL* model, XMFLOAT3 pos, XMFLOAT3 rot, XMFLOAT3 scale);
+void ModelDraw(MODEL* model, XMFLOAT3 pos, XMFLOAT3 rot, XMFLOAT3 scale, const XMFLOAT4& color = XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f), bool useColorReplace = false);
 XMFLOAT3 ModelGetSize(MODEL* model);
+XMFLOAT4 ModelGetAverageMaterialColor(MODEL* model);

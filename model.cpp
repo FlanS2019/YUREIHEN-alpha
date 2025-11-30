@@ -7,6 +7,8 @@
 #include <DirectXMath.h>
 #include <assert.h>
 #include <iostream>
+#include <float.h>
+#include <algorithm>
 
 using namespace DirectX;
 
@@ -43,24 +45,46 @@ struct MeshMaterialData
 static MeshMaterialData* g_meshMaterialData = nullptr;
 
 // ノードを再帰的に描画する内部関数
-void RenderNode(MODEL* model, aiNode* node, XMMATRIX parentTransform)
+void RenderNode(MODEL* model, aiNode* node, XMMATRIX parentTransform, const XMFLOAT4& color, bool useColorReplace = false)
 {
-	// このノードのローカル変換行列を親の変換と合成
+	// このノードのローカル変換行列と親の変換を組み合わせ
 	XMMATRIX currentTransform = AiMatrixToXMMatrix(node->mTransformation) * parentTransform;
 
-	// このノードが持つすべてのメッシュを描画
+	// このノード以下のすべてのメッシュを描画
 	for (unsigned int i = 0; i < node->mNumMeshes; i++)
 	{
 		unsigned int meshIndex = node->mMeshes[i];
 		aiMesh* mesh = model->AiScene->mMeshes[meshIndex];
 
-		// マテリアル色をシェーダーに設定
-		if (meshIndex < model->AiScene->mNumMeshes)
+		// マテリアルの色を計算
+		XMFLOAT4 finalColor;
+		if (useColorReplace)
 		{
-			Shader_SetMaterialColor(model->MeshMaterials[meshIndex].diffuseColor);
+			// 色を置き換え（マテリアル色を無視）
+			finalColor = color;
 		}
+		else
+		{
+			// 色を乗算（元の動作）
+			if (meshIndex < model->AiScene->mNumMeshes)
+			{
+				XMFLOAT4 meshColor = model->MeshMaterials[meshIndex].diffuseColor;
+				finalColor = XMFLOAT4(
+					meshColor.x * color.x,
+					meshColor.y * color.y,
+					meshColor.z * color.z,
+					meshColor.w * color.w
+				);
+			}
+			else
+			{
+				finalColor = color;
+			}
+		}
+		
+		Shader_SetMaterialColor(finalColor);
 
-		// テクスチャをシェーダーに設定（プリキャッシュされた値を使用）
+		// テクスチャをシェーダーに設定(プリキャッシュされた値を使用)
 		ID3D11ShaderResourceView* textureToSet = model->MeshMaterials[meshIndex].textureView;
 		Direct3D_GetDeviceContext()->PSSetShaderResources(0, 1, &textureToSet);
 
@@ -72,14 +96,14 @@ void RenderNode(MODEL* model, aiNode* node, XMMATRIX parentTransform)
 		// インデックスバッファ設定
 		Direct3D_GetDeviceContext()->IASetIndexBuffer(model->IndexBuffer[meshIndex], DXGI_FORMAT_R32_UINT, 0);
 
-		// 描画（保持されているインデックス数を使用）
+		// 描画(保持されているインデックス数を使用)
 		Direct3D_GetDeviceContext()->DrawIndexed(model->MeshIndexCounts[meshIndex], 0, 0);
 	}
 
-	// 子ノードを再帰処理
+	// 子ノードを再帰実行
 	for (unsigned int i = 0; i < node->mNumChildren; i++)
 	{
-		RenderNode(model, node->mChildren[i], currentTransform);
+		RenderNode(model, node->mChildren[i], currentTransform, color, useColorReplace);
 	}
 }
 
@@ -341,7 +365,7 @@ void ModelRelease(MODEL* model)
 	delete model;
 }
 
-void ModelDraw(MODEL* model, XMFLOAT3 pos, XMFLOAT3 rot, XMFLOAT3 scale)
+void ModelDraw(MODEL* model, XMFLOAT3 pos, XMFLOAT3 rot, XMFLOAT3 scale, const XMFLOAT4& color, bool useColorReplace)
 {
 	if (!model) return;
 
@@ -361,66 +385,102 @@ void ModelDraw(MODEL* model, XMFLOAT3 pos, XMFLOAT3 rot, XMFLOAT3 scale)
 		XMConvertToRadians(rot.z));
 	XMMATRIX ScalingMatrix = XMMatrixScaling(scale.x, scale.y, scale.z);
 
-	// ワールド行列の合成（スケール → 回転 → 平行移動）
+	// ワールド行矩の計算(スケール × 回転 × 移動順)
 	XMMATRIX World = ScalingMatrix * RotationMatrix * TranslationMatrix;
 
 	// WVP行列の計算
 	XMMATRIX WVP = World * View * Projection;
 
 	// シェーダーに行列をセット
-	Shader_SetMatrix(WVP);           // WVP行列をセット
-	Shader_SetWorldMatrix(World);    // ワールド行列をセット
+	Shader_SetMatrix(WVP);           // WVP行列セット
+	Shader_SetWorldMatrix(World);    // ワールド行列セット
 
-	// シェーダーを使ってパイプライン設定
+	// シェーダーを使用してパイプライン設定
 	Shader_Begin();
 
-	// プリミティブトポロジ設定
+	// プリミティブ・トポロジ設定
 	Direct3D_GetDeviceContext()->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 
-	// ルートノードから再帰的に描画開始（初期変換は単位行列）
+	// ルートノードから再帰的に描画開始(座標変換は単位行列)
 	XMMATRIX identity = XMMatrixIdentity();
-	RenderNode(model, model->AiScene->mRootNode, identity);
+	RenderNode(model, model->AiScene->mRootNode, identity, color, useColorReplace);
 }
 
-// オプション: モデルそのものの実サイズを取得
 XMFLOAT3 ModelGetSize(MODEL* model)
 {
-	if (!model || !model->AiScene) return XMFLOAT3(0.0f, 0.0f, 0.0f);
+	if (!model || !model->AiScene || model->AiScene->mNumMeshes == 0)
+	{
+		return XMFLOAT3(1.0f, 1.0f, 1.0f);  // デフォルトサイズを返す
+	}
 
-	// すべてのメッシュの頂点から最小値と最大値を計算
+	// バウンディングボックスの最小・最大座標を計算
 	float minX = FLT_MAX, minY = FLT_MAX, minZ = FLT_MAX;
 	float maxX = -FLT_MAX, maxY = -FLT_MAX, maxZ = -FLT_MAX;
 
-	// すべてのメッシュを走査
+	// すべてのメッシュから頂点を取得してバウンディングボックスを計算
 	for (unsigned int m = 0; m < model->AiScene->mNumMeshes; m++)
 	{
 		aiMesh* mesh = model->AiScene->mMeshes[m];
 
-		// このメッシュのすべての頂点を走査
 		for (unsigned int v = 0; v < mesh->mNumVertices; v++)
 		{
 			const aiVector3D& vertex = mesh->mVertices[v];
 
-			// 最小値・最大値を更新
-			minX = fminf(minX, vertex.x);
-			minY = fminf(minY, vertex.y);
-			minZ = fminf(minZ, vertex.z);
+			minX = std::min(minX, vertex.x);
+			minY = std::min(minY, vertex.y);
+			minZ = std::min(minZ, vertex.z);
 
-			maxX = fmaxf(maxX, vertex.x);
-			maxY = fmaxf(maxY, vertex.y);
-			maxZ = fmaxf(maxZ, vertex.z);
+			maxX = std::max(maxX, vertex.x);
+			maxY = std::max(maxY, vertex.y);
+			maxZ = std::max(maxZ, vertex.z);
 		}
 	}
 
-	// バウンディングボックスのサイズを計算
-	float sizeX = maxX - minX;
-	float sizeY = maxY - minY;
-	float sizeZ = maxZ - minZ;
+	// 無限大のままの場合はデフォルト値を返す
+	if (minX == FLT_MAX || maxX == -FLT_MAX)
+	{
+		return XMFLOAT3(1.0f, 1.0f, 1.0f);
+	}
 
-	// 無効な値をチェック（頂点がない場合など）
-	if (sizeX < 0.0f) sizeX = 0.0f;
-	if (sizeY < 0.0f) sizeY = 0.0f;
-	if (sizeZ < 0.0f) sizeZ = 0.0f;
+	// サイズを計算（最大座標 - 最小座標）
+	XMFLOAT3 size(
+		maxX - minX,
+		maxY - minY,
+		maxZ - minZ
+	);
 
-	return XMFLOAT3(sizeX, sizeY, sizeZ);
+	// サイズが0の場合は最小値を設定
+	if (size.x == 0.0f) size.x = 1.0f;
+	if (size.y == 0.0f) size.y = 1.0f;
+	if (size.z == 0.0f) size.z = 1.0f;
+
+	return size;
+}
+
+// モデルの平均的なマテリアルカラーを取得する関数
+XMFLOAT4 ModelGetAverageMaterialColor(MODEL* model)
+{
+	if (!model || !model->AiScene || model->AiScene->mNumMeshes == 0)
+	{
+		return XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f);  // デフォルトは白
+	}
+
+	float r = 0.0f, g = 0.0f, b = 0.0f, a = 0.0f;
+
+	// すべてのメッシュのマテリアルカラーの平均を計算
+	for (unsigned int m = 0; m < model->AiScene->mNumMeshes; m++)
+	{
+		r += model->MeshMaterials[m].diffuseColor.x;
+		g += model->MeshMaterials[m].diffuseColor.y;
+		b += model->MeshMaterials[m].diffuseColor.z;
+		a += model->MeshMaterials[m].diffuseColor.w;
+	}
+
+	unsigned int meshCount = model->AiScene->mNumMeshes;
+	return XMFLOAT4(
+		r / meshCount,
+		g / meshCount,
+		b / meshCount,
+		a / meshCount
+	);
 }
