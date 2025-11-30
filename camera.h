@@ -61,8 +61,11 @@ public:
 	XMMATRIX GetProjection(void) const { return m_Projection; }
 };
 
+// 注視対象を設定する関数（汎用化）
 void Camera_Initialize(void);
 void Camera_Finalize(void);
 void Camera_Update(void);
 void Camera_Draw(void);
+float Camera_GetYaw(void);
+void Camera_SetTargetPos(XMFLOAT3 targetPos);  // 注視対象位置を設定
 Camera* GetCamera(void);

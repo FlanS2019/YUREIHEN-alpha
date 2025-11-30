@@ -19,6 +19,7 @@ using namespace DirectX;
 #include "modeldraw.h"
 #include "sprite.h"
 #include "UI.h"
+#include "ghost.h"
 
 Light* MainLight;
 
@@ -38,6 +39,7 @@ void Game_Initialize(ID3D11Device* pDevice, ID3D11DeviceContext* pContext)
 	);
 
 	Camera_Initialize();
+	Ghost_Initialize(pDevice, pContext);
 	Field_Initialize(pDevice, pContext);
 	ModelDraw_Initialize();
 	UI_Initialize();
@@ -45,6 +47,7 @@ void Game_Initialize(ID3D11Device* pDevice, ID3D11DeviceContext* pContext)
 
 void Game_Update(void)
 {
+	Ghost_Update();
 	Camera_Update();
 	Field_Update();
 	ModelDraw_Update();
@@ -60,6 +63,7 @@ void Game_Draw(void)
 	SetDepthTest(true);
 
 	Field_Draw();
+	Ghost_Draw();
 	ModelDraw_Draw();
 
 	SetDepthTest(false);
@@ -75,6 +79,7 @@ void Game_Finalize(void)
 	delete MainLight;
 
 	Camera_Finalize();
+	Ghost_Finalize();
 	Field_Finalize();
 	ModelDraw_Finalize();
 	UI_Finalize();

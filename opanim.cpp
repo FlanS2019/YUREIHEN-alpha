@@ -5,6 +5,7 @@
 #include "Sprite.h"
 #include "Keyboard.h"
 #include "main.h"
+#include "scene.h"
 #include <cmath>
 #include <d3d11.h>
 
@@ -414,10 +415,10 @@ void OpAnim_Update()
         g_basutaSprite->SetColor(basutaCol);
     }
 
-    if (Keyboard_IsKeyDownTrigger(KK_E))
-    {
-        SetScene(SCENE_TITLE);
-    }
+    //if (Keyboard_IsKeyDownTrigger(KK_E))
+    //{
+    //    SetScene(SCENE_TITLE);
+    //}
 }
 
 void OpAnimDraw(void)

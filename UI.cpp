@@ -26,7 +26,7 @@ void UI_Initialize(void)
 		BLENDSTATE_ALFA,				// BlendState
 		L"asset\\texture\\clock.png",	// テクスチャパス
 		2, 1,							// 分割数X, Y
-		CLOCK_MIN, 10					// 最小時間、最大時間
+		CLOCK_MIN, CLOCK_MAX			// 最小時間、最大時間
 	);
 
 	// 恐怖ゲージの作成
@@ -85,12 +85,12 @@ void UI_Update(void)
 		StartFade(SCENE_ANM_LOSE);
 	}
 
-	//qキーでリセット（デバッグ用）
-	if (Keyboard_IsKeyDownTrigger(KK_Q))
-	{
-		g_Clock->Reset();
-		hal::dout << "Qキーでタイマーをリセットしました" << std::endl;
-	}
+	////qキーでリセット（デバッグ用）
+	//if (Keyboard_IsKeyDownTrigger(KK_Q))
+	//{
+	//	g_Clock->Reset();
+	//	hal::dout << "Qキーでタイマーをリセットしました" << std::endl;
+	//}
 
 	// デバッグ用：左矢印キーでゲージを減らす
 	if (Keyboard_IsKeyDownTrigger(KK_LEFT))
@@ -126,7 +126,7 @@ void UI_Draw(void)
 {
 	g_Clock->Draw(); // 時計を描画
 	g_ScareGauge->Draw(); // ゲージを描画
-	g_Reticle->Draw();
+	//g_Reticle->Draw();
 	g_ScareCombo->Draw(); // 恐怖コンボを描画
 }
 

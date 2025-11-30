@@ -1,4 +1,4 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8"?>
 <Project DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup Label="ProjectConfigurations">
     <ProjectConfiguration Include="Debug|Win32">
@@ -144,6 +144,8 @@
     <ClCompile Include="fade.cpp" />
     <ClCompile Include="field.cpp" />
     <ClCompile Include="field.h" />
+    <ClCompile Include="furniture.cpp" />
+    <ClCompile Include="ghost.cpp" />
     <ClCompile Include="keyboard.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="model.cpp" />
@@ -154,7 +156,6 @@
     <ClCompile Include="result.cpp" />
     <ClCompile Include="shader.cpp" />
     <ClCompile Include="scene.cpp" />
-    <ClCompile Include="scene.h" />
     <ClCompile Include="sprite.cpp" />
     <ClCompile Include="texture.cpp" />
     <ClCompile Include="title.cpp" />
@@ -168,6 +169,8 @@
     <ClInclude Include="DirectXTex.h" />
     <ClInclude Include="box.h" />
     <ClInclude Include="fade.h" />
+    <ClInclude Include="furniture.h" />
+    <ClInclude Include="ghost.h" />
     <ClInclude Include="keyboard.h" />
     <ClInclude Include="main.h" />
     <ClInclude Include="model.h" />
@@ -175,6 +178,7 @@
     <ClInclude Include="mouse.h" />
     <ClInclude Include="game.h" />
     <ClInclude Include="opanim.h" />
+    <ClInclude Include="scene.h" />
     <ClInclude Include="result.h" />
     <ClInclude Include="shader.h" />
     <ClInclude Include="sprite.h" />

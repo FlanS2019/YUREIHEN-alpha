@@ -11,13 +11,14 @@ using namespace DirectX;
 
 #define ROTATE_Y_MAX (80.0f)
 #define MOUSE_SENSITIVITY (0.15f)
-#define MOVEMENT_SPEED (0.1f)  // カメラ移動速度
+#define CAMERA_DISTANCE (6.0f)  // 注視対象からのカメラ距離を短縮
 
 static Camera* CameraObject;
 static float g_pitch = 0.0f;  // 上下視点角度
 static float g_yaw = 0.0f;    // 左右視点角度
 static float g_lastPitch = 0.0f;  // 前フレームのピッチ
 static float g_lastYaw = 0.0f;    // 前フレームのヨー
+static XMFLOAT3 g_targetPos = { 0.0f, 0.0f, 0.0f };  // 注視対象位置
 
 void Camera_Initialize(void)
 {
@@ -31,6 +32,7 @@ void Camera_Initialize(void)
     
     g_pitch = 0.0f;
     g_yaw = 0.0f;
+    g_targetPos = { 0.0f, 0.0f, 0.0f };
 }
 
 void Camera_Finalize(void)
@@ -57,13 +59,6 @@ void Camera_Update(void)
         ShowCursor(TRUE);
         return;
     }
-    
-    // Rキーでカメラ回転をリセット
-    //if (Keyboard_IsKeyDownTrigger(KK_R))
-    //{
-    //    g_pitch = 0.0f;
-    //    g_yaw = 0.0f;
-    //}
     
     // マウスロック状態でない場合は視点操作をスキップ
     if (mouseState.positionMode == MOUSE_POSITION_MODE_ABSOLUTE)
@@ -99,101 +94,39 @@ void Camera_Update(void)
         g_lastYaw = g_yaw;
     }
     
-    // 現在のカメラ位置と注視点を取得
-    XMFLOAT3 pos = CameraObject->GetPos();
-    XMFLOAT3 atPos = CameraObject->GetAtPos();
+    // 注視対象位置を中心に計算
+    XMVECTOR targetVec = XMLoadFloat3(&g_targetPos);
     
-    XMVECTOR posVec = XMLoadFloat3(&pos);
-    XMVECTOR atVec = XMLoadFloat3(&atPos);
-    
-    // カメラから注視点への方向
-    XMVECTOR toTarget = XMVectorSubtract(atVec, posVec);
-    
-    // 距離を保存
-    float distance = XMVectorGetX(XMVector3Length(toTarget));
-    
-    // 新しい方向を計算（ピッチとヨーを適用）
+    // カメラ位置を計算（注視対象周りに球体回転）
     float pitchRad = XMConvertToRadians(g_pitch);
     float yawRad = XMConvertToRadians(g_yaw);
     
-    XMVECTOR forward;
-    forward = XMVectorSet(
-        sinf(yawRad) * cosf(pitchRad),
-        sinf(pitchRad),
-        cosf(yawRad) * cosf(pitchRad),
-        0.0f
-    );
-    forward = XMVector3Normalize(forward);
+    // 注視対象 から相対的なカメラ位置（符号を反転）
+    float camX = -sinf(yawRad) * cosf(pitchRad) * CAMERA_DISTANCE;
+    float camY = -sinf(pitchRad) * CAMERA_DISTANCE + 1.5f;  // 上方向にオフセット
+    float camZ = -cosf(yawRad) * cosf(pitchRad) * CAMERA_DISTANCE;
     
-    // ====================================
-    // マインクラフト風移動処理
-    // ====================================
+    XMVECTOR cameraPos = XMVectorAdd(targetVec, XMVectorSet(camX, camY, camZ, 0.0f));
     
-    // 水平方向の前方向を計算（Y軸成分を0にして水平方向のみ）
-    XMVECTOR horizontalForward = XMVectorSet(
-        sinf(yawRad),
-        0.0f,
-        cosf(yawRad),
-        0.0f
-    );
-    horizontalForward = XMVector3Normalize(horizontalForward);
+    // カメラ位置を計算
+    XMFLOAT3 newCameraPos;
+    XMStoreFloat3(&newCameraPos, cameraPos);
     
-    // 右方向を計算（Y軸で回転した前方向に垂直）
-    XMVECTOR worldUp = XMVectorSet(0.0f, 1.0f, 0.0f, 0.0f);
-    XMVECTOR right = XMVector3Normalize(XMVector3Cross(worldUp, horizontalForward));
-    
-    // 移動ベクトルを初期化
-    XMVECTOR moveVec = XMVectorSet(0.0f, 0.0f, 0.0f, 0.0f);
-    
-    // WASD キーでの移動入力
-    // W: 前方移動
-    if (Keyboard_IsKeyDown(KK_W))
-    {
-        moveVec = XMVectorAdd(moveVec, XMVectorScale(horizontalForward, MOVEMENT_SPEED));
-    }
-    // S: 後方移動
-    if (Keyboard_IsKeyDown(KK_S))
-    {
-        moveVec = XMVectorAdd(moveVec, XMVectorScale(horizontalForward, -MOVEMENT_SPEED));
-    }
-    // D: 右移動
-    if (Keyboard_IsKeyDown(KK_D))
-    {
-        moveVec = XMVectorAdd(moveVec, XMVectorScale(right, MOVEMENT_SPEED));
-    }
-    // A: 左移動
-    if (Keyboard_IsKeyDown(KK_A))
-    {
-        moveVec = XMVectorAdd(moveVec, XMVectorScale(right, -MOVEMENT_SPEED));
-    }
-    // Space: 上昇
-    if (Keyboard_IsKeyDown(KK_SPACE))
-    {
-        moveVec = XMVectorAdd(moveVec, XMVectorScale(worldUp, MOVEMENT_SPEED));
-    }
-    // Shift: 下降
-    if (Keyboard_IsKeyDown(KK_LEFTSHIFT))
-    {
-        moveVec = XMVectorAdd(moveVec, XMVectorScale(worldUp, -MOVEMENT_SPEED));
-    }
-    
-    // カメラ位置と注視点を移動ベクトルで更新
-    posVec = XMVectorAdd(posVec, moveVec);
-    atVec = XMVectorAdd(atVec, moveVec);
-    
-    // 新しい注視点を計算
-    XMVECTOR newAtPos = XMVectorAdd(posVec, XMVectorScale(forward, distance));
-    
-    XMFLOAT3 newPos;
-    XMFLOAT3 newAtPosFloat;
-    XMStoreFloat3(&newPos, posVec);
-    XMStoreFloat3(&newAtPosFloat, newAtPos);
-    
-    CameraObject->UpdateView(newPos, newAtPosFloat);
+    CameraObject->UpdateView(newCameraPos, g_targetPos);
 }
 
 void Camera_Draw(void)
 {
+}
+
+void Camera_SetTargetPos(XMFLOAT3 targetPos)
+{
+    g_targetPos = targetPos;
+}
+
+float Camera_GetYaw(void)
+{
+    return g_yaw;
 }
 
 Camera* GetCamera(void)
