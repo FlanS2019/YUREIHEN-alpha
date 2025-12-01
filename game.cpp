@@ -20,6 +20,7 @@ using namespace DirectX;
 #include "UI.h"
 #include "ghost.h"
 #include "furniture.h"
+#include "busters.h"
 
 Light* MainLight;
 
@@ -33,9 +34,9 @@ void Game_Initialize(ID3D11Device* pDevice, ID3D11DeviceContext* pContext)
 
 	MainLight = new Light
 	(TRUE,
-		XMFLOAT4(0.0f, -10.0f, -10.0f, 1.0f),	//向き
-		XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f),	//光の色
-		XMFLOAT4(0.5f, 0.5f, 0.5f, 1.0f)	//環境光
+		XMFLOAT4(0.0f, -1.0f, -1.0f, 1.0f),	// ライト方向（下向き）
+		XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f),	// ディフューズ色（白）
+		XMFLOAT4(0.6f, 0.6f, 0.6f, 1.0f)	// アンビエント光（環境光を強化）
 	);
 
 	Camera_Initialize();
@@ -43,6 +44,7 @@ void Game_Initialize(ID3D11Device* pDevice, ID3D11DeviceContext* pContext)
 	Field_Initialize(pDevice, pContext);
 	UI_Initialize();
 	Furniture_Initialize();
+	Busters_Initialize();
 }
 
 void Game_Update(void)
@@ -52,6 +54,7 @@ void Game_Update(void)
 	Field_Update();
 	UI_Update();
 	Furniture_Update();
+	Busters_Update();
 }
 
 void Game_Draw(void)
@@ -59,18 +62,19 @@ void Game_Draw(void)
 	MainLight->SetEnable(true);
 	Shader_SetLight(MainLight);
 
-	//3D描画なら常に有効にする
+	//3D描画の前に深度テストを有効にする
 	SetDepthTest(true);
 
 	Field_Draw();
 	Ghost_Draw();
 	Furniture_Draw();
+	Busters_Draw();
 
 	SetDepthTest(false);
 	MainLight->SetEnable(false);
 	Shader_SetLight(MainLight);
 
-	//2D描画処理ここから
+	//2D描画処理をここに記述
 	UI_Draw();
 }
 
@@ -83,4 +87,5 @@ void Game_Finalize(void)
 	Field_Finalize();
 	UI_Finalize();
 	Furniture_Finalize();
+	Busters_Finalize();
 }

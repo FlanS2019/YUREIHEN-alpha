@@ -8,16 +8,18 @@
 #include "debug_ostream.h"
 #include "camera.h"
 #include "furniture.h"
+#include "busters.h"
 #include "UI.h"
+#include "UI_scarecombo.h"
 
 Ghost* g_Ghost = NULL;
 
 void Ghost_Initialize(ID3D11Device* pDevice, ID3D11DeviceContext* pContext)
 {
 	g_Ghost = new Ghost(
-		{ 0.0f, Ghost::GetGhostPosY(), 0.0f },	//位置　終わってる初期化
+		{ 0.0f, Ghost::GetGhostPosY(), -10.0f },	//位置　終わってる初期化
 		{ 1.0f, 1.0f, 1.0f },					//スケール
-		{ 0.0f, 0.0f, 0.0f },					//回転（度）
+		{ 0.0f, 180.0f, 0.0f },					//回転（度）
 		"asset\\model\\ghost.fbx"				//モデルパス
 	);
 }
@@ -78,12 +80,19 @@ void Ghost::UpdateFurnitureDetection(void)
 			if (distance <= FURNITURE_DETECTION_RANGE)
 			{
 				pFurniture->SetColor(1.0f, 1.0f, 0.0f, 1.0f);  // 黄色
-				m_InRangeNum = i;
+				m_InRangeFurnitureNum = i;
 			}
 			else
 			{
 				pFurniture->ResetColor();  // 元の色に戻す
-				m_InRangeNum = -1;
+
+				// 何かしら検知されていたらリセットしない
+				// 遅い番号のものに上書きされてしまう
+				// ghostと家具の距離を家具側に持たせておいて、一番近いものにする変更が望ましい？？
+				if (m_InRangeFurnitureNum == -1)
+				{
+					m_InRangeFurnitureNum = -1;
+				}
 			}
 		}
 	}
@@ -94,15 +103,16 @@ void Ghost::UpdateInput(void)
 	// Eキーで変身アクション
 	if (Keyboard_IsKeyDownTrigger(KK_E))
 	{
-		// 変身中（変身解除）
-		if (m_IsTransformed)
+		// 変身中（変身解除）(ジャンプ中には変身が解除できないように)
+		if (m_IsTransformed && !GetFurniture(m_InRangeFurnitureNum)->GetIsJumping())
 		{
 			m_IsTransformed = false;
 			m_Velocity = { 0.0f, 0.0f, 0.0f };	// 速度をリセット
 			SetPosY(GHOST_POS_Y); // Ghostを初期位置に戻す
+			GetBusters()->ResetColor(); // 色を元に戻す
 		}
 		// 検知範囲にいる場合
-		else if (m_InRangeNum != -1)
+		else if (m_InRangeFurnitureNum != -1)
 		{
 			m_IsTransformed = true;
 		}
@@ -112,22 +122,47 @@ void Ghost::UpdateInput(void)
 	if (m_IsTransformed)
 	{
 		// Ghostを家具の位置に合わせる
-		Furniture* pFurniture = GetFurniture(m_InRangeNum);
+		Furniture* pFurniture = GetFurniture(m_InRangeFurnitureNum);
 		if (pFurniture)
 		{
 			SetPos(pFurniture->GetPos());
 		}
 
+
 		// 恐怖アクション　スペースキーでジャンプ
 		if (Keyboard_IsKeyDownTrigger(KK_SPACE))
 		{
-			Furniture* pFurniture = GetFurniture(m_InRangeNum);
-			if (pFurniture)
+			//家具とプレイヤーをジャンプさせる
+			FurnitureScare(m_InRangeFurnitureNum);
+		}
+
+		// Ghost（Furniture） と buster の距離を計算
+		XMFLOAT3 busterPos = GetBusters()->GetPos();
+		XMFLOAT3 ghostPos = GetPos();
+		XMVECTOR ghostVec = XMLoadFloat3(&ghostPos);
+		XMVECTOR busterVec = XMLoadFloat3(&busterPos);
+		XMVECTOR distVec = XMVectorSubtract(busterVec, ghostVec);
+		float distance = XMVectorGetX(XMVector3Length(distVec));
+
+		//距離が一定以下なら驚かせる
+		if (distance <= 6.0f)
+		{
+			//レンジに入っているなら色を変える
+			GetBusters()->SetColor(0.0f, 1.0f, 0.0f, 1.0f); // 赤色
+
+			// 恐怖アクション　スペースキーでジャンプ
+			if (Keyboard_IsKeyDownTrigger(KK_SPACE))
 			{
-				pFurniture->Jump();
-				// 恐怖ゲージ加算（デバッグ用。本来は怖がらせられたら……）
+				BustersScare();
+				//恐怖コンボを上げる
+				ScareComboUP();
+				// 恐怖ゲージ加算
 				AddScareGauge();
 			}
+		}
+		else
+		{
+			GetBusters()->ResetColor();
 		}
 	}
 }
@@ -215,6 +250,6 @@ void Ghost::UpdateMovement(void)
 void Ghost::ResetState(void)
 {
 	m_Velocity = { 0.0f, 0.0f, 0.0f };
-	m_InRangeNum = -1;
+	m_InRangeFurnitureNum = -1;
 	m_IsTransformed = false;
 }
