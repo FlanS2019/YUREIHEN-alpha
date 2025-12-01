@@ -9,8 +9,8 @@
 #define FURNITURE_DETECTION_RANGE (5.0f) // Ghost検出範囲
 
 //=== Busters 関連定数 ===
-#define BUSTERS_PATROL_SPEED (0.0007f)    // パトロール速度
-#define BUSTERS_PATROL_RANGH (8.0f)      // パトロール範囲
+#define BUSTERS_PATROL_SPEED (0.001f)    // パトロール速度
+#define BUSTERS_PATROL_RANGH (7.5f)      // パトロール範囲
 #define MAP_MIN_X (-7.0f)
 #define MAP_MAX_X (7.0f)
 #define MAP_MIN_Z (-10.0f)
