@@ -12,6 +12,7 @@ using namespace DirectX;
 #define ROTATE_Y_MAX (80.0f)
 #define MOUSE_SENSITIVITY (0.15f)
 #define CAMERA_DISTANCE (6.0f)  // 注視対象からのカメラ距離を短縮
+#define CAMERA_OFFSET_Y (1.5f)  //　注視点をちょっと上にオフセット
 
 static Camera* CameraObject;
 static float g_pitch = 0.0f;  // 上下視点角度
@@ -121,7 +122,9 @@ void Camera_Draw(void)
 
 void Camera_SetTargetPos(XMFLOAT3 targetPos)
 {
-    g_targetPos = targetPos;
+    g_targetPos.x = targetPos.x;
+    g_targetPos.y = targetPos.y + CAMERA_OFFSET_Y;
+    g_targetPos.z = targetPos.z;
 }
 
 float Camera_GetYaw(void)
