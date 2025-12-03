@@ -7,6 +7,15 @@
 #include <DirectXMath.h>
 using namespace DirectX;
 
+// 2D フリップ タイプ
+enum class FLIPTYPE2D : unsigned char
+{
+	FLIPTYPE2D_NONE = 0x00,        // フリップなし
+	FLIPTYPE2D_HORIZONTAL = 0x01,  // 左右反転
+	FLIPTYPE2D_VERTICAL = 0x02,    // 上下反転
+	FLIPTYPE2D_BOTH = 0x03         // 上下左右反転
+};
+
 // 頂点構造体
 struct Vertex
 {
@@ -19,21 +28,22 @@ struct Vertex
 // プロトタイプ宣言
 void Sprite_Initialize(void);
 void Sprite_Finalize(void);
-void Sprite_Single_Draw(XMFLOAT2 pos, XMFLOAT2 size, float rot, XMFLOAT4 color, BLENDSTATE bstate, ID3D11ShaderResourceView* texture);
+void Sprite_Single_Draw(XMFLOAT2 pos, XMFLOAT2 size, float rot, XMFLOAT4 color, BLENDSTATE bstate, ID3D11ShaderResourceView* texture, FLIPTYPE2D flipType = FLIPTYPE2D::FLIPTYPE2D_NONE);
 void Sprite_Split_Draw(XMFLOAT2 pos, XMFLOAT2 size, float rot, XMFLOAT4 color, BLENDSTATE bstate, ID3D11ShaderResourceView* texture, int divideX, int divideY, int textureNumber);
 
-// Sprite クラス 2D 用 Transform2D に派生
+// Sprite クラス 2D 用 Transform2D に組む
 class Sprite : public Transform2D
 {
 protected:
 	XMFLOAT4 m_Color;    // スプライトの色
 	BLENDSTATE m_BlendState; // ブレンドステート
 	ID3D11ShaderResourceView* m_Texture; // テクスチャ
+	FLIPTYPE2D m_FlipType; // フリップ設定
 public:
 	// pos: 中心位置, size: 幅と高さ, rotation: 角度(度)
 	// texturePath: テクスチャファイルパス(LoadTexture関数で読み込み)
 	Sprite(const XMFLOAT2& pos, const XMFLOAT2& size, float rotation, const XMFLOAT4& color, BLENDSTATE bstate, const wchar_t* texturePath)
-		: Transform2D(pos, rotation, size), m_Color(color), m_BlendState(bstate), m_Texture(nullptr)
+		: Transform2D(pos, rotation, size), m_Color(color), m_BlendState(bstate), m_Texture(nullptr), m_FlipType(FLIPTYPE2D::FLIPTYPE2D_NONE)
 	{
 		if (texturePath) {
 			m_Texture = LoadTexture(texturePath);
@@ -52,11 +62,13 @@ public:
 	void SetColor(const XMFLOAT4& color) { m_Color = color; }
 	BLENDSTATE GetBlendState(void) const { return m_BlendState; }
 	ID3D11ShaderResourceView* GetTexture(void) const { return m_Texture; }
+	FLIPTYPE2D GetFlipType(void) const { return m_FlipType; }
+	void SetFlipType(FLIPTYPE2D flipType) { m_FlipType = flipType; }
 
 	// インスタンスごとに描画する
 	void Draw()
 	{
-		Sprite_Single_Draw(m_Position, m_Scale, m_Rotation, m_Color, m_BlendState, m_Texture);
+		Sprite_Single_Draw(m_Position, m_Scale, m_Rotation, m_Color, m_BlendState, m_Texture, m_FlipType);
 	}
 };
 

@@ -42,15 +42,15 @@ void Sprite_Finalize()
 //----------------------------
 //単一スプライト描画（汎用的になるように外に出す）
 //----------------------------
-void Sprite_Single_Draw(XMFLOAT2 pos, XMFLOAT2 size,float rot, XMFLOAT4 color, BLENDSTATE bstate, ID3D11ShaderResourceView* texture)
+void Sprite_Single_Draw(XMFLOAT2 pos, XMFLOAT2 size,float rot, XMFLOAT4 color, BLENDSTATE bstate, ID3D11ShaderResourceView* texture, FLIPTYPE2D flipType)
 {
 	// シェーダー開始
 	Shader_Begin();
 
-	// スクリーン空間用の直交投影を設定
+	// スクリーン座標用の射影行列を設定
 	Shader_SetMatrix(XMMatrixOrthographicOffCenterLH(0.0f, SCREEN_WIDTH, SCREEN_HEIGHT, 0.0f, 0.0f, 1.0f));
 
-	// 2D描画用にマテリアル色を白に設定（テクスチャ × 白 = テクスチャ）
+	// 2D描画用にマテリアル色を白に設定（テクスチャ　＊　白　＝　テクスチャ）
 	Shader_SetMaterialColor({ 1.0f, 1.0f, 1.0f, 1.0f });
 
 	g_pDevice = Direct3D_GetDevice();
@@ -79,7 +79,7 @@ void Sprite_Single_Draw(XMFLOAT2 pos, XMFLOAT2 size,float rot, XMFLOAT4 color, B
 	float lx[4] = { -halfX, halfX, -halfX, halfX };
 	float ly[4] = { -halfY, -halfY, halfY, halfY };
 
-	// 回転・平行移動後の頂点座標計算
+	// 回転と並進移動の頂点座標を計算
 	for (int i = 0; i < 4; ++i) {
 		float rx = lx[i] * co - ly[i] * si;
 		float ry = lx[i] * si + ly[i] * co;
@@ -88,11 +88,30 @@ void Sprite_Single_Draw(XMFLOAT2 pos, XMFLOAT2 size,float rot, XMFLOAT4 color, B
 		v[i].color = color;
 	}
 
-	// テクスチャ座標は回転前の対応を維持
-	v[0].texCoord = { 0.0f, 0.0f };
-	v[1].texCoord = { 1.0f, 0.0f };
-	v[2].texCoord = { 0.0f, 1.0f };
-	v[3].texCoord = { 1.0f, 1.0f };
+	// テクスチャ座標（フリップに対応）
+	// flipTypeに応じてテクスチャ座標を反転
+	float texCoordU[2] = { 0.0f, 1.0f };
+	float texCoordV[2] = { 0.0f, 1.0f };
+
+	// 左右反転（FLIPTYPE2D_HORIZONTAL）
+	if (static_cast<unsigned char>(flipType) & static_cast<unsigned char>(FLIPTYPE2D::FLIPTYPE2D_HORIZONTAL))
+	{
+		texCoordU[0] = 1.0f;
+		texCoordU[1] = 0.0f;
+	}
+
+	// 上下反転（FLIPTYPE2D_VERTICAL）
+	if (static_cast<unsigned char>(flipType) & static_cast<unsigned char>(FLIPTYPE2D::FLIPTYPE2D_VERTICAL))
+	{
+		texCoordV[0] = 1.0f;
+		texCoordV[1] = 0.0f;
+	}
+
+	// テクスチャ座標を設定
+	v[0].texCoord = { texCoordU[0], texCoordV[0] };
+	v[1].texCoord = { texCoordU[1], texCoordV[0] };
+	v[2].texCoord = { texCoordU[0], texCoordV[1] };
+	v[3].texCoord = { texCoordU[1], texCoordV[1] };
 
 	g_pContext->Unmap(g_pVertexBuffer, 0);
 

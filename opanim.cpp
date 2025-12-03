@@ -437,9 +437,15 @@ void OpAnimDraw(void)
     // 2) 幽霊を描画（反転 + スケール変化）
     if (alpha[1] > 0.0f && g_ghostSprite)
     {
-        // TODO: flip処理が必要な場合はここで対応
-        // 現在のSprite_Single_Drawはフリップ機能に非対応のため、
-        // 別途実装が必要な場合はこのコメント位置でflipする
+        // flip処理：幽霊が左向きの場合は左右反転
+        if (g_ghostFacingLeft)
+        {
+            g_ghostSprite->SetFlipType(FLIPTYPE2D::FLIPTYPE2D_HORIZONTAL);
+        }
+        else
+        {
+            g_ghostSprite->SetFlipType(FLIPTYPE2D::FLIPTYPE2D_NONE);
+        }
         g_ghostSprite->Draw();
     }
 
