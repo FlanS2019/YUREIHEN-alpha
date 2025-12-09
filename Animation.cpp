@@ -44,7 +44,6 @@ void Animation_Logo_Initialize(ID3D11Device* pDevice, ID3D11DeviceContext* pCont
 		L"asset\\texture\\violisunlogo.png",	// テクスチャパス
 		2, 1									// 分割数X, Y
 	);
-
 	g_BG = new Sprite(
 		{ SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2 },// 位置
 		{ SCREEN_WIDTH, SCREEN_HEIGHT },		// サイズ
@@ -57,6 +56,12 @@ void Animation_Logo_Initialize(ID3D11Device* pDevice, ID3D11DeviceContext* pCont
 
 void Animation_Logo_Update(void)
 {
+
+	if (Keyboard_IsKeyDown(KK_E))
+	{
+		SetScene(SCENE_GAME);//Debug用にゲームシーンへ直接飛ぶ
+	}
+
 	// フェード状態が変化したら状態を進める
 	if (StateChanged != GetFadeState())
 	{
@@ -190,8 +195,27 @@ void Animation_Lose_Initialize(ID3D11Device* pDevice, ID3D11DeviceContext* pCont
 		0.0f,										// 回転（度）
 		{ 1.0f, 1.0f, 1.0f, 1.0f },				// 色
 		BLENDSTATE_ALFA,							// BlendState
-		L"asset\\texture\\loseanim.png"				// テクスチャパス
+		L"asset\\yureihen\\Losehaikei.png"				// テクスチャパス
 	);
+
+	g_LoseSprite = new Sprite(
+		{ SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2 },	// 位置
+		{ SCREEN_WIDTH, SCREEN_HEIGHT },			// サイズ
+		0.0f,										// 回転（度）
+		{ 1.0f, 1.0f, 1.0f, 1.0f },				// 色
+		BLENDSTATE_ALFA,							// BlendState
+		L"asset\\yureihen\\Loseink.png"				// テクスチャパス
+	);
+
+	g_LoseSprite = new Sprite(
+		{ SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2 },	// 位置
+		{ SCREEN_WIDTH, SCREEN_HEIGHT },			// サイズ
+		0.0f,										// 回転（度）
+		{ 1.0f, 1.0f, 1.0f, 1.0f },				// 色
+		BLENDSTATE_ALFA,							// BlendState
+		L"asset\\yureihen\\LoseGhost.png"				// テクスチャパス
+	);
+
 }
 
 void Animation_Lose_Update(void)

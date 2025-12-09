@@ -173,7 +173,7 @@ void OpAnim_Initialize(ID3D11Device* pDevice, ID3D11DeviceContext* pContext)
     g_Texture[0] = LoadTexture(L"asset\\yureihen\\yakata_jimen1.png");
     g_Texture[1] = LoadTexture(L"asset\\yureihen\\yurei1.png");
     g_Texture[2] = LoadTexture(L"asset\\yureihen\\basuta1.png");
-    g_Texture[3] = LoadTexture(L"asset\\yureihen\\bikkuri1.png"); // bikkuri のファイル名に合わせる
+    g_Texture[3] = LoadTexture(L"asset\\yureihen\\bikkuri.png"); // bikkuri のファイル名に合わせる
 
     // LoadTexture が失敗した場合は目印になる 1x1 テクスチャで置き換える（NULL 回避）
     for (int i = 0; i < 4; ++i)
@@ -222,6 +222,9 @@ void OpAnim_Finalize(void)
     // 参照をクリア
     g_pDevice = nullptr;
     g_pContext = nullptr;
+
+    SetFPS(60);
+
 }
 
 void OpAnim_Update()
@@ -485,7 +488,7 @@ void OpAnim_Update()
     {
         fadeStarted = true;
         // StartFade を使う（プロジェクトの Fade 実装に合わせる）
-        StartFade(SCENE_TITLE);
+        StartFade(SCENE_GAME);
     }
 
     if (fadeStarted && !waitStarted && GetFadeState() == FADE_NONE) { waitStarted = true; waitTimer = 0.0f; }
