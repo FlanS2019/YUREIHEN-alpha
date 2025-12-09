@@ -16,6 +16,7 @@ private:
 	bool m_IsTransformed;		// 変身しているか
 	bool m_IsDetectedByBuster;	// bustarに発見されたか
 	float m_DetectionTimer;		// 発見状態のタイマー（1秒につきマイナス1するため）
+	float m_FloorCooldown;
 
 public:
 	Ghost(const XMFLOAT3& pos, const XMFLOAT3& scale, const XMFLOAT3& rot, const char* pass)

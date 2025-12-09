@@ -5,6 +5,8 @@
 #include "texture.h"
 #include "keyboard.h"
 #include "fade.h"
+#include "field.h"
+#include "mouse.h"
 #include "debug_ostream.h"
 #include "camera.h"
 #include "furniture.h"
@@ -184,6 +186,12 @@ void Ghost::UpdateInput(void)
 
 void Ghost::UpdateMovement(void)
 {
+	// 1. クールダウンタイマーの更新
+	if (m_FloorCooldown > 0.0f)
+	{
+		m_FloorCooldown -= 1.0f / 60.0f;
+	}
+
 	// 変身していないときのみ移動可能
 	if (m_IsTransformed)
 		return;
@@ -260,8 +268,45 @@ void Ghost::UpdateMovement(void)
 	XMFLOAT3 newPos;
 	XMStoreFloat3(&newPos, posVec);
 	SetPos(newPos);
-}
 
+	if (m_FloorCooldown <= 0.0f)
+	{
+		FIELD_TYPE blockType = Field_GetBlockType(m_Position.x, m_Position.z);
+
+		// 階段の上にいる場合のみマウス判定を行う
+		if (blockType == FIELD_STAIRS_UP || blockType == FIELD_STAIRS_DOWN)
+		{
+			// マウスの状態を取得
+			Mouse_State mouseState;
+			Mouse_GetState(&mouseState);
+
+			// 左クリックが押されているなら移動実行
+			if (mouseState.leftButton)
+			{
+				if (blockType == FIELD_STAIRS_UP)
+				{
+					int currentFloor = Field_GetCurrentFloor();
+					Field_ChangeFloor(currentFloor + 1);
+
+					// 位置ずらし + クールダウン設定
+					m_Position.z += 2.0f;
+					SetPos(m_Position);
+					m_FloorCooldown = 2.0f; // 2秒間移動禁止
+				}
+				else if (blockType == FIELD_STAIRS_DOWN)
+				{
+					int currentFloor = Field_GetCurrentFloor();
+					Field_ChangeFloor(currentFloor - 1);
+
+					// 位置ずらし + クールダウン設定
+					m_Position.z -= 2.0f;
+					SetPos(m_Position);
+					m_FloorCooldown = 2.0f; // 2秒間移動禁止
+				}
+			}
+		}
+	}
+}
 void Ghost::ResetState(void)
 {
 	m_Velocity = { 0.0f, 0.0f, 0.0f };

@@ -6,6 +6,7 @@
 #include "keyboard.h"
 #include "fade.h"
 #include "UI_scarecombo.h"
+#include "field.h"
 
 // グローバル変数
 static Timer* g_Clock = nullptr;
@@ -13,6 +14,9 @@ static Gauge* g_ScareGauge = nullptr;
 Sprite* g_Reticle = nullptr;
 static DWORD g_LastScoreUpdateTime = 0;
 
+// ★追加: 階層表示用
+static Number* g_FloorNumber = nullptr; // 数字 (1, 2, 3)
+static Sprite* g_FloorTextF = nullptr;  // 文字 (F)
 //----------------------------
 //UI初期化
 //----------------------------
@@ -53,7 +57,38 @@ void UI_Initialize(void)
 
 	// 恐怖コンボの初期化
 	UI_ScareCombo_Initialize();
+
+	// =======================================================
+	// 階層表示UI
+	// =======================================================
+
+	// 時計の下あたりに配置 (X=120, Y=250 くらい)
+	float floorPosX = CLOCK_POS_X;
+	float floorPosY = CLOCK_POS_Y + 180.0f;
+
+	// 階層番号 (1, 2, 3)
+	g_FloorNumber = new Number(
+		{ floorPosX - 20.0f, floorPosY },	// 位置 (少し左)
+		{ 60.0f, 60.0f },					// サイズ
+		{ 1.0f, 1.0f, 1.0f, 1.0f },			// 色
+		BLENDSTATE_ALFA,					// BlendState
+		L"asset\\texture\\num.png",			// テクスチャパス
+		5, 3,								// 分割数X, Y
+		40.0f								// 文字間隔
+	);
+	g_FloorNumber->SetNumber(1); // 初期値
+
+	// 文字 "F"
+	g_FloorTextF = new Sprite(
+		{ floorPosX + 30.0f, floorPosY },	// 位置 (数字の右)
+		{ 60.0f, 60.0f },					// サイズ
+		0.0f,								// 回転
+		{ 1.0f, 1.0f, 1.0f, 1.0f },			// 色
+		BLENDSTATE_ALFA,					// BlendState
+		L"asset\\texture\\floor_f.png"		// ★重要: "F"の画像を用意してください
+	);
 }
+
 
 //----------------------------
 //UI更新
@@ -76,6 +111,9 @@ void UI_Update(void)
 
 	// 恐怖コンボの更新
 	UI_ScareCombo_Update();
+
+	int currentFloor = Field_GetCurrentFloor() + 1;
+	g_FloorNumber->SetNumber(currentFloor);
 }
 
 //----------------------------
@@ -87,6 +125,9 @@ void UI_Draw(void)
 	g_ScareGauge->Draw(); // ゲージを描画
 	//g_Reticle->Draw();
 	UI_ScareCombo_Draw(); // 恐怖コンボを描画
+
+	if (g_FloorNumber) g_FloorNumber->Draw();
+	if (g_FloorTextF) g_FloorTextF->Draw();
 }
 
 //----------------------------
@@ -98,6 +139,9 @@ void UI_Finalize(void)
 	delete g_ScareGauge;
 	delete g_Reticle;
 	UI_ScareCombo_Finalize();
+
+	if (g_FloorNumber) { delete g_FloorNumber; g_FloorNumber = nullptr; }
+	if (g_FloorTextF) { delete g_FloorTextF; g_FloorTextF = nullptr; }
 }
 
 //恐怖ゲージ加算

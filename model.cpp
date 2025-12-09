@@ -131,7 +131,24 @@ MODEL* ModelLoad(const char* FileName)
 		aiProcess_JoinIdenticalVertices |    // 重複頂点削除
 		aiProcess_OptimizeGraph              // グラフ最適化
 	);
-	assert(model->AiScene);
+
+	if (!model->AiScene)
+	{
+		// エラー内容を取得
+		const char* errorString = aiGetErrorString();
+
+		std::string msg = "モデルの読み込みに失敗しました。\n";
+		msg += "ファイルパス: " + std::string(FileName) + "\n";
+		msg += "エラー内容: " + std::string(errorString);
+
+		// メッセージボックスを表示
+		MessageBoxA(NULL, msg.c_str(), "Model Load Error", MB_OK | MB_ICONERROR);
+
+		// 強制終了せずに安全に終わる（またはここで止める）
+		delete model;
+		return nullptr; // 呼び出し元でnullptrチェックが必要になりますが、まずはここで気づけます
+	}
+	//assert(model->AiScene);
 
 	model->VertexBuffer = new ID3D11Buffer * [model->AiScene->mNumMeshes];
 	model->IndexBuffer = new ID3D11Buffer * [model->AiScene->mNumMeshes];

@@ -1,32 +1,45 @@
-//field.h
 #pragma once
 
 #include <d3d11.h>
 #include <DirectXMath.h>
+#include <vector>
 #include "direct3d.h"
-
 #include "shader.h"
 
 using namespace DirectX;
 
-//MAP構成ブロックの種類
-enum FIELD
+// ブロックの種類
+enum FIELD_TYPE
 {
-	FIELD_BOX = 0,
-	FIELD_TREE,
+	FIELD_NONE = 0,
+	FIELD_BOX,			// 壁・床
+	FIELD_STAIRS_UP,	// 上り階段 (踏むと上の階へ)
+	FIELD_STAIRS_DOWN,	// 下り階段 (踏むと下の階へ)
 	FIELD_MAX
 };
 
-//MAPデータ構造体
 class MAPDATA
 {
 public:
-	XMFLOAT3 pos;    //ブロックの座標
-	FIELD    no;     //ブロックの種類
-	//その他必要な物は追加する
+	XMFLOAT3 pos;
+	FIELD_TYPE no;
+	float rotY;
 };
 
 void Field_Initialize(ID3D11Device* pDevice, ID3D11DeviceContext* pContext);
 void Field_Finalize(void);
 void Field_Draw(void);
 void Field_Update(void);
+
+// 判定用
+bool Field_IsFloor(float x, float z);
+FIELD_TYPE Field_GetBlockType(float x, float z);
+bool Field_IsWall(float x, float z);
+bool Field_IsWall(float x, float y, float z);
+float Field_GetFloorY(float x, float y, float z);
+
+std::vector<XMFLOAT3> Field_FindPath(XMFLOAT3 start, XMFLOAT3 end);
+
+// ★追加: 階層操作用
+void Field_ChangeFloor(int floorIndex); // 指定した階層に切り替える
+int Field_GetCurrentFloor(void);        // 現在の階層を取得
