@@ -1,53 +1,83 @@
-﻿// OpAnim.cpp
+﻿// Logo.cpp
 #include "Fade.h"
-#include "OpAnim.h"
 #include "shader.h"
 #include "Sprite.h"
 #include "Keyboard.h"
-#include "main.h"
+#include "direct3d.h"
+#include "texture.h"
 #include "scene.h"
+#include <DirectXMath.h>
 #include <cmath>
 #include <d3d11.h>
+#include <cassert>
+#include <cstdint>
 
-// Sprite インスタンスを管理するポインタ
-static Sprite* g_yakataSprite = nullptr;
-static Sprite* g_ghostSprite = nullptr;
-static Sprite* g_basutaSprite = nullptr;
+using namespace DirectX;
+
+static ID3D11ShaderResourceView* g_Texture[4];
+static ID3D11ShaderResourceView* g_SolidTex = nullptr;
+static ID3D11Device* g_pDevice = nullptr;
+static ID3D11DeviceContext* g_pContext = nullptr;
 
 static bool fadeStarted = false;
-
 static float alpha[3] = { 1.0f, 0.0f, 0.0f };
 
-// 幽霊アニメーション用
+// 幽霊
 static XMFLOAT2 g_ghostOffset = { 0.0f, 0.0f };
 static float g_ghostBobRotation = 0.0f;
 static float g_ghostAngle = 0.0f;
 static float g_ghostTargetAngle = 0.0f;
-static bool g_ghostFacingLeft = false; // 幽霊の向き（true = 左向き）
-static float g_ghostScale = 1.0f;      // 幽霊のスケール（縮小用）
+static bool g_ghostFacingLeft = false;
+static bool g_prevGhostFacingLeft = false;
+static float g_ghostScale = 1.0f;
+static bool g_forceFacingByTimer = true;
 
-// basuta アニメーション用
+// 右を向いたときに一度だけ縮小アニメ（幽霊）
+static bool g_shrinkTriggered = false;
+static bool g_shrinkAppliedOnce = false;
+static float g_shrinkTimer = 0.0f;
+static const float g_shrinkDuration = 0.45f;
+static const float g_shrinkTargetScale = 0.45f;
+
+// basuta
 static XMFLOAT2 g_basutaOffset = { 0.0f, 0.0f };
+static float g_basutaScale = 1.0f;                     // 追加: basuta 用スケール
+static const float g_basutaTargetScale = 0.60f;        // basuta 縮小後スケール
+static const float g_basutaShrinkStart = 500.0f;       // 近づきはじめる距離（調整可）
 
-// 状態管理
+// bikkuri（ビックリマーク）表示管理
+static bool g_bikkuriShown = false;       // 現在表示中か
+static float g_bikkuriTimer = 0.0f;
+static const float g_bikkuriDuration = 0.9f;
+static bool g_bikkuriFlip = false;        // 反転フラグ（描画時使用）
+static const float g_bikkuriLeadTime = 0.35f;
+static bool g_bikkuriShownOnce = false;   // 描画確定後に true になる（再表示防止）
+
+// 設定・状態
+static const float g_ghostLeadSeconds = 7.0f;
+static const float g_basutaSpeed = 220.0f;
 enum GhostState { GHOST_IDLE = 0, GHOST_ALERT, GHOST_MOVE_TO_HOUSE };
 static GhostState g_ghostState = GHOST_IDLE;
+
 static const XMFLOAT2 g_imageSize = { 500.0f, 500.0f };
 
-// 位置管理
+// 位置
 static XMFLOAT2 g_yakataPos = { 0.0f, 0.0f };
 static XMFLOAT2 g_ghostPos = { 0.0f, 0.0f };
 static XMFLOAT2 g_basutaPos = { 0.0f, 0.0f };
 static XMFLOAT2 g_basutaTarget = { 0.0f, 0.0f };
 static bool g_positionsInitialized = false;
 static bool g_basutaMoving = false;
-
-// OpAnim_Update用の静的変数
-static float g_updateTimer = 0.0f;
-static bool g_waitStarted = false;
-static float g_waitTimer = 0.0f;
+static bool g_basutaStartFromRight = false;
+static bool g_basutaEnteredScreen = false;
 
 static const float PI = 3.14159265358979323846f;
+
+// Sprite インスタンスを管理するポインタ
+static Sprite* g_yakataSprite = nullptr;
+static Sprite* g_ghostSprite = nullptr;
+static Sprite* g_basutaSprite = nullptr;
+
 
 static float AngleDelta(float target, float current)
 {
@@ -57,9 +87,55 @@ static float AngleDelta(float target, float current)
     return diff;
 }
 
+static float EaseOutCubic(float t)
+{
+    if (t <= 0.0f) return 0.0f;
+    if (t >= 1.0f) return 1.0f;
+    float inv = 1.0f - t;
+    return 1.0f - inv * inv * inv;
+}
+
+// ヘルパー: 単色 1x1 テクスチャ SRV を作る（フォールバック用）
+static ID3D11ShaderResourceView* CreateSolidSRV(ID3D11Device* device, uint32_t rgba)
+{
+    if (!device) return nullptr;
+    D3D11_TEXTURE2D_DESC desc = {};
+    desc.Width = 1;
+    desc.Height = 1;
+    desc.MipLevels = 1;
+    desc.ArraySize = 1;
+    desc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
+    desc.SampleDesc.Count = 1;
+    desc.Usage = D3D11_USAGE_IMMUTABLE;
+    desc.BindFlags = D3D11_BIND_SHADER_RESOURCE;
+
+    D3D11_SUBRESOURCE_DATA sd = {};
+    sd.pSysMem = &rgba;
+    sd.SysMemPitch = sizeof(rgba);
+
+    ID3D11Texture2D* tex = nullptr;
+    HRESULT hr = device->CreateTexture2D(&desc, &sd, &tex);
+    if (FAILED(hr) || !tex) return nullptr;
+
+    D3D11_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
+    srvDesc.Format = desc.Format;
+    srvDesc.ViewDimension = D3D11_SRV_DIMENSION_TEXTURE2D;
+    srvDesc.Texture2D.MipLevels = 1;
+
+    ID3D11ShaderResourceView* srv = nullptr;
+    hr = device->CreateShaderResourceView(tex, &srvDesc, &srv);
+    tex->Release();
+    if (FAILED(hr)) { if (srv) srv->Release(); return nullptr; }
+    return srv;
+}
+
 void OpAnim_Initialize(ID3D11Device* pDevice, ID3D11DeviceContext* pContext)
 {
     SetFPS(30);
+
+    // デバイス / コンテキストを保存（描画時に使用）
+    g_pDevice = pDevice;
+    g_pContext = pContext;
 
     // Sprite インスタンスの作成
     // 屋敷スプライト
@@ -92,6 +168,33 @@ void OpAnim_Initialize(ID3D11Device* pDevice, ID3D11DeviceContext* pContext)
         L"asset\\yureihen\\basuta1.png"   // テクスチャパス
     );
 
+    // Sprite 側とは別に、ここで描画に使用する SRV をロードしておく
+    for (int i = 0; i < 4; ++i) g_Texture[i] = nullptr;
+    g_Texture[0] = LoadTexture(L"asset\\yureihen\\yakata_jimen1.png");
+    g_Texture[1] = LoadTexture(L"asset\\yureihen\\yurei1.png");
+    g_Texture[2] = LoadTexture(L"asset\\yureihen\\basuta1.png");
+    g_Texture[3] = LoadTexture(L"asset\\yureihen\\bikkuri1.png"); // bikkuri のファイル名に合わせる
+
+    // LoadTexture が失敗した場合は目印になる 1x1 テクスチャで置き換える（NULL 回避）
+    for (int i = 0; i < 4; ++i)
+    {
+        if (!g_Texture[i] && g_pDevice)
+        {
+            // マゼンタ (アルファ 1) を目印にする：0xFF00FF00 ARGB? ここは RGBA リトルエンディアンで指定
+            // R=255,G=0,B=255,A=255 -> 0xFF00FF00 は ARGB の可能性が混乱するので明示的に RGBA 値を作る:
+            uint32_t r = 255u, g = 0u, b = 255u, a = 255u;
+            uint32_t rgba = (r) | (g << 8) | (b << 16) | (a << 24);
+            g_Texture[i] = CreateSolidSRV(g_pDevice, rgba);
+        }
+    }
+
+    // 1x1 のソリッドテクスチャ（白）を作成して g_SolidTex にセット（背景等用）
+    if (g_pDevice && !g_SolidTex)
+    {
+        uint32_t white = (255u) | (255u << 8) | (255u << 16) | (255u << 24);
+        g_SolidTex = CreateSolidSRV(g_pDevice, white);
+    }
+
     alpha[0] = 1.0f;
     alpha[1] = 0.0f;
     alpha[2] = 0.0f;
@@ -103,355 +206,395 @@ void OpAnim_Initialize(ID3D11Device* pDevice, ID3D11DeviceContext* pContext)
     g_ghostScale = 1.0f;
 }
 
-void OpAnim_Finalize()
+void OpAnim_Finalize(void)
 {
-    SetFPS(60);
+    for (int i = 0; i < 4; ++i)
+    {
+        if (g_Texture[i]) { g_Texture[i]->Release(); g_Texture[i] = nullptr; }
+    }
+    if (g_SolidTex) { g_SolidTex->Release(); g_SolidTex = nullptr; }
 
-    // Sprite インスタンスの削除
-    delete g_yakataSprite;
-    g_yakataSprite = nullptr;
-    delete g_ghostSprite;
-    g_ghostSprite = nullptr;
-    delete g_basutaSprite;
-    g_basutaSprite = nullptr;
+    // Sprite オブジェクトを解放
+    if (g_yakataSprite) { delete g_yakataSprite; g_yakataSprite = nullptr; }
+    if (g_ghostSprite) { delete g_ghostSprite; g_ghostSprite = nullptr; }
+    if (g_basutaSprite) { delete g_basutaSprite; g_basutaSprite = nullptr; }
 
-    // グローバル変数の初期化
-    fadeStarted = false;
-    
-    alpha[0] = 1.0f;
-    alpha[1] = 0.0f;
-    alpha[2] = 0.0f;
-
-    // 幽霊アニメーション用
-    g_ghostOffset = { 0.0f, 0.0f };
-    g_ghostBobRotation = 0.0f;
-    g_ghostAngle = 0.0f;
-    g_ghostTargetAngle = 0.0f;
-    g_ghostFacingLeft = false;
-    g_ghostScale = 1.0f;
-
-    // basuta アニメーション用
-    g_basutaOffset = { 0.0f, 0.0f };
-
-    // 状態管理
-    g_ghostState = GHOST_IDLE;
-
-    // 位置管理
-    g_yakataPos = { 0.0f, 0.0f };
-    g_ghostPos = { 0.0f, 0.0f };
-    g_basutaPos = { 0.0f, 0.0f };
-    g_basutaTarget = { 0.0f, 0.0f };
-    g_positionsInitialized = false;
-    g_basutaMoving = false;
-
-    // OpAnim_Update用の静的変数の初期化
-    g_updateTimer = 0.0f;
-    g_waitStarted = false;
-    g_waitTimer = 0.0f;
+    // 参照をクリア
+    g_pDevice = nullptr;
+    g_pContext = nullptr;
 }
 
 void OpAnim_Update()
 {
+    const float screenWidth = (float)Direct3D_GetBackBufferWidth();
+    const float screenHeight = (float)Direct3D_GetBackBufferHeight();
+
+    static float timer = 0.0f;
+    static bool waitStarted = false;
+    static float waitTimer = 0.0f;
+
     const float delta = 1.0f / 60.0f;
-    g_updateTimer += delta;
+    timer += delta;
+
+    // タイマーで向きを制御（既存シーケンス）
+    if (g_forceFacingByTimer)
+    {
+        if (timer < 3.0f) g_ghostFacingLeft = false;
+        else if (timer < 4.0f) g_ghostFacingLeft = true;
+        else g_ghostFacingLeft = false;
+    }
+
+    // 右向き（false）になった瞬間に縮小アニメを一度だけ開始（幽霊）
+    if (!g_shrinkTriggered && !g_shrinkAppliedOnce &&
+        (g_ghostFacingLeft != g_prevGhostFacingLeft) && (g_ghostFacingLeft == false))
+    {
+        g_shrinkTriggered = true;
+        g_shrinkTimer = 0.0f;
+    }
+
+    // bikkuri のトリガー：一度だけ（g_bikkuriShownOnce==false 時のみトリガー許可）
+    if (!g_bikkuriShownOnce && (g_ghostFacingLeft != g_prevGhostFacingLeft))
+    {
+        if (!g_bikkuriShown)
+        {
+            g_bikkuriShown = true;
+            g_bikkuriTimer = 0.0f;
+            g_bikkuriFlip = g_ghostFacingLeft;
+        }
+    }
 
     if (!g_positionsInitialized)
     {
         XMFLOAT2 center = { SCREEN_WIDTH / 2.0f, SCREEN_HEIGHT / 2.0f };
-
         const float leftMargin = 20.0f;
         g_yakataPos.x = (g_imageSize.x / 2.0f) + leftMargin;
         g_yakataPos.y = center.y;
-
         g_ghostPos.x = g_yakataPos.x + (g_imageSize.x * 0.35f);
         g_ghostPos.y = g_yakataPos.y - 40.0f;
-
         g_basutaPos.x = SCREEN_WIDTH + (g_imageSize.x / 2.0f) + 100.0f;
         g_basutaPos.y = center.y + 30.0f;
-
         g_basutaTarget.x = g_yakataPos.x + (g_imageSize.x * 0.25f);
         g_basutaTarget.y = g_yakataPos.y + 20.0f;
-
-        g_positionsInitialized = true;
-        g_basutaMoving = false;
-
-        // Sprite の初期位置を設定
-        if (g_yakataSprite) g_yakataSprite->SetPos(g_yakataPos);
-        if (g_ghostSprite) g_ghostSprite->SetPos(g_ghostPos);
-        if (g_basutaSprite) g_basutaSprite->SetPos(g_basutaPos);
+        g_positionsInitialized = true; g_basutaMoving = false;
+        g_basutaStartFromRight = (g_basutaPos.x > SCREEN_WIDTH);
+        g_basutaEnteredScreen = false;
     }
 
-    const float ghostStart = 0.5f;
-    const float basutaStart = 2.0f;
-    const float fadeDuration = 0.8f;
+    const float ghostStart = 1.5f;
+    const float basutaStart = 0.8f;
+    const float fadeDuration = 2.4f;
 
-    if (g_updateTimer > ghostStart)
+    if (timer > ghostStart)
     {
         alpha[1] += delta / fadeDuration;
         if (alpha[1] > 1.0f) alpha[1] = 1.0f;
     }
 
-    if (g_updateTimer > basutaStart)
+    // basuta 到来前リードで bikkuri を表示（まだ描画確定していなければトリガー）
+    if (!g_bikkuriShownOnce && !g_bikkuriShown &&
+        timer > (basutaStart - g_bikkuriLeadTime) && timer <= basutaStart)
+    {
+        g_bikkuriFlip = g_basutaStartFromRight;
+        g_bikkuriShown = true; g_bikkuriTimer = 0.0f;
+    }
+
+    if (timer > basutaStart)
     {
         alpha[2] += delta / fadeDuration;
         if (alpha[2] > 1.0f) alpha[2] = 1.0f;
+
+        if (!g_basutaMoving && !g_bikkuriShown && !g_bikkuriShownOnce)
+        {
+            g_bikkuriFlip = (g_basutaTarget.x < g_basutaPos.x);
+            g_bikkuriShown = true; g_bikkuriTimer = 0.0f;
+        }
         g_basutaMoving = true;
     }
 
-    // basuta の移動処理
+    // basuta 移動処理（簡潔） + 縮小（近づいている風）
     if (g_basutaMoving)
     {
-        const float moveSpeed = 220.0f;
+        const float moveSpeed = g_basutaSpeed;
         float dx = g_basutaTarget.x - g_basutaPos.x;
         float dy = g_basutaTarget.y - g_basutaPos.y;
         float dist = sqrtf(dx * dx + dy * dy);
         if (dist > 1.0f)
         {
-            float nx = dx / dist;
-            float ny = dy / dist;
+            float nx = dx / dist, ny = dy / dist;
             float step = moveSpeed * delta;
-            if (step >= dist)
+            if (step >= dist) { g_basutaPos = g_basutaTarget; g_basutaMoving = false; }
+            else { g_basutaPos.x += nx * step; g_basutaPos.y += ny * step; }
+        }
+        else { g_basutaPos = g_basutaTarget; g_basutaMoving = false; }
+
+        // basuta が館へ近づくほど縮小して見えるようにする（線形）
+        {
+            float dxT = g_basutaTarget.x - g_basutaPos.x;
+            float dyT = g_basutaTarget.y - g_basutaPos.y;
+            float distToTarget = sqrtf(dxT * dxT + dyT * dyT);
+            if (distToTarget < g_basutaShrinkStart)
             {
-                g_basutaPos.x = g_basutaTarget.x;
-                g_basutaPos.y = g_basutaTarget.y;
-                g_basutaMoving = false;
+                float ratio = distToTarget / g_basutaShrinkStart; // 1 -> 0
+                g_basutaScale = g_basutaTargetScale + (1.0f - g_basutaTargetScale) * ratio;
             }
             else
             {
-                g_basutaPos.x += nx * step;
-                g_basutaPos.y += ny * step;
+                g_basutaScale = 1.0f;
             }
         }
-        else
+
+        // 画面入場で幽霊反応（従来ロジック）
+        if (!g_basutaEnteredScreen)
         {
-            g_basutaPos.x = g_basutaTarget.x;
-            g_basutaPos.y = g_basutaTarget.y;
-            g_basutaMoving = false;
+            const float enterThresholdRight = SCREEN_WIDTH - (g_imageSize.x * 0.5f);
+            const float enterThresholdLeft = (g_imageSize.x * 0.5f);
+            if (g_basutaStartFromRight)
+            {
+                if (g_basutaPos.x <= enterThresholdRight)
+                {
+                    g_basutaEnteredScreen = true;
+                    if (!g_forceFacingByTimer) g_ghostFacingLeft = false;
+                    if (g_ghostState == GHOST_IDLE)
+                    {
+                        g_ghostState = GHOST_ALERT;
+                        g_ghostTargetAngle = atan2f(g_basutaPos.y - g_ghostPos.y, g_basutaPos.x - g_ghostPos.x);
+                    }
+                }
+            }
+            else
+            {
+                if (g_basutaPos.x >= enterThresholdLeft)
+                {
+                    g_basutaEnteredScreen = true;
+                    if (!g_forceFacingByTimer) g_ghostFacingLeft = true;
+                    if (g_ghostState == GHOST_IDLE)
+                    {
+                        g_ghostState = GHOST_ALERT;
+                        g_ghostTargetAngle = atan2f(g_basutaPos.y - g_ghostPos.y, g_basutaPos.x - g_ghostPos.x);
+                    }
+                }
+            }
+        }
+    }
+    else
+    {
+        // 動いていないときは通常サイズに戻す
+        g_basutaScale = 1.0f;
+    }
+
+    // bikkuri タイマー（表示中は Update で時間を管理）
+    if (g_bikkuriShown)
+    {
+        g_bikkuriTimer += delta;
+        if (g_bikkuriTimer >= g_bikkuriDuration)
+        {
+            g_bikkuriShown = false;
+            g_bikkuriTimer = 0.0f;
+            // g_bikkuriShownOnce は描画が確実に行われた後に LogoDraw で true にする
         }
     }
 
-    // 幽霊の状態管理
+    // 幽霊状態管理（既存ロジックを簡潔に維持）
     {
-        const float triggerDist = 320.0f;  // 検知距離（より遠くから反応）
-        const float fleeDist = 200.0f;     // 逃げ始める距離
-
-        float dx = g_basutaPos.x - g_ghostPos.x;
-        float dy = g_basutaPos.y - g_ghostPos.y;
+        const float baseTriggerDist = 320.0f;
+        const float triggerDist = baseTriggerDist + (g_basutaSpeed * g_ghostLeadSeconds);
+        const float fleeDist = 200.0f;
+        float dx = g_basutaPos.x - g_ghostPos.x, dy = g_basutaPos.y - g_ghostPos.y;
         float dist = sqrtf(dx * dx + dy * dy);
 
         if (g_ghostState == GHOST_IDLE)
         {
-            // basutaが近づいてきたら警戒開始
             if (dist <= triggerDist && alpha[2] > 0.3f)
             {
                 g_ghostState = GHOST_ALERT;
                 g_ghostTargetAngle = atan2f(g_basutaPos.y - g_ghostPos.y, g_basutaPos.x - g_ghostPos.x);
-                // basutaの方を向く（手前で反転）
-                g_ghostFacingLeft = (g_basutaPos.x < g_ghostPos.x);
+                if (!g_basutaEnteredScreen && !g_forceFacingByTimer)
+                {
+                    g_ghostFacingLeft = (g_basutaPos.x < g_ghostPos.x);
+                }
             }
         }
         else if (g_ghostState == GHOST_ALERT)
         {
-            // さらに近づいてきたら館に逃げる
             if (dist <= fleeDist)
             {
                 g_ghostState = GHOST_MOVE_TO_HOUSE;
-                // 館の方向を向くように反転を更新
                 float tx = g_yakataPos.x - (g_imageSize.x * 0.15f);
-                g_ghostFacingLeft = (tx < g_ghostPos.x);
+                if (!g_forceFacingByTimer) g_ghostFacingLeft = (tx < g_ghostPos.x);
             }
             else
             {
-                // まだ距離があるので警戒しながらbasutaを見続ける
                 const float rotSpeed = 3.5f;
                 float deltaAngle = AngleDelta(g_ghostTargetAngle, g_ghostAngle);
                 float maxStep = rotSpeed * delta;
-                if (fabsf(deltaAngle) <= maxStep)
-                {
-                    g_ghostAngle = g_ghostTargetAngle;
-                }
-                else
-                {
-                    g_ghostAngle += (deltaAngle > 0.0f ? 1.0f : -1.0f) * maxStep;
-                }
-                // basutaの位置を追跡
+                if (fabsf(deltaAngle) <= maxStep) g_ghostAngle = g_ghostTargetAngle;
+                else g_ghostAngle += (deltaAngle > 0.0f ? 1.0f : -1.0f) * maxStep;
                 g_ghostTargetAngle = atan2f(g_basutaPos.y - g_ghostPos.y, g_basutaPos.x - g_ghostPos.x);
             }
         }
         else if (g_ghostState == GHOST_MOVE_TO_HOUSE)
         {
-            const float ghostMoveSpeed = 180.0f; // 逃げる時は速めに
-            float tx = g_yakataPos.x - (g_imageSize.x * 0.15f); // 館の奥に入る
+            const float ghostMoveSpeed = 180.0f;
+            float tx = g_yakataPos.x - (g_imageSize.x * 0.15f);
             float ty = g_yakataPos.y;
-            float dxh = tx - g_ghostPos.x;
-            float dyh = ty - g_ghostPos.y;
+            float dxh = tx - g_ghostPos.x, dyh = ty - g_ghostPos.y;
             float distH = sqrtf(dxh * dxh + dyh * dyh);
+            const float startDist = 200.0f;
 
-            // 館に近づくにつれて縮小（遠近感）
-            const float startDist = 200.0f; // 縮小開始距離
-            if (distH < startDist)
+            if (!g_shrinkAppliedOnce)
             {
-                // 距離に応じて 1.0 → 0.3 まで縮小
-                g_ghostScale = 0.3f + (distH / startDist) * 0.7f;
+                if (distH < startDist) g_ghostScale = 0.3f + (distH / startDist) * 0.7f;
+                else g_ghostScale = 1.0f;
             }
             else
             {
-                g_ghostScale = 1.0f;
+                g_ghostScale = g_shrinkTargetScale;
             }
 
             if (distH > 2.0f)
             {
-                float nx = dxh / distH;
-                float ny = dyh / distH;
+                float nx = dxh / distH, ny = dyh / distH;
                 float step = ghostMoveSpeed * delta;
-                if (step >= distH)
-                {
-                    g_ghostPos.x = tx;
-                    g_ghostPos.y = ty;
-                    g_ghostState = GHOST_IDLE;
-                    // 館の中に入ったので完全に消す
-                    alpha[1] = 0.0f;
-                }
+                if (step >= distH) { g_ghostPos.x = tx; g_ghostPos.y = ty; g_ghostState = GHOST_IDLE; alpha[1] = 0.0f; }
                 else
                 {
-                    g_ghostPos.x += nx * step;
-                    g_ghostPos.y += ny * step;
+                    g_ghostPos.x += nx * step; g_ghostPos.y += ny * step;
                     float targetMoveAngle = atan2f(ny, nx);
                     float moveDeltaAngle = AngleDelta(targetMoveAngle, g_ghostAngle);
                     float moveRotSpeed = 2.5f;
                     float moveMaxStep = moveRotSpeed * delta;
-                    if (fabsf(moveDeltaAngle) <= moveMaxStep)
-                    {
-                        g_ghostAngle = targetMoveAngle;
-                    }
-                    else
-                    {
-                        g_ghostAngle += (moveDeltaAngle > 0.0f ? 1.0f : -1.0f) * moveMaxStep;
-                    }
+                    if (fabsf(moveDeltaAngle) <= moveMaxStep) g_ghostAngle = targetMoveAngle;
+                    else g_ghostAngle += (moveDeltaAngle > 0.0f ? 1.0f : -1.0f) * moveMaxStep;
                 }
             }
-            else
-            {
-                g_ghostState = GHOST_IDLE;
-                // 館の中に入ったので完全に消す
-                alpha[1] = 0.0f;
-            }
+            else { g_ghostState = GHOST_IDLE; alpha[1] = 0.0f; }
         }
     }
 
-    if (!fadeStarted && g_updateTimer > 7.0f && GetFadeState() == FADE_NONE)
+    // 右向き縮小アニメ更新（移動縮小と排他）
+    if (g_shrinkTriggered && !g_shrinkAppliedOnce && g_ghostState != GHOST_MOVE_TO_HOUSE)
+    {
+        g_shrinkTimer += delta;
+        float t = g_shrinkTimer / g_shrinkDuration; if (t > 1.0f) t = 1.0f;
+        float e = EaseOutCubic(t);
+        g_ghostScale = 1.0f + (g_shrinkTargetScale - 1.0f) * e;
+        if (t >= 1.0f) { g_shrinkTriggered = false; g_shrinkAppliedOnce = true; g_ghostScale = g_shrinkTargetScale; }
+    }
+
+    if (!fadeStarted && timer > 7.0f && GetFadeState() == FADE_NONE)
     {
         fadeStarted = true;
-        XMFLOAT4 color = { 0, 0, 0, 1 };
-        StartFade(SCENE_GAME);
+        // StartFade を使う（プロジェクトの Fade 実装に合わせる）
+        StartFade(SCENE_TITLE);
     }
 
-    if (fadeStarted && !g_waitStarted && GetFadeState() == FADE_NONE)
-    {
-        g_waitStarted = true;
-        g_waitTimer = 0.0f;
-    }
+    if (fadeStarted && !waitStarted && GetFadeState() == FADE_NONE) { waitStarted = true; waitTimer = 0.0f; }
+    if (waitStarted) { waitTimer += delta; if (waitTimer >= 1.5f) SetScene(SCENE_TITLE); }
 
-    if (g_waitStarted)
-    {
-        g_waitTimer += delta;
-        if (g_waitTimer >= 1.5f)
-        {
-        }
-    }
-
-    // 幽霊のふわふわ
+    // ふわふわ・basuta 揺れ
     if (g_ghostState == GHOST_MOVE_TO_HOUSE)
     {
-        g_ghostOffset.y = sinf(g_updateTimer * 2.0f) * 6.0f;
-        g_ghostOffset.x = sinf(g_updateTimer * 0.7f) * 3.0f;
-        g_ghostBobRotation = sinf(g_updateTimer * 1.2f) * 0.03f;
+        g_ghostOffset.y = sinf(timer * 2.0f) * 6.0f;
+        g_ghostOffset.x = sinf(timer * 0.7f) * 3.0f;
+        g_ghostBobRotation = sinf(timer * 1.2f) * 0.03f;
     }
     else
     {
-        g_ghostOffset.y = sinf(g_updateTimer * 2.5f) * 12.0f;
-        g_ghostOffset.x = sinf(g_updateTimer * 0.9f) * 6.0f;
-        g_ghostBobRotation = sinf(g_updateTimer * 1.2f) * 0.06f;
+        g_ghostOffset.y = sinf(timer * 2.5f) * 12.0f;
+        g_ghostOffset.x = sinf(timer * 0.9f) * 6.0f;
+        g_ghostBobRotation = sinf(timer * 1.2f) * 0.06f;
     }
 
-    // basuta のふわふわ（歩いているような揺れ）
     if (g_basutaMoving)
     {
-        // 歩行中は上下に揺らす（より速いリズム）
-        g_basutaOffset.y = sinf(g_updateTimer * 5.0f) * 8.0f;
-        g_basutaOffset.x = sinf(g_updateTimer * 10.0f) * 3.0f; // 左右の微妙な揺れ
+        g_basutaOffset.y = sinf(timer * 5.0f) * 8.0f;
+        g_basutaOffset.x = sinf(timer * 10.0f) * 3.0f;
     }
     else
     {
-        // 停止中は控えめな揺れ
-        g_basutaOffset.y = sinf(g_updateTimer * 2.0f) * 4.0f;
-        g_basutaOffset.x = sinf(g_updateTimer * 1.5f) * 2.0f;
+        g_basutaOffset.y = sinf(timer * 2.0f) * 4.0f;
+        g_basutaOffset.x = sinf(timer * 1.5f) * 2.0f;
     }
 
-    // Sprite の位置と色を更新
-    if (g_yakataSprite)
-    {
-        g_yakataSprite->SetPos(g_yakataPos);
-    }
+    if (Keyboard_IsKeyDownTrigger(KK_E)) SetScene(SCENE_TITLE);
 
-    if (g_ghostSprite)
-    {
-        XMFLOAT2 ghostDrawPos = { g_ghostPos.x + g_ghostOffset.x, g_ghostPos.y + g_ghostOffset.y };
-        g_ghostSprite->SetPos(ghostDrawPos);
-        // スケール更新
-        XMFLOAT2 scaledSize = { g_imageSize.x * g_ghostScale, g_imageSize.y * g_ghostScale };
-        g_ghostSprite->SetSize(scaledSize);
-        // 色のアルファを更新
-        XMFLOAT4 ghostCol = { 1.0f, 1.0f, 1.0f, alpha[1] };
-        g_ghostSprite->SetColor(ghostCol);
-    }
-
-    if (g_basutaSprite)
-    {
-        XMFLOAT2 basutaDrawPos = { g_basutaPos.x + g_basutaOffset.x, g_basutaPos.y + g_basutaOffset.y };
-        g_basutaSprite->SetPos(basutaDrawPos);
-        // 色のアルファを更新
-        XMFLOAT4 basutaCol = { 1.0f, 1.0f, 1.0f, alpha[2] };
-        g_basutaSprite->SetColor(basutaCol);
-    }
-
-    //if (Keyboard_IsKeyDownTrigger(KK_E))
-    //{
-    //    SetScene(SCENE_TITLE);
-    //}
+    // フレーム終わりに前フレーム向きを更新（bikkuri トリガーはこの更新より前に行われる）
+    g_prevGhostFacingLeft = g_ghostFacingLeft;
 }
 
 void OpAnimDraw(void)
 {
-    Shader_SetMatrix(XMMatrixOrthographicOffCenterLH
-    (0.0f, SCREEN_WIDTH, SCREEN_HEIGHT, 0.0f, 0.0f, 1.0f));
+    const float screenWidth = (float)Direct3D_GetBackBufferWidth();
+    const float screenHeight = (float)Direct3D_GetBackBufferHeight();
 
+    Shader_SetMatrix(XMMatrixOrthographicOffCenterLH(0.0f, screenWidth, screenHeight, 0.0f, 0.0f, 1.0f));
     SetBlendState(BLENDSTATE_ALFA);
 
-    // 1) 屋敷を描画
-    if (g_yakataSprite)
+    XMFLOAT2 center = { screenWidth / 2.0f, screenHeight / 2.0f };
+
+    if (g_SolidTex)
     {
-        g_yakataSprite->Draw();
+        // Solid Tex をシェーダにセットして背景長方形を描画
+        g_pContext->PSSetShaderResources(0, 1, &g_SolidTex);
+        XMFLOAT4 purple = { 0.45f, 0.10f, 0.45f, 1.0f };
+        XMFLOAT2 fullSize = { screenWidth, screenHeight };
+        Sprite_Single_Draw(center, fullSize, 0.0f, purple, BLENDSTATE_ALFA, g_SolidTex);
     }
 
-    // 2) 幽霊を描画（反転 + スケール変化）
-    if (alpha[1] > 0.0f && g_ghostSprite)
+    // 屋敷
+    if (g_Texture[0])
     {
-        // flip処理：幽霊が左向きの場合は左右反転
-        if (g_ghostFacingLeft)
-        {
-            g_ghostSprite->SetFlipType(FLIPTYPE2D::FLIPTYPE2D_HORIZONTAL);
-        }
-        else
-        {
-            g_ghostSprite->SetFlipType(FLIPTYPE2D::FLIPTYPE2D_NONE);
-        }
-        g_ghostSprite->Draw();
+        g_pContext->PSSetShaderResources(0, 1, &g_Texture[0]);
+        Sprite_Single_Draw(g_yakataPos, g_imageSize, 0.0f, XMFLOAT4{ 1,1,1,1 }, BLENDSTATE_ALFA, g_Texture[0]);
     }
 
-    // 3) basutaを描画（ふわふわ追加）
-    if (alpha[2] > 0.0f && g_basutaSprite)
+    // 幽霊
+    if (alpha[1] > 0.0f && g_Texture[1])
     {
-        g_basutaSprite->Draw();
+        g_pContext->PSSetShaderResources(0, 1, &g_Texture[1]);
+        XMFLOAT4 ghostCol = { 1.0f,1.0f,1.0f,alpha[1] };
+        XMFLOAT2 drawPos = { g_ghostPos.x + g_ghostOffset.x, g_ghostPos.y + g_ghostOffset.y };
+        XMFLOAT2 scaledSize = { g_imageSize.x * g_ghostScale, g_imageSize.y * g_ghostScale };
+        FLIPTYPE2D flip = g_ghostFacingLeft ? FLIPTYPE2D::FLIPTYPE2D_HORIZONTAL : FLIPTYPE2D::FLIPTYPE2D_NONE;
+        Sprite_Single_Draw(drawPos, scaledSize, 0.0f, ghostCol, BLENDSTATE_ALFA, g_Texture[1], flip);
+    }
+
+    // basuta（スケール適用）
+    if (alpha[2] > 0.0f && g_Texture[2])
+    {
+        g_pContext->PSSetShaderResources(0, 1, &g_Texture[2]);
+        XMFLOAT4 col2 = { 1,1,1,alpha[2] };
+        XMFLOAT2 drawPos = { g_basutaPos.x + g_basutaOffset.x, g_basutaPos.y + g_basutaOffset.y };
+        XMFLOAT2 basutaSize = { g_imageSize.x * g_basutaScale, g_imageSize.y * g_basutaScale };
+        Sprite_Single_Draw(drawPos, basutaSize, 0.0f, col2, BLENDSTATE_ALFA, g_Texture[2]);
+    }
+
+    // bikkuri（描画が行われたことを確認してから一度だけフラグを立てる）
+    if (g_bikkuriShown && g_Texture[3])
+    {
+        XMFLOAT2 bsize = { 180.0f, 180.0f };
+        XMFLOAT2 bpos;
+        bpos.x = g_ghostPos.x + g_ghostOffset.x;
+        bpos.y = g_ghostPos.y + g_ghostOffset.y + (g_imageSize.y * 0.45f);
+
+        float halfH = bsize.y * 0.5f;
+        const float margin = 8.0f;
+        if (bpos.y + halfH + margin > screenHeight) bpos.y = screenHeight - halfH - margin;
+        if (bpos.y - halfH - margin < 0.0f) bpos.y = halfH + margin;
+
+        if (g_SolidTex)
+        {
+            g_pContext->PSSetShaderResources(0, 1, &g_SolidTex);
+            XMFLOAT4 dbgBg = { 0.0f,0.0f,0.0f,0.45f };
+            XMFLOAT2 bgSize = { bsize.x + 20.0f, bsize.y + 20.0f };
+            Sprite_Single_Draw({ bpos.x, bpos.y }, bgSize, 0.0f, dbgBg, BLENDSTATE_ALFA, g_SolidTex);
+        }
+
+        g_pContext->PSSetShaderResources(0, 1, &g_Texture[3]);
+        FLIPTYPE2D bflip = g_bikkuriFlip ? FLIPTYPE2D::FLIPTYPE2D_HORIZONTAL : FLIPTYPE2D::FLIPTYPE2D_NONE;
+        Sprite_Single_Draw(bpos, bsize, 0.0f, XMFLOAT4{ 1,1,1,1 }, BLENDSTATE_ALFA, g_Texture[3], bflip);
+
+        // 描画が実際に行われたので再表示を防ぐフラグを立てる
+        if (!g_bikkuriShownOnce) g_bikkuriShownOnce = true;
     }
 }
