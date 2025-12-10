@@ -36,7 +36,6 @@ ID3D11ShaderResourceView* LoadTexture(const wchar_t* texpass)
 		// 失敗時は NULL を返す（呼び出し側でフォールバック処理を行う）
 		return nullptr;
 	}
-
 	return g_Texture;
 }
 

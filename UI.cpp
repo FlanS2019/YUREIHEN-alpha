@@ -95,6 +95,13 @@ void UI_Initialize(void)
 //----------------------------
 void UI_Update(void)
 {
+	if (Keyboard_IsKeyDown(KK_L))
+	{
+		SetScene(SCENE_ANM_LOSE);//Debug用に負けアニメーションへ直接飛ぶ
+		return;
+	}
+
+
 	//恐怖ゲージが最大なら勝利シーンへ移行（デバッグ用）
 	if (g_ScareGauge->GetValue() >= g_ScareGauge->GetMaxValue())
 	{
