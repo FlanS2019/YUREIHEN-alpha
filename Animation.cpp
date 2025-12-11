@@ -4,6 +4,7 @@
 #include "fade.h"
 #include "debug_ostream.h"
 #include "OpAnim.h"
+#include "component.h"
 #include <timeapi.h>
 #pragma comment(lib, "winmm.lib")
 
@@ -146,93 +147,4 @@ void Animation_Op_Finalize(void)
 	OpAnim_Finalize();
 }
 
-//━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-// Win Animation (勝ちアニメーション)
-//━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-Sprite* g_WinSprite = nullptr;
 
-void Animation_Win_Initialize(ID3D11Device* pDevice, ID3D11DeviceContext* pContext)
-{
-	g_WinSprite = new Sprite(
-		{ SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2 },	// 位置
-		{ SCREEN_WIDTH, SCREEN_HEIGHT },			// サイズ
-		0.0f,										// 回転（度）
-		{ 1.0f, 1.0f, 1.0f, 1.0f },				// 色
-		BLENDSTATE_ALFA,							// BlendState
-		L"asset\\texture\\winanim.png"				// テクスチャパス
-	);
-}
-
-void Animation_Win_Update(void)
-{
-	// ENTERキーでタイトル画面へ遷移
-	if (Keyboard_IsKeyDownTrigger(KK_ENTER))
-	{
-		StartFade(SCENE_RESULT);
-	}
-}
-
-void Animation_Win_Draw(void)
-{
-	g_WinSprite->Draw();
-}
-
-void Animation_Win_Finalize(void)
-{
-	delete g_WinSprite;
-}
-
-//━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-// Lose Animation (負けアニメーション)
-//━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-Sprite* g_LoseSprite = nullptr;
-
-void Animation_Lose_Initialize(ID3D11Device* pDevice, ID3D11DeviceContext* pContext)
-{
-	g_LoseSprite = new Sprite(
-		{ SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2 },	// 位置
-		{ SCREEN_WIDTH, SCREEN_HEIGHT },			// サイズ
-		0.0f,										// 回転（度）
-		{ 1.0f, 1.0f, 1.0f, 1.0f },				// 色
-		BLENDSTATE_ALFA,							// BlendState
-		L"asset\\yureihen\\Losehaikei.png"				// テクスチャパス
-	);
-
-	g_LoseSprite = new Sprite(
-		{ SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2 },	// 位置
-		{ SCREEN_WIDTH, SCREEN_HEIGHT },			// サイズ
-		0.0f,										// 回転（度）
-		{ 1.0f, 1.0f, 1.0f, 1.0f },				// 色
-		BLENDSTATE_ALFA,							// BlendState
-		L"asset\\yureihen\\Loseink.png"				// テクスチャパス
-	);
-
-	g_LoseSprite = new Sprite(
-		{ SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2 },	// 位置
-		{ SCREEN_WIDTH, SCREEN_HEIGHT },			// サイズ
-		0.0f,										// 回転（度）
-		{ 1.0f, 1.0f, 1.0f, 1.0f },				// 色
-		BLENDSTATE_ALFA,							// BlendState
-		L"asset\\yureihen\\LoseGhost.png"				// テクスチャパス
-	);
-
-}
-
-void Animation_Lose_Update(void)
-{
-	// ENTERキーでタイトル画面へ遷移
-	if (Keyboard_IsKeyDownTrigger(KK_ENTER))
-	{
-		StartFade(SCENE_GAME);
-	}
-}
-
-void Animation_Lose_Draw(void)
-{
-	g_LoseSprite->Draw();
-}
-
-void Animation_Lose_Finalize(void)
-{
-	delete g_LoseSprite;
-}
