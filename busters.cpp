@@ -9,14 +9,14 @@
 #include "furniture.h"
 #include <stdlib.h>
 
-// éšå±¤åˆ†ã®Bustersãƒªã‚¹ãƒˆ
+// ŠK‘w•ª‚ÌBustersƒŠƒXƒg
 static Busters* g_BustersList[MAP_FLOORS];
 
 // =================================================================
-// Busters ã‚¯ãƒ©ã‚¹ãƒ¡ãƒ³ãƒé–¢æ•°ã®å®Ÿè£…
+// Busters ƒNƒ‰ƒXƒƒ“ƒoŠÖ”‚ÌÀ‘•
 // =================================================================
 
-// ã‚³ãƒ³ã‚¹ãƒˆãƒ©ã‚¯ã‚¿
+// ƒRƒ“ƒXƒgƒ‰ƒNƒ^
 Busters::Busters(const XMFLOAT3& pos, const XMFLOAT3& scale, const XMFLOAT3& rot, const char* pass)
 	: Sprite3D(pos, scale, rot, pass),
 	Jump(0.01f, 0.2f, PATROL_HEIGHT),
@@ -27,11 +27,11 @@ Busters::Busters(const XMFLOAT3& pos, const XMFLOAT3& scale, const XMFLOAT3& rot
 	m_MoveSpeed(0.03f),
 	m_DistanceToGhost(0.0f)
 {
-	// ä¹±æ•°åˆæœŸåŒ– (è­¦å‘Šå¯¾ç­–: ã‚­ãƒ£ã‚¹ãƒˆã‚’å…¥ã‚Œã‚‹)
+	// —”‰Šú‰» (Œx‘Îô: ƒLƒƒƒXƒg‚ğ“ü‚ê‚é)
 	srand((unsigned int)GetTickCount64());
 }
 
-// æ›´æ–°å‡¦ç†
+// XVˆ—
 void Busters::Update(void)
 {
 	JumpUpdate(*(Transform3D*)this);
@@ -41,7 +41,7 @@ void Busters::Update(void)
 
 	switch (m_State)
 	{
-	case BUSTERS_SEARCH: // æ¢ç´¢
+	case BUSTERS_SEARCH: // ’Tõ
 		if (m_TargetFurnitureIndex == -1)
 		{
 			if (m_WaitTimer > 0)
@@ -80,35 +80,35 @@ void Busters::Update(void)
 			m_WaitTimer = 60;
 		}
 
-		m_MoveSpeed = 0.03f; // é€šå¸¸é€Ÿåº¦
+		m_MoveSpeed = 0.03f; // ’Êí‘¬“x
 		break;
 
-	case BUSTERS_SUSPICION: // è­¦æˆ’ï¼ˆä¸­è·é›¢ï¼‰
+	case BUSTERS_SUSPICION: // Œx‰úi’†‹——£j
 		m_PathList.clear();
 		m_TargetFurnitureIndex = -1;
 
 		nextStepPos = GetGhost()->GetPos();
 		nextStepPos.y = m_Position.y;
 
-		m_MoveSpeed = 0.06f; // å°‘ã—æ—©æ­©ã
+		m_MoveSpeed = 0.06f; // ­‚µ‘•à‚«
 		break;
 
-	case BUSTERS_CHASE: // è¿½è·¡ï¼ˆè¿‘è·é›¢ï¼‰
+	case BUSTERS_CHASE: // ’ÇÕi‹ß‹——£j
 		nextStepPos = GetGhost()->GetPos();
 		nextStepPos.y = m_Position.y;
 
 		m_PathList.clear();
 		m_TargetFurnitureIndex = -1;
 
-		m_MoveSpeed = 0.09f; // å…¨åŠ›ç–¾èµ°
+		m_MoveSpeed = 0.09f; // ‘S—Í¾‘–
 		break;
 	}
 
 	MoveTo(nextStepPos);
 }
 
-// çŠ¶æ…‹é·ç§»ãƒã‚§ãƒƒã‚¯
-// busters.cpp ã® CheckState é–¢æ•°
+// ó‘Ô‘JˆÚƒ`ƒFƒbƒN
+// busters.cpp ‚Ì CheckState ŠÖ”
 
 void Busters::CheckState(void)
 {
@@ -120,7 +120,7 @@ void Busters::CheckState(void)
 	XMVECTOR myVec = XMLoadFloat3(&m_Position);
 	m_DistanceToGhost = XMVectorGetX(XMVector3Length(XMVectorSubtract(ghostVec, myVec)));
 
-	// å¤‰èº«ä¸­ã¯æ°—ã¥ã‹ãªã„
+	// •Ïg’†‚Í‹C‚Ã‚©‚È‚¢
 	if (ghost->GetState() == GS_TRANSFORM ||
 		ghost->GetState() == GS_SCARE)
 	{
@@ -135,43 +135,43 @@ void Busters::CheckState(void)
 		return;
 	}
 
-	// â˜…è¿½åŠ : é–“ã«å£ãŒã‚ã‚‹ã‹ãƒã‚§ãƒƒã‚¯ (è¦–ç·šãŒé€šã£ã¦ã„ã‚‹ã‹ï¼Ÿ)
+	// š’Ç‰Á: ŠÔ‚É•Ç‚ª‚ ‚é‚©ƒ`ƒFƒbƒN (‹ü‚ª’Ê‚Á‚Ä‚¢‚é‚©H)
 	bool hasWall = Field_CheckWallBetween(m_Position, ghostPos);
 
-	// è·é›¢ã«ã‚ˆã‚‹åˆ¤å®š (å£ãŒãªã„å ´åˆã®ã¿æ¤œçŸ¥)
-	if (!hasWall && m_DistanceToGhost < BUSTERS_PATROL_RANGH) // è¿‘è·é›¢
+	// ‹——£‚É‚æ‚é”»’è (•Ç‚ª‚È‚¢ê‡‚Ì‚İŒŸ’m)
+	if (!hasWall && m_DistanceToGhost < BUSTERS_PATROL_RANGH) // ‹ß‹——£
 	{
 		if (m_State != BUSTERS_CHASE)
 		{
 			m_State = BUSTERS_CHASE;
-			this->SetColor(1.0f, 0.0f, 0.0f, 1.0f); // èµ¤
+			this->SetColor(1.0f, 0.0f, 0.0f, 1.0f); // Ô
 			ghost->SetIsDetectedByBuster(true);
 		}
 	}
-	else if (!hasWall && m_DistanceToGhost < BUSTERS_SUSPICION_RANGE) // ä¸­è·é›¢
+	else if (!hasWall && m_DistanceToGhost < BUSTERS_SUSPICION_RANGE) // ’†‹——£
 	{
 		if (m_State != BUSTERS_SUSPICION)
 		{
 			m_State = BUSTERS_SUSPICION;
-			this->SetColor(1.0f, 1.0f, 0.0f, 1.0f); // é»„
+			this->SetColor(1.0f, 1.0f, 0.0f, 1.0f); // ‰©
 			ghost->SetIsDetectedByBuster(false);
 		}
 	}
-	else // ç¯„å›²å¤–ã€ã¾ãŸã¯å£ãŒã‚ã‚‹
+	else // ”ÍˆÍŠOA‚Ü‚½‚Í•Ç‚ª‚ ‚é
 	{
 		if (m_State != BUSTERS_SEARCH)
 		{
 			m_State = BUSTERS_SEARCH;
-			this->ResetColor(); // ç™½
+			this->ResetColor(); // ”’
 			ghost->SetIsDetectedByBuster(false);
 
-			// è¦‹å¤±ã£ãŸã®ã§å°‘ã—ã‚­ãƒ§ãƒ­ã‚­ãƒ§ãƒ­ã•ã›ã‚‹æ¼”å‡º
+			// Œ©¸‚Á‚½‚Ì‚Å­‚µƒLƒ‡ƒƒLƒ‡ƒ‚³‚¹‚é‰‰o
 			m_TargetFurnitureIndex = -1;
 			m_WaitTimer = 30;
 		}
 	}
 }
-// ç§»å‹•å‡¦ç†ï¼ˆå£åˆ¤å®šã‚ã‚Šï¼‰
+// ˆÚ“®ˆ—i•Ç”»’è‚ ‚èj
 void Busters::MoveTo(XMFLOAT3 targetPos)
 {
 	if (GetIsJumping()) return;
@@ -194,7 +194,7 @@ void Busters::MoveTo(XMFLOAT3 targetPos)
 
 	float r = 0.4f;
 
-	// Xæ–¹å‘
+	// X•ûŒü
 	float nextX = m_Position.x + dx * m_MoveSpeed;
 	bool hitX = false;
 	if (Field_IsWall(nextX + r, m_Position.y, m_Position.z + r) ||
@@ -206,7 +206,7 @@ void Busters::MoveTo(XMFLOAT3 targetPos)
 	}
 	if (!hitX) m_Position.x = nextX;
 
-	// Zæ–¹å‘
+	// Z•ûŒü
 	float nextZ = m_Position.z + dz * m_MoveSpeed;
 	bool hitZ = false;
 	if (Field_IsWall(m_Position.x + r, m_Position.y, nextZ + r) ||
@@ -223,13 +223,13 @@ void Busters::OnScared(void)
 {
 	JumpStart();
 	m_TargetFurnitureIndex = -1;
-	m_WaitTimer = 120; // 2ç§’é–“å‹•ã‘ãªãã™ã‚‹
-	this->SetColor(0.0f, 0.0f, 1.0f, 1.0f); // é’è‰²ï¼ˆé©šã„ãŸï¼‰
+	m_WaitTimer = 120; // 2•bŠÔ“®‚¯‚È‚­‚·‚é
+	this->SetColor(0.0f, 0.0f, 1.0f, 1.0f); // ÂFi‹Á‚¢‚½j
 }
 
 void Busters::SetIsGhostDiscover(bool discover)
 {
-	// trueãªã‚‰Materialè‰²ã‚’ç·‘ã«ã™ã‚‹
+	// true‚È‚çMaterialF‚ğ—Î‚É‚·‚é
 	if (discover)
 	{
 		this->SetColor(0.0f, 1.0f, 0.0f, 1.0f);
@@ -241,18 +241,18 @@ void Busters::SetIsGhostDiscover(bool discover)
 }
 
 // =================================================================
-// ã‚°ãƒ­ãƒ¼ãƒãƒ«é–¢æ•°
+// ƒOƒ[ƒoƒ‹ŠÖ”
 // =================================================================
 
 void Busters_Initialize(void)
 {
-	// 1éš
+	// 1ŠK
 	g_BustersList[0] = new Busters({ 0.0f, PATROL_HEIGHT, 0.0f }, { 1.0f, 1.0f, 1.0f }, { 0.0f, 0.0f, 0.0f }, "asset\\model\\buster.fbx");
 	if (g_BustersList[0]) g_BustersList[0]->SetGroundLevel(PATROL_HEIGHT);
-	// 2éš
+	// 2ŠK
 	g_BustersList[1] = new Busters({ -10.0f, PATROL_HEIGHT, 10.0f }, { 1.0f, 1.0f, 1.0f }, { 0.0f, 0.0f, 0.0f }, "asset\\model\\buster.fbx");
 	if (g_BustersList[1]) g_BustersList[1]->SetGroundLevel(PATROL_HEIGHT);
-	// 3éš
+	// 3ŠK
 	g_BustersList[2] = new Busters({ 10.0f, PATROL_HEIGHT, -10.0f }, { 1.0f, 1.0f, 1.0f }, { 0.0f, 0.0f, 0.0f }, "asset\\model\\buster.fbx");
 	if (g_BustersList[2]) g_BustersList[2]->SetGroundLevel(PATROL_HEIGHT);
 }

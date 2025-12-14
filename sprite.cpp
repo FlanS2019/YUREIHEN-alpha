@@ -1,35 +1,35 @@
-//sprite.cpp
+ï»¿//sprite.cpp
 #include "sprite.h"
 #include "shader.h"
 #include "main.h"
 #include "texture.h"
 #include <cmath>
 
-//ƒOƒ[ƒoƒ‹•Ï”
-static constexpr int NUM_VERTEX = 6; // g—p‚Å‚«‚éÅ‘å’¸“_”
-static ID3D11Buffer* g_pVertexBuffer = nullptr; // ’¸“_ƒoƒbƒtƒ@
-// ’ˆÓI‰Šú‰»‚ÅŠO•”‚©‚çİ’è‚³‚ê‚é‚à‚ÌBRelease•s—vB
+//ã‚°ãƒ­ãƒ¼ãƒãƒ«å¤‰æ•°
+static constexpr int NUM_VERTEX = 6; // ä½¿ç”¨ã§ãã‚‹æœ€å¤§é ‚ç‚¹æ•°
+static ID3D11Buffer* g_pVertexBuffer = nullptr; // é ‚ç‚¹ãƒãƒƒãƒ•ã‚¡
+// æ³¨æ„ï¼åˆæœŸåŒ–ã§å¤–éƒ¨ã‹ã‚‰è¨­å®šã•ã‚Œã‚‹ã‚‚ã®ã€‚Releaseä¸è¦ã€‚
 static ID3D11Device* g_pDevice = nullptr;
 static ID3D11DeviceContext* g_pContext = nullptr;
 
 //----------------------------
-//ƒXƒvƒ‰ƒCƒg‰Šú‰»
+//ã‚¹ãƒ—ãƒ©ã‚¤ãƒˆåˆæœŸåŒ–
 //----------------------------
 void Sprite_Initialize()
 {
 	g_pDevice = Direct3D_GetDevice();
 
-	// ’¸“_ƒoƒbƒtƒ@¶¬
+	// é ‚ç‚¹ãƒãƒƒãƒ•ã‚¡ç”Ÿæˆ
 	D3D11_BUFFER_DESC bd = {};
 	bd.Usage = D3D11_USAGE_DYNAMIC;
-	bd.ByteWidth = sizeof(Vertex) * NUM_VERTEX;//<<<<<<<Ši”[‚·‚éÅ‘å’¸“_”
+	bd.ByteWidth = sizeof(Vertex) * NUM_VERTEX;//<<<<<<<æ ¼ç´ã™ã‚‹æœ€å¤§é ‚ç‚¹æ•°
 	bd.BindFlags = D3D11_BIND_VERTEX_BUFFER;
 	bd.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
 	g_pDevice->CreateBuffer(&bd, NULL, &g_pVertexBuffer);
 }
 
 //----------------------------
-//ƒXƒvƒ‰ƒCƒgI—¹
+//ã‚¹ãƒ—ãƒ©ã‚¤ãƒˆçµ‚äº†
 //----------------------------
 void Sprite_Finalize()
 {
@@ -40,28 +40,28 @@ void Sprite_Finalize()
 }
 
 //----------------------------
-//’PˆêƒXƒvƒ‰ƒCƒg•`‰æi”Ä—p“I‚É‚È‚é‚æ‚¤‚ÉŠO‚Éo‚·j
+//å˜ä¸€ã‚¹ãƒ—ãƒ©ã‚¤ãƒˆæç”»ï¼ˆæ±ç”¨çš„ã«ãªã‚‹ã‚ˆã†ã«å¤–ã«å‡ºã™ï¼‰
 //----------------------------
 void Sprite_Single_Draw(XMFLOAT2 pos, XMFLOAT2 size,float rot, XMFLOAT4 color, BLENDSTATE bstate, ID3D11ShaderResourceView* texture, FLIPTYPE2D flipType)
 {
-	// ƒVƒF[ƒ_[ŠJn
+	// ã‚·ã‚§ãƒ¼ãƒ€ãƒ¼é–‹å§‹
 	Shader_Begin();
 
-	// ƒXƒNƒŠ[ƒ“À•W—p‚ÌË‰es—ñ‚ğİ’è
+	// ã‚¹ã‚¯ãƒªãƒ¼ãƒ³åº§æ¨™ç”¨ã®å°„å½±è¡Œåˆ—ã‚’è¨­å®š
 	Shader_SetMatrix(XMMatrixOrthographicOffCenterLH(0.0f, SCREEN_WIDTH, SCREEN_HEIGHT, 0.0f, 0.0f, 1.0f));
 
-	// 2D•`‰æ—p‚Éƒ}ƒeƒŠƒAƒ‹F‚ğ”’‚Éİ’èiƒeƒNƒXƒ`ƒƒ@–@”’@@ƒeƒNƒXƒ`ƒƒj
+	// 2Dæç”»ç”¨ã«ãƒãƒ†ãƒªã‚¢ãƒ«è‰²ã‚’ç™½ã«è¨­å®šï¼ˆãƒ†ã‚¯ã‚¹ãƒãƒ£ã€€ï¼Šã€€ç™½ã€€ï¼ã€€ãƒ†ã‚¯ã‚¹ãƒãƒ£ï¼‰
 	Shader_SetMaterialColor({ 1.0f, 1.0f, 1.0f, 1.0f });
 
 	g_pDevice = Direct3D_GetDevice();
 	g_pContext = Direct3D_GetDeviceContext();
 
-	// ƒeƒNƒXƒ`ƒƒİ’è
+	// ãƒ†ã‚¯ã‚¹ãƒãƒ£è¨­å®š
 	ID3D11ShaderResourceView* tex = texture;
 	g_pContext->PSSetShaderResources(0, 1, &tex);
 	SetBlendState(bstate);
 
-	// ’¸“_ƒf[ƒ^
+	// é ‚ç‚¹ãƒ‡ãƒ¼ã‚¿
 	D3D11_MAPPED_SUBRESOURCE msr;
 	g_pContext->Map(g_pVertexBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &msr);
 	Vertex* v = (Vertex*)msr.pData;
@@ -69,17 +69,17 @@ void Sprite_Single_Draw(XMFLOAT2 pos, XMFLOAT2 size,float rot, XMFLOAT4 color, B
 	float halfX = size.x * 0.5f;
 	float halfY = size.y * 0.5f;
 
-	// ‰ñ“]i“x->ƒ‰ƒWƒAƒ“j
+	// å›è»¢ï¼ˆåº¦->ãƒ©ã‚¸ã‚¢ãƒ³ï¼‰
 	float rotDeg = rot;
 	float rad = XMConvertToRadians(rotDeg);
 	float co = cosf(rad);
 	float si = sinf(rad);
 
-	// ƒ[ƒJƒ‹’¸“_i’†SŒ´“_j
+	// ãƒ­ãƒ¼ã‚«ãƒ«é ‚ç‚¹ï¼ˆä¸­å¿ƒåŸç‚¹ï¼‰
 	float lx[4] = { -halfX, halfX, -halfX, halfX };
 	float ly[4] = { -halfY, -halfY, halfY, halfY };
 
-	// ‰ñ“]‚Æ•ÀiˆÚ“®‚Ì’¸“_À•W‚ğŒvZ
+	// å›è»¢ã¨ä¸¦é€²ç§»å‹•ã®é ‚ç‚¹åº§æ¨™ã‚’è¨ˆç®—
 	for (int i = 0; i < 4; ++i) {
 		float rx = lx[i] * co - ly[i] * si;
 		float ry = lx[i] * si + ly[i] * co;
@@ -88,26 +88,26 @@ void Sprite_Single_Draw(XMFLOAT2 pos, XMFLOAT2 size,float rot, XMFLOAT4 color, B
 		v[i].color = color;
 	}
 
-	// ƒeƒNƒXƒ`ƒƒÀ•WiƒtƒŠƒbƒv‚É‘Î‰j
-	// flipType‚É‰‚¶‚ÄƒeƒNƒXƒ`ƒƒÀ•W‚ğ”½“]
+	// ãƒ†ã‚¯ã‚¹ãƒãƒ£åº§æ¨™ï¼ˆãƒ•ãƒªãƒƒãƒ—ã«å¯¾å¿œï¼‰
+	// flipTypeã«å¿œã˜ã¦ãƒ†ã‚¯ã‚¹ãƒãƒ£åº§æ¨™ã‚’åè»¢
 	float texCoordU[2] = { 0.0f, 1.0f };
 	float texCoordV[2] = { 0.0f, 1.0f };
 
-	// ¶‰E”½“]iFLIPTYPE2D_HORIZONTALj
+	// å·¦å³åè»¢ï¼ˆFLIPTYPE2D_HORIZONTALï¼‰
 	if (static_cast<unsigned char>(flipType) & static_cast<unsigned char>(FLIPTYPE2D::FLIPTYPE2D_HORIZONTAL))
 	{
 		texCoordU[0] = 1.0f;
 		texCoordU[1] = 0.0f;
 	}
 
-	// ã‰º”½“]iFLIPTYPE2D_VERTICALj
+	// ä¸Šä¸‹åè»¢ï¼ˆFLIPTYPE2D_VERTICALï¼‰
 	if (static_cast<unsigned char>(flipType) & static_cast<unsigned char>(FLIPTYPE2D::FLIPTYPE2D_VERTICAL))
 	{
 		texCoordV[0] = 1.0f;
 		texCoordV[1] = 0.0f;
 	}
 
-	// ƒeƒNƒXƒ`ƒƒÀ•W‚ğİ’è
+	// ãƒ†ã‚¯ã‚¹ãƒãƒ£åº§æ¨™ã‚’è¨­å®š
 	v[0].texCoord = { texCoordU[0], texCoordV[0] };
 	v[1].texCoord = { texCoordU[1], texCoordV[0] };
 	v[2].texCoord = { texCoordU[0], texCoordV[1] };
@@ -123,28 +123,28 @@ void Sprite_Single_Draw(XMFLOAT2 pos, XMFLOAT2 size,float rot, XMFLOAT4 color, B
 }
 
 //----------------------------
-//•ªŠ„ƒeƒNƒXƒ`ƒƒ•`‰æiƒeƒNƒXƒ`ƒƒ‚ğ•ªŠ„‚µ‚Äw’è‚µ‚½ƒpƒ^[ƒ“‚Ì‚İ•`‰æj
+//åˆ†å‰²ãƒ†ã‚¯ã‚¹ãƒãƒ£æç”»ï¼ˆãƒ†ã‚¯ã‚¹ãƒãƒ£ã‚’åˆ†å‰²ã—ã¦æŒ‡å®šã—ãŸãƒ‘ã‚¿ãƒ¼ãƒ³ã®ã¿æç”»ï¼‰
 //----------------------------
 void Sprite_Split_Draw(XMFLOAT2 pos, XMFLOAT2 size, float rot, XMFLOAT4 color, BLENDSTATE bstate, ID3D11ShaderResourceView* texture, int divideX, int divideY, int textureNumber)
 {
-	// ƒVƒF[ƒ_[ŠJn
+	// ã‚·ã‚§ãƒ¼ãƒ€ãƒ¼é–‹å§‹
 	Shader_Begin();
 
-	// ƒXƒNƒŠ[ƒ“‹óŠÔ—p‚Ì’¼Œğ“Š‰e‚ğİ’è
+	// ã‚¹ã‚¯ãƒªãƒ¼ãƒ³ç©ºé–“ç”¨ã®ç›´äº¤æŠ•å½±ã‚’è¨­å®š
 	Shader_SetMatrix(XMMatrixOrthographicOffCenterLH(0.0f, SCREEN_WIDTH, SCREEN_HEIGHT, 0.0f, 0.0f, 1.0f));
 
-	// 2D•`‰æ—p‚Éƒ}ƒeƒŠƒAƒ‹F‚ğ”’‚Éİ’èiƒeƒNƒXƒ`ƒƒ ~ ”’ = ƒeƒNƒXƒ`ƒƒj
+	// 2Dæç”»ç”¨ã«ãƒãƒ†ãƒªã‚¢ãƒ«è‰²ã‚’ç™½ã«è¨­å®šï¼ˆãƒ†ã‚¯ã‚¹ãƒãƒ£ Ã— ç™½ = ãƒ†ã‚¯ã‚¹ãƒãƒ£ï¼‰
 	Shader_SetMaterialColor({ 1.0f, 1.0f, 1.0f, 1.0f });
 
 	g_pDevice = Direct3D_GetDevice();
 	g_pContext = Direct3D_GetDeviceContext();
 
-	// ƒeƒNƒXƒ`ƒƒİ’è
+	// ãƒ†ã‚¯ã‚¹ãƒãƒ£è¨­å®š
 	ID3D11ShaderResourceView* tex = texture;
 	g_pContext->PSSetShaderResources(0, 1, &tex);
 	SetBlendState(bstate);
 
-	// ’¸“_ƒf[ƒ^
+	// é ‚ç‚¹ãƒ‡ãƒ¼ã‚¿
 	D3D11_MAPPED_SUBRESOURCE msr;
 	g_pContext->Map(g_pVertexBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &msr);
 	Vertex* v = (Vertex*)msr.pData;
@@ -152,17 +152,17 @@ void Sprite_Split_Draw(XMFLOAT2 pos, XMFLOAT2 size, float rot, XMFLOAT4 color, B
 	float halfX = size.x * 0.5f;
 	float halfY = size.y * 0.5f;
 
-	// ‰ñ“]i“x->ƒ‰ƒWƒAƒ“j
+	// å›è»¢ï¼ˆåº¦->ãƒ©ã‚¸ã‚¢ãƒ³ï¼‰
 	float rotDeg = rot;
 	float rad = XMConvertToRadians(rotDeg);
 	float co = cosf(rad);
 	float si = sinf(rad);
 
-	// ƒ[ƒJƒ‹’¸“_i’†SŒ´“_j
+	// ãƒ­ãƒ¼ã‚«ãƒ«é ‚ç‚¹ï¼ˆä¸­å¿ƒåŸç‚¹ï¼‰
 	float lx[4] = { -halfX, halfX, -halfX, halfX };
 	float ly[4] = { -halfY, -halfY, halfY, halfY };
 
-	// ‰ñ“]E•½sˆÚ“®Œã‚Ì’¸“_À•WŒvZ
+	// å›è»¢ãƒ»å¹³è¡Œç§»å‹•å¾Œã®é ‚ç‚¹åº§æ¨™è¨ˆç®—
 	for (int i = 0; i < 4; ++i) {
 		float rx = lx[i] * co - ly[i] * si;
 		float ry = lx[i] * si + ly[i] * co;
@@ -171,21 +171,21 @@ void Sprite_Split_Draw(XMFLOAT2 pos, XMFLOAT2 size, float rot, XMFLOAT4 color, B
 		v[i].color = color;
 	}
 
-	// •ªŠ„‚³‚ê‚½ƒeƒNƒXƒ`ƒƒ‚Ì‘Î‰‚·‚é•”•ª‚ÌUVÀ•W‚ğŒvZ
-	float texWidth = 1.0f / divideX;		// 1‚Â‚ÌƒeƒNƒXƒ`ƒƒ‚Ì‰¡•
-	float texHeight = 1.0f / divideY;		// 1‚Â‚ÌƒeƒNƒXƒ`ƒƒ‚Ìc•
+	// åˆ†å‰²ã•ã‚ŒãŸãƒ†ã‚¯ã‚¹ãƒãƒ£ã®å¯¾å¿œã™ã‚‹éƒ¨åˆ†ã®UVåº§æ¨™ã‚’è¨ˆç®—
+	float texWidth = 1.0f / divideX;		// 1ã¤ã®ãƒ†ã‚¯ã‚¹ãƒãƒ£ã®æ¨ªå¹…
+	float texHeight = 1.0f / divideY;		// 1ã¤ã®ãƒ†ã‚¯ã‚¹ãƒãƒ£ã®ç¸¦å¹…
 
-	// textureNumber‚©‚çsE—ñ‚ğŒvZ
+	// textureNumberã‹ã‚‰è¡Œãƒ»åˆ—ã‚’è¨ˆç®—
 	int col = textureNumber % divideX;
 	int row = textureNumber / divideX;
 
-	// ƒeƒNƒXƒ`ƒƒÀ•W‚ÌÅ¬EÅ‘å’l‚ğŒvZ
+	// ãƒ†ã‚¯ã‚¹ãƒãƒ£åº§æ¨™ã®æœ€å°ãƒ»æœ€å¤§å€¤ã‚’è¨ˆç®—
 	float texMinU = col * texWidth;
 	float texMaxU = (col + 1) * texWidth;
 	float texMinV = row * texHeight;
 	float texMaxV = (row + 1) * texHeight;
 
-	// ƒeƒNƒXƒ`ƒƒÀ•W‚ğİ’è
+	// ãƒ†ã‚¯ã‚¹ãƒãƒ£åº§æ¨™ã‚’è¨­å®š
 	v[0].texCoord = { texMinU, texMinV };
 	v[1].texCoord = { texMaxU, texMinV };
 	v[2].texCoord = { texMinU, texMaxV };
@@ -201,29 +201,29 @@ void Sprite_Split_Draw(XMFLOAT2 pos, XMFLOAT2 size, float rot, XMFLOAT4 color, B
 }
 
 //----------------------------
-//ƒVƒ“ƒvƒ‹‚ÈlŠpŒ`•`‰æ (ˆÈ‘O‚Ìƒ†[ƒeƒBƒŠƒeƒBA•K—v‚È‚ç‰ñ“]‘Î‰‚ğ’Ç‰Á‚µ‚ÄÄ—LŒø‰»)
+//ã‚·ãƒ³ãƒ—ãƒ«ãªå››è§’å½¢æç”» (ä»¥å‰ã®ãƒ¦ãƒ¼ãƒ†ã‚£ãƒªãƒ†ã‚£ã€å¿…è¦ãªã‚‰å›è»¢å¯¾å¿œã‚’è¿½åŠ ã—ã¦å†æœ‰åŠ¹åŒ–)
 //----------------------------
 //void Sprite_Draw(XMFLOAT2 pos, XMFLOAT2 size, XMFLOAT4 color, BLENDSTATE bstate, ID3D11ShaderResourceView* g_Texture)
 //{
-//	// ƒVƒF[ƒ_[‚ğ•`‰æƒpƒCƒvƒ‰ƒCƒ“‚Éİ’è
+//	// ã‚·ã‚§ãƒ¼ãƒ€ãƒ¼ã‚’æç”»ãƒ‘ã‚¤ãƒ—ãƒ©ã‚¤ãƒ³ã«è¨­å®š
 //	Shader_Begin();
 //
-//	// ’¸“_ƒVƒF[ƒ_[‚É•ÏŠ·s—ñ‚ğİ’è
+//	// é ‚ç‚¹ã‚·ã‚§ãƒ¼ãƒ€ãƒ¼ã«å¤‰æ›è¡Œåˆ—ã‚’è¨­å®š
 //	Shader_SetMatrix(XMMatrixOrthographicOffCenterLH(0.0f, SCREEN_WIDTH, SCREEN_HEIGHT, 0.0f, 0.0f, 1.0f));
 //
 //
 //	g_pDevice = Direct3D_GetDevice();
 //	g_pContext = Direct3D_GetDeviceContext();
 //
-//	//’£‚éƒeƒNƒXƒ`ƒƒ‚Ìw’è
+//	//å¼µã‚‹ãƒ†ã‚¯ã‚¹ãƒãƒ£ã®æŒ‡å®š
 //	Direct3D_GetDeviceContext()->PSSetShaderResources(0, 1, &g_Texture);
-//	SetBlendState(bstate); //ƒuƒŒƒ“ƒh‚ğİ’è
+//	SetBlendState(bstate); //ãƒ–ãƒ¬ãƒ³ãƒ‰ã‚’è¨­å®š
 //
-//	//’¸“_ƒoƒbƒtƒ@‚ÌƒƒbƒN
+//	//é ‚ç‚¹ãƒãƒƒãƒ•ã‚¡ã®ãƒ­ãƒƒã‚¯
 //	D3D11_MAPPED_SUBRESOURCE msr;
 //	g_pContext->Map(g_pVertexBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &msr);
 //
-//	//’¸“_ƒoƒbƒtƒ@‚Ö‚Ì‰¼‘zƒ|ƒCƒ“ƒ^‚ğæ“¾
+//	//é ‚ç‚¹ãƒãƒƒãƒ•ã‚¡ã¸ã®ä»®æƒ³ãƒã‚¤ãƒ³ã‚¿ã‚’å–å¾—
 //	Vertex* v = (Vertex*)msr.pData;
 //
 //	v[0].position = { pos.x - (size.x / 2),pos.y - (size.y / 2), 0.0f };
@@ -246,17 +246,17 @@ void Sprite_Split_Draw(XMFLOAT2 pos, XMFLOAT2 size, float rot, XMFLOAT4 color, B
 //	v[3].color = color;
 //	v[3].texCoord = { 1.0f,1.0f };
 //
-//	//’¸“_ƒoƒbƒtƒ@‚ÌƒƒbƒN‰ğœ
+//	//é ‚ç‚¹ãƒãƒƒãƒ•ã‚¡ã®ãƒ­ãƒƒã‚¯è§£é™¤
 //	g_pContext->Unmap(g_pVertexBuffer, 0);
 //
-//	//w’è‚ÌˆÊ’u‚Éw’è‚ÌƒTƒCƒYAF‚ÌlŠpŒ`‚ğ•`‰æ‚·‚é
+//	//æŒ‡å®šã®ä½ç½®ã«æŒ‡å®šã®ã‚µã‚¤ã‚ºã€è‰²ã®å››è§’å½¢ã‚’æç”»ã™ã‚‹
 //	UINT stride = sizeof(Vertex);
 //	UINT offset = 0;
 //	g_pContext->IASetVertexBuffers(0, 1, &g_pVertexBuffer, &stride, &offset);
 //
-//	//ƒ|ƒŠƒSƒ“•`‰æ•û®‚Ìw’è
+//	//ãƒãƒªã‚´ãƒ³æç”»æ–¹å¼ã®æŒ‡å®š
 //	g_pContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
 //
-//	// ƒ|ƒŠƒSƒ“•`‰æ–½—ß”­s
+//	// ãƒãƒªã‚´ãƒ³æç”»å‘½ä»¤ç™ºè¡Œ
 //	g_pContext->Draw(4, 0);
 //}

@@ -1,4 +1,4 @@
-#pragma once
+ï»¿#pragma once
 //#define NOMINMAX
 #include <unordered_map>
 #include <vector>
@@ -15,12 +15,12 @@ using namespace DirectX;
 #include	"direct3d.h"
 
 
-// ƒ{[ƒ“s—ñî•ñ\‘¢‘Ì
+// ãƒœãƒ¼ãƒ³è¡Œåˆ—æƒ…å ±æ§‹é€ ä½“
 struct BoneMatrices
 {
-	static const unsigned int MAX_BONES = 256;  // Å‘åƒ{[ƒ“”
-	XMMATRIX matrices[MAX_BONES];               // ƒ{[ƒ“s—ñ”z—ñ
-	unsigned int boneCount = 0;                 // ÀÛ‚Ìƒ{[ƒ“”
+	static const unsigned int MAX_BONES = 256;  // æœ€å¤§ãƒœãƒ¼ãƒ³æ•°
+	XMMATRIX matrices[MAX_BONES];               // ãƒœãƒ¼ãƒ³è¡Œåˆ—é…åˆ—
+	unsigned int boneCount = 0;                 // å®Ÿéš›ã®ãƒœãƒ¼ãƒ³æ•°
 
 	BoneMatrices()
 	{
@@ -41,10 +41,10 @@ struct MODEL
 
 	std::unordered_map<std::string, ID3D11ShaderResourceView*> Texture;
 
-	// ƒƒbƒVƒ…’PˆÊ‚ÌƒCƒ“ƒfƒbƒNƒX”
+	// ãƒ¡ãƒƒã‚·ãƒ¥å˜ä½ã®ã‚¤ãƒ³ãƒ‡ãƒƒã‚¯ã‚¹æ•°
 	unsigned int* MeshIndexCounts;
 	
-	// ƒƒbƒVƒ…’PˆÊ‚Ìƒ}ƒeƒŠƒAƒ‹î•ñ
+	// ãƒ¡ãƒƒã‚·ãƒ¥å˜ä½ã®ãƒãƒ†ãƒªã‚¢ãƒ«æƒ…å ±
 	struct MeshMaterial
 	{
 		XMFLOAT4 diffuseColor;
@@ -53,21 +53,21 @@ struct MODEL
 		ID3D11ShaderResourceView* textureView;
 	}* MeshMaterials;
 
-	// ”’ƒeƒNƒXƒ`ƒƒiƒeƒNƒXƒ`ƒƒ–³‚µƒƒbƒVƒ…—pj
+	// ç™½ãƒ†ã‚¯ã‚¹ãƒãƒ£ï¼ˆãƒ†ã‚¯ã‚¹ãƒãƒ£ç„¡ã—ãƒ¡ãƒƒã‚·ãƒ¥ç”¨ï¼‰
 	ID3D11ShaderResourceView* WhiteTexture;
 };
 
-// Assimp‚Ìs—ñ‚ğDirectXMathŒ`®‚É•ÏŠ·iŠO•”‚Å—˜—p‰Â”\j
+// Assimpã®è¡Œåˆ—ã‚’DirectXMathå½¢å¼ã«å¤‰æ›ï¼ˆå¤–éƒ¨ã§åˆ©ç”¨å¯èƒ½ï¼‰
 XMMATRIX AiMatrixToXMMatrix(const aiMatrix4x4& mat);
 
 MODEL* ModelLoad(const char* FileName);
 void ModelRelease(MODEL* model);
 void ModelDraw(MODEL* model, XMFLOAT3 pos, XMFLOAT3 rot, XMFLOAT3 scale, const XMFLOAT4& color = XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f), bool useColorReplace = false);
 
-// ƒAƒjƒ[ƒVƒ‡ƒ“‘Î‰‚Ì•`‰æŠÖ”
+// ã‚¢ãƒ‹ãƒ¡ãƒ¼ã‚·ãƒ§ãƒ³å¯¾å¿œã®æç”»é–¢æ•°
 void ModelAnimationDraw(MODEL* model, XMFLOAT3 pos, XMFLOAT3 rot, XMFLOAT3 scale, const BoneMatrices& boneMatrices, const XMFLOAT4& color = XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f), bool useColorReplace = false);
 
-// ƒAƒjƒ[ƒVƒ‡ƒ“ŒvZŠÖ”
+// ã‚¢ãƒ‹ãƒ¡ãƒ¼ã‚·ãƒ§ãƒ³è¨ˆç®—é–¢æ•°
 void ModelCalculateBoneMatrices(MODEL* model, double animationTime, BoneMatrices& outBoneMatrices);
 
 XMFLOAT3 ModelGetSize(MODEL* model);

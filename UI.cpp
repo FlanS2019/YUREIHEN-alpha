@@ -9,7 +9,7 @@
 #include "define.h"
 #include "ghost.h"
 
-// ã‚°ãƒ­ãƒ¼ãƒãƒ«å¤‰æ•°
+// ƒOƒ[ƒoƒ‹•Ï”
 static Timer* g_Clock = nullptr;
 static Gauge* g_ScareGauge = nullptr;
 Sprite* g_Reticle = nullptr;
@@ -18,25 +18,25 @@ static DWORD g_LastScoreUpdateTime = 0;
 static Number* g_FloorNumber = nullptr;
 static Sprite* g_FloorTextF = nullptr;
 
-// ã‚¯ãƒªãƒƒã‚¯ã‚¬ã‚¤ãƒ‰ç”¨
+// ƒNƒŠƒbƒNƒKƒCƒh—p
 static Sprite* g_GuideClick = nullptr;
 
-// éšå±¤ç§»å‹•ã‚¬ã‚¤ãƒ‰ç”¨
+// ŠK‘wˆÚ“®ƒKƒCƒh—p
 static Number* g_GuideFloorNum = nullptr;
 static Sprite* g_GuideFloorF = nullptr;
 static bool g_ShowGuideFloor = false;
 
-// å„éšå±¤ã®ã‚²ãƒ¼ã‚¸å€¤ã‚’ä¿å­˜ã™ã‚‹é…åˆ—
+// ŠeŠK‘w‚ÌƒQ[ƒW’l‚ğ•Û‘¶‚·‚é”z—ñ
 static float g_FloorGaugeValues[MAP_FLOORS];
-// å‰ãƒ•ãƒ¬ãƒ¼ãƒ ã®éšå±¤ã‚’è¨˜æ†¶ã—ã¦ãŠãå¤‰æ•°
+// ‘OƒtƒŒ[ƒ€‚ÌŠK‘w‚ğ‹L‰¯‚µ‚Ä‚¨‚­•Ï”
 static int g_LastFrameFloor = -1;
 
 
-// 3Dåº§æ¨™ -> 2Dã‚¹ã‚¯ãƒªãƒ¼ãƒ³åº§æ¨™å¤‰æ›
+// 3DÀ•W -> 2DƒXƒNƒŠ[ƒ“À•W•ÏŠ·
 static XMFLOAT2 WorldToScreen(const XMFLOAT3& worldPos)
 {
 	Camera* camera = GetCamera();
-	// â˜…ä¿®æ­£: æ˜ç¤ºçš„ãªã‚³ãƒ³ã‚¹ãƒˆãƒ©ã‚¯ã‚¿ã‚’ä½¿ç”¨
+	// šC³: –¾¦“I‚ÈƒRƒ“ƒXƒgƒ‰ƒNƒ^‚ğg—p
 	if (!camera) return XMFLOAT2(-100.0f, -100.0f);
 
 	XMMATRIX view = camera->GetView();
@@ -50,7 +50,7 @@ static XMFLOAT2 WorldToScreen(const XMFLOAT3& worldPos)
 	XMFLOAT3 ndc;
 	XMStoreFloat3(&ndc, clipPos);
 
-	// ç”»é¢å¤–åˆ¤å®š
+	// ‰æ–ÊŠO”»’è
 	if (ndc.z < 0.0f || ndc.z > 1.0f)
 	{
 		return XMFLOAT2(-1000.0f, -1000.0f);
@@ -63,7 +63,7 @@ static XMFLOAT2 WorldToScreen(const XMFLOAT3& worldPos)
 }
 
 //----------------------------
-//UIåˆæœŸåŒ–
+//UI‰Šú‰»
 //----------------------------
 void UI_Initialize(void)
 {
@@ -77,7 +77,7 @@ void UI_Initialize(void)
 		CLOCK_MIN, CLOCK_MAX
 	);
 
-	// ã‚¯ãƒªãƒƒã‚¯ã‚¬ã‚¤ãƒ‰
+	// ƒNƒŠƒbƒNƒKƒCƒh
 	g_GuideClick = new Sprite(
 		{ SCREEN_WIDTH / 2.0f, SCREEN_HEIGHT / 2.0f + 100.0f },
 		{ 100.0f, 100.0f },
@@ -87,7 +87,7 @@ void UI_Initialize(void)
 		L"asset\\texture\\click_guide.png"
 	);
 
-	// éšå±¤ç§»å‹•ã‚¬ã‚¤ãƒ‰(æ•°å­—)
+	// ŠK‘wˆÚ“®ƒKƒCƒh(”š)
 	g_GuideFloorNum = new Number(
 		{ 0.0f, 0.0f },
 		{ 40.0f, 40.0f },
@@ -98,7 +98,7 @@ void UI_Initialize(void)
 		25.0f
 	);
 
-	// éšå±¤ç§»å‹•ã‚¬ã‚¤ãƒ‰(F)
+	// ŠK‘wˆÚ“®ƒKƒCƒh(F)
 	g_GuideFloorF = new Sprite(
 		{ 0.0f, 0.0f },
 		{ 40.0f, 40.0f },
@@ -130,7 +130,7 @@ void UI_Initialize(void)
 
 	UI_ScareCombo_Initialize();
 
-	// å·¦ä¸Šã®éšå±¤è¡¨ç¤º
+	// ¶ã‚ÌŠK‘w•\¦
 	float floorPosX = CLOCK_POS_X;
 	float floorPosY = CLOCK_POS_Y + 200.0f;
 
@@ -154,7 +154,7 @@ void UI_Initialize(void)
 		L"asset\\texture\\floor_f.png"
 	);
 
-	// ã‚²ãƒ¼ã‚¸ç®¡ç†åˆæœŸåŒ–
+	// ƒQ[ƒWŠÇ—‰Šú‰»
 	for (int i = 0; i < MAP_FLOORS; i++)
 	{
 		g_FloorGaugeValues[i] = 50.0f;
@@ -165,34 +165,34 @@ void UI_Initialize(void)
 }
 
 //----------------------------
-//UIæ›´æ–°
+//UIXV
 //----------------------------
 void UI_Update(void)
 {
 	if (Keyboard_IsKeyDown(KK_L))
 	{
-		SetScene(SCENE_ANM_LOSE);//Debugç”¨ã«è² ã‘ã‚¢ãƒ‹ãƒ¡ãƒ¼ã‚·ãƒ§ãƒ³ã¸ç›´æ¥é£›ã¶
+		SetScene(SCENE_ANM_LOSE);//Debug—p‚É•‰‚¯ƒAƒjƒ[ƒVƒ‡ƒ“‚Ö’¼Ú”ò‚Ô
 		return;
 
 	}
 	
-	//ææ€–ã‚²ãƒ¼ã‚¸ãŒæœ€å¤§ãªã‚‰å‹åˆ©ã‚·ãƒ¼ãƒ³ã¸ç§»è¡Œï¼ˆãƒ‡ãƒãƒƒã‚°ç”¨ï¼‰
+	//‹°•|ƒQ[ƒW‚ªÅ‘å‚È‚çŸ—˜ƒV[ƒ“‚ÖˆÚsiƒfƒoƒbƒO—pj
 	if (g_ScareGauge->GetValue() >= g_ScareGauge->GetMaxValue())
 	{
 		StartFade(SCENE_ANM_WIN);
 	}
 
-	// --- æ•—åŒ—åˆ¤å®š ---
+	// --- ”s–k”»’è ---
 	if (g_Clock->Update() || g_ScareGauge->GetValue() <= 0.0f)
 	{
-		hal::dout << "æ•—åŒ—æ¡ä»¶ã‚’æº€ãŸã—ã¾ã—ãŸ" << std::endl;
+		hal::dout << "”s–kğŒ‚ğ–‚½‚µ‚Ü‚µ‚½" << std::endl;
 		StartFade(SCENE_ANM_LOSE);
 	}
 
 	UI_ScareCombo_Update();
 	g_FloorNumber->SetNumber(Field_GetCurrentFloor() + 1);
 
-	// --- éšæ®µã‚¬ã‚¤ãƒ‰ã®åˆ¶å¾¡ ---
+	// --- ŠK’iƒKƒCƒh‚Ì§Œä ---
 	bool onStairs = false;
 	int targetFloor = 0;
 
@@ -221,7 +221,7 @@ void UI_Update(void)
 			}
 		}
 
-		// é ­ä¸Šã‚¬ã‚¤ãƒ‰ã®åº§æ¨™è¨ˆç®—
+		// “ªãƒKƒCƒh‚ÌÀ•WŒvZ
 		if (onStairs)
 		{
 			g_ShowGuideFloor = true;
@@ -231,7 +231,7 @@ void UI_Update(void)
 
 			XMFLOAT2 screenPos = WorldToScreen(headPos);
 
-			// â˜…ä¿®æ­£: SetPos ã«ã¯ XMFLOAT2 ã‚’æ¸¡ã™
+			// šC³: SetPos ‚É‚Í XMFLOAT2 ‚ğ“n‚·
 			if (g_GuideFloorNum)
 			{
 				g_GuideFloorNum->SetPos(XMFLOAT2(screenPos.x - 25.0f, screenPos.y));
@@ -249,14 +249,14 @@ void UI_Update(void)
 		}
 	}
 
-	// ã‚¯ãƒªãƒƒã‚¯ã‚¬ã‚¤ãƒ‰ã®ç‚¹æ»…
+	// ƒNƒŠƒbƒNƒKƒCƒh‚Ì“_–Å
 	if (onStairs)
 	{
 		static float flash = 0.0f;
 		flash += 0.1f;
 		float alpha = 0.5f + sinf(flash) * 0.5f;
 
-		// â˜…ä¿®æ­£: SetColor ã«ã¯ XMFLOAT4 ã‚’æ¸¡ã™
+		// šC³: SetColor ‚É‚Í XMFLOAT4 ‚ğ“n‚·
 		if (g_GuideClick)
 			g_GuideClick->SetColor(XMFLOAT4(1.0f, 1.0f, 1.0f, alpha));
 	}
@@ -268,7 +268,7 @@ void UI_Update(void)
 }
 
 //----------------------------
-//UIæç”»
+//UI•`‰æ
 //----------------------------
 void UI_Draw(void)
 {
@@ -279,10 +279,10 @@ void UI_Draw(void)
 	if (g_FloorNumber) g_FloorNumber->Draw();
 	if (g_FloorTextF) g_FloorTextF->Draw();
 
-	// ã‚¯ãƒªãƒƒã‚¯ã‚¬ã‚¤ãƒ‰
+	// ƒNƒŠƒbƒNƒKƒCƒh
 	if (g_GuideClick) g_GuideClick->Draw();
 
-	// éšå±¤ç§»å‹•ã‚¬ã‚¤ãƒ‰
+	// ŠK‘wˆÚ“®ƒKƒCƒh
 	if (g_ShowGuideFloor)
 	{
 		if (g_GuideFloorNum) g_GuideFloorNum->Draw();
@@ -291,7 +291,7 @@ void UI_Draw(void)
 }
 
 //----------------------------
-//UIçµ‚äº†
+//UII—¹
 //----------------------------
 void UI_Finalize(void)
 {

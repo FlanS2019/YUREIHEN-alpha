@@ -1,4 +1,4 @@
-#pragma once
+ï»¿#pragma once
 
 #include <d3d11.h>
 #include "direct3d.h"
@@ -14,9 +14,9 @@ class Sprite3D : public Transform3D
 protected:
 	MODEL* m_Model;
 	XMFLOAT3 m_ModelSize;
-	XMFLOAT4 m_Color;           // Œ»İ‚ÌFiR, G, B, Aj
-	XMFLOAT4 m_OriginalColor;   // Œ³‚ÌFiƒŠƒZƒbƒg—pj
-	bool m_UseOriginalColor;    // Œ³‚ÌF‚ğg—p‚·‚é‚©‚Ç‚¤‚©‚Ìƒtƒ‰ƒO
+	XMFLOAT4 m_Color;           // ç¾åœ¨ã®è‰²ï¼ˆR, G, B, Aï¼‰
+	XMFLOAT4 m_OriginalColor;   // å…ƒã®è‰²ï¼ˆãƒªã‚»ãƒƒãƒˆç”¨ï¼‰
+	bool m_UseOriginalColor;    // å…ƒã®è‰²ã‚’ä½¿ç”¨ã™ã‚‹ã‹ã©ã†ã‹ã®ãƒ•ãƒ©ã‚°
 
 public:
 	Sprite3D(const XMFLOAT3& pos, const XMFLOAT3& scale, const XMFLOAT3& rot, const char* pass)
@@ -27,15 +27,15 @@ public:
 		m_ModelSize = ModelGetSize(m_Model);
 		m_OriginalColor = ModelGetAverageMaterialColor(m_Model);
 
-		// yd—vzƒ‚ƒfƒ‹ƒ}ƒeƒŠƒAƒ‹ƒJƒ‰[‚ª•‚¢ê‡‚Í•K‚¸”’‚ÉƒŠƒZƒbƒg
-		// ‚±‚ê‚É‚æ‚è Ghost ‚Æ Furniture ‚ª^‚Á•‚É•\¦‚³‚ê‚é‚±‚Æ‚ğ–h‚®
+		// ã€é‡è¦ã€‘ãƒ¢ãƒ‡ãƒ«ãƒãƒ†ãƒªã‚¢ãƒ«ã‚«ãƒ©ãƒ¼ãŒé»’ã„å ´åˆã¯å¿…ãšç™½ã«ãƒªã‚»ãƒƒãƒˆ
+		// ã“ã‚Œã«ã‚ˆã‚Š Ghost ã¨ Furniture ãŒçœŸã£é»’ã«è¡¨ç¤ºã•ã‚Œã‚‹ã“ã¨ã‚’é˜²ã
 		if (m_OriginalColor.x == 0.0f && m_OriginalColor.y == 0.0f && m_OriginalColor.z == 0.0f)
 		{
 			m_OriginalColor = XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f);
 			hal::dout << "Warning: Model material color was black, reset to white" << std::endl;
 		}
 
-		//ƒTƒCƒY‚ğƒfƒoƒbƒOo—Í
+		//ã‚µã‚¤ã‚ºã‚’ãƒ‡ãƒãƒƒã‚°å‡ºåŠ›
 		hal::dout << "Model Size: (" << m_ModelSize.x << ", " << m_ModelSize.y << ", " << m_ModelSize.z << ")" << std::endl;
 	}
 	~Sprite3D()
@@ -47,16 +47,16 @@ public:
 	{
 		if (m_Model)
 		{
-			// g—p‚·‚éF‚ğŒˆ’è
+			// ä½¿ç”¨ã™ã‚‹è‰²ã‚’æ±ºå®š
 			XMFLOAT4 drawColor = m_UseOriginalColor ? m_OriginalColor : m_Color;
 			//XMFLOAT4 drawColor = m_OriginalColor;
 
-			// ƒ‰ƒCƒgŒvZ‚Ì—LŒø‰»”»’è
-			// m_UseOriginalColor = trueiResetColorŒãj‚Ì‚Æ‚«‚Í useColorReplace = falseiƒ‰ƒCƒg—LŒøj
-			// m_UseOriginalColor = falseiSetColorŒãj‚Ì‚Æ‚«‚Í useColorReplace = trueiF’u‚«Š·‚¦j
+			// ãƒ©ã‚¤ãƒˆè¨ˆç®—ã®æœ‰åŠ¹åŒ–åˆ¤å®š
+			// m_UseOriginalColor = trueï¼ˆResetColorå¾Œï¼‰ã®ã¨ãã¯ useColorReplace = falseï¼ˆãƒ©ã‚¤ãƒˆæœ‰åŠ¹ï¼‰
+			// m_UseOriginalColor = falseï¼ˆSetColorå¾Œï¼‰ã®ã¨ãã¯ useColorReplace = trueï¼ˆè‰²ç½®ãæ›ãˆï¼‰
 			bool shouldApplyColorReplace = !m_UseOriginalColor;
 
-			// ƒ‚ƒfƒ‹‚ğ•`‰æ
+			// ãƒ¢ãƒ‡ãƒ«ã‚’æç”»
 			ModelDraw(
 				m_Model,
 				GetPos(),
@@ -68,55 +68,55 @@ public:
 		}
 		else
 		{
-			hal::dout << "Sprite3D::Draw() : ƒ‚ƒfƒ‹‚ª“Ç‚İ‚Ü‚ê‚Ä‚¢‚Ü‚¹‚ñB" << std::endl;
+			hal::dout << "Sprite3D::Draw() : ãƒ¢ãƒ‡ãƒ«ãŒèª­ã¿è¾¼ã¾ã‚Œã¦ã„ã¾ã›ã‚“ã€‚" << std::endl;
 		}
 	}
 
-	// F‚ğİ’è
+	// è‰²ã‚’è¨­å®š
 	void SetColor(const XMFLOAT4& color)
 	{
 		m_Color = color;
-		m_UseOriginalColor = false;  // ƒJƒXƒ^ƒ€F‚ğg—p’†
+		m_UseOriginalColor = false;  // ã‚«ã‚¹ã‚¿ãƒ è‰²ã‚’ä½¿ç”¨ä¸­
 	}
 
-	// F‚ğİ’èiR, G, B, Aj
+	// è‰²ã‚’è¨­å®šï¼ˆR, G, B, Aï¼‰
 	void SetColor(float r, float g, float b, float a = 1.0f)
 	{
 		m_Color = XMFLOAT4(r, g, b, a);
-		m_UseOriginalColor = false;  // ƒJƒXƒ^ƒ€F‚ğg—p’†
+		m_UseOriginalColor = false;  // ã‚«ã‚¹ã‚¿ãƒ è‰²ã‚’ä½¿ç”¨ä¸­
 	}
 
-	// F‚ğæ“¾
+	// è‰²ã‚’å–å¾—
 	XMFLOAT4 GetColor(void) const
 	{
 		return m_Color;
 	}
 
-	// Œ³‚ÌF‚ğİ’èi‰Šú‰»‚ÉŒÄ‚Ño‚·j
+	// å…ƒã®è‰²ã‚’è¨­å®šï¼ˆåˆæœŸåŒ–æ™‚ã«å‘¼ã³å‡ºã™ï¼‰
 	void SetOriginalColor(const XMFLOAT4& color)
 	{
 		m_OriginalColor = color;
 	}
 
-	// Œ³‚ÌF‚ğİ’èiR, G, B, Aj
+	// å…ƒã®è‰²ã‚’è¨­å®šï¼ˆR, G, B, Aï¼‰
 	void SetOriginalColor(float r, float g, float b, float a = 1.0f)
 	{
 		m_OriginalColor = XMFLOAT4(r, g, b, a);
 	}
 
-	// F‚ğƒŠƒZƒbƒgiŒ³‚ÌF‚É–ß‚·j
+	// è‰²ã‚’ãƒªã‚»ãƒƒãƒˆï¼ˆå…ƒã®è‰²ã«æˆ»ã™ï¼‰
 	void ResetColor(void)
 	{
 		m_UseOriginalColor = true;
 	}
 
-	// F‚ğ•ÏX‚·‚éƒƒ\ƒbƒhiR, G, B, A ŒÂ•Êw’èj
+	// è‰²ã‚’å¤‰æ›´ã™ã‚‹ãƒ¡ã‚½ãƒƒãƒ‰ï¼ˆR, G, B, A å€‹åˆ¥æŒ‡å®šï¼‰
 	void SetColorRed(float r) { m_Color.x = r; m_UseOriginalColor = false; }
 	void SetColorGreen(float g) { m_Color.y = g; m_UseOriginalColor = false; }
 	void SetColorBlue(float b) { m_Color.z = b; m_UseOriginalColor = false; }
 	void SetColorAlpha(float a) { m_Color.w = a; m_UseOriginalColor = false; }
 
-	// F‚ğæ“¾‚·‚éƒƒ\ƒbƒhiR, G, B, A ŒÂ•Êæ“¾j
+	// è‰²ã‚’å–å¾—ã™ã‚‹ãƒ¡ã‚½ãƒƒãƒ‰ï¼ˆR, G, B, A å€‹åˆ¥å–å¾—ï¼‰
 	float GetColorRed(void) const { return m_Color.x; }
 	float GetColorGreen(void) const { return m_Color.y; }
 	float GetColorBlue(void) const { return m_Color.z; }

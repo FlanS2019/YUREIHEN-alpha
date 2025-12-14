@@ -1,4 +1,4 @@
-#pragma once
+ï»¿#pragma once
 
 #include <directxmath.h>
 using namespace DirectX;
@@ -52,7 +52,7 @@ public:
 		return m_Scale;
 	}
 
-	// Position X,Y,ZŒÂ•ÊƒQƒbƒ^[/ƒZƒbƒ^[/ƒAƒbƒ_[
+	// Position X,Y,Zå€‹åˆ¥ã‚²ãƒƒã‚¿ãƒ¼/ã‚»ãƒƒã‚¿ãƒ¼/ã‚¢ãƒƒãƒ€ãƒ¼
 	float GetPosX(void) const { return m_Position.x; }
 	float GetPosY(void) const { return m_Position.y; }
 	float GetPosZ(void) const { return m_Position.z; }
@@ -63,7 +63,7 @@ public:
 	float AddPosY(float y) { m_Position.y += y; return m_Position.y; }
 	float AddPosZ(float z) { m_Position.z += z; return m_Position.z; }
 
-	// Rotation X,Y,ZŒÂ•ÊƒQƒbƒ^[/ƒZƒbƒ^[/ƒAƒbƒ_[
+	// Rotation X,Y,Zå€‹åˆ¥ã‚²ãƒƒã‚¿ãƒ¼/ã‚»ãƒƒã‚¿ãƒ¼/ã‚¢ãƒƒãƒ€ãƒ¼
 	float GetRotX(void) const { return m_Rotation.x; }
 	float GetRotY(void) const { return m_Rotation.y; }
 	float GetRotZ(void) const { return m_Rotation.z; }
@@ -74,7 +74,7 @@ public:
 	float AddRotY(float y) { m_Rotation.y += y; return m_Rotation.y; }
 	float AddRotZ(float z) { m_Rotation.z += z; return m_Rotation.z; }
 
-	// Scale X,Y,ZŒÂ•ÊƒQƒbƒ^[/ƒZƒbƒ^[/ƒAƒbƒ_[
+	// Scale X,Y,Zå€‹åˆ¥ã‚²ãƒƒã‚¿ãƒ¼/ã‚»ãƒƒã‚¿ãƒ¼/ã‚¢ãƒƒãƒ€ãƒ¼
 	float GetScaleX(void) const { return m_Scale.x; }
 	float GetScaleY(void) const { return m_Scale.y; }
 	float GetScaleZ(void) const { return m_Scale.z; }
@@ -86,7 +86,7 @@ public:
 	float AddScaleZ(float z) { m_Scale.z += z; return m_Scale.z; }
 };
 
-// 2D —p‚Ì Transform ƒNƒ‰ƒX
+// 2D ç”¨ã® Transform ã‚¯ãƒ©ã‚¹
 class Transform2D
 {
 protected:
@@ -114,7 +114,7 @@ public:
 	float AddRot(float r) { m_Rotation += r; return m_Rotation; }
 	XMFLOAT2 AddScale(const XMFLOAT2& s) { m_Scale.x += s.x; m_Scale.y += s.y; return m_Scale; }
 
-	// Position X,YŒÂ•ÊƒQƒbƒ^[/ƒZƒbƒ^[/ƒAƒbƒ_[
+	// Position X,Yå€‹åˆ¥ã‚²ãƒƒã‚¿ãƒ¼/ã‚»ãƒƒã‚¿ãƒ¼/ã‚¢ãƒƒãƒ€ãƒ¼
 	float GetPosX(void) const { return m_Position.x; }
 	float GetPosY(void) const { return m_Position.y; }
 	void SetPosX(float x) { m_Position.x = x; }
@@ -122,7 +122,7 @@ public:
 	float AddPosX(float x) { m_Position.x += x; return m_Position.x; }
 	float AddPosY(float y) { m_Position.y += y; return m_Position.y; }
 
-	// Scale X,YŒÂ•ÊƒQƒbƒ^[/ƒZƒbƒ^[/ƒAƒbƒ_[
+	// Scale X,Yå€‹åˆ¥ã‚²ãƒƒã‚¿ãƒ¼/ã‚»ãƒƒã‚¿ãƒ¼/ã‚¢ãƒƒãƒ€ãƒ¼
 	float GetScaleX(void) const { return m_Scale.x; }
 	float GetScaleY(void) const { return m_Scale.y; }
 	void SetScaleX(float x) { m_Scale.x = x; }
@@ -131,16 +131,16 @@ public:
 	float AddScaleY(float y) { m_Scale.y += y; return m_Scale.y; }
 };
 
-// Õ“Ë”»’èŠÖ˜A
+// è¡çªåˆ¤å®šé–¢é€£
 enum class CollisionFace
 {
     NONE = 0,
-    LEFT,      // -X–Ê
-    RIGHT,     // +X–Ê
-    BOTTOM,    // -Y–Ê
-    TOP,       // +Y–Ê
-    BACK,      // -Z–Ê
-    FRONT      // +Z–Ê
+    LEFT,      // -Xé¢
+    RIGHT,     // +Xé¢
+    BOTTOM,    // -Yé¢
+    TOP,       // +Yé¢
+    BACK,      // -Zé¢
+    FRONT      // +Zé¢
 };
 
 struct CollisionResult
@@ -152,7 +152,7 @@ struct CollisionResult
     CollisionResult() : isColliding(false), face(CollisionFace::NONE), penetrationDepth(0.0f) {}
 };
 
-// “–‚½‚è”»’èƒNƒ‰ƒX
+// å½“ãŸã‚Šåˆ¤å®šã‚¯ãƒ©ã‚¹
 class BoxCollider
 {
 protected:
@@ -170,7 +170,7 @@ public:
     {
     }
 
-    // Õ“Ë”»’è‚ÆˆÊ’u•â³
+    // è¡çªåˆ¤å®šã¨ä½ç½®è£œæ­£
     CollisionResult CheckCollisionAndResolve(Transform3D& myTransform,
         const BoxCollider& other,
         const Transform3D& otherTransform)
@@ -181,7 +181,7 @@ public:
             return result;
         }
 
-        // ŠeBoxCollider‚Ì’†SˆÊ’u‚ğŒvZ
+        // å„BoxColliderã®ä¸­å¿ƒä½ç½®ã‚’è¨ˆç®—
         XMFLOAT3 myCenter = XMFLOAT3(
             myTransform.GetPos().x + m_Offset.x,
             myTransform.GetPos().y + m_Offset.y,
@@ -194,27 +194,27 @@ public:
             otherTransform.GetPos().z + other.m_Offset.z
         );
 
-        // Še²‚Ì‹——£‚ğŒvZ
+        // å„è»¸ã®è·é›¢ã‚’è¨ˆç®—
         float dx = otherCenter.x - myCenter.x;
         float dy = otherCenter.y - myCenter.y;
         float dz = otherCenter.z - myCenter.z;
 
-        // Še²‚Ìƒn[ƒtƒTƒCƒY‚Ì‡Œv
+        // å„è»¸ã®ãƒãƒ¼ãƒ•ã‚µã‚¤ã‚ºã®åˆè¨ˆ
         float halfWidthSum = (m_Size.x + other.m_Size.x) / 2.0f;
         float halfHeightSum = (m_Size.y + other.m_Size.y) / 2.0f;
         float halfDepthSum = (m_Size.z + other.m_Size.z) / 2.0f;
 
-        // Še²‚Å‚ÌN“ü[“x‚ğŒvZ
+        // å„è»¸ã§ã®ä¾µå…¥æ·±åº¦ã‚’è¨ˆç®—
         float overlapX = halfWidthSum - fabsf(dx);
         float overlapY = halfHeightSum - fabsf(dy);
         float overlapZ = halfDepthSum - fabsf(dz);
 
-        // ‚·‚×‚Ä‚Ì²‚Åd‚È‚è‚ª‚ ‚é‚©Šm”F
+        // ã™ã¹ã¦ã®è»¸ã§é‡ãªã‚ŠãŒã‚ã‚‹ã‹ç¢ºèª
         if (overlapX > 0 && overlapY > 0 && overlapZ > 0)
         {
             result.isColliding = true;
 
-            // Å¬‚Ìd‚È‚èiN“ü[“xj‚ğ‚Â²‚ªÕ“Ë–Ê‚ğŒˆ’è
+            // æœ€å°ã®é‡ãªã‚Šï¼ˆä¾µå…¥æ·±åº¦ï¼‰ã‚’æŒã¤è»¸ãŒè¡çªé¢ã‚’æ±ºå®š
             float minOverlap = overlapX;
             CollisionFace face = (dx > 0) ? CollisionFace::RIGHT : CollisionFace::LEFT;
             int axis = 0; // 0=X, 1=Y, 2=Z
@@ -236,14 +236,14 @@ public:
             result.face = face;
             result.penetrationDepth = minOverlap;
 
-            // IsTrigger‚ªfalse‚È‚çˆÊ’u‚ğ•â³‚µ‚ÄŠÑ’Ê‚ğ–h‚®
+            // IsTriggerãŒfalseãªã‚‰ä½ç½®ã‚’è£œæ­£ã—ã¦è²«é€šã‚’é˜²ã
             if (!m_IsTrigger && !other.m_IsTrigger)
             {
                 XMFLOAT3 currentPos = myTransform.GetPos();
 
                 switch (axis)
                 {
-                case 0: // X²‚ÅÕ“Ë
+                case 0: // Xè»¸ã§è¡çª
                     if (dx > 0) {
                         currentPos.x -= minOverlap;
                     }
@@ -252,7 +252,7 @@ public:
                     }
                     break;
 
-                case 1: // Y²‚ÅÕ“Ë
+                case 1: // Yè»¸ã§è¡çª
                     if (dy > 0) {
                         currentPos.y -= minOverlap;
                     }
@@ -261,7 +261,7 @@ public:
                     }
                     break;
 
-                case 2: // Z²‚ÅÕ“Ë
+                case 2: // Zè»¸ã§è¡çª
                     if (dz > 0) {
                         currentPos.z -= minOverlap;
                     }
@@ -278,7 +278,7 @@ public:
         return result;
     }
 
-    // “Ç‚İæ‚èê—p”Åiconstƒo[ƒWƒ‡ƒ“j
+    // èª­ã¿å–ã‚Šå°‚ç”¨ç‰ˆï¼ˆconstãƒãƒ¼ã‚¸ãƒ§ãƒ³ï¼‰
     CollisionResult CheckCollisionDetailed(const Transform3D& myTransform,
         const BoxCollider& other,
         const Transform3D& otherTransform) const
@@ -351,16 +351,16 @@ public:
 	void SetDebugDraw(bool debugDraw) { m_DebugDraw = debugDraw; }
 };
 
-// JumpƒRƒ“ƒ|[ƒlƒ“ƒg - ƒWƒƒƒ“ƒv‹@”\‚ğ’ñ‹Ÿ‚·‚é
+// Jumpã‚³ãƒ³ãƒãƒ¼ãƒãƒ³ãƒˆ - ã‚¸ãƒ£ãƒ³ãƒ—æ©Ÿèƒ½ã‚’æä¾›ã™ã‚‹
 class Jump
 {
 protected:
-	float m_JumpVelocityY;      // Y•ûŒü‚Ì‘¬“x
-	float m_Gravity;            // d—Í‰Á‘¬“x
-	float m_JumpPower;          // ƒWƒƒƒ“ƒv—Í
-	float m_GroundLevel;        // ’n–Ê‚Ì‚‚³
-	bool m_IsJumping;           // ƒWƒƒƒ“ƒv’†ƒtƒ‰ƒO
-	bool m_IsJumpEnded;         // ƒWƒƒƒ“ƒvI—¹ƒtƒ‰ƒO
+	float m_JumpVelocityY;      // Yæ–¹å‘ã®é€Ÿåº¦
+	float m_Gravity;            // é‡åŠ›åŠ é€Ÿåº¦
+	float m_JumpPower;          // ã‚¸ãƒ£ãƒ³ãƒ—åŠ›
+	float m_GroundLevel;        // åœ°é¢ã®é«˜ã•
+	bool m_IsJumping;           // ã‚¸ãƒ£ãƒ³ãƒ—ä¸­ãƒ•ãƒ©ã‚°
+	bool m_IsJumpEnded;         // ã‚¸ãƒ£ãƒ³ãƒ—çµ‚äº†ãƒ•ãƒ©ã‚°
 
 public:
 	Jump(float gravity = 0.01f, float jumpPower = 0.2f, float groundLevel = 1.0f)
@@ -371,7 +371,7 @@ public:
 
 	~Jump() = default;
 
-	// ƒWƒƒƒ“ƒv‚ğŠJn‚·‚é
+	// ã‚¸ãƒ£ãƒ³ãƒ—ã‚’é–‹å§‹ã™ã‚‹
 	void JumpStart(void)
 	{
 		if (!m_IsJumping)
@@ -382,20 +382,20 @@ public:
 		}
 	}
 
-	// ƒWƒƒƒ“ƒvó‘Ô‚ğXViTransform3D ‚ğó‚¯æ‚éj
+	// ã‚¸ãƒ£ãƒ³ãƒ—çŠ¶æ…‹ã‚’æ›´æ–°ï¼ˆTransform3D ã‚’å—ã‘å–ã‚‹ï¼‰
 	void JumpUpdate(Transform3D& transform)
 	{
 		if (m_IsJumping)
 		{
-			// YˆÊ’u‚ğXV
+			// Yä½ç½®ã‚’æ›´æ–°
 			XMFLOAT3 pos = transform.GetPos();
 			pos.y += m_JumpVelocityY;
 			transform.SetPos(pos);
 
-			// ‘¬“x‚Éd—Í‚ğ“K—p
+			// é€Ÿåº¦ã«é‡åŠ›ã‚’é©ç”¨
 			m_JumpVelocityY -= m_Gravity;
 
-			// ’n–Ê‚É’…’n‚µ‚½‚©ƒ`ƒFƒbƒN
+			// åœ°é¢ã«ç€åœ°ã—ãŸã‹ãƒã‚§ãƒƒã‚¯
 			if (pos.y <= m_GroundLevel)
 			{
 				pos.y = m_GroundLevel;
@@ -407,31 +407,31 @@ public:
 		}
 	}
 
-	// ƒWƒƒƒ“ƒv’†‚©‚Ç‚¤‚©‚ğæ“¾
+	// ã‚¸ãƒ£ãƒ³ãƒ—ä¸­ã‹ã©ã†ã‹ã‚’å–å¾—
 	bool GetIsJumping(void) const
 	{
 		return m_IsJumping;
 	}
 
-	// ƒWƒƒƒ“ƒvI—¹‚µ‚½‚©‚Ç‚¤‚©‚ğæ“¾
+	// ã‚¸ãƒ£ãƒ³ãƒ—çµ‚äº†ã—ãŸã‹ã©ã†ã‹ã‚’å–å¾—
 	bool GetIsJumpEnded(void) const
 	{
 		return m_IsJumpEnded;
 	}
 
-	// ƒWƒƒƒ“ƒv‘¬“x‚ğæ“¾
+	// ã‚¸ãƒ£ãƒ³ãƒ—é€Ÿåº¦ã‚’å–å¾—
 	float GetJumpVelocityY(void) const
 	{
 		return m_JumpVelocityY;
 	}
 
-	// ’n–Ê‚Ì‚‚³‚ğİ’è
+	// åœ°é¢ã®é«˜ã•ã‚’è¨­å®š
 	void SetGroundLevel(float groundLevel)
 	{
 		m_GroundLevel = groundLevel;
 	}
 
-	// ’n–Ê‚Ì‚‚³‚ğæ“¾
+	// åœ°é¢ã®é«˜ã•ã‚’å–å¾—
 	float GetGroundLevel(void) const
 	{
 		return m_GroundLevel;

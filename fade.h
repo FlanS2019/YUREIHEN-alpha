@@ -1,7 +1,7 @@
-// =========================================================
-// fade.h ƒtƒF[ƒh§Œä
+ï»¿// =========================================================
+// fade.h ãƒ•ã‚§ãƒ¼ãƒ‰åˆ¶å¾¡
 // 
-// §ìŽÒ:		“ú•tF
+// åˆ¶ä½œè€…:		æ—¥ä»˜ï¼š
 // =========================================================
 #ifndef _FADE_H_
 #define _FADE_H_
@@ -10,7 +10,7 @@
 #include "scene.h"
 
 // =========================================================
-// —ñ‹“‘ÌéŒ¾
+// åˆ—æŒ™ä½“å®£è¨€
 // =========================================================
 enum FADESTAT
 {
@@ -21,7 +21,7 @@ enum FADESTAT
 };
 
 // =========================================================
-// Sprite‚ðŒp³‚µ‚½FadeƒNƒ‰ƒX
+// Spriteã‚’ç¶™æ‰¿ã—ãŸFadeã‚¯ãƒ©ã‚¹
 // =========================================================
 class Fade : public Sprite
 {
@@ -30,15 +30,15 @@ private:
 	SCENE m_NextScene;
 
 public:
-	// ƒRƒ“ƒXƒgƒ‰ƒNƒ^FSprite‚Ìƒpƒ‰ƒ[ƒ^‚ðˆø‚«Œp‚®
+	// ã‚³ãƒ³ã‚¹ãƒˆãƒ©ã‚¯ã‚¿ï¼šSpriteã®ãƒ‘ãƒ©ãƒ¡ãƒ¼ã‚¿ã‚’å¼•ãç¶™ã
 	Fade()
 		: Sprite(
-			XMFLOAT2(SCREEN_WIDTH / 2.0f, SCREEN_HEIGHT / 2.0f),	// ˆÊ’u
-			XMFLOAT2(SCREEN_WIDTH, SCREEN_HEIGHT),					// ƒTƒCƒY
-			0.0f,													// ‰ñ“]
-			XMFLOAT4(1.0f, 1.0f, 1.0f, 0.0f),						// FiRGBAjƒAƒ‹ƒtƒ@’l0
-			BLENDSTATE_ALFA,										// ƒuƒŒƒ“ƒhƒXƒe[ƒg
-			L"asset\\texture\\fade.png"								// ƒeƒNƒXƒ`ƒƒƒpƒX
+			XMFLOAT2(SCREEN_WIDTH / 2.0f, SCREEN_HEIGHT / 2.0f),	// ä½ç½®
+			XMFLOAT2(SCREEN_WIDTH, SCREEN_HEIGHT),					// ã‚µã‚¤ã‚º
+			0.0f,													// å›žè»¢
+			XMFLOAT4(1.0f, 1.0f, 1.0f, 0.0f),						// è‰²ï¼ˆRGBAï¼‰ã‚¢ãƒ«ãƒ•ã‚¡å€¤0
+			BLENDSTATE_ALFA,										// ãƒ–ãƒ¬ãƒ³ãƒ‰ã‚¹ãƒ†ãƒ¼ãƒˆ
+			L"asset\\texture\\fade.png"								// ãƒ†ã‚¯ã‚¹ãƒãƒ£ãƒ‘ã‚¹
 		),
 		m_State(FADE_NONE),
 		m_NextScene(SCENE_NONE)
@@ -47,16 +47,16 @@ public:
 
 	~Fade()
 	{
-		// Sprite‚ÌƒfƒXƒgƒ‰ƒNƒ^‚ªŽ©“®“I‚ÉƒeƒNƒXƒ`ƒƒ‚ð‰ð•ú
+		// Spriteã®ãƒ‡ã‚¹ãƒˆãƒ©ã‚¯ã‚¿ãŒè‡ªå‹•çš„ã«ãƒ†ã‚¯ã‚¹ãƒãƒ£ã‚’è§£æ”¾
 	}
 
-	// XVˆ—
+	// æ›´æ–°å‡¦ç†
 	void Update()
 	{
 		switch (m_State)
 		{
 		case FADE_NONE:
-			// ‰½‚à‚µ‚È‚¢
+			// ä½•ã‚‚ã—ãªã„
 			break;
 		case FADE_OUT:
 			m_Color.w += 0.05f;
@@ -83,7 +83,7 @@ public:
 		}
 	}
 
-	// ƒtƒF[ƒhŠJŽn
+	// ãƒ•ã‚§ãƒ¼ãƒ‰é–‹å§‹
 	void StartFade(SCENE next = SCENE_NONE)
 	{
 		if (m_State == FADE_NONE)
@@ -94,12 +94,12 @@ public:
 		}
 	}
 
-	// ƒQƒbƒ^[
+	// ã‚²ãƒƒã‚¿ãƒ¼
 	FADESTAT GetState() const { return m_State; }
 };
 
 // =========================================================
-// ƒ‚ƒWƒ…[ƒ‹ŠÖ”i]—ˆ‚ÌCŒ`Ž®ƒCƒ“ƒ^[ƒtƒF[ƒXŒÝŠ·j
+// ãƒ¢ã‚¸ãƒ¥ãƒ¼ãƒ«é–¢æ•°ï¼ˆå¾“æ¥ã®Cå½¢å¼ã‚¤ãƒ³ã‚¿ãƒ¼ãƒ•ã‚§ãƒ¼ã‚¹äº’æ›ï¼‰
 // =========================================================
 void Fade_Initialize(void);
 void Fade_Update(void);

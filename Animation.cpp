@@ -1,4 +1,4 @@
-#include "animation.h"
+ï»¿#include "animation.h"
 #include "sprite.h"
 #include "keyboard.h"
 #include "fade.h"
@@ -8,13 +8,13 @@
 #include <timeapi.h>
 #pragma comment(lib, "winmm.lib")
 
-// ƒOƒ[ƒoƒ‹•Ï”
+// ã‚°ãƒ­ãƒ¼ãƒãƒ«å¤‰æ•°
 static ID3D11Device* g_pDevice = NULL;
 static ID3D11DeviceContext* g_pContext = NULL;
 
-//„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª
-// Logo Animation (ƒƒSƒAƒjƒ[ƒVƒ‡ƒ“)
-//„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª
+//â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”
+// Logo Animation (ãƒ­ã‚´ã‚¢ãƒ‹ãƒ¡ãƒ¼ã‚·ãƒ§ãƒ³)
+//â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”
 enum LogoState
 {
 	LS_SCENEIN = 0,
@@ -28,8 +28,8 @@ SplitSprite* g_LogoSprite = nullptr;
 Sprite* g_BG = nullptr;
 LogoState State = LS_SCENEIN;
 FADESTAT StateChanged = FADE_IN;
-static DWORD g_LogoStartTime = 0;	// ƒƒSŠJn
-static const float LOGO_AUTO_FADE_TIME = 0.7f;	// ©“®ƒtƒF[ƒhŠJnŠÔi1•bj
+static DWORD g_LogoStartTime = 0;	// ãƒ­ã‚´é–‹å§‹æ™‚åˆ»
+static const float LOGO_AUTO_FADE_TIME = 0.7f;	// è‡ªå‹•ãƒ•ã‚§ãƒ¼ãƒ‰é–‹å§‹æ™‚é–“ï¼ˆ1ç§’ï¼‰
 
 void Animation_Logo_Initialize(ID3D11Device* pDevice, ID3D11DeviceContext* pContext)
 {
@@ -37,21 +37,21 @@ void Animation_Logo_Initialize(ID3D11Device* pDevice, ID3D11DeviceContext* pCont
 	StateChanged = FADE_IN;
 
 	g_LogoSprite = new SplitSprite(
-		{ SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2 },// ˆÊ’u
-		{ 1000.0f, 1000.0f },					// ƒTƒCƒY
-		0.0f,									// ‰ñ“]i“xj
-		{ 1.0f, 1.0f, 1.0f, 1.0f },				// F
+		{ SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2 },// ä½ç½®
+		{ 1000.0f, 1000.0f },					// ã‚µã‚¤ã‚º
+		0.0f,									// å›è»¢ï¼ˆåº¦ï¼‰
+		{ 1.0f, 1.0f, 1.0f, 1.0f },				// è‰²
 		BLENDSTATE_ALFA,						// BlendState
-		L"asset\\texture\\violisunlogo.png",	// ƒeƒNƒXƒ`ƒƒƒpƒX
-		2, 1									// •ªŠ„”X, Y
+		L"asset\\texture\\violisunlogo.png",	// ãƒ†ã‚¯ã‚¹ãƒãƒ£ãƒ‘ã‚¹
+		2, 1									// åˆ†å‰²æ•°X, Y
 	);
 	g_BG = new Sprite(
-		{ SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2 },// ˆÊ’u
-		{ SCREEN_WIDTH, SCREEN_HEIGHT },		// ƒTƒCƒY
-		0.0f,									// ‰ñ“]i“xj
-		{ 1.0f, 1.0f, 1.0f, 1.0f },				// F
+		{ SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2 },// ä½ç½®
+		{ SCREEN_WIDTH, SCREEN_HEIGHT },		// ã‚µã‚¤ã‚º
+		0.0f,									// å›è»¢ï¼ˆåº¦ï¼‰
+		{ 1.0f, 1.0f, 1.0f, 1.0f },				// è‰²
 		BLENDSTATE_ALFA,						// BlendState
-		L"asset\\texture\\fade.png"			// ƒeƒNƒXƒ`ƒƒƒpƒX
+		L"asset\\texture\\fade.png"			// ãƒ†ã‚¯ã‚¹ãƒãƒ£ãƒ‘ã‚¹
 	);
 }
 
@@ -60,10 +60,10 @@ void Animation_Logo_Update(void)
 
 	if (Keyboard_IsKeyDown(KK_E))
 	{
-		SetScene(SCENE_GAME);//Debug—p‚ÉƒQ[ƒ€ƒV[ƒ“‚Ö’¼Ú”ò‚Ô
+		SetScene(SCENE_GAME);//Debugç”¨ã«ã‚²ãƒ¼ãƒ ã‚·ãƒ¼ãƒ³ã¸ç›´æ¥é£›ã¶
 	}
 
-	// ƒtƒF[ƒhó‘Ô‚ª•Ï‰»‚µ‚½‚çó‘Ô‚ği‚ß‚é
+	// ãƒ•ã‚§ãƒ¼ãƒ‰çŠ¶æ…‹ãŒå¤‰åŒ–ã—ãŸã‚‰çŠ¶æ…‹ã‚’é€²ã‚ã‚‹
 	if (StateChanged != GetFadeState())
 	{
 		State = (LogoState)((int)State + 1);
@@ -75,28 +75,28 @@ void Animation_Logo_Update(void)
 		}
 	}
 
-	// ³Šm‚ÈŒo‰ßŠÔ‚ğŒvZiƒ~ƒŠ•bj
+	// æ­£ç¢ºãªçµŒéæ™‚é–“ã‚’è¨ˆç®—ï¼ˆãƒŸãƒªç§’ï¼‰
 	DWORD currentTime = timeGetTime();
 	DWORD elapsedTime = currentTime - g_LogoStartTime;
 	float elapsedSeconds = elapsedTime / 1000.0f;
 
-	//ƒXƒy[ƒX‚ğ‰Ÿ‚³‚ê‚é‚©ŠÔ‚ÅƒƒS•Ï‰»EƒV[ƒ“‘JˆÚ
+	//ã‚¹ãƒšãƒ¼ã‚¹ã‚’æŠ¼ã•ã‚Œã‚‹ã‹æ™‚é–“ã§ãƒ­ã‚´å¤‰åŒ–ãƒ»ã‚·ãƒ¼ãƒ³é·ç§»
 	if (Keyboard_IsKeyDownTrigger(KK_ENTER) || elapsedSeconds >= LOGO_AUTO_FADE_TIME)
 	{
-		//ƒ_[ƒNƒƒS‚É
+		//ãƒ€ãƒ¼ã‚¯ãƒ­ã‚´ã«
 		if (State == LS_INFADEEND)
 		{
 			StartFade();
 		}
-		//ƒ_[ƒNƒƒS‚È‚çƒ^ƒCƒgƒ‹‰æ–Ê‚Ö
+		//ãƒ€ãƒ¼ã‚¯ãƒ­ã‚´ãªã‚‰ã‚¿ã‚¤ãƒˆãƒ«ç”»é¢ã¸
 		else
 		{
-			//ƒ^ƒCƒgƒ‹‰æ–Ê‚ÖˆÚs‚·‚éˆ—‚ğ‚±‚±‚É’Ç‰Á
+			//ã‚¿ã‚¤ãƒˆãƒ«ç”»é¢ã¸ç§»è¡Œã™ã‚‹å‡¦ç†ã‚’ã“ã“ã«è¿½åŠ 
 			StartFade(SCENE_TITLE);
 		}
 	}
 
-	//ƒ†[ƒU[‘€ì‚É‚æ‚Á‚ÄƒtƒF[ƒh‚ªn‚Ü‚Á‚½‚©‚ÂI—¹‚µ‚Ä‚¢‚½‚È‚ç
+	//ãƒ¦ãƒ¼ã‚¶ãƒ¼æ“ä½œã«ã‚ˆã£ã¦ãƒ•ã‚§ãƒ¼ãƒ‰ãŒå§‹ã¾ã£ãŸã‹ã¤çµ‚äº†ã—ã¦ã„ãŸãªã‚‰
 	if (State == LS_DARKCHANGETEX)
 	{
 		g_LogoSprite->SetTextureNumber(1);
@@ -116,9 +116,9 @@ void Animation_Logo_Finalize(void)
 	delete g_BG;
 }
 
-//„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª
-// Op Animation (OpeningƒAƒjƒ[ƒVƒ‡ƒ“)
-//„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª
+//â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”
+// Op Animation (Openingã‚¢ãƒ‹ãƒ¡ãƒ¼ã‚·ãƒ§ãƒ³)
+//â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”
 
 void Animation_Op_Initialize(ID3D11Device* pDevice, ID3D11DeviceContext* pContext)
 {
@@ -129,7 +129,7 @@ void Animation_Op_Update(void)
 {
 	OpAnim_Update();
 
-	// ENTERƒL[‚Åƒ^ƒCƒgƒ‹‰æ–Ê‚Ö‘JˆÚ
+	// ENTERã‚­ãƒ¼ã§ã‚¿ã‚¤ãƒˆãƒ«ç”»é¢ã¸é·ç§»
 	if (Keyboard_IsKeyDownTrigger(KK_ENTER))
 	{
 		StartFade(SCENE_GAME);

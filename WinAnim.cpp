@@ -1,4 +1,4 @@
-#include "sprite.h"
+ï»¿#include "sprite.h"
 #include "keyboard.h"
 #include "fade.h"
 #include "debug_ostream.h"
@@ -6,31 +6,31 @@
 #include <timeapi.h>
 #pragma comment(lib, "winmm.lib")
 
-// ƒOƒ[ƒoƒ‹•Ï”
+// ã‚°ãƒ­ãƒ¼ãƒãƒ«å¤‰æ•°
 static ID3D11Device* g_pDevice = NULL;
 static ID3D11DeviceContext* g_pContext = NULL;
 
 
-//„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª
-// Win Animation (Ÿ‚¿ƒAƒjƒ[ƒVƒ‡ƒ“)
-//„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª
+//â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”
+// Win Animation (å‹ã¡ã‚¢ãƒ‹ãƒ¡ãƒ¼ã‚·ãƒ§ãƒ³)
+//â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”
 Sprite* g_WinSprite = nullptr;
 
 void Animation_Win_Initialize(ID3D11Device* pDevice, ID3D11DeviceContext* pContext)
 {
 	g_WinSprite = new Sprite(
-		{ SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2 },	// ˆÊ’u
-		{ SCREEN_WIDTH, SCREEN_HEIGHT },			// ƒTƒCƒY
-		0.0f,										// ‰ñ“]i“xj
-		{ 1.0f, 1.0f, 1.0f, 1.0f },				// F
+		{ SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2 },	// ä½ç½®
+		{ SCREEN_WIDTH, SCREEN_HEIGHT },			// ã‚µã‚¤ã‚º
+		0.0f,										// å›žè»¢ï¼ˆåº¦ï¼‰
+		{ 1.0f, 1.0f, 1.0f, 1.0f },				// è‰²
 		BLENDSTATE_ALFA,							// BlendState
-		L"asset\\texture\\winanim.png"				// ƒeƒNƒXƒ`ƒƒƒpƒX
+		L"asset\\texture\\winanim.png"				// ãƒ†ã‚¯ã‚¹ãƒãƒ£ãƒ‘ã‚¹
 	);
 }
 
 void Animation_Win_Update(void)
 {
-	// ENTERƒL[‚Åƒ^ƒCƒgƒ‹‰æ–Ê‚Ö‘JˆÚ
+	// ENTERã‚­ãƒ¼ã§ã‚¿ã‚¤ãƒˆãƒ«ç”»é¢ã¸é·ç§»
 	if (Keyboard_IsKeyDownTrigger(KK_ENTER))
 	{
 		StartFade(SCENE_RESULT);

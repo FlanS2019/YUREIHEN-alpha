@@ -1,28 +1,28 @@
-#pragma once
+﻿#pragma once
 //==================================
-//�}�N����`
+//マクロ定義
 //==================================
-#include <SDKDDKVer.h> //���p�ł���ł���ʂ�Windows�v���b�g�t�H�[������`�����
+#include <SDKDDKVer.h> //利用できる最も上位のWindowsプラットフォームが定義される
 #include <windows.h>
 #include <algorithm>
 #include "direct3d.h"
 #include "scene.h"
 
-#define CLASS_NAME "DX21 Window"
-#define WINDOW_CAPTION "�|���S���`��"
+#define CLASS_NAME L"DX21 Window"
+#define WINDOW_CAPTION L"ポリゴン描画"
 #define SCREEN_WIDTH (1280.0f)
 #define SCREEN_HEIGHT (720.0f)
-#define WIN32_LEAN_AND_MEAN	//32bit�A�v���ɂ͕s�v�ȏ��𖳎�
+#define WIN32_LEAN_AND_MEAN	//32bitアプリには不要な情報を無視
 #define FPS (60)	
 
 using namespace DirectX;
 
 //==================================
-//�v���g�^�C�v�錾
+//プロトタイプ宣言
 //==================================
-//�E�B���h�E�v���V�[�W��
-//�R�[���o�b�N�֐��͑��l���Ăяo������
+//ウィンドウプロシージャ
+//コールバック関数は他人が呼び出すもの
 LRESULT CALLBACK WndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
 
-// FPS�ݒ�֐�
+// FPS設定関数
 void SetFPS(int fps);

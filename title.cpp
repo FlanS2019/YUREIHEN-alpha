@@ -1,4 +1,4 @@
-#include "title.h"
+ï»¿#include "title.h"
 #include "main.h"
 #include "sprite.h"
 #include "texture.h"
@@ -6,26 +6,26 @@
 #include "fade.h"
 #include "debug_ostream.h"
 
-// ‡@Sprite‚ÌƒCƒ“ƒXƒ^ƒ“ƒXAƒ|ƒCƒ“ƒ^—pˆÓ
+// â‘ Spriteã®ã‚¤ãƒ³ã‚¹ã‚¿ãƒ³ã‚¹ã€ãƒã‚¤ãƒ³ã‚¿ç”¨æ„
 static SplitSprite* g_pTitleSprite = nullptr;
 
 void Title_Initialize(ID3D11Device* pDevice, ID3D11DeviceContext* pContext)
 {
-	// ‡AŠeŽí‰Šú‰»
+	// â‘¡å„ç¨®åˆæœŸåŒ–
 	g_pTitleSprite = new SplitSprite(
-		{ SCREEN_WIDTH / 2 - 200.0f, SCREEN_HEIGHT / 2.0f - 100.0f},		//ˆÊ’u
-		{ SCREEN_WIDTH * 0.7, SCREEN_HEIGHT * 0.7 },	//ƒTƒCƒY
-		0.0f,											//‰ñ“]i“xj
+		{ SCREEN_WIDTH / 2 - 200.0f, SCREEN_HEIGHT / 2.0f - 100.0f},		//ä½ç½®
+		{ SCREEN_WIDTH * 0.7f, SCREEN_HEIGHT * 0.7f },	//ã‚µã‚¤ã‚º
+		0.0f,											//å›žè»¢ï¼ˆåº¦ï¼‰
 		{ 1.0f, 1.0f, 1.0f, 1.0f },						//RGBA
 		BLENDSTATE_NONE,								//BlendState
-		L"asset\\texture\\title.png",					//ƒeƒNƒXƒ`ƒƒƒpƒX
-		2, 1											//•ªŠ„”X, Y
+		L"asset\\texture\\title.png",					//ãƒ†ã‚¯ã‚¹ãƒãƒ£ãƒ‘ã‚¹
+		2, 1											//åˆ†å‰²æ•°X, Y
 	);
 }
 
 void Title_Update(void)
 {
-	// ‡B“K“–‚Èˆ—@ƒAƒjƒ[ƒVƒ‡ƒ“‚È‚Ç‚à‚±‚±‚Å
+	// â‘¢é©å½“ãªå‡¦ç†ã€€ã‚¢ãƒ‹ãƒ¡ãƒ¼ã‚·ãƒ§ãƒ³ãªã©ã‚‚ã“ã“ã§
 	if (Keyboard_IsKeyDown(KK_ENTER))
 	{
 		StartFade(SCENE_ANM_OP);
@@ -34,7 +34,7 @@ void Title_Update(void)
 
 void Title_Draw(void)
 {
-	// ‡CDraw‚·‚é‚¾‚¯‚Å‚¢‚¢IIIIIII
+	// â‘£Drawã™ã‚‹ã ã‘ã§ã„ã„ï¼ï¼ï¼ï¼ï¼ï¼ï¼
 	g_pTitleSprite->Draw();
 }
 

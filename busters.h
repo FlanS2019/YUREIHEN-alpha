@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 
 #include <d3d11.h>
 #include <DirectXMath.h>
@@ -13,9 +13,9 @@ using namespace DirectX;
 
 enum BUSTERS_STATE
 {
-	BUSTERS_SEARCH,    // �Ƌ��T���Ĉړ��i�T���j
-	BUSTERS_SUSPICION, // ������ŋ߂Â��i�x���j
-	BUSTERS_CHASE      // �H��������ĒǐՁi�m��j
+	BUSTERS_SEARCH,    // 家具を探して移動（探索）
+	BUSTERS_SUSPICION, // 怪しんで近づく（警戒）
+	BUSTERS_CHASE      // 幽霊を見つけて追跡（確定）
 };
 
 class Busters : public Sprite3D, public Jump

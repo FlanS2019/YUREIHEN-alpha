@@ -1,4 +1,4 @@
-#pragma once
+ï»¿#pragma once
 #include "main.h"
 
 class Camera
@@ -11,10 +11,10 @@ protected:
 	XMMATRIX m_View;
 	XMMATRIX m_Projection;
 
-	float m_Fov; //‹–ìŠp
-	float m_Aspect;//ƒAƒXƒyƒNƒg”ä
-	float m_Near;//‹ß‚­‚ÌŒÀŠE’l
-	float m_Far;//‰“‚­‚ÌŒÀŠE’l
+	float m_Fov; //è¦–é‡è§’
+	float m_Aspect;//ã‚¢ã‚¹ãƒšã‚¯ãƒˆæ¯”
+	float m_Near;//è¿‘ãã®é™ç•Œå€¤
+	float m_Far;//é ãã®é™ç•Œå€¤
 
 public:
 	Camera(
@@ -23,7 +23,7 @@ public:
 		XMFLOAT3 upvec = XMFLOAT3(0.0f, 1.0f, 0.0f),
 		float fov = 45.0f,
 		float aspect = SCREEN_WIDTH / SCREEN_HEIGHT,
-		float near_ = 0.2f,//ƒAƒ“ƒ_[ƒo[‚Í’è”‰ñ”ğ
+		float near_ = 0.2f,//ã‚¢ãƒ³ãƒ€ãƒ¼ãƒãƒ¼ã¯å®šæ•°å›é¿
 		float far_ = 100.0f)
 		:m_Pos(pos), m_AtPos(atpos), m_UpVec(upvec),
 		m_Fov(fov), m_Aspect(aspect), m_Near(near_), m_Far(far_)
@@ -61,11 +61,11 @@ public:
 	XMMATRIX GetProjection(void) const { return m_Projection; }
 };
 
-// ’‹‘ÎÛ‚ğİ’è‚·‚éŠÖ”i”Ä—p‰»j
+// æ³¨è¦–å¯¾è±¡ã‚’è¨­å®šã™ã‚‹é–¢æ•°ï¼ˆæ±ç”¨åŒ–ï¼‰
 void Camera_Initialize(void);
 void Camera_Finalize(void);
 void Camera_Update(void);
 void Camera_Draw(void);
 float Camera_GetYaw(void);
-void Camera_SetTargetPos(XMFLOAT3 targetPos);  // ’‹‘ÎÛˆÊ’u‚ğİ’è
+void Camera_SetTargetPos(XMFLOAT3 targetPos);  // æ³¨è¦–å¯¾è±¡ä½ç½®ã‚’è¨­å®š
 Camera* GetCamera(void);

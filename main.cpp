@@ -1,11 +1,11 @@
-//==================================================
+ï»¿//==================================================
 //main.cpp
-//§ìÒF’ß‰ª—É‘å
-//§ì“úF2025/05/09
+//åˆ¶ä½œè€…ï¼šé¶´å²¡é¼å¤§
+//åˆ¶ä½œæ—¥ï¼š2025/05/09
 //==================================================
 
-#include <SDKDDKVer.h> //—˜—p‚Å‚«‚éÅ‚àãˆÊ‚ÌWindowsƒvƒ‰ƒbƒgƒtƒH[ƒ€‚ª’è‹`‚³‚ê‚é
-#define WIN32_LEAN_AND_MEAN	//32bitƒAƒvƒŠ‚É‚Í•s—v‚Èî•ñ‚ğ–³‹
+#include <SDKDDKVer.h> //åˆ©ç”¨ã§ãã‚‹æœ€ã‚‚ä¸Šä½ã®Windowsãƒ—ãƒ©ãƒƒãƒˆãƒ•ã‚©ãƒ¼ãƒ ãŒå®šç¾©ã•ã‚Œã‚‹
+#define WIN32_LEAN_AND_MEAN	//32bitã‚¢ãƒ—ãƒªã«ã¯ä¸è¦ãªæƒ…å ±ã‚’ç„¡è¦–
 #include <windows.h>
 #include <algorithm>
 #include "scene.h"
@@ -19,19 +19,19 @@
 #include "fade.h"
 
 //==================================
-//ƒOƒ[ƒoƒ‹•Ï”
+//ã‚°ãƒ­ãƒ¼ãƒãƒ«å¤‰æ•°
 //==================================
 
 //#ifndef _DEBUG
 int g_CountFPS;
-char g_DebugStr[2048];
+wchar_t g_DebugStr[2048];
 //#endif
-static int g_TargetFPS = FPS;  // –Ú•WFPSiƒfƒtƒHƒ‹ƒg‚Í FPS ƒ}ƒNƒ‚Ì’lj
+static int g_TargetFPS = FPS;  // ç›®æ¨™FPSï¼ˆãƒ‡ãƒ•ã‚©ãƒ«ãƒˆã¯ FPS ãƒã‚¯ãƒ­ã®å€¤ï¼‰
 
 #pragma comment(lib, "winmm.lib")
 
 //==================================
-//SetFPSŠÖ”
+//SetFPSé–¢æ•°
 //==================================
 void SetFPS(int fps)
 {
@@ -42,12 +42,12 @@ void SetFPS(int fps)
 }
 
 //==================================
-//ƒƒCƒ“ŠÖ”
+//ãƒ¡ã‚¤ãƒ³é–¢æ•°
 //==================================
 //==================================  
 int APIENTRY WinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance, _In_ LPSTR lpCmdLine, _In_ int nCmdShow)
 {
-	//ƒtƒŒ[ƒ€ƒŒ[ƒgŒv‘ª—p•Ï”
+	//ãƒ•ãƒ¬ãƒ¼ãƒ ãƒ¬ãƒ¼ãƒˆè¨ˆæ¸¬ç”¨å¤‰æ•°
 	DWORD dwExecLastTime;
 	DWORD dwFPSLastTime;
 	DWORD dwCurrentTime;
@@ -55,45 +55,45 @@ int APIENTRY WinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance,
 
 	HRESULT dummy = CoInitializeEx(nullptr, COINITBASE_MULTITHREADED);
 
-	//ƒEƒBƒ“ƒhƒEƒNƒ‰ƒX‚Ì“o˜^
-	WNDCLASS wc;//\‘¢‘Ì‚ğ’è‹`
-	ZeroMemory(&wc, sizeof(WNDCLASS));//\‘¢‘Ì‰Šú‰»
-	wc.lpfnWndProc = WndProc;//‰Šú‰»
-	wc.lpszClassName = CLASS_NAME;//d—l‘‚Ì–¼‘O
-	wc.hInstance = hInstance;//‚±‚ÌƒAƒvƒŠ‚Ì‚±‚Æ
-	wc.hCursor = LoadCursor(NULL, IDC_ARROW);//cursor‚Ìí—Ş
-	wc.hbrBackground = (HBRUSH)(COLOR_BACKGROUND);//”wŒiF
-	RegisterClass(&wc);//\‘¢‘Ì‚ğwindows‚ÉƒZƒbƒg
+	//ã‚¦ã‚£ãƒ³ãƒ‰ã‚¦ã‚¯ãƒ©ã‚¹ã®ç™»éŒ²
+	WNDCLASS wc;//æ§‹é€ ä½“ã‚’å®šç¾©
+	ZeroMemory(&wc, sizeof(WNDCLASS));//æ§‹é€ ä½“åˆæœŸåŒ–
+	wc.lpfnWndProc = WndProc;//åˆæœŸåŒ–
+	wc.lpszClassName = CLASS_NAME;//ä»•æ§˜æ›¸ã®åå‰
+	wc.hInstance = hInstance;//ã“ã®ã‚¢ãƒ—ãƒªã®ã“ã¨
+	wc.hCursor = LoadCursor(NULL, IDC_ARROW);//cursorã®ç¨®é¡
+	wc.hbrBackground = (HBRUSH)(COLOR_BACKGROUND);//èƒŒæ™¯è‰²
+	RegisterClass(&wc);//æ§‹é€ ä½“ã‚’windowsã«ã‚»ãƒƒãƒˆ
 
-	//ƒEƒBƒ“ƒhƒEƒTƒCƒY‚Ì’²®
-	//ƒNƒ‰ƒCƒAƒ“ƒg—Ìˆæi•`‰æ—Ìˆæj‚ÌƒTƒCƒY‚ğ•\‚·‹éŒ`
+	//ã‚¦ã‚£ãƒ³ãƒ‰ã‚¦ã‚µã‚¤ã‚ºã®èª¿æ•´
+	//ã‚¯ãƒ©ã‚¤ã‚¢ãƒ³ãƒˆé ˜åŸŸï¼ˆæç”»é ˜åŸŸï¼‰ã®ã‚µã‚¤ã‚ºã‚’è¡¨ã™çŸ©å½¢
 	RECT window_rect = { 0,0,(LONG)SCREEN_WIDTH,(LONG)SCREEN_HEIGHT };
-	//ƒEƒBƒ“ƒhƒEƒXƒ^ƒCƒ‹‚Ìİ’è
+	//ã‚¦ã‚£ãƒ³ãƒ‰ã‚¦ã‚¹ã‚¿ã‚¤ãƒ«ã®è¨­å®š
 	DWORD window_style = WS_OVERLAPPEDWINDOW ^ (WS_THICKFRAME | WS_MAXIMIZEBOX);
-	//w’è‚ÌƒNƒ‰ƒCƒAƒ“ƒg—Ìˆæ{ƒEƒBƒ“ƒhƒEƒXƒ^ƒCƒ‹‚Å‚Ì‘S‘Ì‚ÌƒTƒCƒY‚ğŒvZ
+	//æŒ‡å®šã®ã‚¯ãƒ©ã‚¤ã‚¢ãƒ³ãƒˆé ˜åŸŸï¼‹ã‚¦ã‚£ãƒ³ãƒ‰ã‚¦ã‚¹ã‚¿ã‚¤ãƒ«ã§ã®å…¨ä½“ã®ã‚µã‚¤ã‚ºã‚’è¨ˆç®—
 	AdjustWindowRect(&window_rect, window_style, FALSE);
-	//‹éŒ`‚Ì‰¡‚Æc‚ÌƒTƒCƒY‚ğŒvZ
+	//çŸ©å½¢ã®æ¨ªã¨ç¸¦ã®ã‚µã‚¤ã‚ºã‚’è¨ˆç®—
 	int window_width = window_rect.right - window_rect.left;
 	int window_height = window_rect.bottom - window_rect.top;
 
-	//ƒEƒBƒ“ƒhƒE‚Ìì¬
+	//ã‚¦ã‚£ãƒ³ãƒ‰ã‚¦ã®ä½œæˆ
 	HWND hWnd = CreateWindow(
-		CLASS_NAME,		//ì‚è‚½‚¢ƒEƒBƒ“ƒhƒE
-		WINDOW_CAPTION,	//ƒEƒBƒ“ƒhƒE‚É•\¦‚·‚éƒ^ƒCƒgƒ‹
-		window_style,//•W€“I‚ÈƒTƒCƒY‚ÌƒEƒBƒ“ƒhƒE@ƒTƒCƒY•ÏX‹Ö~
-		CW_USEDEFAULT,	//ˆÈ‰ºdefault
+		CLASS_NAME,		//ä½œã‚ŠãŸã„ã‚¦ã‚£ãƒ³ãƒ‰ã‚¦
+		WINDOW_CAPTION,	//ã‚¦ã‚£ãƒ³ãƒ‰ã‚¦ã«è¡¨ç¤ºã™ã‚‹ã‚¿ã‚¤ãƒˆãƒ«
+		window_style,//æ¨™æº–çš„ãªã‚µã‚¤ã‚ºã®ã‚¦ã‚£ãƒ³ãƒ‰ã‚¦ã€€ã‚µã‚¤ã‚ºå¤‰æ›´ç¦æ­¢
+		CW_USEDEFAULT,	//ä»¥ä¸‹default
 		CW_USEDEFAULT,
-		window_width,//ƒEƒBƒ“ƒhƒE‚Ì•
-		window_height,//ƒEƒBƒ“ƒhƒE‚Ì‚‚³
+		window_width,//ã‚¦ã‚£ãƒ³ãƒ‰ã‚¦ã®å¹…
+		window_height,//ã‚¦ã‚£ãƒ³ãƒ‰ã‚¦ã®é«˜ã•
 		NULL,
 		NULL,
-		hInstance,	//ƒAƒvƒŠ‚Ìƒnƒ“ƒhƒ‹
+		hInstance,	//ã‚¢ãƒ—ãƒªã®ãƒãƒ³ãƒ‰ãƒ«
 		NULL
 	);
 
-	ShowWindow(hWnd, nCmdShow);//ˆø”‚É]‚Á‚Ä•\¦”ñ•\¦
+	ShowWindow(hWnd, nCmdShow);//å¼•æ•°ã«å¾“ã£ã¦è¡¨ç¤ºéè¡¨ç¤º
 
-	//ƒEƒBƒ“ƒhƒE“à•”‚ÌXV—v‹
+	//ã‚¦ã‚£ãƒ³ãƒ‰ã‚¦å†…éƒ¨ã®æ›´æ–°è¦æ±‚
 	UpdateWindow(hWnd);
 	Direct3D_Initialize(hWnd);
 	Keyboard_Initialize();
@@ -103,25 +103,25 @@ int APIENTRY WinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance,
 	Fade_Initialize();
 	Init();
 
-	//ƒƒbƒZ[ƒWƒ‹[ƒv
+	//ãƒ¡ãƒƒã‚»ãƒ¼ã‚¸ãƒ«ãƒ¼ãƒ—
 	MSG msg;
 	ZeroMemory(&msg, sizeof(MSG));
 
-	//ƒtƒŒ[ƒ€ƒŒ[ƒgŒv‘ª‰Šú‰»
-	timeBeginPeriod(1);	//ƒ^ƒCƒ}[‚Ì§“x‚ğİ’è@
+	//ãƒ•ãƒ¬ãƒ¼ãƒ ãƒ¬ãƒ¼ãƒˆè¨ˆæ¸¬åˆæœŸåŒ–
+	timeBeginPeriod(1);	//ã‚¿ã‚¤ãƒãƒ¼ã®åˆ¶åº¦ã‚’è¨­å®šã€€
 	dwExecLastTime = dwFPSLastTime = timeGetTime();
 	dwCurrentTime = dwFrameCount = 0;
 
 	do
 	{
-		//I—¹ƒƒbƒZ[ƒW‚ª—ˆ‚é‚Ü‚Åƒ‹[ƒv iWindows‚©‚ç‚ÌƒƒbƒZ[ƒW‚Í‚»‚Ì‚Ü‚Üg‚¦‚È‚¢j
-		//while (GetMessage(&msg, NULL, 0, 0)) ƒQ[ƒ€Œü‚«‚Å‚Í‚È‚¢‚ç‚µ‚¢
-		if (PeekMessage(&msg, nullptr, 0, 0, PM_REMOVE))	//—]Œv‚È‚±‚Æ‚ğ‚µ‚È‚¢‚Ì‚Å‘‚¢
+		//çµ‚äº†ãƒ¡ãƒƒã‚»ãƒ¼ã‚¸ãŒæ¥ã‚‹ã¾ã§ãƒ«ãƒ¼ãƒ— ï¼ˆWindowsã‹ã‚‰ã®ãƒ¡ãƒƒã‚»ãƒ¼ã‚¸ã¯ãã®ã¾ã¾ä½¿ãˆãªã„ï¼‰
+		//while (GetMessage(&msg, NULL, 0, 0)) ã‚²ãƒ¼ãƒ å‘ãã§ã¯ãªã„ã‚‰ã—ã„
+		if (PeekMessage(&msg, nullptr, 0, 0, PM_REMOVE))	//ä½™è¨ˆãªã“ã¨ã‚’ã—ãªã„ã®ã§æ—©ã„
 		{
 			TranslateMessage(&msg);
-			DispatchMessage(&msg); //WndProc‚ªŒÄ‚Ño‚³‚ê‚é
+			DispatchMessage(&msg); //WndProcãŒå‘¼ã³å‡ºã•ã‚Œã‚‹
 		}
-		//ƒQ[ƒ€‚Ìˆ—
+		//ã‚²ãƒ¼ãƒ ã®å‡¦ç†
 		else
 		{
 			dwCurrentTime = timeGetTime();
@@ -140,22 +140,22 @@ int APIENTRY WinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance,
 				dwExecLastTime = dwCurrentTime;
 
 				//#ifndef _DEBUG
-								//ƒEƒBƒ“ƒhƒEƒLƒƒƒvƒVƒ‡ƒ“‚ÖŒ»İ‚ÌFPS‚ğ•\¦
-				wsprintf(g_DebugStr, "DX21");
-				wsprintf(&g_DebugStr[strlen(g_DebugStr)], "FPSF%d", g_CountFPS);
+								//ã‚¦ã‚£ãƒ³ãƒ‰ã‚¦ã‚­ãƒ£ãƒ—ã‚·ãƒ§ãƒ³ã¸ç¾åœ¨ã®FPSã‚’è¡¨ç¤º
+				swprintf(g_DebugStr, sizeof(g_DebugStr)/sizeof(wchar_t), L"DX21");
+				swprintf(&g_DebugStr[wcslen(g_DebugStr)], sizeof(g_DebugStr)/sizeof(wchar_t) - wcslen(g_DebugStr), L"FPSï¼š%d", g_CountFPS);
 				SetWindowText(hWnd, g_DebugStr);
 				//#endif
-				//XV
+				//æ›´æ–°
 				Fade_Update();
 				Update();
 
-				//•`‰æ
-				Direct3D_Clear();//ƒoƒbƒtƒ@‚ÌƒNƒŠƒA
+				//æç”»
+				Direct3D_Clear();//ãƒãƒƒãƒ•ã‚¡ã®ã‚¯ãƒªã‚¢
 
 				Draw();
 				Fade_Draw();
 
-				Direct3D_Present();//ƒoƒbƒtƒ@‚Ì•\¦
+				Direct3D_Present();//ãƒãƒƒãƒ•ã‚¡ã®è¡¨ç¤º
 
 				keycopy();
 
@@ -163,7 +163,7 @@ int APIENTRY WinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance,
 			}
 		}
 
-	} while (msg.message != WM_QUIT);//windows‚©‚çI—¹ƒƒbƒZ[ƒW‚ª—ˆ‚½‚çƒ‹[ƒvI—¹
+	} while (msg.message != WM_QUIT);//windowsã‹ã‚‰çµ‚äº†ãƒ¡ãƒƒã‚»ãƒ¼ã‚¸ãŒæ¥ãŸã‚‰ãƒ«ãƒ¼ãƒ—çµ‚äº†
 
 	Finalize();
 	Fade_Finalize();
@@ -172,20 +172,20 @@ int APIENTRY WinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance,
 	Direct3D_Finalize();
 
 
-	//I—¹
+	//çµ‚äº†
 	return (int)msg.wParam;
 }
 
 //==================================
-//ƒEƒBƒ“ƒhƒEƒvƒƒV[ƒWƒƒ
-//ƒƒbƒZ[ƒWƒ‹[ƒv“à‚ÅŒÄ‚Ño‚µ
+//ã‚¦ã‚£ãƒ³ãƒ‰ã‚¦ãƒ—ãƒ­ã‚·ãƒ¼ã‚¸ãƒ£
+//ãƒ¡ãƒƒã‚»ãƒ¼ã‚¸ãƒ«ãƒ¼ãƒ—å†…ã§å‘¼ã³å‡ºã—
 //==================================
 LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
 	//HGDIOBJ hbrWhite, hbrGray;
 
-	//HDC hdc;			//ƒfƒoƒCƒXƒRƒ“ƒeƒLƒXƒg
-	//PAINTSTRUCT ps;		//ƒEƒBƒ“ƒhƒE‰æ–Ê‚Ì‘å‚«‚³‚È‚Ç•`‰æŠÖ˜A‚Ìî•ñ
+	//HDC hdc;			//ãƒ‡ãƒã‚¤ã‚¹ã‚³ãƒ³ãƒ†ã‚­ã‚¹ãƒˆ
+	//PAINTSTRUCT ps;		//ã‚¦ã‚£ãƒ³ãƒ‰ã‚¦ç”»é¢ã®å¤§ãã•ãªã©æç”»é–¢é€£ã®æƒ…å ±
 
 	Mouse_ProcessMessage(uMsg, wParam, lParam);
 
@@ -203,32 +203,32 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 	case WM_SYSKEYUP:
 		Keyboard_ProcessMessage(uMsg, wParam, lParam);
 		break;
-		//case WM_PAINT:	//ƒEƒBƒ“ƒhƒE•\¦‚Ì–½—ß
-		//	hdc = BeginPaint(hWnd, &ps);//•`‰æ‚ÉŠÖ‚·‚éî•ñ‚ğó‚¯æ‚é
-		//	EndPaint(hWnd, &ps);	//•\¦Š®—¹@hdc‚ğŠJ•ú‚·‚é
+		//case WM_PAINT:	//ã‚¦ã‚£ãƒ³ãƒ‰ã‚¦è¡¨ç¤ºã®å‘½ä»¤
+		//	hdc = BeginPaint(hWnd, &ps);//æç”»ã«é–¢ã™ã‚‹æƒ…å ±ã‚’å—ã‘å–ã‚‹
+		//	EndPaint(hWnd, &ps);	//è¡¨ç¤ºå®Œäº†ã€€hdcã‚’é–‹æ”¾ã™ã‚‹
 		//	return 0;
 		//	break;
-	case WM_KEYDOWN:	//ƒL[‚ª‰Ÿ‚³‚ê‚½
+	case WM_KEYDOWN:	//ã‚­ãƒ¼ãŒæŠ¼ã•ã‚ŒãŸ
 		//if (wParam == VK_ESCAPE)
 		//{
-		//	//ƒEƒBƒ“ƒhƒE‚ğ•Â‚¶‚½‚¢ƒŠƒNƒGƒXƒg‚ğWindows‚É‘—‚é
+		//	//ã‚¦ã‚£ãƒ³ãƒ‰ã‚¦ã‚’é–‰ã˜ãŸã„ãƒªã‚¯ã‚¨ã‚¹ãƒˆã‚’Windowsã«é€ã‚‹
 		//	SendMessage(hWnd, WM_CLOSE, 0, 0);
 		//}
 		Keyboard_ProcessMessage(uMsg, wParam, lParam);
 
 		break;
 	case WM_CLOSE:
-		hal::dout << "I—¹Šm”F\n" << std::endl;
+		hal::dout << "çµ‚äº†ç¢ºèª\n" << std::endl;
 
-		//if (MessageBox(hWnd, "–{“–‚ÉI—¹‚µ‚Ä‚æ‚ë‚µ‚¢‚Å‚·‚©", "Šm”F", MB_OKCANCEL | MB_DEFBUTTON2) == IDOK)
+		//if (MessageBox(hWnd, "æœ¬å½“ã«çµ‚äº†ã—ã¦ã‚ˆã‚ã—ã„ã§ã™ã‹", "ç¢ºèª", MB_OKCANCEL | MB_DEFBUTTON2) == IDOK)
 		if(true)
 		{
-			//OK‚ª‰Ÿ‚³‚ê‚½
+			//OKãŒæŠ¼ã•ã‚ŒãŸ
 			DestroyWindow(hWnd);
 		}
 		else
 		{
-			//I‚í‚ç‚È‚¢
+			//çµ‚ã‚ã‚‰ãªã„
 			return 0;
 		}
 		break;
@@ -237,6 +237,6 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 		break;
 	}
 
-	//•K—v‚Ì‚È‚¢ƒƒbƒZ[ƒW‚Í“K“–‚Éˆ—‚·‚é‚ç‚µ‚¢
+	//å¿…è¦ã®ãªã„ãƒ¡ãƒƒã‚»ãƒ¼ã‚¸ã¯é©å½“ã«å‡¦ç†ã™ã‚‹ã‚‰ã—ã„
 	return DefWindowProc(hWnd, uMsg, wParam, lParam);
 }

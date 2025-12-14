@@ -1,4 +1,4 @@
-#pragma once
+ï»¿#pragma once
 
 #include <d3d11.h>
 #include "direct3d.h"
@@ -18,11 +18,11 @@ class Timer : public SplitSprite
 {
 protected:
 	float m_HandRot;
-	float m_Time;	//Œo‰ßŠÔ
+	float m_Time;	//çµŒéæ™‚é–“
 	float m_MinTime;
 	float m_MaxTime;
-	DWORD m_LastUpdateTime;  // ‘O‰ñ‚ÌXV
-	int m_UpdateInterval;    // XVŠÔŠuiƒ~ƒŠ•bj
+	DWORD m_LastUpdateTime;  // å‰å›ã®æ›´æ–°æ™‚åˆ»
+	int m_UpdateInterval;    // æ›´æ–°é–“éš”ï¼ˆãƒŸãƒªç§’ï¼‰
 public:
 	Timer(const XMFLOAT2& pos, const XMFLOAT2& size, const XMFLOAT4& col, BLENDSTATE bstate, const wchar_t* texturePath, int divideX, int divideY, float minT, float maxT, int updateIntervalMs = 100)
 		: SplitSprite(pos, size, 0.0f, col, bstate, texturePath, divideX, divideY),
@@ -34,27 +34,27 @@ public:
 	{
 		bool isEnded = false;
 
-		// Œ»İ‚ğæ“¾
+		// ç¾åœ¨æ™‚åˆ»ã‚’å–å¾—
 		DWORD currentTime = timeGetTime();
 		DWORD elapsedTime = currentTime - m_LastUpdateTime;
 
-		// w’è‚³‚ê‚½ƒ~ƒŠ•bˆÈãŒo‰ß‚µ‚½‚çŠÔ‚ğ‰ÁZ
+		// æŒ‡å®šã•ã‚ŒãŸãƒŸãƒªç§’ä»¥ä¸ŠçµŒéã—ãŸã‚‰æ™‚é–“ã‚’åŠ ç®—
 		if (elapsedTime >= static_cast<DWORD>(m_UpdateInterval))
 		{
-			m_Time += (float)elapsedTime / 1000.0f;  // ƒ~ƒŠ•b‚©‚ç•b‚É•ÏŠ·
+			m_Time += (float)elapsedTime / 1000.0f;  // ãƒŸãƒªç§’ã‹ã‚‰ç§’ã«å¤‰æ›
 			m_LastUpdateTime = currentTime;
 		}
 
-		// Å‘åŠÔ‚ğ’´‚¦‚È‚¢‚æ‚¤‚ÉƒLƒƒƒbƒv
+		// æœ€å¤§æ™‚é–“ã‚’è¶…ãˆãªã„ã‚ˆã†ã«ã‚­ãƒ£ãƒƒãƒ—
 		if (m_Time > m_MaxTime)
 		{
 			m_Time = m_MaxTime;
 			isEnded = true;
 		}
 
-		// 0‚©‚ç1‚Ì³‹K‰»‚³‚ê‚½’l‚ğŒvZ
+		// 0ã‹ã‚‰1ã®æ­£è¦åŒ–ã•ã‚ŒãŸå€¤ã‚’è¨ˆç®—
 		float t = (m_Time - m_MinTime) / (m_MaxTime - m_MinTime);
-		m_HandRot = t * 360.0f; // 360“x‰ñ“]
+		m_HandRot = t * 360.0f; // 360åº¦å›è»¢
 
 		return isEnded;
 	}
@@ -62,14 +62,14 @@ public:
 	void Draw()
 	{
 		m_Rotation = 0.0f;
-		m_TextureNumber = 0; // Œv–{‘Ì‚ÌƒeƒNƒXƒ`ƒƒ”Ô†‚É•ÏX
-		SplitSprite::Draw(); // Œv–{‘Ì
+		m_TextureNumber = 0; // æ™‚è¨ˆæœ¬ä½“ã®ãƒ†ã‚¯ã‚¹ãƒãƒ£ç•ªå·ã«å¤‰æ›´
+		SplitSprite::Draw(); // æ™‚è¨ˆæœ¬ä½“
 		m_Rotation = m_HandRot;
-		m_TextureNumber = 1; // j‚ÌƒeƒNƒXƒ`ƒƒ”Ô†‚É•ÏX
-		SplitSprite::Draw(); // j
+		m_TextureNumber = 1; // é‡ã®ãƒ†ã‚¯ã‚¹ãƒãƒ£ç•ªå·ã«å¤‰æ›´
+		SplitSprite::Draw(); // é‡
 	}
 
-	// ƒQƒbƒ^[EƒZƒbƒ^[
+	// ã‚²ãƒƒã‚¿ãƒ¼ãƒ»ã‚»ãƒƒã‚¿ãƒ¼
 	float GetTime() const { return m_Time; }
 	void SetTime(float time) { m_Time = time; }
 	void Reset() { m_Time = m_MinTime; m_LastUpdateTime = timeGetTime(); }
@@ -82,13 +82,13 @@ public:
 #define GAUGE_OFFSET ((GAUGE_SIZE / 1000 ) * 160)
 #define GAUGE_SCORE_DEF (1.0f)
 
-// GaugeƒNƒ‰ƒX ƒeƒNƒXƒ`ƒƒ‚ğLk‚µ‚Ä’l‚ğ•\Œ»
+// Gaugeã‚¯ãƒ©ã‚¹ ãƒ†ã‚¯ã‚¹ãƒãƒ£ã‚’ä¼¸ç¸®ã—ã¦å€¤ã‚’è¡¨ç¾
 class Gauge : public SplitSprite
 {
 protected:
-	float m_Value;   // Œ»İ‚Ì’l
-	float m_MaxValue;       // Å‘å’l
-	float m_MinValue;       // Å¬’l
+	float m_Value;   // ç¾åœ¨ã®å€¤
+	float m_MaxValue;       // æœ€å¤§å€¤
+	float m_MinValue;       // æœ€å°å€¤
 public:
 	Gauge(const XMFLOAT2& pos, const XMFLOAT2& size, const XMFLOAT4& col, BLENDSTATE bstate, const wchar_t* texturePath,
 		int divideX, int divideY, float minValue, float maxValue, int gaugeTexNum = 1, int bgTexNum = 0)
@@ -100,48 +100,48 @@ public:
 	void Draw()
 	{
 		//=================================================
-		// ƒo[”wŒi•`‰æi‡j
+		// ãƒãƒ¼èƒŒæ™¯æç”»ï¼ˆç´«ï¼‰
 		//=================================================
 
-		// ”wŒi‚ğ•`‰æiŒ³X‚ÌƒTƒCƒYj
+		// èƒŒæ™¯ã‚’æç”»ï¼ˆå…ƒã€…ã®ã‚µã‚¤ã‚ºï¼‰
 		m_TextureNumber = GAUGE_BAR_PURPLE;
 		SplitSprite::Draw();
 
 		//=================================================
-		// ƒo[•`‰æi‰©Fj
+		// ãƒãƒ¼æç”»ï¼ˆé»„è‰²ï¼‰
 		//=================================================
 
-		// ƒQ[ƒWƒo[‚ğ•`‰æi¶‚©‚ç‰E‚É‘‚¦‚éj
+		// ã‚²ãƒ¼ã‚¸ãƒãƒ¼ã‚’æç”»ï¼ˆå·¦ã‹ã‚‰å³ã«å¢—ãˆã‚‹ï¼‰
 		m_TextureNumber = GAUGE_BAR_YELLOW;
 		float ratio = GetRatio(); // 0.0 ~ 1.0
 
-		// •‚ğŒvZiŒ³‚ÌƒTƒCƒY‚Ì ratio ”{j
+		// å¹…ã‚’è¨ˆç®—ï¼ˆå…ƒã®ã‚µã‚¤ã‚ºã® ratio å€ï¼‰
 		float gaugeWidth = m_Scale.x * ratio;
 
-		// ƒXƒP[ƒ‹’²®‚Å•‚ğ•ÏX
+		// ã‚¹ã‚±ãƒ¼ãƒ«èª¿æ•´ã§å¹…ã‚’å¤‰æ›´
 		XMFLOAT2 originalScale = m_Scale;
 		m_Scale.x = gaugeWidth;
 
-		// ˆÊ’u‚ğ’²®i¶’[‚ğŠî€‚É‚·‚é‚½‚ßA¶‚ÉˆÚ“®j
+		// ä½ç½®ã‚’èª¿æ•´ï¼ˆå·¦ç«¯ã‚’åŸºæº–ã«ã™ã‚‹ãŸã‚ã€å·¦ã«ç§»å‹•ï¼‰
 		XMFLOAT2 originalPos = m_Position;
 		m_Position.x = originalPos.x - (originalScale.x * 0.5f) + (gaugeWidth * 0.5f);
-		m_Position.x += GAUGE_OFFSET * (1.0f - GetRatio()); // ”÷’²® 
+		m_Position.x += GAUGE_OFFSET * (1.0f - GetRatio()); // å¾®èª¿æ•´ 
 		SplitSprite::Draw();
 
 		//=================================================
-		// ˜g•`‰æ
+		// æ æç”»
 		//=================================================
 
-		// ˆÊ’u‚ÆƒXƒP[ƒ‹‚ğŒ³‚É–ß‚·
+		// ä½ç½®ã¨ã‚¹ã‚±ãƒ¼ãƒ«ã‚’å…ƒã«æˆ»ã™
 		m_Position = originalPos;
 		m_Scale = originalScale;
 
-		// ˜g‚ğ•`‰æiŒ³X‚ÌƒTƒCƒYj
+		// æ ã‚’æç”»ï¼ˆå…ƒã€…ã®ã‚µã‚¤ã‚ºï¼‰
 		m_TextureNumber = GAUGE_BAR_FRAME;
 		SplitSprite::Draw();
 	}
 
-	// ƒQƒbƒ^[EƒZƒbƒ^[
+	// ã‚²ãƒƒã‚¿ãƒ¼ãƒ»ã‚»ãƒƒã‚¿ãƒ¼
 	float GetValue() const { return m_Value; }
 	float GetMaxValue() const { return m_MaxValue; }
 	float GetMinValue() const { return m_MinValue; }
@@ -166,19 +166,19 @@ public:
 	void Reset() { m_Value = m_MaxValue; }
 };
 
-// ‹°•|ƒQ[ƒW‰ÁZ
+// ææ€–ã‚²ãƒ¼ã‚¸åŠ ç®—
 void AddScareGauge(float value = GAUGE_SCORE_DEF);
 
 
-// Number ƒNƒ‰ƒX ƒeƒNƒXƒ`ƒƒ•ªŠ„‚Å”š—ñ‚ğ•\¦
+// Number ã‚¯ãƒ©ã‚¹ ãƒ†ã‚¯ã‚¹ãƒãƒ£åˆ†å‰²ã§æ•°å­—åˆ—ã‚’è¡¨ç¤º
 class Number : public SplitSprite
 {
 protected:
-	int m_Number;           // •\¦‚·‚é”’l
-	std::vector<int> m_DigitTextures;  // ŠeŒ…‚ÌƒeƒNƒXƒ`ƒƒ”Ô†
-	XMFLOAT2 m_DigitSize;   // 1Œ…‚ ‚½‚è‚ÌƒTƒCƒY
-	float m_DigitSpacing;   // Œ…ŠÔ‚ÌŠÔŠu
-	bool m_ShowMultiplier;  // ”{”Ú“ªquxv‚ğ•\¦‚·‚é‚©‚Ç‚¤‚©
+	int m_Number;           // è¡¨ç¤ºã™ã‚‹æ•°å€¤
+	std::vector<int> m_DigitTextures;  // å„æ¡ã®ãƒ†ã‚¯ã‚¹ãƒãƒ£ç•ªå·
+	XMFLOAT2 m_DigitSize;   // 1æ¡ã‚ãŸã‚Šã®ã‚µã‚¤ã‚º
+	float m_DigitSpacing;   // æ¡é–“ã®é–“éš”
+	bool m_ShowMultiplier;  // å€æ•°æ¥é ­å­ã€Œxã€ã‚’è¡¨ç¤ºã™ã‚‹ã‹ã©ã†ã‹
 
 public:
 	Number(const XMFLOAT2& pos, const XMFLOAT2& digitSize, const XMFLOAT4& col, BLENDSTATE bstate, const wchar_t* texturePath, int divideX, int divideY, float spacing)
@@ -187,32 +187,32 @@ public:
 	{
 	}
 
-	// •\¦‚·‚é”’l‚ğİ’è
+	// è¡¨ç¤ºã™ã‚‹æ•°å€¤ã‚’è¨­å®š
 	void SetNumber(int number)
 	{
 		m_Number = number;
 		UpdateDigitTextures();
 	}
 
-	// ”{”Ú“ªquxv‚ğ•\¦‚·‚é‚©‚Ç‚¤‚©‚ğİ’è
+	// å€æ•°æ¥é ­å­ã€Œxã€ã‚’è¡¨ç¤ºã™ã‚‹ã‹ã©ã†ã‹ã‚’è¨­å®š
 	void SetShowX(bool show)
 	{
 		m_ShowMultiplier = show;
 		UpdateDigitTextures();
 	}
 
-	// ”’l‚©‚çŠeŒ…‚ÌƒeƒNƒXƒ`ƒƒ”Ô†‚ğŒvZ
+	// æ•°å€¤ã‹ã‚‰å„æ¡ã®ãƒ†ã‚¯ã‚¹ãƒãƒ£ç•ªå·ã‚’è¨ˆç®—
 	void UpdateDigitTextures()
 	{
 		m_DigitTextures.clear();
 
-		// ”{”Ú“ªq‚ğ•\¦‚·‚éê‡
+		// å€æ•°æ¥é ­å­ã‚’è¡¨ç¤ºã™ã‚‹å ´åˆ
 		if (m_ShowMultiplier)
 		{
-			m_DigitTextures.push_back(10); // ƒeƒNƒXƒ`ƒƒ”Ô†10‚Íux'
+			m_DigitTextures.push_back(10); // ãƒ†ã‚¯ã‚¹ãƒãƒ£ç•ªå·10ã¯ã€Œx'
 		}
 
-		// ”’l‚ğŒ…‚²‚Æ‚É•ª‰ğ
+		// æ•°å€¤ã‚’æ¡ã”ã¨ã«åˆ†è§£
 		if (m_Number == 0)
 		{
 			m_DigitTextures.push_back(0); // 0
@@ -226,7 +226,7 @@ public:
 				digits.push_back(tempNum % 10);
 				tempNum /= 10;
 			}
-			// ‹t‡‚ÉŠi”[i‚ˆÊ‚ÌŒ…‚©‚çj
+			// é€†é †ã«æ ¼ç´ï¼ˆé«˜ä½ã®æ¡ã‹ã‚‰ï¼‰
 			for (int i = static_cast<int>(digits.size()) - 1; i >= 0; --i)
 			{
 				m_DigitTextures.push_back(digits[i]);
@@ -234,43 +234,43 @@ public:
 		}
 	}
 
-	// Number ƒNƒ‰ƒX‚Ì Draw ƒƒ\ƒbƒh‚ğ‰ü‘P
+	// Number ã‚¯ãƒ©ã‚¹ã® Draw ãƒ¡ã‚½ãƒƒãƒ‰ã‚’æ”¹å–„
 	void Draw()
 	{
-		// ƒeƒNƒXƒ`ƒƒ‚ÌUVÀ•W‚Ì’[‚ğƒNƒŠƒbƒv‚·‚é‚½‚ß‚ÉƒIƒtƒZƒbƒg‚ğ’Ç‰Á
+		// ãƒ†ã‚¯ã‚¹ãƒãƒ£ã®UVåº§æ¨™ã®ç«¯ã‚’ã‚¯ãƒªãƒƒãƒ—ã™ã‚‹ãŸã‚ã«ã‚ªãƒ•ã‚»ãƒƒãƒˆã‚’è¿½åŠ 
 		XMFLOAT2 originalPos = m_Position;
 		XMFLOAT2 currentPos = m_Position;
 
-		// ‰E‚©‚ç¶‚Ö•`‰æ
+		// å³ã‹ã‚‰å·¦ã¸æç”»
 		for (int i = static_cast<int>(m_DigitTextures.size()) - 1; i >= 0; --i)
 		{
 			m_TextureNumber = m_DigitTextures[i];
-			// À•W‚ğ®”’l‚ÉŠÛ‚ß‚éiƒsƒNƒZƒ‹’PˆÊ‚Å‚Ì³Šm‚È”z’uj
+			// åº§æ¨™ã‚’æ•´æ•°å€¤ã«ä¸¸ã‚ã‚‹ï¼ˆãƒ”ã‚¯ã‚»ãƒ«å˜ä½ã§ã®æ­£ç¢ºãªé…ç½®ï¼‰
 			m_Position.x = floorf(currentPos.x);
 			m_Position.y = floorf(currentPos.y);
 			SplitSprite::Draw();
 			currentPos.x -= m_DigitSpacing;
 		}
 
-		// ˆÊ’u‚ğŒ³‚É–ß‚·
+		// ä½ç½®ã‚’å…ƒã«æˆ»ã™
 		m_Position = originalPos;
 	}
 
-	// ƒQƒbƒ^[EƒZƒbƒ^[
+	// ã‚²ãƒƒã‚¿ãƒ¼ãƒ»ã‚»ãƒƒã‚¿ãƒ¼
 	int GetNumber() const { return m_Number; }
 	bool GetShowMultiplier() const { return m_ShowMultiplier; }
 	void SetDigitSpacing(float spacing) { m_DigitSpacing = spacing; }
 	void AddNumber(int value) { SetNumber(m_Number + value); }
 };
 
-// UI‰Šú‰»
+// UIåˆæœŸåŒ–
 void UI_Initialize(void);
 
-// UII—¹
+// UIçµ‚äº†
 void UI_Finalize(void);
 
-// UIXV
+// UIæ›´æ–°
 void UI_Update(void);
 
-// UI•`‰æ
+// UIæç”»
 void UI_Draw(void);
