@@ -1,4 +1,4 @@
-#pragma once
+ï»¿#pragma once
 
 #include <d3d11.h>
 #include <DirectXMath.h>
@@ -9,24 +9,24 @@ using namespace DirectX;
 
 enum GHOST_STATE
 {
-	GS_MOVING,		// ˆÚ“®
-	GS_FURNITURE_FOUND,		// ‰Æ‹ï”­Œ©
-	GS_TRANSFORM,	// •Ïg’†
-	GS_SCARE,		// ‹Á‚©‚¹’†
+	GS_MOVING,			// ï¿½Ú“ï¿½
+	GS_FURNITURE_FOUND,	// ï¿½Æ‹ï”­ï¿½ï¿½
+	GS_TRANSFORM,		// ï¿½Ïgï¿½ï¿½
+	GS_SCARE,			// ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
 };
 
-// Ghost ƒNƒ‰ƒX
+// Ghost ï¿½Nï¿½ï¿½ï¿½X
 class Ghost : public Sprite3D
 {
 private:
-	XMFLOAT3 m_Velocity;		// Ghost‚Ì‘¬“xƒxƒNƒgƒ‹
-	int m_InRangeFurnitureNum;	// ”ÍˆÍ“à‚É‚¢‚é‰Æ‹ï‚Ì”Ô†i‚¢‚È‚¢‚È‚ç-1j
-	GHOST_STATE m_State;		// Ghost‚Ìó‘Ô
-	float m_DetectionTimer;		// ”­Œ©ó‘Ô‚Ìƒ^ƒCƒ}[i1•b‚É‚Â‚«ƒ}ƒCƒiƒX1‚·‚é‚½‚ßj
-	float m_FloorCooldown;		// ŠK’iˆÚ“®‚ÌƒN[ƒ‹ƒ^ƒCƒ€
-	bool m_IsTransformed;		// •Ïg‚µ‚Ä‚¢‚é‚©
-	bool m_IsDetectedByBuster;	// bustar‚É”­Œ©‚³‚ê‚½‚©
-	bool m_IsDraw;				// •`‰æƒtƒ‰ƒO
+	XMFLOAT3 m_Velocity;		// Ghostï¿½Ì‘ï¿½ï¿½xï¿½xï¿½Nï¿½gï¿½ï¿½
+	int m_InRangeFurnitureNum;	// ï¿½ÍˆÍ“ï¿½É‚ï¿½ï¿½ï¿½Æ‹ï¿½Ì”Ôï¿½ï¿½iï¿½È‚ï¿½ï¿½ï¿½ï¿½-1ï¿½j
+	GHOST_STATE m_State;		// Ghostï¿½Ìï¿½ï¿½
+	float m_DetectionTimer;		// ï¿½ï¿½ï¿½mï¿½ï¿½Ô‚Ìƒ^ï¿½Cï¿½}ï¿½[ï¿½i1ï¿½bï¿½É‚Â‚ï¿½ï¿½}ï¿½Cï¿½iï¿½X1ï¿½ï¿½ï¿½é‚½ï¿½ßj
+	float m_FloorCooldown;		// ï¿½Kï¿½iï¿½Ú“ï¿½ï¿½ÌƒNï¿½[ï¿½ï¿½ï¿½^ï¿½Cï¿½ï¿½
+	bool m_IsTransformed;		// ï¿½Ïgï¿½ï¿½ï¿½Ä‚ï¿½ï¿½é‚©
+	bool m_IsDetectedByBuster;	// bustarï¿½É”ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ê‚½ï¿½ï¿½
+	bool m_IsDraw;				// ï¿½`ï¿½ï¿½tï¿½ï¿½ï¿½O
 
 public:
 	Ghost(const XMFLOAT3& pos, const XMFLOAT3& scale, const XMFLOAT3& rot, const char* pass)
@@ -44,7 +44,7 @@ public:
 
 	~Ghost() = default;
 
-	// Sprite3D‚ÌDraw‚ğƒI[ƒo[ƒ‰ƒCƒh
+	// Sprite3Dï¿½ï¿½Drawï¿½ï¿½Iï¿½[ï¿½oï¿½[ï¿½ï¿½ï¿½Cï¿½h
 	void Draw(void) override
 	{
 		if (m_IsDraw)
@@ -53,7 +53,7 @@ public:
 		}
 	}
 
-	// ƒQƒbƒ^[
+	// ï¿½Qï¿½bï¿½^ï¿½[
 	XMFLOAT3 GetVelocity(void) const { return m_Velocity; }
 	int GetInRangeNum(void) const { return m_InRangeFurnitureNum; }
 	bool GetIsTransformed(void) const { return m_IsTransformed; }
@@ -61,7 +61,7 @@ public:
 	GHOST_STATE GetState(void) const { return m_State; }
 
 
-	// ƒZƒbƒ^[
+	// ï¿½Zï¿½bï¿½^ï¿½[
 	void SetVelocity(const XMFLOAT3& velocity) { m_Velocity = velocity; }
 	void SetInRangeNum(int num) { m_InRangeFurnitureNum = num; }
 	void SetIsTransformed(bool isTransformed) { m_IsTransformed = isTransformed; }
@@ -70,15 +70,15 @@ public:
 	void SetIsDraw(bool isDraw) { m_IsDraw = isDraw; }
 
 
-	// ŒöŠJƒƒ\ƒbƒh
-	void FurnitureSearch(void);	// ‰Æ‹ïŒŸ’m‚ÆF•ÏX
-	void Transforming(void);	// •Ïg’†ˆ—
-	void Move(void);            // ˆÚ“®ˆ—
-	void FloorMove(void);		// ŠK’iˆÚ“®ˆ—
-	void ScareStart(void);		// ‹Á‚©‚¹ˆ—
-	void ResetPos(void);		// ó‘ÔƒŠƒZƒbƒg
+	// ï¿½ï¿½ï¿½Jï¿½ï¿½ï¿½\ï¿½bï¿½h
+	void FurnitureSearch(void);	// ï¿½Æ‹ïŒŸï¿½mï¿½ÆFï¿½ÏX
+	void Transforming(void);	// ï¿½Ïgï¿½ï¿½ï¿½ï¿½
+	void Move(void);            // ï¿½Ú“ï¿½ï¿½ï¿½ï¿½ï¿½
+	void FloorMove(void);		// ï¿½Kï¿½iï¿½Ú“ï¿½ï¿½ï¿½ï¿½ï¿½
+	void ScareStart(void);		// ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Jï¿½n
+	void ResetPos(void);		// ï¿½ï¿½Ôƒï¿½ï¿½Zï¿½bï¿½g
 
-	// ’è”ƒAƒNƒZƒT
+	// ï¿½è”ï¿½Aï¿½Nï¿½Zï¿½T
 	static float GetDetectionRange(void) { return FURNITURE_DETECTION_RANGE; }
 	static float GetGhostPosY(void) { return GHOST_POS_Y; }
 };
@@ -88,5 +88,5 @@ void Ghost_Update(void);
 void Ghost_Draw(void);
 void Ghost_Finalize(void);
 
-// Ghost‚ÌƒQƒbƒ^[
+// Ghostï¿½ÌƒQï¿½bï¿½^ï¿½[
 Ghost* GetGhost(void);

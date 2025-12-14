@@ -219,6 +219,7 @@
     </FxCompile>
   </ItemGroup>
   <ItemGroup>
+    <None Include="convert_to_utf8bom.ps1" />
     <None Include="DirectXTex.inl" />
     <None Include="fbxexport.md" />
     <None Include="MODEL_CPP_IMPROVEMENTS.md" />

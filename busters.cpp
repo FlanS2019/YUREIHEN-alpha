@@ -1,4 +1,4 @@
-#include "busters.h"
+ï»¿#include "busters.h"
 #include "Camera.h"
 #include "shader.h"
 #include "keyboard.h"
@@ -9,14 +9,14 @@
 #include "furniture.h"
 #include <stdlib.h>
 
-// ŠK‘w•ª‚ÌBustersƒŠƒXƒg
+// ï¿½Kï¿½wï¿½ï¿½ï¿½ï¿½Bustersï¿½ï¿½ï¿½Xï¿½g
 static Busters* g_BustersList[MAP_FLOORS];
 
 // =================================================================
-// Busters ƒNƒ‰ƒXƒƒ“ƒoŠÖ”‚ÌÀ‘•
+// Busters ï¿½Nï¿½ï¿½ï¿½Xï¿½ï¿½ï¿½ï¿½ï¿½oï¿½Öï¿½ï¿½Ìï¿½ï¿½ï¿½
 // =================================================================
 
-// ƒRƒ“ƒXƒgƒ‰ƒNƒ^
+// ï¿½Rï¿½ï¿½ï¿½Xï¿½gï¿½ï¿½ï¿½Nï¿½^
 Busters::Busters(const XMFLOAT3& pos, const XMFLOAT3& scale, const XMFLOAT3& rot, const char* pass)
 	: Sprite3D(pos, scale, rot, pass),
 	Jump(0.01f, 0.2f, PATROL_HEIGHT),
@@ -27,11 +27,11 @@ Busters::Busters(const XMFLOAT3& pos, const XMFLOAT3& scale, const XMFLOAT3& rot
 	m_MoveSpeed(0.03f),
 	m_DistanceToGhost(0.0f)
 {
-	// —”‰Šú‰» (Œx‘Îô: ƒLƒƒƒXƒg‚ğ“ü‚ê‚é)
+	// ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ (ï¿½xï¿½ï¿½ï¿½Îï¿½: ï¿½Lï¿½ï¿½ï¿½Xï¿½gï¿½ï¿½ï¿½ï¿½ï¿½ï¿½)
 	srand((unsigned int)GetTickCount64());
 }
 
-// XVˆ—
+// ï¿½Xï¿½Vï¿½ï¿½ï¿½ï¿½
 void Busters::Update(void)
 {
 	JumpUpdate(*(Transform3D*)this);
@@ -41,7 +41,7 @@ void Busters::Update(void)
 
 	switch (m_State)
 	{
-	case BUSTERS_SEARCH: // ’Tõ
+	case BUSTERS_SEARCH: // ï¿½Tï¿½ï¿½
 		if (m_TargetFurnitureIndex == -1)
 		{
 			if (m_WaitTimer > 0)
@@ -80,35 +80,35 @@ void Busters::Update(void)
 			m_WaitTimer = 60;
 		}
 
-		m_MoveSpeed = 0.03f; // ’Êí‘¬“x
+		m_MoveSpeed = 0.03f; // ï¿½Êí‘¬ï¿½x
 		break;
 
-	case BUSTERS_SUSPICION: // Œx‰úi’†‹——£j
+	case BUSTERS_SUSPICION: // ï¿½xï¿½ï¿½ï¿½iï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½j
 		m_PathList.clear();
 		m_TargetFurnitureIndex = -1;
 
 		nextStepPos = GetGhost()->GetPos();
 		nextStepPos.y = m_Position.y;
 
-		m_MoveSpeed = 0.06f; // ­‚µ‘•à‚«
+		m_MoveSpeed = 0.06f; // ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
 		break;
 
-	case BUSTERS_CHASE: // ’ÇÕi‹ß‹——£j
+	case BUSTERS_CHASE: // ï¿½ÇÕiï¿½ß‹ï¿½ï¿½ï¿½ï¿½j
 		nextStepPos = GetGhost()->GetPos();
 		nextStepPos.y = m_Position.y;
 
 		m_PathList.clear();
 		m_TargetFurnitureIndex = -1;
 
-		m_MoveSpeed = 0.09f; // ‘S—Í¾‘–
+		m_MoveSpeed = 0.09f; // ï¿½Sï¿½Íï¿½ï¿½ï¿½
 		break;
 	}
 
 	MoveTo(nextStepPos);
 }
 
-// ó‘Ô‘JˆÚƒ`ƒFƒbƒN
-// busters.cpp ‚Ì CheckState ŠÖ”
+// ï¿½ï¿½Ô‘Jï¿½Úƒ`ï¿½Fï¿½bï¿½N
+// busters.cpp ï¿½ï¿½ CheckState ï¿½Öï¿½
 
 void Busters::CheckState(void)
 {
@@ -120,7 +120,7 @@ void Busters::CheckState(void)
 	XMVECTOR myVec = XMLoadFloat3(&m_Position);
 	m_DistanceToGhost = XMVectorGetX(XMVector3Length(XMVectorSubtract(ghostVec, myVec)));
 
-	// •Ïg’†‚Í‹C‚Ã‚©‚È‚¢
+	// ï¿½Ïgï¿½ï¿½ï¿½Í‹Cï¿½Ã‚ï¿½ï¿½È‚ï¿½
 	if (ghost->GetState() == GS_TRANSFORM ||
 		ghost->GetState() == GS_SCARE)
 	{
@@ -135,43 +135,43 @@ void Busters::CheckState(void)
 		return;
 	}
 
-	// š’Ç‰Á: ŠÔ‚É•Ç‚ª‚ ‚é‚©ƒ`ƒFƒbƒN (‹ü‚ª’Ê‚Á‚Ä‚¢‚é‚©H)
+	// ï¿½ï¿½ï¿½Ç‰ï¿½: ï¿½Ô‚É•Ç‚ï¿½ï¿½ï¿½ï¿½é‚©ï¿½`ï¿½Fï¿½bï¿½N (ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ê‚ï¿½ï¿½Ä‚ï¿½ï¿½é‚©ï¿½H)
 	bool hasWall = Field_CheckWallBetween(m_Position, ghostPos);
 
-	// ‹——£‚É‚æ‚é”»’è (•Ç‚ª‚È‚¢ê‡‚Ì‚İŒŸ’m)
-	if (!hasWall && m_DistanceToGhost < BUSTERS_PATROL_RANGH) // ‹ß‹——£
+	// ï¿½ï¿½ï¿½ï¿½ï¿½É‚ï¿½é”»ï¿½ï¿½ (ï¿½Ç‚ï¿½ï¿½È‚ï¿½ï¿½ê‡ï¿½Ì‚İŒï¿½ï¿½m)
+	if (!hasWall && m_DistanceToGhost < BUSTERS_PATROL_RANGH) // ï¿½ß‹ï¿½ï¿½ï¿½
 	{
 		if (m_State != BUSTERS_CHASE)
 		{
 			m_State = BUSTERS_CHASE;
-			this->SetColor(1.0f, 0.0f, 0.0f, 1.0f); // Ô
+			this->SetColor(1.0f, 0.0f, 0.0f, 1.0f); // ï¿½ï¿½
 			ghost->SetIsDetectedByBuster(true);
 		}
 	}
-	else if (!hasWall && m_DistanceToGhost < BUSTERS_SUSPICION_RANGE) // ’†‹——£
+	else if (!hasWall && m_DistanceToGhost < BUSTERS_SUSPICION_RANGE) // ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
 	{
 		if (m_State != BUSTERS_SUSPICION)
 		{
 			m_State = BUSTERS_SUSPICION;
-			this->SetColor(1.0f, 1.0f, 0.0f, 1.0f); // ‰©
+			this->SetColor(1.0f, 1.0f, 0.0f, 1.0f); // ï¿½ï¿½
 			ghost->SetIsDetectedByBuster(false);
 		}
 	}
-	else // ”ÍˆÍŠOA‚Ü‚½‚Í•Ç‚ª‚ ‚é
+	else // ï¿½ÍˆÍŠOï¿½Aï¿½Ü‚ï¿½ï¿½Í•Ç‚ï¿½ï¿½ï¿½ï¿½ï¿½
 	{
 		if (m_State != BUSTERS_SEARCH)
 		{
 			m_State = BUSTERS_SEARCH;
-			this->ResetColor(); // ”’
+			this->ResetColor(); // ï¿½ï¿½
 			ghost->SetIsDetectedByBuster(false);
 
-			// Œ©¸‚Á‚½‚Ì‚Å­‚µƒLƒ‡ƒƒLƒ‡ƒ‚³‚¹‚é‰‰o
+			// ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ì‚Åï¿½ï¿½ï¿½ï¿½Lï¿½ï¿½ï¿½ï¿½ï¿½Lï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½é‰‰ï¿½o
 			m_TargetFurnitureIndex = -1;
 			m_WaitTimer = 30;
 		}
 	}
 }
-// ˆÚ“®ˆ—i•Ç”»’è‚ ‚èj
+// ï¿½Ú“ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½iï¿½Ç”ï¿½ï¿½è‚ ï¿½ï¿½j
 void Busters::MoveTo(XMFLOAT3 targetPos)
 {
 	if (GetIsJumping()) return;
@@ -194,7 +194,7 @@ void Busters::MoveTo(XMFLOAT3 targetPos)
 
 	float r = 0.4f;
 
-	// X•ûŒü
+	// Xï¿½ï¿½ï¿½ï¿½
 	float nextX = m_Position.x + dx * m_MoveSpeed;
 	bool hitX = false;
 	if (Field_IsWall(nextX + r, m_Position.y, m_Position.z + r) ||
@@ -206,7 +206,7 @@ void Busters::MoveTo(XMFLOAT3 targetPos)
 	}
 	if (!hitX) m_Position.x = nextX;
 
-	// Z•ûŒü
+	// Zï¿½ï¿½ï¿½ï¿½
 	float nextZ = m_Position.z + dz * m_MoveSpeed;
 	bool hitZ = false;
 	if (Field_IsWall(m_Position.x + r, m_Position.y, nextZ + r) ||
@@ -223,13 +223,13 @@ void Busters::OnScared(void)
 {
 	JumpStart();
 	m_TargetFurnitureIndex = -1;
-	m_WaitTimer = 120; // 2•bŠÔ“®‚¯‚È‚­‚·‚é
-	this->SetColor(0.0f, 0.0f, 1.0f, 1.0f); // ÂFi‹Á‚¢‚½j
+	m_WaitTimer = 120; // 2ï¿½bï¿½Ô“ï¿½ï¿½ï¿½ï¿½È‚ï¿½ï¿½ï¿½ï¿½ï¿½
+	this->SetColor(0.0f, 0.0f, 1.0f, 1.0f); // ï¿½ÂFï¿½iï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½j
 }
 
 void Busters::SetIsGhostDiscover(bool discover)
 {
-	// true‚È‚çMaterialF‚ğ—Î‚É‚·‚é
+	// trueï¿½È‚ï¿½Materialï¿½Fï¿½ï¿½Î‚É‚ï¿½ï¿½ï¿½
 	if (discover)
 	{
 		this->SetColor(0.0f, 1.0f, 0.0f, 1.0f);
@@ -241,18 +241,18 @@ void Busters::SetIsGhostDiscover(bool discover)
 }
 
 // =================================================================
-// ƒOƒ[ƒoƒ‹ŠÖ”
+// ï¿½Oï¿½ï¿½ï¿½[ï¿½oï¿½ï¿½ï¿½Öï¿½
 // =================================================================
 
 void Busters_Initialize(void)
 {
-	// 1ŠK
+	// 1ï¿½K
 	g_BustersList[0] = new Busters({ 0.0f, PATROL_HEIGHT, 0.0f }, { 1.0f, 1.0f, 1.0f }, { 0.0f, 0.0f, 0.0f }, "asset\\model\\buster.fbx");
 	if (g_BustersList[0]) g_BustersList[0]->SetGroundLevel(PATROL_HEIGHT);
-	// 2ŠK
+	// 2ï¿½K
 	g_BustersList[1] = new Busters({ -10.0f, PATROL_HEIGHT, 10.0f }, { 1.0f, 1.0f, 1.0f }, { 0.0f, 0.0f, 0.0f }, "asset\\model\\buster.fbx");
 	if (g_BustersList[1]) g_BustersList[1]->SetGroundLevel(PATROL_HEIGHT);
-	// 3ŠK
+	// 3ï¿½K
 	g_BustersList[2] = new Busters({ 10.0f, PATROL_HEIGHT, -10.0f }, { 1.0f, 1.0f, 1.0f }, { 0.0f, 0.0f, 0.0f }, "asset\\model\\buster.fbx");
 	if (g_BustersList[2]) g_BustersList[2]->SetGroundLevel(PATROL_HEIGHT);
 }
