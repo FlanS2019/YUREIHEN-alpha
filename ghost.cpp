@@ -14,17 +14,21 @@
 #include "UI.h"
 #include "UI_scarecombo.h"
 #include "define.h"
+#include "sound.h"
 
 Ghost* g_Ghost = NULL;
+SoundData* g_pScareSound = nullptr;
 
 void Ghost_Initialize(ID3D11Device* pDevice, ID3D11DeviceContext* pContext)
 {
 	g_Ghost = new Ghost(
-		{ -3.0f, Ghost::GetGhostPosY(), -10.0f },	// 位置 選ばれた初期位置
-		{ 1.0f, 1.0f, 1.0f },						// スケール
-		{ 0.0f, 180.0f, 0.0f },						// 回転（度）
-		"asset\\model\\ghost.fbx"					// モデルパス
+		{ -3.0f, Ghost::GetGhostPosY(), -10.0f },
+		{ 1.0f, 1.0f, 1.0f },
+		{ 0.0f, 180.0f, 0.0f },
+		"asset\\model\\ghost.fbx"
 	);
+
+	g_pScareSound = LoadMP3("asset/sound/se/ghost1.mp3");
 }
 
 void Ghost_Update(void)
@@ -34,18 +38,17 @@ void Ghost_Update(void)
 	switch (g_Ghost->GetState())
 	{
 	case GS_MOVING:
-		g_Ghost->SetIsDraw(true);		// 描画有効化
-		g_Ghost->Move();				// 移動処理
-		g_Ghost->FurnitureSearch();		// 近くの家具検知と色変更
-		g_Ghost->FloorMove();			// 階段移動処理
+		g_Ghost->SetIsDraw(true);
+		g_Ghost->Move();
+		g_Ghost->FurnitureSearch();
+		g_Ghost->FloorMove();
 		break;
 	case GS_FURNITURE_FOUND:
-		g_Ghost->SetIsDraw(true);		// 描画有効化
-		g_Ghost->Move();				// 移動処理
-		g_Ghost->FurnitureSearch();		// 近くの家具検知と色変更
-		g_Ghost->FloorMove();			// 階段移動処理
+		g_Ghost->SetIsDraw(true);
+		g_Ghost->Move();
+		g_Ghost->FurnitureSearch();
+		g_Ghost->FloorMove();
 
-		// 変身開始処理
 		if (Keyboard_IsKeyDownTrigger(KK_E))
 		{
 			g_Ghost->SetState(GS_TRANSFORM);
@@ -53,19 +56,15 @@ void Ghost_Update(void)
 
 		break;
 	case GS_TRANSFORM:
-		g_Ghost->SetIsDraw(false);		// 描画無効化
-		g_Ghost->Transforming();		// 変身処理
+		g_Ghost->SetIsDraw(false);
+		g_Ghost->Transforming();
 
-		// spaceで驚かしアクション
 		if (Keyboard_IsKeyDownTrigger(KK_SPACE))
 		{
 			g_Ghost->SetState(GS_SCARE);
-
-			// 家具とプレイヤーをジャンプさせる(ここで呼ぶのキモい)
 			g_Ghost->ScareStart();
 		}
 
-		// 変身解除
 		if (Keyboard_IsKeyDownTrigger(KK_E))
 		{
 			g_Ghost->ResetPos();
@@ -74,9 +73,8 @@ void Ghost_Update(void)
 		}
 		break;
 	case GS_SCARE:
-		g_Ghost->SetIsDraw(false);		// 描画無効化
-		g_Ghost->Transforming();		// 変身処理
-		// 家具のジャンプが終わったらTransFormに戻る
+		g_Ghost->SetIsDraw(false);
+		g_Ghost->Transforming();
 		if (FurnitureScareEnded(g_Ghost->GetInRangeNum()))
 		{
 			g_Ghost->SetState(GS_TRANSFORM);
@@ -86,11 +84,7 @@ void Ghost_Update(void)
 		break;
 	}
 
-	// カメラの注視対象をGhost位置に設定
 	Camera_SetTargetPos(g_Ghost->GetPos());
-
-	// ステート別デバッグ出力
-	//hal::dout << "Ghost State: " << g_Ghost->GetState() << std::endl;
 }
 
 void Ghost_Draw(void)
@@ -100,6 +94,12 @@ void Ghost_Draw(void)
 
 void Ghost_Finalize(void)
 {
+	if (g_pScareSound)
+	{
+		UnloadSound(g_pScareSound);
+		g_pScareSound = nullptr;
+	}
+
 	if (g_Ghost)
 	{
 		delete g_Ghost;
@@ -107,18 +107,14 @@ void Ghost_Finalize(void)
 	}
 }
 
-// ========== Ghost クラスメソッドの実装 ==========
-
 void Ghost::Transforming(void)
 {
-	// Ghostを家具の位置に合わせる
 	Furniture* pFurniture = GetFurniture(m_InRangeFurnitureNum);
 	if (pFurniture)
 	{
 		SetPos(pFurniture->GetPos());
 	}
 
-	// Ghost（Furniture） と buster の距離を計算
 	XMFLOAT3 busterPos = GetBusters()->GetPos();
 	XMFLOAT3 ghostPos = GetPos();
 	XMVECTOR ghostVec = XMLoadFloat3(&ghostPos);
@@ -126,10 +122,8 @@ void Ghost::Transforming(void)
 	XMVECTOR distVec = XMVectorSubtract(busterVec, ghostVec);
 	float distance = XMVectorGetX(XMVector3Length(distVec));
 
-	// 発見距離以下なら発見処理
 	if (distance <= SCARE_RANGE)
 	{
-		// 検知範囲に入っているなら色を変える
 		GetBusters()->SetIsGhostDiscover(true);
 	}
 	else
@@ -142,7 +136,11 @@ void Ghost::ScareStart(void)
 {
 	FurnitureScareStart(m_InRangeFurnitureNum);
 
-	// Ghost（Furniture） と buster の距離を計算
+	if (g_pScareSound)
+	{
+		PlaySound(g_pScareSound, false);
+	}
+
 	XMFLOAT3 busterPos = GetBusters()->GetPos();
 	XMFLOAT3 ghostPos = GetPos();
 	XMVECTOR ghostVec = XMLoadFloat3(&ghostPos);
@@ -150,12 +148,11 @@ void Ghost::ScareStart(void)
 	XMVECTOR distVec = XMVectorSubtract(busterVec, ghostVec);
 	float distance = XMVectorGetX(XMVector3Length(distVec));
 
-	// 発見距離以下なら発見処理
 	if (distance <= SCARE_RANGE)
 	{
-		BustersScare();								// 
-		ScareComboUP();								// 恐怖コンボを上げる
-		AddScareGauge(1.0f * UI_ScareCombo_GetNumber());	// 恐怖ゲージ加算
+		BustersScare();
+		ScareComboUP();
+		AddScareGauge(1.0f * UI_ScareCombo_GetNumber());
 	}
 }
 
@@ -164,15 +161,13 @@ void Ghost::FurnitureSearch(void)
 	float tempDistance = 999999.0f;
 	int tempInRangeNum = -1;
 
-	// Ghost最近傍のFurnitureを探す
 	for (int i = 0; i < FURNITURE_NUM; i++)
 	{
 		Furniture* pFurniture = GetFurniture(i);
 		if (pFurniture)
 		{
-			pFurniture->ResetColor();  // 元の色に戻す
+			pFurniture->ResetColor();
 
-			// 家具検出範囲内で一時保存された家具との距離が近い場合
 			if (pFurniture->GetDistanceToGhost() <= FURNITURE_DETECTION_RANGE &&
 				pFurniture->GetDistanceToGhost() < tempDistance)
 			{
@@ -182,16 +177,14 @@ void Ghost::FurnitureSearch(void)
 		}
 	}
 
-	// 最も近い家具を変身対象とする
 	if (tempInRangeNum != -1)
 	{
 		m_InRangeFurnitureNum = tempInRangeNum;
 
-		// 検出範囲内の家具がある場合、その家具の色を変える
 		Furniture* pFurniture = GetFurniture(m_InRangeFurnitureNum);
 		if (pFurniture)
 		{
-			pFurniture->SetColor(1.0f, 1.0f, 0.0f, 1.0f);  // 黄色
+			pFurniture->SetColor(1.0f, 1.0f, 0.0f, 1.0f);
 			this->SetState(GS_FURNITURE_FOUND);
 		}
 	}
@@ -203,11 +196,9 @@ void Ghost::FurnitureSearch(void)
 
 void Ghost::Move(void)
 {
-	// 変身しているときのみ移動不可
 	if (m_IsTransformed)
 		return;
 
-	// --- 入力と加速処理 (既存はそのまま) ---
 	float cameraYaw = Camera_GetYaw();
 	float yawRad = XMConvertToRadians(cameraYaw);
 	float forwardX = sinf(yawRad);
@@ -225,14 +216,12 @@ void Ghost::Move(void)
 	XMVECTOR velocityVec = XMLoadFloat3(&m_Velocity);
 	velocityVec = XMVectorAdd(velocityVec, accelVec);
 
-	// 速度制限
 	float speed = XMVectorGetX(XMVector3Length(velocityVec));
 	if (speed > GHOST_MAX_SPEED)
 	{
 		velocityVec = XMVectorScale(velocityVec, GHOST_MAX_SPEED / speed);
 	}
 
-	// 減速
 	if (XMVectorGetX(accelVec) == 0.0f && XMVectorGetY(accelVec) == 0.0f && XMVectorGetZ(accelVec) == 0.0f)
 	{
 		velocityVec = XMVectorScale(velocityVec, GHOST_DECELERATION);
@@ -240,7 +229,6 @@ void Ghost::Move(void)
 
 	XMStoreFloat3(&m_Velocity, velocityVec);
 
-	// 向きの変更
 	float moveVecX = m_Velocity.x;
 	float moveVecZ = m_Velocity.z;
 
@@ -251,15 +239,8 @@ void Ghost::Move(void)
 		SetRot({ 0.0f, moveYaw - 180.0f, 0.0f });
 	}
 
-	// Ghost位置を更新
-	// =========================================================
-	// 壁当たり判定 (Collision)
-	// =========================================================
-
-	// 当たり判定の半径 
 	float r = 0.4f;
 
-	// --- X軸の移動と判定 ---
 	float nextX = m_Position.x + m_Velocity.x;
 	bool hitX = false;
 
@@ -274,7 +255,6 @@ void Ghost::Move(void)
 	if (hitX) m_Velocity.x = 0.0f;
 	else m_Position.x = nextX;
 
-	// --- Z軸の移動と判定 ---
 	float nextZ = m_Position.z + m_Velocity.z;
 	bool hitZ = false;
 
@@ -294,22 +274,17 @@ void Ghost::Move(void)
 
 void Ghost::FloorMove(void)
 {
-	// 1. クールダウンタイマーの更新
 	if (m_FloorCooldown > 0.0f)
 	{
 		m_FloorCooldown -= 1.0f / 60.0f;
 	}
 
-	// =========================================================
-	// 階段検知と移動処理 (既存コード)
-	// =========================================================
 	if (m_FloorCooldown <= 0.0f)
 	{
 		FIELD_TYPE blockType = Field_GetBlockType(m_Position.x, m_Position.z);
 
 		if (blockType == FIELD_STAIRS_UP || blockType == FIELD_STAIRS_DOWN)
 		{
-			// 色変え
 			if (m_FloorCooldown > 0.0f) SetColor(1.0f, 0.5f, 0.5f, 1.0f);
 			else SetColor(0.7f, 1.0f, 0.7f, 1.0f);
 
@@ -356,7 +331,6 @@ void Ghost::ResetPos(void)
 	m_IsTransformed = false;
 }
 
-// ghostのゲッター
 Ghost* GetGhost(void)
 {
 	return g_Ghost;

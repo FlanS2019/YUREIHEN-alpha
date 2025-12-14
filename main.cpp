@@ -17,6 +17,7 @@
 #include "mouse.h"
 #include "sprite.h"
 #include "fade.h"
+#include "sound.h"
 
 //==================================
 //グローバル変数
@@ -101,6 +102,7 @@ int APIENTRY WinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance,
 	Shader_Initialize(Direct3D_GetDevice(), Direct3D_GetDeviceContext());
 	Sprite_Initialize();
 	Fade_Initialize();
+	InitSound();
 	Init();
 
 	//メッセージループ
@@ -166,6 +168,7 @@ int APIENTRY WinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance,
 	} while (msg.message != WM_QUIT);//windowsから終了メッセージが来たらループ終了
 
 	Finalize();
+	UninitSound();
 	Fade_Finalize();
 	Sprite_Finalize();
 	Shader_Finalize();

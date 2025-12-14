@@ -22,8 +22,10 @@ using namespace DirectX;
 #include "furniture.h"
 #include "busters.h"
 #include "debugdraw.h"
+#include "sound.h"
 
 Light* MainLight;
+SoundData* g_pBGM = nullptr;
 
 void Game_Initialize(ID3D11Device* pDevice, ID3D11DeviceContext* pContext)
 {
@@ -47,6 +49,12 @@ void Game_Initialize(ID3D11Device* pDevice, ID3D11DeviceContext* pContext)
 	Furniture_Initialize();
 	Busters_Initialize();
 	DebugDraw_Initialize();
+
+	// BGM読み込み・再生
+	g_pBGM = LoadMP3("asset/sound/bgm/HauntedHalloween.mp3");
+	if (g_pBGM) {
+		PlaySound(g_pBGM, true);
+	}
 }
 
 void Game_Update(void)
@@ -84,6 +92,13 @@ void Game_Draw(void)
 
 void Game_Finalize(void)
 {
+	// BGM解放
+	if (g_pBGM) {
+		StopSound(g_pBGM);
+		UnloadSound(g_pBGM);
+		g_pBGM = nullptr;
+	}
+
 	delete MainLight;
 
 	Camera_Finalize();

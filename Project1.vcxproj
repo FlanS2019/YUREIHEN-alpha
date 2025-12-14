@@ -166,6 +166,7 @@
     <ClCompile Include="result.cpp" />
     <ClCompile Include="shader.cpp" />
     <ClCompile Include="scene.cpp" />
+    <ClCompile Include="sound.cpp" />
     <ClCompile Include="sprite.cpp" />
     <ClCompile Include="texture.cpp" />
     <ClCompile Include="title.cpp" />
@@ -198,6 +199,7 @@
     <ClInclude Include="scene.h" />
     <ClInclude Include="result.h" />
     <ClInclude Include="shader.h" />
+    <ClInclude Include="sound.h" />
     <ClInclude Include="sprite.h" />
     <ClInclude Include="sprite3d.h" />
     <ClInclude Include="texture.h" />
