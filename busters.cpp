@@ -9,14 +9,14 @@
 #include "furniture.h"
 #include <stdlib.h>
 
-// �K�w����Busters���X�g
+// 階層別Bustersリスト
 static Busters* g_BustersList[MAP_FLOORS];
 
 // =================================================================
-// Busters �N���X�����o�֐��̎���
+// Busters クラスメンバ関数の実装
 // =================================================================
 
-// �R���X�g���N�^
+// コンストラクタ
 Busters::Busters(const XMFLOAT3& pos, const XMFLOAT3& scale, const XMFLOAT3& rot, const char* pass)
 	: Sprite3D(pos, scale, rot, pass),
 	Jump(0.01f, 0.2f, PATROL_HEIGHT),
@@ -27,11 +27,11 @@ Busters::Busters(const XMFLOAT3& pos, const XMFLOAT3& scale, const XMFLOAT3& rot
 	m_MoveSpeed(0.03f),
 	m_DistanceToGhost(0.0f)
 {
-	// ���������� (�x���΍�: �L���X�g������)
+	// 乱数初期化 (警告対策: キャストを追加)
 	srand((unsigned int)GetTickCount64());
 }
 
-// �X�V����
+// 更新処理
 void Busters::Update(void)
 {
 	JumpUpdate(*(Transform3D*)this);
@@ -41,7 +41,7 @@ void Busters::Update(void)
 
 	switch (m_State)
 	{
-	case BUSTERS_SEARCH: // �T��
+	case BUSTERS_SEARCH: // 探索
 		if (m_TargetFurnitureIndex == -1)
 		{
 			if (m_WaitTimer > 0)
@@ -80,35 +80,35 @@ void Busters::Update(void)
 			m_WaitTimer = 60;
 		}
 
-		m_MoveSpeed = 0.03f; // �ʏ푬�x
+		m_MoveSpeed = 0.03f; // 通常速度
 		break;
 
-	case BUSTERS_SUSPICION: // �x���i�������j
+	case BUSTERS_SUSPICION: // 警戒（中距離）
 		m_PathList.clear();
 		m_TargetFurnitureIndex = -1;
 
 		nextStepPos = GetGhost()->GetPos();
 		nextStepPos.y = m_Position.y;
 
-		m_MoveSpeed = 0.06f; // ���������
+		m_MoveSpeed = 0.06f; // 少し速め
 		break;
 
-	case BUSTERS_CHASE: // �ǐՁi�ߋ����j
+	case BUSTERS_CHASE: // 追跡（近距離）
 		nextStepPos = GetGhost()->GetPos();
 		nextStepPos.y = m_Position.y;
 
 		m_PathList.clear();
 		m_TargetFurnitureIndex = -1;
 
-		m_MoveSpeed = 0.09f; // �S�͎���
+		m_MoveSpeed = 0.09f; // 全力疾走
 		break;
 	}
 
 	MoveTo(nextStepPos);
 }
 
-// ��ԑJ�ڃ`�F�b�N
-// busters.cpp �� CheckState �֐�
+// 状態遷移チェック
+// busters.cpp の CheckState 関数
 
 void Busters::CheckState(void)
 {
@@ -120,7 +120,7 @@ void Busters::CheckState(void)
 	XMVECTOR myVec = XMLoadFloat3(&m_Position);
 	m_DistanceToGhost = XMVectorGetX(XMVector3Length(XMVectorSubtract(ghostVec, myVec)));
 
-	// �ϐg���͋C�Â��Ȃ�
+	// 変身中は気づかない
 	if (ghost->GetState() == GS_TRANSFORM ||
 		ghost->GetState() == GS_SCARE)
 	{
@@ -135,43 +135,43 @@ void Busters::CheckState(void)
 		return;
 	}
 
-	// ���ǉ�: �Ԃɕǂ����邩�`�F�b�N (�������ʂ��Ă��邩�H)
+	// 追加: 間に壁があるかチェック (視線が通っているか？)
 	bool hasWall = Field_CheckWallBetween(m_Position, ghostPos);
 
-	// �����ɂ�锻�� (�ǂ��Ȃ��ꍇ�̂݌��m)
-	if (!hasWall && m_DistanceToGhost < BUSTERS_PATROL_RANGH) // �ߋ���
+	// 距離による判定 (壁がない場合のみ検知)
+	if (!hasWall && m_DistanceToGhost < BUSTERS_PATROL_RANGH) // 近距離
 	{
 		if (m_State != BUSTERS_CHASE)
 		{
 			m_State = BUSTERS_CHASE;
-			this->SetColor(1.0f, 0.0f, 0.0f, 1.0f); // ��
+			this->SetColor(1.0f, 0.0f, 0.0f, 1.0f); // 赤
 			ghost->SetIsDetectedByBuster(true);
 		}
 	}
-	else if (!hasWall && m_DistanceToGhost < BUSTERS_SUSPICION_RANGE) // ������
+	else if (!hasWall && m_DistanceToGhost < BUSTERS_SUSPICION_RANGE) // 中距離
 	{
 		if (m_State != BUSTERS_SUSPICION)
 		{
 			m_State = BUSTERS_SUSPICION;
-			this->SetColor(1.0f, 1.0f, 0.0f, 1.0f); // ��
+			this->SetColor(1.0f, 1.0f, 0.0f, 1.0f); // 黄
 			ghost->SetIsDetectedByBuster(false);
 		}
 	}
-	else // �͈͊O�A�܂��͕ǂ�����
+	else // 範囲外、または壁がある
 	{
 		if (m_State != BUSTERS_SEARCH)
 		{
 			m_State = BUSTERS_SEARCH;
-			this->ResetColor(); // ��
+			this->ResetColor(); // 白
 			ghost->SetIsDetectedByBuster(false);
 
-			// ���������̂ŏ����L�����L���������鉉�o
+			// 見失ったので少しキョロキョロさせる演出
 			m_TargetFurnitureIndex = -1;
 			m_WaitTimer = 30;
 		}
 	}
 }
-// �ړ������i�ǔ��肠��j
+// 移動処理（壁判定あり）
 void Busters::MoveTo(XMFLOAT3 targetPos)
 {
 	if (GetIsJumping()) return;
@@ -194,7 +194,7 @@ void Busters::MoveTo(XMFLOAT3 targetPos)
 
 	float r = 0.4f;
 
-	// X����
+	// X方向
 	float nextX = m_Position.x + dx * m_MoveSpeed;
 	bool hitX = false;
 	if (Field_IsWall(nextX + r, m_Position.y, m_Position.z + r) ||
@@ -206,7 +206,7 @@ void Busters::MoveTo(XMFLOAT3 targetPos)
 	}
 	if (!hitX) m_Position.x = nextX;
 
-	// Z����
+	// Z方向
 	float nextZ = m_Position.z + dz * m_MoveSpeed;
 	bool hitZ = false;
 	if (Field_IsWall(m_Position.x + r, m_Position.y, nextZ + r) ||
@@ -223,13 +223,13 @@ void Busters::OnScared(void)
 {
 	JumpStart();
 	m_TargetFurnitureIndex = -1;
-	m_WaitTimer = 120; // 2�b�ԓ����Ȃ�����
-	this->SetColor(0.0f, 0.0f, 1.0f, 1.0f); // �F�i�������j
+	m_WaitTimer = 120; // 2秒間動かなくなる
+	this->SetColor(0.0f, 0.0f, 1.0f, 1.0f); // 青色（怯え中）
 }
 
 void Busters::SetIsGhostDiscover(bool discover)
 {
-	// true�Ȃ�Material�F��΂ɂ���
+	// trueならMaterial色を緑にする
 	if (discover)
 	{
 		this->SetColor(0.0f, 1.0f, 0.0f, 1.0f);
@@ -241,18 +241,18 @@ void Busters::SetIsGhostDiscover(bool discover)
 }
 
 // =================================================================
-// �O���[�o���֐�
+// グローバル関数
 // =================================================================
 
 void Busters_Initialize(void)
 {
-	// 1�K
+	// 1階
 	g_BustersList[0] = new Busters({ 0.0f, PATROL_HEIGHT, 0.0f }, { 1.0f, 1.0f, 1.0f }, { 0.0f, 0.0f, 0.0f }, "asset\\model\\buster.fbx");
 	if (g_BustersList[0]) g_BustersList[0]->SetGroundLevel(PATROL_HEIGHT);
-	// 2�K
+	// 2階
 	g_BustersList[1] = new Busters({ -10.0f, PATROL_HEIGHT, 10.0f }, { 1.0f, 1.0f, 1.0f }, { 0.0f, 0.0f, 0.0f }, "asset\\model\\buster.fbx");
 	if (g_BustersList[1]) g_BustersList[1]->SetGroundLevel(PATROL_HEIGHT);
-	// 3�K
+	// 3階
 	g_BustersList[2] = new Busters({ 10.0f, PATROL_HEIGHT, -10.0f }, { 1.0f, 1.0f, 1.0f }, { 0.0f, 0.0f, 0.0f }, "asset\\model\\buster.fbx");
 	if (g_BustersList[2]) g_BustersList[2]->SetGroundLevel(PATROL_HEIGHT);
 }

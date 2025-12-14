@@ -9,7 +9,7 @@
 #include "define.h"
 #include "ghost.h"
 
-// �O���[�o���ϐ�
+// グローバル変数
 static Timer* g_Clock = nullptr;
 static Gauge* g_ScareGauge = nullptr;
 Sprite* g_Reticle = nullptr;
@@ -18,25 +18,25 @@ static DWORD g_LastScoreUpdateTime = 0;
 static Number* g_FloorNumber = nullptr;
 static Sprite* g_FloorTextF = nullptr;
 
-// �N���b�N�K�C�h�p
+// クリックガイド用
 static Sprite* g_GuideClick = nullptr;
 
-// �K�w�ړ��K�C�h�p
+// 階層移動ガイド用
 static Number* g_GuideFloorNum = nullptr;
 static Sprite* g_GuideFloorF = nullptr;
 static bool g_ShowGuideFloor = false;
 
-// �e�K�w�̃Q�[�W�l��ۑ�����z��
+// 各階層のゲージ値を保存する配列
 static float g_FloorGaugeValues[MAP_FLOORS];
-// �O�t���[���̊K�w��L�����Ă����ϐ�
+// 前フレームの階層を記憶しておく変数
 static int g_LastFrameFloor = -1;
 
 
-// 3D���W -> 2D�X�N���[�����W�ϊ�
+// 3D座標 -> 2Dスクリーン座標変換
 static XMFLOAT2 WorldToScreen(const XMFLOAT3& worldPos)
 {
 	Camera* camera = GetCamera();
-	// �C��: �����I�ȃR���X�g���N�^��g�p
+	// 修正: 明示的なコンストラクタを使用
 	if (!camera) return XMFLOAT2(-100.0f, -100.0f);
 
 	XMMATRIX view = camera->GetView();
@@ -50,7 +50,7 @@ static XMFLOAT2 WorldToScreen(const XMFLOAT3& worldPos)
 	XMFLOAT3 ndc;
 	XMStoreFloat3(&ndc, clipPos);
 
-	// ��ʊO����
+	// 画面外判定
 	if (ndc.z < 0.0f || ndc.z > 1.0f)
 	{
 		return XMFLOAT2(-1000.0f, -1000.0f);
@@ -63,7 +63,7 @@ static XMFLOAT2 WorldToScreen(const XMFLOAT3& worldPos)
 }
 
 //----------------------------
-// UI������
+// UI初期化
 //----------------------------
 void UI_Initialize(void)
 {
@@ -77,7 +77,7 @@ void UI_Initialize(void)
 		CLOCK_MIN, CLOCK_MAX
 	);
 
-	// �N���b�N�K�C�h
+	// クリックガイド
 	g_GuideClick = new Sprite(
 		{ SCREEN_WIDTH / 2.0f, SCREEN_HEIGHT / 2.0f + 100.0f },
 		{ 100.0f, 100.0f },
@@ -87,7 +87,7 @@ void UI_Initialize(void)
 		L"asset\\texture\\click_guide.png"
 	);
 
-	// �K�w�ړ��K�C�h(����)
+	// 階層移動ガイド(数字)
 	g_GuideFloorNum = new Number(
 		{ 0.0f, 0.0f },
 		{ 40.0f, 40.0f },
@@ -98,7 +98,7 @@ void UI_Initialize(void)
 		25.0f
 	);
 
-	// �K�w�ړ��K�C�h(F)
+	// 階層移動ガイド(F)
 	g_GuideFloorF = new Sprite(
 		{ 0.0f, 0.0f },
 		{ 40.0f, 40.0f },
@@ -130,7 +130,7 @@ void UI_Initialize(void)
 
 	UI_ScareCombo_Initialize();
 
-	// ���݂̊K�w�\��
+	// 現在の階層表示
 	float floorPosX = CLOCK_POS_X;
 	float floorPosY = CLOCK_POS_Y + 200.0f;
 
@@ -154,7 +154,7 @@ void UI_Initialize(void)
 		L"asset\\texture\\floor_f.png"
 	);
 
-	// �Q�[�W�Ǘ�������
+	// ゲージ管理を初期化
 	for (int i = 0; i < MAP_FLOORS; i++)
 	{
 		g_FloorGaugeValues[i] = 50.0f;
@@ -165,34 +165,34 @@ void UI_Initialize(void)
 }
 
 //----------------------------
-// UI�X�V
+// UI更新
 //----------------------------
 void UI_Update(void)
 {
 	if (Keyboard_IsKeyDown(KK_L))
 	{
-		SetScene(SCENE_ANM_LOSE);// Debug�p�ɔs�k�A�j���[�V�����֒��ڔ��
+		SetScene(SCENE_ANM_LOSE);// Debug用に敗北アニメーションへ直接飛ぶ
 		return;
 
 	}
 	
-	// ���|�Q�[�W���ő�Ȃ珟���V�[���ֈڍs�i�f�o�b�O�p�j
+	// 恐怖ゲージが最大なら勝利シーンへ移行（デバッグ用）
 	if (g_ScareGauge->GetValue() >= g_ScareGauge->GetMaxValue())
 	{
 		StartFade(SCENE_ANM_WIN);
 	}
 
-	// --- �s�k��� ---
+	// --- 敗北条件 ---
 	if (g_Clock->Update() || g_ScareGauge->GetValue() <= 0.0f)
 	{
-		hal::dout << "�s�k����𖞂����܂���" << std::endl;
+		hal::dout << "敗北条件を満たしました" << std::endl;
 		StartFade(SCENE_ANM_LOSE);
 	}
 
 	UI_ScareCombo_Update();
 	g_FloorNumber->SetNumber(Field_GetCurrentFloor() + 1);
 
-	// --- �K�i�K�C�h�̐��� ---
+	// --- 階段ガイドの制御 ---
 	bool onStairs = false;
 	int targetFloor = 0;
 
@@ -221,7 +221,7 @@ void UI_Update(void)
 			}
 		}
 
-		// �ړ��K�C�h�̍��W�v�Z
+		// 移動ガイドの座標計算
 		if (onStairs)
 		{
 			g_ShowGuideFloor = true;
@@ -231,7 +231,7 @@ void UI_Update(void)
 
 			XMFLOAT2 screenPos = WorldToScreen(headPos);
 
-			// �C��: SetPos �ɂ� XMFLOAT2 ��n��
+			// 修正: SetPos には XMFLOAT2 を渡す
 			if (g_GuideFloorNum)
 			{
 				g_GuideFloorNum->SetPos(XMFLOAT2(screenPos.x - 25.0f, screenPos.y));
@@ -249,14 +249,14 @@ void UI_Update(void)
 		}
 	}
 
-	// �N���b�N�K�C�h�̓_��
+	// クリックガイドの点滅
 	if (onStairs)
 	{
 		static float flash = 0.0f;
 		flash += 0.1f;
 		float alpha = 0.5f + sinf(flash) * 0.5f;
 
-		// �C��: SetColor �ɂ� XMFLOAT4 ��n��
+		// 修正: SetColor には XMFLOAT4 を渡す
 		if (g_GuideClick)
 			g_GuideClick->SetColor(XMFLOAT4(1.0f, 1.0f, 1.0f, alpha));
 	}
@@ -268,7 +268,7 @@ void UI_Update(void)
 }
 
 //----------------------------
-// UI�`��
+// UI描画
 //----------------------------
 void UI_Draw(void)
 {
@@ -279,10 +279,10 @@ void UI_Draw(void)
 	if (g_FloorNumber) g_FloorNumber->Draw();
 	if (g_FloorTextF) g_FloorTextF->Draw();
 
-	// �N���b�N�K�C�h
+	// クリックガイド
 	if (g_GuideClick) g_GuideClick->Draw();
 
-	// �K�w�ړ��K�C�h
+	// 階層移動ガイド
 	if (g_ShowGuideFloor)
 	{
 		if (g_GuideFloorNum) g_GuideFloorNum->Draw();
@@ -291,7 +291,7 @@ void UI_Draw(void)
 }
 
 //----------------------------
-// UI�I��
+// UI終了
 //----------------------------
 void UI_Finalize(void)
 {
