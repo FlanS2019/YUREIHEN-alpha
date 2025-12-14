@@ -17,7 +17,7 @@ template<class T> void SafeRelease(T** pp) {
 
 // 初期化
 void InitSound() {
-    CoInitializeEx(NULL, COINIT_MULTITHREADED);
+    HRESULT temp = CoInitializeEx(NULL, COINIT_MULTITHREADED);
     MFStartup(MF_VERSION);
     XAudio2Create(&g_pXAudio2, 0, XAUDIO2_DEFAULT_PROCESSOR);
     g_pXAudio2->CreateMasteringVoice(&g_pMasterVoice);
