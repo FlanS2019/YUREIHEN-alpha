@@ -20,11 +20,31 @@ Ghost* g_Ghost = NULL;
 void Ghost_Initialize(ID3D11Device* pDevice, ID3D11DeviceContext* pContext)
 {
 	g_Ghost = new Ghost(
-		{ -3.0f, Ghost::GetGhostPosY(), -10.0f },	//位置　終わってる初期化
+		{ -3.0f, Ghost::GetGhostPosY(), -10.0f },	//位置
 		{ 1.0f, 1.0f, 1.0f },					//スケール
 		{ 0.0f, 180.0f, 0.0f },					//回転（度）
 		"asset\\model\\ghost.fbx"				//モデルパス
 	);
+
+	// 検出範囲を表示する円を初期化
+	if (g_Ghost)
+	{
+		XMFLOAT3 circlePos = g_Ghost->GetPos();
+
+		circlePos.y = 0.05f;
+
+		g_Ghost->m_pRangeCircle = new Sprite3D(
+			circlePos,
+			{ SCARE_RANGE, 1.0f, SCARE_RANGE },
+			{ 0.0f, 0.0f, 0.0f },
+			"asset\\model\\circle.fbx"
+		);
+
+		if (g_Ghost->m_pRangeCircle)
+		{
+			g_Ghost->m_pRangeCircle->SetColor(0.0f, 1.0f, 0.0f, 0.5f);
+		}
+	}
 }
 
 void Ghost_Update(void)
@@ -53,15 +73,35 @@ void Ghost_Update(void)
 
 		break;
 	case GS_TRANSFORM:
-		g_Ghost->SetIsDraw(false);		// 描画有効化
-		g_Ghost->Transforming();	// 変身中処理
+		g_Ghost->SetIsDraw(false);		// 描画無効化（家具になっているため）
+		g_Ghost->Transforming();	    // 変身中処理
+
+		// 検出範囲の円を更新（位置を家具の足元に合わせる）
+		if (g_Ghost->m_pRangeCircle)
+		{
+			Furniture* pFurniture = GetFurniture(g_Ghost->GetInRangeNum());
+			if (pFurniture)
+			{
+				XMFLOAT3 circlePos = pFurniture->GetPos();
+				// 家具のモデルサイズの半分を取得し、足元のY座標を計算
+				XMFLOAT3 furnitureModelSize = pFurniture->GetModelSize();
+				XMFLOAT3 furnitureScale = pFurniture->GetScale();
+
+				// 家具の足元のY座標を計算（家具の中心Y - (モデル高さ * スケール / 2)）
+				float furnitureBottomY = pFurniture->GetPos().y - (furnitureModelSize.y * furnitureScale.y / 2.0f);
+
+				circlePos.y = furnitureBottomY + 0.005f;
+
+				g_Ghost->m_pRangeCircle->SetPos(circlePos);
+			}
+		}
 
 		//spaceで驚かせるアクション
 		if (Keyboard_IsKeyDownTrigger(KK_SPACE))
 		{
 			g_Ghost->SetState(GS_SCARE);
 
-			//家具とプレイヤーをジャンプさせる(ここで呼ぶのキモい)
+			//家具とプレイヤーをジャンプさせる
 			g_Ghost->ScareStart();
 		}
 
@@ -70,13 +110,13 @@ void Ghost_Update(void)
 		{
 			g_Ghost->ResetPos();
 			g_Ghost->SetState(GS_MOVING);
-
 		}
 		break;
 	case GS_SCARE:
-		g_Ghost->SetIsDraw(false);		// 描画有効化
-		g_Ghost->Transforming();	// 変身中処理
-		//家具のジャンプが終わったらTransFormに戻る
+		g_Ghost->SetIsDraw(false);		// 描画無効化
+		g_Ghost->Transforming();	    // 変身中処理
+
+		// 家具のジャンプが終わったらTransFormに戻る
 		if (FurnitureScareEnded(g_Ghost->GetInRangeNum()))
 		{
 			g_Ghost->SetState(GS_TRANSFORM);
@@ -88,14 +128,22 @@ void Ghost_Update(void)
 
 	// カメラの注視対象をGhost位置に設定
 	Camera_SetTargetPos(g_Ghost->GetPos());
-
-	// ステート処理をデバッグ出力
-	hal::dout << "Ghost State: " << g_Ghost->GetState() << std::endl;
 }
 
 void Ghost_Draw(void)
 {
-	g_Ghost->Draw();
+	// Ghost自身を描画
+	if (g_Ghost)
+	{
+		g_Ghost->Draw();
+	}
+
+	// 変身中 または 驚かし中 のみ検出範囲の円を描画
+	if (g_Ghost && g_Ghost->m_pRangeCircle &&
+		(g_Ghost->GetState() == GS_TRANSFORM || g_Ghost->GetState() == GS_SCARE))
+	{
+		g_Ghost->m_pRangeCircle->Draw();
+	}
 }
 
 void Ghost_Finalize(void)
@@ -109,25 +157,6 @@ void Ghost_Finalize(void)
 
 // ========== Ghost クラスメソッドの実装 ==========
 
-//void Ghost::Transforming(void)
-//{
-//	 m_IsDetectedByBusterがtrueの場合かつ変身中でないとき、1秒につきマイナス1する
-//	if (m_IsDetectedByBuster && !m_IsTransformed)
-//	{
-//		m_DetectionTimer += 1.0f / 60.0f;  // 1フレームの時間を加算（60FPS想定）
-//
-//		if (m_DetectionTimer >= 0.5f)
-//		{
-//			AddScareGauge(-2.0f);  // マイナス1を恐怖ゲージに加算
-//			m_DetectionTimer -= 0.5f;  // 1秒分を引く
-//		}
-//	}
-//	else
-//	{
-//		m_DetectionTimer = 0.0f;  // フラグがfalseになったらタイマーをリセット
-//	}
-//}
-//
 void Ghost::Transforming(void)
 {
 	// Ghostを家具の位置に合わせる
@@ -138,22 +167,26 @@ void Ghost::Transforming(void)
 	}
 
 	// Ghost（Furniture） と buster の距離を計算
-	XMFLOAT3 busterPos = GetBusters()->GetPos();
-	XMFLOAT3 ghostPos = GetPos();
-	XMVECTOR ghostVec = XMLoadFloat3(&ghostPos);
-	XMVECTOR busterVec = XMLoadFloat3(&busterPos);
-	XMVECTOR distVec = XMVectorSubtract(busterVec, ghostVec);
-	float distance = XMVectorGetX(XMVector3Length(distVec));
+	Busters* pBuster = GetBusters();
+	if (pBuster)
+	{
+		XMFLOAT3 busterPos = pBuster->GetPos();
+		XMFLOAT3 ghostPos = GetPos();
+		XMVECTOR ghostVec = XMLoadFloat3(&ghostPos);
+		XMVECTOR busterVec = XMLoadFloat3(&busterPos);
+		XMVECTOR distVec = XMVectorSubtract(busterVec, ghostVec);
+		float distance = XMVectorGetX(XMVector3Length(distVec));
 
-	//距離が一定以下なら驚かせる
-	if (distance <= SCARE_RANGE)
-	{
-		//レンジに入っているなら色を変える
-		GetBusters()->SetIsGhostDiscover(true);
-	}
-	else
-	{
-		GetBusters()->SetIsGhostDiscover(false);
+		//距離が一定以下なら驚かせる
+		if (distance <= SCARE_RANGE)
+		{
+			//レンジに入っているなら色を変える
+			pBuster->SetIsGhostDiscover(true);
+		}
+		else
+		{
+			pBuster->SetIsGhostDiscover(false);
+		}
 	}
 }
 
@@ -162,19 +195,23 @@ void Ghost::ScareStart(void)
 	FurnitureScareStart(m_InRangeFurnitureNum);
 
 	// Ghost（Furniture） と buster の距離を計算
-	XMFLOAT3 busterPos = GetBusters()->GetPos();
-	XMFLOAT3 ghostPos = GetPos();
-	XMVECTOR ghostVec = XMLoadFloat3(&ghostPos);
-	XMVECTOR busterVec = XMLoadFloat3(&busterPos);
-	XMVECTOR distVec = XMVectorSubtract(busterVec, ghostVec);
-	float distance = XMVectorGetX(XMVector3Length(distVec));
-
-	//距離が一定以下なら驚かせる
-	if (distance <= SCARE_RANGE)
+	Busters* pBuster = GetBusters();
+	if (pBuster)
 	{
-		BustersScare();			// 
-		ScareComboUP();			//恐怖コンボを上げる
-		AddScareGauge(1.0f * UI_ScareCombo_GetNumber());			// 恐怖ゲージ加算
+		XMFLOAT3 busterPos = pBuster->GetPos();
+		XMFLOAT3 ghostPos = GetPos();
+		XMVECTOR ghostVec = XMLoadFloat3(&ghostPos);
+		XMVECTOR busterVec = XMLoadFloat3(&busterPos);
+		XMVECTOR distVec = XMVectorSubtract(busterVec, ghostVec);
+		float distance = XMVectorGetX(XMVector3Length(distVec));
+
+		//距離が一定以下なら驚かせる
+		if (distance <= SCARE_RANGE)
+		{
+			BustersScare();			// バスターズを驚かせる
+			ScareComboUP();			//恐怖コンボを上げる
+			AddScareGauge(1.0f * UI_ScareCombo_GetNumber()); // 恐怖ゲージ加算
+		}
 	}
 }
 
@@ -210,12 +247,15 @@ void Ghost::FurnitureSearch(void)
 		Furniture* pFurniture = GetFurniture(m_InRangeFurnitureNum);
 		if (pFurniture)
 		{
+			// 黄色に設定（1.0f, 1.0f, 0.0f）で、m_UseOriginalColor が false になる
 			pFurniture->SetColor(1.0f, 1.0f, 0.0f, 1.0f);  // 黄色
 			this->SetState(GS_FURNITURE_FOUND);
 		}
 	}
 	else
 	{
+		// 範囲外ならターゲットなしにして、状態をMOVINGに戻す
+		m_InRangeFurnitureNum = -1;
 		this->SetState(GS_MOVING);
 	}
 }

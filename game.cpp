@@ -66,8 +66,9 @@ void Game_Draw(void)
 	SetDepthTest(true);
 
 	Field_Draw();
-	Ghost_Draw();
+	
 	Furniture_Draw();
+	Ghost_Draw();
 	Busters_Draw();
 
 	SetDepthTest(false);
