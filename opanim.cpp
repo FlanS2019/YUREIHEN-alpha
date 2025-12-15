@@ -14,15 +14,13 @@
 #include <d3d11.h>
 #include <cassert>
 #include <cstdint>
-#include <Windows.h> // 追加: OutputDebugStringW を使うため
 
 using namespace DirectX;
 
-static ID3D11ShaderResourceView* g_Texture[5];
+static ID3D11ShaderResourceView* g_Texture[4];
 static ID3D11ShaderResourceView* g_SolidTex = nullptr;
 static ID3D11Device* g_pDevice = nullptr;
 static ID3D11DeviceContext* g_pContext = nullptr;
-
 static bool fadeStarted = false;
 static float alpha[3] = { 1.0f, 0.0f, 0.0f };
 
@@ -72,7 +70,6 @@ static const float g_ghostLeadSeconds = 7.0f;
 static const float g_basutaSpeed = 220.0f;
 enum GhostState { GHOST_IDLE = 0, GHOST_ALERT, GHOST_MOVE_TO_HOUSE };
 static GhostState g_ghostState = GHOST_IDLE;
-
 static const XMFLOAT2 g_imageSize = { 500.0f, 500.0f };
 
 // 位置
@@ -91,7 +88,6 @@ static const float PI = 3.14159265358979323846f;
 static Sprite* g_yakataSprite = nullptr;
 static Sprite* g_ghostSprite = nullptr;
 static Sprite* g_basutaSprite = nullptr;
-
 
 static float AngleDelta(float target, float current)
 {
@@ -189,14 +185,14 @@ void OpAnim_Initialize(ID3D11Device* pDevice, ID3D11DeviceContext* pContext)
         L"asset\\yureihen\\basuta1.png"   // テクスチャパス
     );
 
-    // inazuma スプライト：ここを inazuma2 に揃える（修正）
+    // inazuma スプライト（修正: basuta を上書きしていた箇所を修正して別インスタンスにする）
     g_inazumaSprite = new Sprite(
         XMFLOAT2(0.0f, 0.0f),           // 初期位置（描画時に更新）
         XMFLOAT2(300.0f, 720.0f),         // 稲妻は縦長にしておく
         0.0f,                             // 回転
         XMFLOAT4(1.0f, 1.0f, 1.0f, 0.0f), // 色（初期状態では透明）
         BLENDSTATE_ALFA,                  // ブレンドステート
-        L"asset\\yureihen\\inazuma2.png"  // 変更: inazuma2.png を使う
+        L"asset\\yureihen\\inazuma.png"   // テクスチャパス
     );
 
     // Sprite 側とは別に、ここで描画に使用する SRV をロードしておく
@@ -205,28 +201,16 @@ void OpAnim_Initialize(ID3D11Device* pDevice, ID3D11DeviceContext* pContext)
     g_Texture[1] = LoadTexture(L"asset\\yureihen\\yurei1.png");
     g_Texture[2] = LoadTexture(L"asset\\yureihen\\basuta1.png");
     g_Texture[3] = LoadTexture(L"asset\\yureihen\\bikkuri.png");
-    g_Texture[4] = LoadTexture(L"asset\\yureihen\\inazuma2.png");
+    g_Texture[4] = LoadTexture(L"asset\\yureihen\\inazuma.png");
 
-    // デバッグ: 各テクスチャロード結果を OutputDebugStringW へ出力（稲妻は特に確認）
-    {
-        for (int i = 0; i < 5; ++i)
-        {
-            wchar_t buf[256];
-            swprintf_s(buf, L"opanim: g_Texture[%d] %s\n", i, g_Texture[i] ? L"loaded" : L"NULL (fallback expected)");
-            OutputDebugStringW(buf);
-        }
-        if (!g_Texture[4])
-        {
-            OutputDebugStringW(L"opanim: WARNING - g_Texture[4] (inazuma2.png) is NULL. Check asset path and that the file is deployed to the executable working folder.\n");
-        }
-    }
-
+    // 問題：配列サイズ4とループ5が不一致。テクスチャは実質4つ
     // LoadTexture が失敗した場合は目印になる 1x1 テクスチャで置き換える（NULL 回避）
-    for (int i = 0; i < 5; ++i)
+    for (int i = 0; i < 4; ++i)
     {
         if (!g_Texture[i] && g_pDevice)
         {
-            // マゼンタ (アルファ 1) を目印にする
+            // マゼンタ (アルファ 1) を目印にする：0xFF00FF00 ARGB? ここは RGBA リトルエンディアンで指定
+            // R=255,G=0,B=255,A=255 -> 0xFF00FF00 は ARGB の可能性が混乱するので明示的に RGBA 値を作る:
             uint32_t r = 255u, g = 0u, b = 255u, a = 255u;
             uint32_t rgba = (r) | (g << 8) | (b << 16) | (a << 24);
             g_Texture[i] = CreateSolidSRV(g_pDevice, rgba);
@@ -260,7 +244,7 @@ void OpAnim_Initialize(ID3D11Device* pDevice, ID3D11DeviceContext* pContext)
 
 void OpAnim_Finalize(void)
 {
-    for (int i = 0; i < 5; ++i)
+    for (int i = 0; i < 4; ++i)
     {
         if (g_Texture[i]) { g_Texture[i]->Release(); g_Texture[i] = nullptr; }
     }
@@ -640,8 +624,8 @@ void OpAnimDraw(void)
     {
         g_pContext->PSSetShaderResources(0, 1, &g_SolidTex);
 
-        // 中央の "仮想キャンバス" を塗る（黒に変更）
-        XMFLOAT4 purple = { 0.0f, 0.0f, 0.0f, 1.0f };
+        // 中央の "仮想キャンバス" を塗る（紫）
+        XMFLOAT4 purple = { 0.45f, 0.10f, 0.45f, 1.0f };
         Sprite_Single_Draw(virtualCenter, virtualSize, 0.0f, purple, BLENDSTATE_ALFA, g_SolidTex);
 
         // 仮想キャンバス外側を灰色で塗りつぶしてレターボックス／ピラーボックスを実現
@@ -674,6 +658,7 @@ void OpAnimDraw(void)
             Sprite_Single_Draw(rightPos, leftSize, 0.0f, gray, BLENDSTATE_ALFA, g_SolidTex);
         }
     }
+
     // 以下は既存の描画処理をそのまま維持（屋敷・幽霊・basuta・bikkuri）
     // 屋敷
     if (g_Texture[0])
@@ -751,9 +736,9 @@ void OpAnimDraw(void)
         }
 
         // 稲妻本体（テクスチャ）を複数回、微妙にオフセットして描画 -> 煌めき感
-        if (g_Texture[4]) // ← inazuma2.png は g_Texture[4] にロードされる
+        if (g_Texture[3])
         {
-            g_pContext->PSSetShaderResources(0, 1, &g_Texture[4]);
+            g_pContext->PSSetShaderResources(0, 1, &g_Texture[3]);
             // ボルトごとに異なるアルファとオフセット
             for (int i = 0; i < 4; ++i)
             {
@@ -766,7 +751,7 @@ void OpAnimDraw(void)
                 XMFLOAT2 size = inazumaSize;
                 // 稲妻が強く見えるように少し明るめの色を乗算的に表現（アルファで調整）
                 XMFLOAT4 col = { 1.0f, 1.0f, 0.92f, a };
-                Sprite_Single_Draw(pos, size, 0.0f, col, BLENDSTATE_ALFA, g_Texture[4]);
+                Sprite_Single_Draw(pos, size, 0.0f, col, BLENDSTATE_ALFA, g_Texture[3]);
             }
         }
 
