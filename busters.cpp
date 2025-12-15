@@ -135,7 +135,7 @@ void Busters::CheckState(void)
 		return;
 	}
 
-	// ★追加: 間に壁があるかチェック (視線が通っているか？)
+	// 間に壁があるかチェック (視線が通っているか？)
 	bool hasWall = Field_CheckWallBetween(m_Position, ghostPos);
 
 	// 距離による判定 (壁がない場合のみ検知)
