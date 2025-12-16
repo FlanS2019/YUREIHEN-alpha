@@ -132,7 +132,7 @@ void UI_Initialize(void)
 
 	// 左上の階層表示
 	float floorPosX = CLOCK_POS_X;
-	float floorPosY = CLOCK_POS_Y + 130.0f;
+	float floorPosY = CLOCK_POS_Y + 200.0f;
 
 	g_FloorNumber = new Number(
 		{ floorPosX - 20.0f, floorPosY },
