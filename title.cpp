@@ -5,11 +5,12 @@
 #include "keyboard.h"
 #include "fade.h"
 #include "debug_ostream.h"
-//#include "SpriteFont.h"
+#include "TextSprite.h"
 
 // ①Spriteのインスタンス、ポインタ用意
 static SplitSprite* g_pTitleSprite = nullptr;
-//static SpriteFont2D* g_pStartText = nullptr;
+static TextSprite* g_pTitleText = nullptr;
+static FontData* g_pTitleFont = nullptr;
 
 void Title_Initialize(ID3D11Device* pDevice, ID3D11DeviceContext* pContext)
 {
@@ -24,14 +25,23 @@ void Title_Initialize(ID3D11Device* pDevice, ID3D11DeviceContext* pContext)
 		2, 1											//分割数X, Y
 	);
 
-	// スタート文字初期化
-	//g_pStartText = new SpriteFont2D(
-	//	{ SCREEN_WIDTH / 2, SCREEN_HEIGHT - 100.0f },	//位置
-	//	0.0f,											//回転
-	//	{ 1.0f, 1.0f },									//スケール
-	//	FONT_KAISEIDECOL_M,								//フォントID
-	//	L"スタート"										//テキスト
-	//);
+	// TextSprite初期化
+	TextSprite_Initialize();
+	
+	// フォント読み込み（KaiseiDecol-Medium.ttf、32ピクセル）
+	g_pTitleFont = TextSprite_LoadFont("asset/font/KaiseiDecol-Medium.ttf", 64.0f, 512);
+	
+	if (g_pTitleFont) {
+		g_pTitleText = new TextSprite(
+			{ SCREEN_WIDTH / 2.0f, SCREEN_HEIGHT * 0.85f },	//位置
+			{ 1.0f, 1.0f },									//スケール
+			0.0f,											//回転（度）
+			{ 1.0f, 0.0f, 0.0f, 1.0f },						//RGBA
+			BLENDSTATE_ALFA,								//BlendState
+			L"はつねみく初音ミクhatsunemiku",							//テキスト
+			g_pTitleFont
+		);
+	}
 }
 
 void Title_Update(void)
@@ -47,7 +57,11 @@ void Title_Draw(void)
 {
 	// ④Drawするだけでいい！！！！！！！
 	g_pTitleSprite->Draw();
-	//g_pStartText->Draw();
+	
+	// テキスト描画
+	if (g_pTitleText) {
+		g_pTitleText->Draw();
+	}
 }
 
 void Title_Finalize(void)
@@ -56,9 +70,11 @@ void Title_Finalize(void)
 		delete g_pTitleSprite;
 		g_pTitleSprite = nullptr;
 	}
-
-	//if (g_pStartText) {
-	//	delete g_pStartText;
-	//	g_pStartText = nullptr;
-	//}
+	
+	if (g_pTitleText) {
+		delete g_pTitleText;
+		g_pTitleText = nullptr;
+	}
+	
+	TextSprite_Finalize();
 }

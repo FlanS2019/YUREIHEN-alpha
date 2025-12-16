@@ -158,7 +158,6 @@ static Vertex3D Box_vdata[BOX_NUM_VERTEX] =
 	},
 	{//17　右下
 		XMFLOAT3(-0.5f,0.5f,0.5f),//頂点座標
-
 		XMFLOAT3(0,1,0),//normal
 		XMFLOAT4(1.0f,1.0f,1.0f,1.0f),//(R,G,B,A)
 		XMFLOAT2(1.0f,0.25f)//テクスチャ座標

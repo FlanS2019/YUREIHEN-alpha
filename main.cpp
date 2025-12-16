@@ -18,7 +18,6 @@
 #include "sprite.h"
 #include "fade.h"
 #include "sound.h"
-//#include "SpriteFont.h"
 
 //==================================
 //グローバル変数
@@ -102,8 +101,6 @@ int APIENTRY WinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance,
 	Mouse_Initialize(hWnd);
 	Shader_Initialize(Direct3D_GetDevice(), Direct3D_GetDeviceContext());
 	Sprite_Initialize();
-	//SpriteFont_Init();
-	//SpriteFont_FontInit(FONT_KAISEIDECOL_M, L"asset/font/KaiseiDecol-Medium.spritefont");
 	Fade_Initialize();
 	InitSound();
 	Init();
@@ -173,7 +170,6 @@ int APIENTRY WinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance,
 	Finalize();
 	UninitSound();
 	Fade_Finalize();
-	//SpriteFont_Uninit();
 	Sprite_Finalize();
 	Shader_Finalize();
 	Direct3D_Finalize();
