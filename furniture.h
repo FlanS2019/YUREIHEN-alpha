@@ -1,4 +1,4 @@
-#pragma once
+ï»¿#pragma once
 
 #include <d3d11.h>
 #include <DirectXMath.h>
@@ -10,31 +10,36 @@
 
 using namespace DirectX;
 
-// ƒAƒNƒVƒ‡ƒ“‚Ìí—Ş
+// ï¿½Aï¿½Nï¿½Vï¿½ï¿½ï¿½ï¿½ï¿½Ìï¿½ï¿½
 enum FURNITURE_ACTION
 {
-	ACTION_SCARE,	// Šù‘¶‚Ì‹Á‚©‚µiƒWƒƒƒ“ƒvj
-	ACTION_LURE,	// ‚¨‚Ñ‚«Šñ‚¹iU“®j
-	ACTION_STOP,	// ‘«~‚ßi‰ñ“]j
+	ACTION_SCARE,	// ï¿½ï¿½ï¿½ï¿½ï¿½Ì‹ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½iï¿½Wï¿½ï¿½ï¿½ï¿½ï¿½vï¿½j
+	ACTION_LURE,	// ï¿½ï¿½ï¿½Ñ‚ï¿½ï¿½ñ‚¹iï¿½Uï¿½ï¿½ï¿½j
+	ACTION_STOP,	// ï¿½ï¿½ï¿½~ï¿½ßiï¿½ï¿½]ï¿½j
 };
 
-// Furniture ƒNƒ‰ƒX
+// Furniture ï¿½Nï¿½ï¿½ï¿½X
 class Furniture : public Sprite3D, public Jump
 {
 protected:
+// Furniture ã‚¯ãƒ©ã‚¹ - è‰²ã‚’å¤‰æ›´ã§ãã€ã‚¸ãƒ£ãƒ³ãƒ—æ©Ÿèƒ½ã‚’æŒã¤
+class Furniture : public Sprite3D, public Jump
+{
+protected:
+	//ghostã¨ã®è·é›¢ã‚’ä¿æŒã™ã‚‹å¤‰æ•°
 	float m_DistanceToGhost;
 
-	// ƒAƒNƒVƒ‡ƒ“§Œä—p
+	// ï¿½Aï¿½Nï¿½Vï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½p
 	FURNITURE_ACTION m_ActionType;
 	bool m_IsActing;
 	float m_ActionTimer;
-	XMFLOAT3 m_BasePos; // U“®ƒAƒjƒ[ƒVƒ‡ƒ“—p
+	XMFLOAT3 m_BasePos; // ï¿½Uï¿½ï¿½ï¿½Aï¿½jï¿½ï¿½ï¿½[ï¿½Vï¿½ï¿½ï¿½ï¿½ï¿½p
 
 public:
-	// ƒRƒ“ƒXƒgƒ‰ƒNƒ^‚É actionType ‚ğ’Ç‰Á
+	// ï¿½Rï¿½ï¿½ï¿½Xï¿½gï¿½ï¿½ï¿½Nï¿½^ï¿½ï¿½ actionType ï¿½ï¿½Ç‰ï¿½
 	Furniture(const XMFLOAT3& pos, const XMFLOAT3& scale, const XMFLOAT3& rot, const char* pass, FURNITURE_ACTION actionType = ACTION_SCARE)
 		: Sprite3D(pos, scale, rot, pass),
-		Jump(0.01f, 0.2f, pos.y), // ’n–Ê‚Ì‚‚³‚ğ‰ŠúYÀ•W‚Æ‚·‚é
+		Jump(0.01f, 0.2f, pos.y), // ï¿½nï¿½Ê‚Ìï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Yï¿½ï¿½ï¿½Wï¿½Æ‚ï¿½ï¿½ï¿½
 		m_DistanceToGhost(0.0f),
 		m_ActionType(actionType),
 		m_IsActing(false),
@@ -47,10 +52,10 @@ public:
 
 	void Update(void);
 
-	// ƒAƒNƒVƒ‡ƒ“ŠJn
+	// ï¿½Aï¿½Nï¿½Vï¿½ï¿½ï¿½ï¿½ï¿½Jï¿½n
 	void StartAction(void);
 
-	// ƒQƒbƒ^[
+	// ï¿½Qï¿½bï¿½^ï¿½[
 	float GetDistanceToGhost(void) const { return m_DistanceToGhost; }
 	FURNITURE_ACTION GetActionType(void) const { return m_ActionType; }
 	bool GetIsActing(void) const { return m_IsActing || GetIsJumping(); }

@@ -1,58 +1,71 @@
-#include "furniture.h"
+ï»¿#include "furniture.h"
 #include "Camera.h"
 #include "shader.h"
 #include "ghost.h"
 #include "keyboard.h"
 #include "define.h"
-#include <cmath>   // sinf—p
+#include <cmath>   // sinfï¿½p
 
 Furniture* g_Furniture[FURNITURE_NUM]{};
 
 // =========================================================
-// ‰Æ‹ï‚Ì”z’u (Initialize)
+// ï¿½Æ‹ï¿½Ì”zï¿½u (Initialize)
 // =========================================================
 void Furniture_Initialize(void)
 {
-	// 1: ƒƒbƒLƒ“ƒOƒ`ƒFƒA -> SCARE (‹Á‚©‚µ/ƒWƒƒƒ“ƒv)
+	// ----------------------------------------------------
+	// 1:ãƒ­ãƒƒã‚­ãƒ³ã‚°ãƒã‚§ã‚¢ (Rocking Chair)
+	// ----------------------------------------------------
 	g_Furniture[0] = new Furniture(
-		{ -5.0f, 0.0f, -5.0f }, { 1.0f, 1.0f, 1.0f }, { 0.0f, 45.0f, 0.0f },
-		"asset\\model\\rockingchair.fbx",
-		ACTION_SCARE // ‹Á‚©‚µ
+		{ -5.0f, 0.0f, -5.0f },			// å·¦æ‰‹å‰ã®éƒ¨å±‹
+		{ 1.0f, 1.0f, 1.0f },
+		{ 0.0f, 45.0f, 0.0f },
+		"asset\\model\\car_blue.fbx"
 	);
 
 	g_Furniture[1] = new Furniture(
-		{ 5.0f, 0.0f, -5.0f }, { 1.0f, 1.0f, 1.0f }, { 0.0f, -45.0f, 0.0f },
-		"asset\\model\\rockingchair.fbx",
-		ACTION_SCARE // ‹Á‚©‚µ
+		{ 5.0f, 0.0f, -5.0f },			// å³æ‰‹å‰ã®éƒ¨å±‹
+		{ 1.0f, 1.0f, 1.0f },
+		{ 0.0f, -45.0f, 0.0f },
+		"asset\\model\\rockingchair.fbx"
 	);
 
-	// 2: –Ø -> LURE (‚¨‚Ñ‚«Šñ‚¹/U“®)
+	// ----------------------------------------------------
+	// 2:æœ¨ (Tree)
+	// ----------------------------------------------------
+
+	// ä¸­å¤®åºƒé–“ã®å››éš…
 	g_Furniture[2] = new Furniture(
-		{ -6.0f, 0.0f, 6.0f }, { 1.5f, 1.5f, 1.5f }, { 0.0f, 0.0f, 0.0f },
-		"asset\\model\\tree.fbx",
-		ACTION_LURE // ‚¨‚Ñ‚«Šñ‚¹
+		{ -6.0f, 0.0f, 6.0f },			// å·¦å¥¥
+		{ 1.5f, 1.5f, 1.5f },			// å°‘ã—å¤§ãã‚ã«
+		{ 0.0f, 0.0f, 0.0f },
+		"asset\\model\\tree.fbx"
 	);
 
 	g_Furniture[3] = new Furniture(
-		{ 6.0f, 0.0f, 6.0f }, { 1.5f, 1.5f, 1.5f }, { 0.0f, 45.0f, 0.0f },
-		"asset\\model\\tree.fbx",
-		ACTION_LURE // ‚¨‚Ñ‚«Šñ‚¹
+		{ 6.0f, 0.0f, 6.0f },			// å³å¥¥
+		{ 1.5f, 1.5f, 1.5f },
+		{ 0.0f, 45.0f, 0.0f },
+		"asset\\model\\tree.fbx"
 	);
 
-	// 3: Ô -> STOP (‘«~‚ß/‰ñ“])
+	// 3: ï¿½ï¿½ -> STOP (ï¿½ï¿½ï¿½~ï¿½ï¿½/ï¿½ï¿½])
 	g_Furniture[4] = new Furniture(
-		{ -6.0f, 0.0f, -2.0f }, { 1.5f, 1.5f, 1.5f }, { 0.0f, 90.0f, 0.0f },
-		"asset\\model\\car_blue.fbx",
-		ACTION_STOP // ‘«~‚ß
+		{ -6.0f, 0.0f, -2.0f },			// å·¦æ‰‹å‰
+		{ 1.5f, 1.5f, 1.5f },
+		{ 0.0f, 90.0f, 0.0f },
+		"asset\\model\\tree.fbx"
 	);
 
 	g_Furniture[5] = new Furniture(
-		{ 6.0f, 0.0f, -2.0f }, { 1.5f, 1.5f, 1.5f }, { 0.0f, 135.0f, 0.0f },
-		"asset\\model\\car_blue.fbx",
-		ACTION_STOP // ‘«~‚ß
+		{ 6.0f, 0.0f, -2.0f },			// å³æ‰‹å‰
+		{ 1.5f, 1.5f, 1.5f },
+		{ 0.0f, 135.0f, 0.0f },
+		"asset\\model\\tree.fbx"
 	);
 
-	// ‹¤’Êİ’è: ‘S‚Ä‚Ì‰Æ‹ï‚Ì’…’n‚‚³‚ğİ’è
+
+	// å…±é€šè¨­å®š: å…¨ã¦ã®å®¶å…·ã®ç€åœ°é«˜ã•ã‚’è¨­å®š
 	for (int i = 0; i < FURNITURE_NUM; i++)
 	{
 		if (g_Furniture[i])
@@ -62,14 +75,12 @@ void Furniture_Initialize(void)
 	}
 }
 
-// =========================================================
-// ‰Æ‹ïƒNƒ‰ƒX‚Ìƒƒ\ƒbƒhÀ‘•
-// =========================================================
+// ... (ä»¥ä¸‹å¤‰æ›´ãªã—) ...
 
-// ‰Æ‹ïŒÂ•Ê‚ÌXVˆ—
+// ï¿½Æ‹ï¿½Â•Ê‚ÌXï¿½Vï¿½ï¿½ï¿½ï¿½
 void Furniture::Update(void)
 {
-	// 1. Ghost‚Æ‚Ì‹——£ŒvZ (Šù‘¶ˆ—)
+	// 1. Ghostï¿½Æ‚Ì‹ï¿½ï¿½ï¿½ï¿½vï¿½Z (ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½)
 	if (GetGhost())
 	{
 		XMFLOAT3 ghostPos = GetGhost()->GetPos();
@@ -79,24 +90,24 @@ void Furniture::Update(void)
 		m_DistanceToGhost = XMVectorGetX(XMVector3Length(distVec));
 	}
 
-	// 2. ƒAƒNƒVƒ‡ƒ“‚²‚Æ‚Ì‹““® (”r‘¼§Œä)
+	// 2. ï¿½Aï¿½Nï¿½Vï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Æ‚Ì‹ï¿½ï¿½ï¿½ (ï¿½rï¿½ï¿½ï¿½ï¿½ï¿½ï¿½)
 	if (m_IsActing || GetIsJumping())
 	{
 
 		switch (m_ActionType)
 		{
-		case ACTION_SCARE: // ‹Á‚©‚µ -> ƒWƒƒƒ“ƒvˆ—‚Ì‚İ
+		case ACTION_SCARE: // ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ -> ï¿½Wï¿½ï¿½ï¿½ï¿½ï¿½vï¿½ï¿½ï¿½ï¿½ï¿½Ì‚ï¿½
 			JumpUpdate(*(Transform3D*)this);
 			break;
 
-		case ACTION_LURE: // ‚¨‚Ñ‚«Šñ‚¹ -> U“®ˆ—‚Ì‚İ
+		case ACTION_LURE: // ï¿½ï¿½ï¿½Ñ‚ï¿½ï¿½ï¿½ -> ï¿½Uï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ì‚ï¿½
 		{
 			m_ActionTimer += 1.0f;
-			// U“®ŒvZ
+			// ï¿½Uï¿½ï¿½ï¿½vï¿½Z
 			float shakeAmount = 0.1f;
 			float offsetX = sinf(m_ActionTimer * 2.0f) * shakeAmount;
 
-			// Œ¸Š
+			// ï¿½ï¿½ï¿½ï¿½
 			float decay = 1.0f - (m_ActionTimer / 60.0f);
 			if (decay < 0.0f) decay = 0.0f;
 			offsetX *= decay;
@@ -111,10 +122,10 @@ void Furniture::Update(void)
 		}
 		break;
 
-		case ACTION_STOP: // ‘«~‚ß -> ‰ñ“]ˆ—‚Ì‚İ
+		case ACTION_STOP: // ï¿½ï¿½ï¿½~ï¿½ï¿½ -> ï¿½ï¿½]ï¿½ï¿½ï¿½ï¿½ï¿½Ì‚ï¿½
 		{
 			m_ActionTimer += 1.0f;
-			// ‰ñ“]ŒvZ
+			// ï¿½ï¿½]ï¿½vï¿½Z
 			float speed = 30.0f;
 			AddRotY(speed);
 
@@ -130,25 +141,25 @@ void Furniture::Update(void)
 
 void Furniture::StartAction(void)
 {
-	if (GetIsActing()) return; // d•¡Às–h~
+	if (GetIsActing()) return; // ï¿½dï¿½ï¿½ï¿½ï¿½ï¿½sï¿½hï¿½~
 
 	if (m_ActionType == ACTION_SCARE)
 	{
-		JumpStart(); // ƒWƒƒƒ“ƒvƒtƒ‰ƒOON
+		JumpStart(); // ï¿½Wï¿½ï¿½ï¿½ï¿½ï¿½vï¿½tï¿½ï¿½ï¿½OON
 	}
 	else
 	{
-		m_IsActing = true; // ”Ä—pƒAƒNƒVƒ‡ƒ“ƒtƒ‰ƒOON
+		m_IsActing = true; // ï¿½Ä—pï¿½Aï¿½Nï¿½Vï¿½ï¿½ï¿½ï¿½ï¿½tï¿½ï¿½ï¿½OON
 		m_ActionTimer = 0.0f;
 	}
 }
 
 
 // =========================================================
-// ƒOƒ[ƒoƒ‹ŠÖ”‚ÌÀ‘•
+// ï¿½Oï¿½ï¿½ï¿½[ï¿½oï¿½ï¿½ï¿½Öï¿½ï¿½Ìï¿½ï¿½ï¿½
 // =========================================================
 
-// Game_Update‚©‚çŒÄ‚Î‚ê‚é‘S‘Ì‚ÌXVˆ—
+// Game_Updateï¿½ï¿½ï¿½ï¿½Ä‚Î‚ï¿½ï¿½Sï¿½Ì‚ÌXï¿½Vï¿½ï¿½ï¿½ï¿½
 void Furniture_Update(void)
 {
 	for (int i = 0; i < FURNITURE_NUM; i++)
@@ -192,12 +203,20 @@ Furniture* GetFurniture(int index)
 	return nullptr;
 }
 
-// ƒAƒNƒVƒ‡ƒ“ŠJn
+//trueãªã‚‰é©šã‹ã›ä¸­ã€falseãªã‚‰indexãŒä¸æ­£
 bool FurnitureScareStart(int index)
 {
 	if (index >= 0 && index < FURNITURE_NUM && g_Furniture[index])
 	{
-		g_Furniture[index]->StartAction();
+		//ã‚¸ãƒ£ãƒ³ãƒ—ä¸­ã‹ã©ã†ã‹ç¢ºèª
+		if (g_Furniture[index]->GetIsJumping())
+		{
+			hal::dout << "Furniture[" << index << "] is already jumping." << std::endl;
+			return true; // ã™ã§ã«ã‚¸ãƒ£ãƒ³ãƒ—ä¸­ãªã‚‰ä½•ã‚‚ã—ãªã„
+		}
+
+		g_Furniture[index]->JumpStart();
+		hal::dout << "Furniture[" << index << "] jumped!" << std::endl;
 		return true;
 	}
 	else
@@ -207,13 +226,13 @@ bool FurnitureScareStart(int index)
 	}
 }
 
-// ƒAƒNƒVƒ‡ƒ“I—¹ƒ`ƒFƒbƒN
+//trueãªã‚‰çµ‚äº†ã€falseãªã‚‰é©šã‹ã›ä¸­
 bool FurnitureScareEnded(int index)
 {
 	if (index >= 0 && index < FURNITURE_NUM && g_Furniture[index])
 	{
-		// ƒAƒNƒVƒ‡ƒ“’†‚Å‚È‚¯‚ê‚ÎI—¹‚Æ‚İ‚È‚·
-		return !g_Furniture[index]->GetIsActing();
+		//ã‚¸ãƒ£ãƒ³ãƒ—ä¸­ã‹ã©ã†ã‹ç¢ºèª
+		return g_Furniture[index]->GetIsJumpEnded();
 	}
 	else
 	{

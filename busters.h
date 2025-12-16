@@ -1,4 +1,4 @@
-#pragma once
+ï»¿#pragma once
 
 #include <d3d11.h>
 #include <DirectXMath.h>
@@ -13,9 +13,9 @@ using namespace DirectX;
 
 enum BUSTERS_STATE
 {
-	BUSTERS_SEARCH,    // ‰Æ‹ï‚ğ’T‚µ‚ÄˆÚ“®i’Tõj
-	BUSTERS_SUSPICION, // ‰ö‚µ‚ñ‚Å‹ß‚Ã‚­iŒx‰új
-	BUSTERS_CHASE      // —H—ì‚ğŒ©‚Â‚¯‚Ä’ÇÕiŠm’èj
+	BUSTERS_SEARCH,    // å®¶å…·ã‚’æ¢ã—ã¦ç§»å‹•ï¼ˆæ¢ç´¢ï¼‰
+	BUSTERS_SUSPICION, // æ€ªã—ã‚“ã§è¿‘ã¥ãï¼ˆè­¦æˆ’ï¼‰
+	BUSTERS_CHASE      // å¹½éœŠã‚’è¦‹ã¤ã‘ã¦è¿½è·¡ï¼ˆç¢ºå®šï¼‰
 };
 
 class Busters : public Sprite3D, public Jump
@@ -40,8 +40,8 @@ public:
 	void CheckState(void);
 	void MoveTo(XMFLOAT3 targetPos);
 	void OnScared(void);
-	void OnLured(XMFLOAT3 targetPos); // ‚¨‚Ñ‚«Šñ‚¹‚ç‚ê‚é
-	void OnStopped(void);             // ‘«~‚ß‚³‚ê‚é
+	void OnLured(XMFLOAT3 targetPos); // ï¿½ï¿½ï¿½Ñ‚ï¿½ï¿½ñ‚¹‚ï¿½ï¿½ï¿½
+	void OnStopped(void);             // ï¿½ï¿½ï¿½~ï¿½ß‚ï¿½ï¿½ï¿½ï¿½
 
 	void SetIsGhostDiscover(bool discover);
 };

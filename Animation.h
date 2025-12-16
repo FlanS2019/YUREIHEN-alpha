@@ -1,11 +1,11 @@
-#pragma once
+ï»¿#pragma once
 
 #include <d3d11.h>
 #include <DirectXMath.h>
 
 using namespace DirectX;
 
-// ŠeƒAƒjƒ[ƒVƒ‡ƒ“ƒV[ƒ“Œü‚¯‚Ìƒ‰ƒCƒtƒTƒCƒNƒ‹ŠÖ”
+// å„ã‚¢ãƒ‹ãƒ¡ãƒ¼ã‚·ãƒ§ãƒ³ã‚·ãƒ¼ãƒ³å‘ã‘ã®ãƒ©ã‚¤ãƒ•ã‚µã‚¤ã‚¯ãƒ«é–¢æ•°
 void Animation_Logo_Initialize(ID3D11Device* pDevice, ID3D11DeviceContext* pContext);
 void Animation_Logo_Update(void);
 void Animation_Logo_Draw(void);

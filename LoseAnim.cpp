@@ -1,4 +1,4 @@
-#include "sprite.h"
+ï»¿#include "sprite.h"
 #include "keyboard.h"
 #include "fade.h"
 #include "debug_ostream.h"
@@ -6,58 +6,58 @@
 #include <timeapi.h>
 #pragma comment(lib, "winmm.lib")
 
-// ƒOƒ[ƒoƒ‹•Ï”
+// ã‚°ãƒ­ãƒ¼ãƒãƒ«å¤‰æ•°
 static ID3D11Device* g_pDevice = NULL;
 static ID3D11DeviceContext* g_pContext = NULL;
 
-//„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª
-// Lose Animation (•‰‚¯ƒAƒjƒ[ƒVƒ‡ƒ“)
-//„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª„ª
-Sprite* g_LoseBgSprite = nullptr;		// ”wŒiiLosehaikeij
-Sprite* g_LoseGhostSprite = nullptr;	// ƒS[ƒXƒgƒGƒtƒFƒNƒgiLoseGhostj
-Sprite* g_LoseInkSprite = nullptr;		// ƒCƒ“ƒN‰æ‘œiLoseinkj
+//â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”
+// Lose Animation (è² ã‘ã‚¢ãƒ‹ãƒ¡ãƒ¼ã‚·ãƒ§ãƒ³)
+//â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”
+Sprite* g_LoseBgSprite = nullptr;		// èƒŒæ™¯ï¼ˆLosehaikeiï¼‰
+Sprite* g_LoseGhostSprite = nullptr;	// ã‚´ãƒ¼ã‚¹ãƒˆã‚¨ãƒ•ã‚§ã‚¯ãƒˆï¼ˆLoseGhostï¼‰
+Sprite* g_LoseInkSprite = nullptr;		// ã‚¤ãƒ³ã‚¯ç”»åƒï¼ˆLoseinkï¼‰
 static DWORD g_LoseStartTime = 0;
-static const float GHOST_APPEAR_TIME = 0.8f;	// ƒS[ƒXƒg•\¦ŠJnŠÔi•bj
-static const float GHOST_FADE_DURATION = 0.6f; // ƒS[ƒXƒg‚ÌƒtƒF[ƒhƒCƒ“‚É‚©‚¯‚éŠÔi•bj
-static const float INK_DROP_START_TIME = 1.2f;	// ƒCƒ“ƒN~‰ºŠJnŠÔi•bj
-static const float INK_DROP_DURATION = 1.0f;	// ƒCƒ“ƒN~‰ºŠÔi•bj
-static float g_LoseInkInitialY = 0.0f;	// ƒCƒ“ƒN‰æ‘œ‚Ì‰ŠúYÀ•W
+static const float GHOST_APPEAR_TIME = 0.8f;	// ã‚´ãƒ¼ã‚¹ãƒˆè¡¨ç¤ºé–‹å§‹æ™‚é–“ï¼ˆç§’ï¼‰
+static const float GHOST_FADE_DURATION = 0.6f; // ã‚´ãƒ¼ã‚¹ãƒˆã®ãƒ•ã‚§ãƒ¼ãƒ‰ã‚¤ãƒ³ã«ã‹ã‘ã‚‹æ™‚é–“ï¼ˆç§’ï¼‰
+static const float INK_DROP_START_TIME = 1.2f;	// ã‚¤ãƒ³ã‚¯é™ä¸‹é–‹å§‹æ™‚é–“ï¼ˆç§’ï¼‰
+static const float INK_DROP_DURATION = 1.0f;	// ã‚¤ãƒ³ã‚¯é™ä¸‹æ™‚é–“ï¼ˆç§’ï¼‰
+static float g_LoseInkInitialY = 0.0f;	// ã‚¤ãƒ³ã‚¯ç”»åƒã®åˆæœŸYåº§æ¨™
 
 void Animation_Lose_Initialize(ID3D11Device* pDevice, ID3D11DeviceContext* pContext)
 {
-	// ”wŒiƒXƒvƒ‰ƒCƒg
+	// èƒŒæ™¯ã‚¹ãƒ—ãƒ©ã‚¤ãƒˆ
 	g_LoseBgSprite = new Sprite(
-		{ SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2 },	// ˆÊ’u
-		{ 1280, 1080},								// ƒTƒCƒY
-		0.0f,										// ‰ñ“]i“xj
-		{ 1.0f, 1.0f, 1.0f, 1.0f },				// F
+		{ SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2 },	// ä½ç½®
+		{ 1280, 1080},								// ã‚µã‚¤ã‚º
+		0.0f,										// å›è»¢ï¼ˆåº¦ï¼‰
+		{ 1.0f, 1.0f, 1.0f, 1.0f },				// è‰²
 		BLENDSTATE_ALFA,							// BlendState
-		L"asset\\yureihen\\Losehaikei.png"		// ƒeƒNƒXƒ`ƒƒƒpƒX
+		L"asset\\yureihen\\Losehaikei.png"		// ãƒ†ã‚¯ã‚¹ãƒãƒ£ãƒ‘ã‚¹
 	);
 
-	// ƒS[ƒXƒgƒXƒvƒ‰ƒCƒg
+	// ã‚´ãƒ¼ã‚¹ãƒˆã‚¹ãƒ—ãƒ©ã‚¤ãƒˆ
 	float ghostNativePixelSize = 1028.0f;
 	float ghostScaleFactor = 0.4f;
 	float ghostDisplaySize = ghostNativePixelSize * ghostScaleFactor;
 	
 	g_LoseGhostSprite = new Sprite(
-		{ SCREEN_WIDTH * 0.63f, SCREEN_HEIGHT * 0.45f },	// ˆÊ’uiŒõ‚Ì’†‰›j
-		{ ghostDisplaySize, ghostDisplaySize },				// ƒTƒCƒY 
-		0.0f,											// ‰ñ“]i“xj
-		{ 1.0f, 1.0f, 1.0f, 0.0f },					// Fi‰Šú‚ÍŠ®‘S“§–¾j
+		{ SCREEN_WIDTH * 0.63f, SCREEN_HEIGHT * 0.45f },	// ä½ç½®ï¼ˆå…‰ã®ä¸­å¤®ï¼‰
+		{ ghostDisplaySize, ghostDisplaySize },				// ã‚µã‚¤ã‚º 
+		0.0f,											// å›è»¢ï¼ˆåº¦ï¼‰
+		{ 1.0f, 1.0f, 1.0f, 0.0f },					// è‰²ï¼ˆåˆæœŸã¯å®Œå…¨é€æ˜ï¼‰
 		BLENDSTATE_ALFA,								// BlendState
-		L"asset\\yureihen\\LoseGhost.png"				// ƒeƒNƒXƒ`ƒƒƒpƒX
+		L"asset\\yureihen\\LoseGhost.png"				// ãƒ†ã‚¯ã‚¹ãƒãƒ£ãƒ‘ã‚¹
 	);
 
-	// ƒCƒ“ƒN‚ÌŠJnY‚ğ‰æ–ÊŠOã•”‚Éİ’èi‰æ‘œ‚‚³‚Ì”¼•ª•ªãj
+	// ã‚¤ãƒ³ã‚¯ã®é–‹å§‹Yã‚’ç”»é¢å¤–ä¸Šéƒ¨ã«è¨­å®šï¼ˆç”»åƒé«˜ã•ã®åŠåˆ†åˆ†ä¸Šï¼‰
 	g_LoseInkInitialY = -(1028.0f * 0.5f);
 
-	// ƒCƒ“ƒN‰æ‘œi‰ŠúˆÊ’u‚ğ‰æ–ÊŠOã•”‚É‚µ‚ÄA‰Šú‚Í“§–¾‚É‚µ‚Ä‚¨‚­j
+	// ã‚¤ãƒ³ã‚¯ç”»åƒï¼ˆåˆæœŸä½ç½®ã‚’ç”»é¢å¤–ä¸Šéƒ¨ã«ã—ã¦ã€åˆæœŸã¯é€æ˜ã«ã—ã¦ãŠãï¼‰
 	g_LoseInkSprite = new Sprite(
 		{ SCREEN_WIDTH / 2, g_LoseInkInitialY },
-		{ 1028, 1028 }, // ‰æ‘œ–{—ˆ‚ÌƒTƒCƒY
+		{ 1028, 1028 }, // ç”»åƒæœ¬æ¥ã®ã‚µã‚¤ã‚º
 		0.0f,
-		{ 1.0f, 1.0f, 1.0f, 0.0f }, // ‰Šú‚Í“§–¾i•\¦‚³‚ê‚È‚¢‚æ‚¤‚É‚·‚éj
+		{ 1.0f, 1.0f, 1.0f, 0.0f }, // åˆæœŸã¯é€æ˜ï¼ˆè¡¨ç¤ºã•ã‚Œãªã„ã‚ˆã†ã«ã™ã‚‹ï¼‰
 		BLENDSTATE_ALFA,
 		L"asset\\yureihen\\LoseAnimeLogo.png"
 	);
@@ -72,11 +72,11 @@ void Animation_Lose_Update(void)
 	float elapsedSeconds = elapsedTime / 1000.0f;
 
 	// ========================
-	// ƒS[ƒXƒg‚ÌƒtƒF[ƒhƒCƒ“ˆ—iŠJn’x‰„ + w’èŠÔ‚ÅƒtƒF[ƒhj
+	// ã‚´ãƒ¼ã‚¹ãƒˆã®ãƒ•ã‚§ãƒ¼ãƒ‰ã‚¤ãƒ³å‡¦ç†ï¼ˆé–‹å§‹é…å»¶ + æŒ‡å®šæ™‚é–“ã§ãƒ•ã‚§ãƒ¼ãƒ‰ï¼‰
 	// ========================
 	if (elapsedSeconds < GHOST_APPEAR_TIME)
 	{
-		// ƒS[ƒXƒg•\¦ŠJn‘O‚ÍŠ®‘S“§–¾
+		// ã‚´ãƒ¼ã‚¹ãƒˆè¡¨ç¤ºé–‹å§‹å‰ã¯å®Œå…¨é€æ˜
 		g_LoseGhostSprite->SetColor({ 1.0f, 1.0f, 1.0f, 0.0f });
 	}
 	else
@@ -84,23 +84,23 @@ void Animation_Lose_Update(void)
 		float fadeElapsed = elapsedSeconds - GHOST_APPEAR_TIME;
 		if (fadeElapsed < GHOST_FADE_DURATION)
 		{
-			// is“x 0..1
+			// é€²è¡Œåº¦ 0..1
 			float progress = fadeElapsed / GHOST_FADE_DURATION;
 
-			// ƒC[ƒWƒ“ƒOiŠÉ‚â‚©‚ÉoŒ»‚³‚¹‚éj
+			// ã‚¤ãƒ¼ã‚¸ãƒ³ã‚°ï¼ˆç·©ã‚„ã‹ã«å‡ºç¾ã•ã›ã‚‹ï¼‰
 			float eased = progress * progress; // ease-in
 
 			g_LoseGhostSprite->SetColor({ 1.0f, 1.0f, 1.0f, eased });
 		}
 		else
 		{
-			// ƒtƒF[ƒhŠ®—¹
+			// ãƒ•ã‚§ãƒ¼ãƒ‰å®Œäº†
 			g_LoseGhostSprite->SetColor({ 1.0f, 1.0f, 1.0f, 1.0f });
 		}
 	}
 
 	// ========================
-	// ƒCƒ“ƒN‰æ‘œ‚Ì~‰ºƒAƒjƒ[ƒVƒ‡ƒ“
+	// ã‚¤ãƒ³ã‚¯ç”»åƒã®é™ä¸‹ã‚¢ãƒ‹ãƒ¡ãƒ¼ã‚·ãƒ§ãƒ³
 	// ========================
 	if (elapsedSeconds >= INK_DROP_START_TIME)
 	{
@@ -108,33 +108,33 @@ void Animation_Lose_Update(void)
 
 		if (inkElapsedTime <= INK_DROP_DURATION)
 		{
-			// ~‰º‚Ìis“xi0.0 ` 1.0j
+			// é™ä¸‹ã®é€²è¡Œåº¦ï¼ˆ0.0 ï½ 1.0ï¼‰
 			float progress = inkElapsedTime / INK_DROP_DURATION;
 
-			// ƒC[ƒWƒ“ƒOŠÖ”i‰Á‘¬“x“I‚É—‚¿‚éŒø‰Êj
+			// ã‚¤ãƒ¼ã‚¸ãƒ³ã‚°é–¢æ•°ï¼ˆåŠ é€Ÿåº¦çš„ã«è½ã¡ã‚‹åŠ¹æœï¼‰
 			float easedProgress = progress * progress;
 
-			// ‰æ–Êã•”‚©‚ç‰æ–Ê’†‰›•t‹ß‚Ü‚Å‚ÌˆÚ“®‹——£
-			float startY = g_LoseInkInitialY;			// ŠJnˆÊ’ui‰æ–ÊŠOj
-			float endY = SCREEN_HEIGHT * 0.35f;			// I—¹ˆÊ’ui‰æ–Ê’†‰›‚æ‚è­‚µãj
+			// ç”»é¢ä¸Šéƒ¨ã‹ã‚‰ç”»é¢ä¸­å¤®ä»˜è¿‘ã¾ã§ã®ç§»å‹•è·é›¢
+			float startY = g_LoseInkInitialY;			// é–‹å§‹ä½ç½®ï¼ˆç”»é¢å¤–ï¼‰
+			float endY = SCREEN_HEIGHT * 0.35f;			// çµ‚äº†ä½ç½®ï¼ˆç”»é¢ä¸­å¤®ã‚ˆã‚Šå°‘ã—ä¸Šï¼‰
 			float currentY = startY + (endY - startY) * easedProgress;
 
-			// ƒCƒ“ƒN‰æ‘œ‚ÌYÀ•W‚ğXViSetPosY ‚ğg—pj
+			// ã‚¤ãƒ³ã‚¯ç”»åƒã®Yåº§æ¨™ã‚’æ›´æ–°ï¼ˆSetPosY ã‚’ä½¿ç”¨ï¼‰
 			g_LoseInkSprite->SetPosY(currentY);
 
-			// ƒtƒF[ƒhƒCƒ“Œø‰Ê
+			// ãƒ•ã‚§ãƒ¼ãƒ‰ã‚¤ãƒ³åŠ¹æœ
 			float inkAlpha = progress;
 			g_LoseInkSprite->SetColor({ 1.0f, 1.0f, 1.0f, inkAlpha });
 		}
 		else
 		{
-			// ~‰ºŠ®—¹Œã‚ÍŠ®‘S•\¦EˆÊ’uŒÅ’è
+			// é™ä¸‹å®Œäº†å¾Œã¯å®Œå…¨è¡¨ç¤ºãƒ»ä½ç½®å›ºå®š
 			g_LoseInkSprite->SetPosY(SCREEN_HEIGHT * 0.35f);
 			g_LoseInkSprite->SetColor({ 1.0f, 1.0f, 1.0f, 1.0f });
 		}
 	}
 
-	// ENTERƒL[‚ÅƒQ[ƒ€‚Ö–ß‚é
+	// ENTERã‚­ãƒ¼ã§ã‚²ãƒ¼ãƒ ã¸æˆ»ã‚‹
 	if (Keyboard_IsKeyDownTrigger(KK_ENTER))
 	{
 		StartFade(SCENE_GAME);
@@ -143,9 +143,9 @@ void Animation_Lose_Update(void)
 
 void Animation_Lose_Draw(void)
 {
-	g_LoseBgSprite->Draw();		// ”wŒi‚ğæ‚É•`‰æ
-	g_LoseInkSprite->Draw();	// ƒCƒ“ƒN‰æ‘œ‚ğ•`‰æ
-	g_LoseGhostSprite->Draw();	// ƒS[ƒXƒg‚ğÅŒã‚É•`‰æi‘O–Êj
+	g_LoseBgSprite->Draw();		// èƒŒæ™¯ã‚’å…ˆã«æç”»
+	g_LoseInkSprite->Draw();	// ã‚¤ãƒ³ã‚¯ç”»åƒã‚’æç”»
+	g_LoseGhostSprite->Draw();	// ã‚´ãƒ¼ã‚¹ãƒˆã‚’æœ€å¾Œã«æç”»ï¼ˆå‰é¢ï¼‰
 }
 
 void Animation_Lose_Finalize(void)

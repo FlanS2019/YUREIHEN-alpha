@@ -1,4 +1,4 @@
-#include "camera.h"
+﻿#include "camera.h"
 #include "UI.h"
 #include "sprite.h"
 #include "debug_ostream.h"
@@ -63,7 +63,7 @@ static XMFLOAT2 WorldToScreen(const XMFLOAT3& worldPos)
 }
 
 //----------------------------
-//UI初期化
+// UI初期化
 //----------------------------
 void UI_Initialize(void)
 {
@@ -130,7 +130,7 @@ void UI_Initialize(void)
 
 	UI_ScareCombo_Initialize();
 
-	// 左上の階層表示
+	// 現在の階層表示
 	float floorPosX = CLOCK_POS_X;
 	float floorPosY = CLOCK_POS_Y + 200.0f;
 
@@ -154,7 +154,7 @@ void UI_Initialize(void)
 		L"asset\\texture\\floor_f.png"
 	);
 
-	// ゲージ管理初期化
+	// ゲージ管理を初期化
 	for (int i = 0; i < MAP_FLOORS; i++)
 	{
 		g_FloorGaugeValues[i] = 50.0f;
@@ -165,24 +165,24 @@ void UI_Initialize(void)
 }
 
 //----------------------------
-//UI更新
+// UI更新
 //----------------------------
 void UI_Update(void)
 {
 	if (Keyboard_IsKeyDown(KK_L))
 	{
-		SetScene(SCENE_ANM_LOSE);//Debug用に負けアニメーションへ直接飛ぶ
+		SetScene(SCENE_ANM_LOSE);// Debug用に敗北アニメーションへ直接飛ぶ
 		return;
 
 	}
 	
-	//恐怖ゲージが最大なら勝利シーンへ移行（デバッグ用）
+	// 恐怖ゲージが最大なら勝利シーンへ移行（デバッグ用）
 	if (g_ScareGauge->GetValue() >= g_ScareGauge->GetMaxValue())
 	{
 		StartFade(SCENE_ANM_WIN);
 	}
 
-	// --- 敗北判定 ---
+	// --- 敗北条件 ---
 	if (g_Clock->Update() || g_ScareGauge->GetValue() <= 0.0f)
 	{
 		hal::dout << "敗北条件を満たしました" << std::endl;
@@ -221,7 +221,7 @@ void UI_Update(void)
 			}
 		}
 
-		// 頭上ガイドの座標計算
+		// 移動ガイドの座標計算
 		if (onStairs)
 		{
 			g_ShowGuideFloor = true;
@@ -268,7 +268,7 @@ void UI_Update(void)
 }
 
 //----------------------------
-//UI描画
+// UI描画
 //----------------------------
 void UI_Draw(void)
 {
@@ -291,7 +291,7 @@ void UI_Draw(void)
 }
 
 //----------------------------
-//UI終了
+// UI終了
 //----------------------------
 void UI_Finalize(void)
 {

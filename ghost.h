@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 
 #include <d3d11.h>
 #include <DirectXMath.h>
@@ -9,10 +9,10 @@ using namespace DirectX;
 
 enum GHOST_STATE
 {
-	GS_MOVING,		// 移動
-	GS_FURNITURE_FOUND,		// 家具発見
-	GS_TRANSFORM,	// 変身中
-	GS_SCARE,		// 驚かせ中
+	GS_MOVING,			// 移動
+	GS_FURNITURE_FOUND,	// 家具発見
+	GS_TRANSFORM,		// 変身中
+	GS_SCARE,			// 驚かし中
 };
 
 // Ghost クラス
@@ -55,8 +55,8 @@ public:
 		}
 	}
 
-	//Splite3DのDrawをオーバーライド
-	void Draw (void) override
+	// Sprite3DのDrawをオーバーライド
+	void Draw(void) override
 	{
 		if (m_IsDraw)
 		{
@@ -83,7 +83,7 @@ public:
 
 	// 公開メソッド
 	void FurnitureSearch(void);	// 家具検知と色変更
-	void Transforming(void);	// キー入力処理
+	void Transforming(void);	// 変身処理
 	void Move(void);            // 移動処理
 	void FloorMove(void);		// 階段移動処理
 	void ScareStart(void);		// 驚かせ処理
@@ -100,5 +100,5 @@ void Ghost_Update(void);
 void Ghost_Draw(void);
 void Ghost_Finalize(void);
 
-//ghostのゲッター
+// Ghostのゲッター
 Ghost* GetGhost(void);

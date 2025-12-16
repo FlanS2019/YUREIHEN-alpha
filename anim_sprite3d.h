@@ -1,4 +1,4 @@
-#pragma once
+ï»¿#pragma once
 
 #include <d3d11.h>
 #include "direct3d.h"
@@ -12,48 +12,48 @@
 #include <string>
 using namespace DirectX;
 
-// ƒAƒjƒ[ƒVƒ‡ƒ“—pƒL[ƒtƒŒ[ƒ€\‘¢‘Ì
+// ã‚¢ãƒ‹ãƒ¡ãƒ¼ã‚·ãƒ§ãƒ³ç”¨ã‚­ãƒ¼ãƒ•ãƒ¬ãƒ¼ãƒ æ§‹é€ ä½“
 struct KeyVec3 { double time; XMFLOAT3 value; };
 struct KeyQuat { double time; XMFLOAT4 value; };  // w, x, y, z
 
-// ƒ{[ƒ“‚ÌƒL[ƒtƒŒ[ƒ€î•ñ
+// ãƒœãƒ¼ãƒ³ã®ã‚­ãƒ¼ãƒ•ãƒ¬ãƒ¼ãƒ æƒ…å ±
 struct BoneKeyframes {
-	std::vector<KeyVec3> trans;    // •½sˆÚ“®ƒL[ƒtƒŒ[ƒ€
-	std::vector<KeyVec3> scale;    // ƒXƒP[ƒŠƒ“ƒOƒL[ƒtƒŒ[ƒ€
-	std::vector<KeyQuat> rot;      // ‰ñ“]ƒL[ƒtƒŒ[ƒ€
+	std::vector<KeyVec3> trans;    // å¹³è¡Œç§»å‹•ã‚­ãƒ¼ãƒ•ãƒ¬ãƒ¼ãƒ 
+	std::vector<KeyVec3> scale;    // ã‚¹ã‚±ãƒ¼ãƒªãƒ³ã‚°ã‚­ãƒ¼ãƒ•ãƒ¬ãƒ¼ãƒ 
+	std::vector<KeyQuat> rot;      // å›è»¢ã‚­ãƒ¼ãƒ•ãƒ¬ãƒ¼ãƒ 
 };
 
-// ƒAƒjƒ[ƒVƒ‡ƒ“ƒNƒŠƒbƒv
+// ã‚¢ãƒ‹ãƒ¡ãƒ¼ã‚·ãƒ§ãƒ³ã‚¯ãƒªãƒƒãƒ—
 struct AnimationClip {
-	double duration = 0.0;         // ƒAƒjƒ[ƒVƒ‡ƒ“’·i’PˆÊ: ƒeƒBƒbƒNj
-	double tps = 24.0;             // ƒeƒBƒbƒNƒXƒp[ƒZƒRƒ“ƒh
-	std::vector<BoneKeyframes> tracks;  // ƒ{[ƒ“‚²‚Æ‚ÌƒL[ƒtƒŒ[ƒ€
+	double duration = 0.0;         // ã‚¢ãƒ‹ãƒ¡ãƒ¼ã‚·ãƒ§ãƒ³é•·ï¼ˆå˜ä½: ãƒ†ã‚£ãƒƒã‚¯ï¼‰
+	double tps = 24.0;             // ãƒ†ã‚£ãƒƒã‚¯ã‚¹ãƒ‘ãƒ¼ã‚»ã‚³ãƒ³ãƒ‰
+	std::vector<BoneKeyframes> tracks;  // ãƒœãƒ¼ãƒ³ã”ã¨ã®ã‚­ãƒ¼ãƒ•ãƒ¬ãƒ¼ãƒ 
 };
 
-// ƒAƒjƒ[ƒVƒ‡ƒ“Ä¶ó‘Ô
+// ã‚¢ãƒ‹ãƒ¡ãƒ¼ã‚·ãƒ§ãƒ³å†ç”ŸçŠ¶æ…‹
 struct AnimationState {
 	const AnimationClip* clip = nullptr;
-	double time = 0.0;             // Œ»İ‚ÌÄ¶ˆÊ’ui’PˆÊ: ƒeƒBƒbƒNj
-	bool play = false;             // Ä¶’†ƒtƒ‰ƒO
-	bool loop = true;              // ƒ‹[ƒvƒtƒ‰ƒO
-	std::string currentAnimName = "";  // Œ»İÄ¶’†‚ÌƒAƒjƒ[ƒVƒ‡ƒ“–¼
+	double time = 0.0;             // ç¾åœ¨ã®å†ç”Ÿä½ç½®ï¼ˆå˜ä½: ãƒ†ã‚£ãƒƒã‚¯ï¼‰
+	bool play = false;             // å†ç”Ÿä¸­ãƒ•ãƒ©ã‚°
+	bool loop = true;              // ãƒ«ãƒ¼ãƒ—ãƒ•ãƒ©ã‚°
+	std::string currentAnimName = "";  // ç¾åœ¨å†ç”Ÿä¸­ã®ã‚¢ãƒ‹ãƒ¡ãƒ¼ã‚·ãƒ§ãƒ³å
 };
 
-// ƒ}ƒeƒŠƒAƒ‹—p’è”ƒoƒbƒtƒ@
+// ãƒãƒ†ãƒªã‚¢ãƒ«ç”¨å®šæ•°ãƒãƒƒãƒ•ã‚¡
 struct MaterialCB {
 	XMFLOAT4 overrideColor = XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f);
-	int useOverride = 0;           // ƒI[ƒo[ƒ‰ƒCƒhg—pƒtƒ‰ƒO
-	int hasTex = 0;                // ƒeƒNƒXƒ`ƒƒg—pƒtƒ‰ƒO
+	int useOverride = 0;           // ã‚ªãƒ¼ãƒãƒ¼ãƒ©ã‚¤ãƒ‰ä½¿ç”¨ãƒ•ãƒ©ã‚°
+	int hasTex = 0;                // ãƒ†ã‚¯ã‚¹ãƒãƒ£ä½¿ç”¨ãƒ•ãƒ©ã‚°
 	int pad[2];
 };
 
-// ƒAƒjƒ[ƒVƒ‡ƒ“‘JˆÚiƒuƒŒƒ“ƒhjó‘Ô
+// ã‚¢ãƒ‹ãƒ¡ãƒ¼ã‚·ãƒ§ãƒ³é·ç§»ï¼ˆãƒ–ãƒ¬ãƒ³ãƒ‰ï¼‰çŠ¶æ…‹
 struct AnimationBlendState {
-	bool isBlending = false;          // ƒuƒŒƒ“ƒh’†ƒtƒ‰ƒO
-	double blendDuration = 0.3;       // ƒuƒŒƒ“ƒhŠÔi•bj
-	double blendElapsed = 0.0;        // ƒuƒŒƒ“ƒhŒo‰ßŠÔi•bj
-	AnimationClip targetClip;         // ‘JˆÚæƒAƒjƒ[ƒVƒ‡ƒ“
-	AnimationState previousState;     // ‘JˆÚ‘O‚ÌƒAƒjƒ[ƒVƒ‡ƒ“ó‘ÔiƒXƒiƒbƒvƒVƒ‡ƒbƒgj
+	bool isBlending = false;          // ãƒ–ãƒ¬ãƒ³ãƒ‰ä¸­ãƒ•ãƒ©ã‚°
+	double blendDuration = 0.3;       // ãƒ–ãƒ¬ãƒ³ãƒ‰æ™‚é–“ï¼ˆç§’ï¼‰
+	double blendElapsed = 0.0;        // ãƒ–ãƒ¬ãƒ³ãƒ‰çµŒéæ™‚é–“ï¼ˆç§’ï¼‰
+	AnimationClip targetClip;         // é·ç§»å…ˆã‚¢ãƒ‹ãƒ¡ãƒ¼ã‚·ãƒ§ãƒ³
+	AnimationState previousState;     // é·ç§»å‰ã®ã‚¢ãƒ‹ãƒ¡ãƒ¼ã‚·ãƒ§ãƒ³çŠ¶æ…‹ï¼ˆã‚¹ãƒŠãƒƒãƒ—ã‚·ãƒ§ãƒƒãƒˆï¼‰
 };
 
 class AnimSprite3D : public Sprite3D
@@ -61,15 +61,15 @@ class AnimSprite3D : public Sprite3D
 protected:
 	AnimationState m_AnimState;
 	AnimationClip m_AnimClip;
-	AnimationBlendState m_BlendState;  // ƒAƒjƒ[ƒVƒ‡ƒ“‘JˆÚ—p
+	AnimationBlendState m_BlendState;  // ã‚¢ãƒ‹ãƒ¡ãƒ¼ã‚·ãƒ§ãƒ³é·ç§»ç”¨
 	BoneMatrices m_BoneMatrices;
 	int m_BoneCount = 0;
 
-	// Assimp—pƒ{[ƒ“ƒ}ƒbƒsƒ“ƒO
+	// Assimpç”¨ãƒœãƒ¼ãƒ³ãƒãƒƒãƒ”ãƒ³ã‚°
 	std::vector<aiBone*> m_AiBones;
 	std::vector<XMMATRIX> m_BoneOffsetMatrices;
 
-	// ƒm[ƒhƒAƒjƒ[ƒVƒ‡ƒ“—p
+	// ãƒãƒ¼ãƒ‰ã‚¢ãƒ‹ãƒ¡ãƒ¼ã‚·ãƒ§ãƒ³ç”¨
 	std::vector<aiNode*> m_AnimatedNodes;
 	std::vector<XMMATRIX> m_NodeTransforms;
 
@@ -77,20 +77,20 @@ public:
 	AnimSprite3D(const XMFLOAT3& pos, const XMFLOAT3& scale, const XMFLOAT3& rot, const char* pass)
 		: Sprite3D(pos, scale, rot, pass)
 	{
-		// Sprite3D ‚ÌƒRƒ“ƒXƒgƒ‰ƒNƒ^‚Åƒ‚ƒfƒ‹‚ª“Ç‚İ‚Ü‚ê‚½ŒãAƒ{[ƒ“î•ñ‚ğ‰Šú‰»
+		// Sprite3D ã®ã‚³ãƒ³ã‚¹ãƒˆãƒ©ã‚¯ã‚¿ã§ãƒ¢ãƒ‡ãƒ«ãŒèª­ã¿è¾¼ã¾ã‚ŒãŸå¾Œã€ãƒœãƒ¼ãƒ³æƒ…å ±ã‚’åˆæœŸåŒ–
 		InitializeBones();
 	}
 
 	~AnimSprite3D()
 	{
-		// Sprite3D ‚Ì ƒfƒXƒgƒ‰ƒNƒ^‚ªŒÄ‚Î‚ê‚Ü‚·
+		// Sprite3D ã® ãƒ‡ã‚¹ãƒˆãƒ©ã‚¯ã‚¿ãŒå‘¼ã°ã‚Œã¾ã™
 	}
 
-	// ƒ{[ƒ“î•ñ‚Ì‰Šú‰»
+	// ãƒœãƒ¼ãƒ³æƒ…å ±ã®åˆæœŸåŒ–
 	void InitializeBones();
 
-	// ƒAƒjƒ[ƒVƒ‡ƒ“‚Ìİ’è
-	// ¦ŠO•”‚©‚ç‚Ìè“®ƒAƒjƒ[ƒVƒ‡ƒ“İ’è‚Í•s—viFBX“à‚ÌƒAƒjƒ[ƒVƒ‡ƒ“‚ğg—pj
+	// ã‚¢ãƒ‹ãƒ¡ãƒ¼ã‚·ãƒ§ãƒ³ã®è¨­å®š
+	// â€»å¤–éƒ¨ã‹ã‚‰ã®æ‰‹å‹•ã‚¢ãƒ‹ãƒ¡ãƒ¼ã‚·ãƒ§ãƒ³è¨­å®šã¯ä¸è¦ï¼ˆFBXå†…ã®ã‚¢ãƒ‹ãƒ¡ãƒ¼ã‚·ãƒ§ãƒ³ã‚’ä½¿ç”¨ï¼‰
 	/*
 	void SetAnimation(const AnimationClip& clip)
 	{
@@ -101,14 +101,14 @@ public:
 	}
 	*/
 
-	// ƒAƒjƒ[ƒVƒ‡ƒ“Ä¶§Œä
-	// ƒAƒjƒ[ƒVƒ‡ƒ“Ä¶ŠJniƒ[ƒJƒ‹‚Åİ’èÏ‚İ‚ÌƒAƒjƒ[ƒVƒ‡ƒ“‚ğÄ¶j
+	// ã‚¢ãƒ‹ãƒ¡ãƒ¼ã‚·ãƒ§ãƒ³å†ç”Ÿåˆ¶å¾¡
+	// ã‚¢ãƒ‹ãƒ¡ãƒ¼ã‚·ãƒ§ãƒ³å†ç”Ÿé–‹å§‹ï¼ˆãƒ­ãƒ¼ã‚«ãƒ«ã§è¨­å®šæ¸ˆã¿ã®ã‚¢ãƒ‹ãƒ¡ãƒ¼ã‚·ãƒ§ãƒ³ã‚’å†ç”Ÿï¼‰
 	void PlayAnimation(bool loop = true)
 	{
 		m_AnimState.play = true;
 		m_AnimState.loop = loop;
 		m_AnimState.time = 0.0;
-		// currentAnimName ‚Í SetAnimationClip ‚Åİ’è‚³‚ê‚é‚©AŠeÄ¶ŠÖ”‚Åİ’è‚³‚ê‚é
+		// currentAnimName ã¯ SetAnimationClip ã§è¨­å®šã•ã‚Œã‚‹ã‹ã€å„å†ç”Ÿé–¢æ•°ã§è¨­å®šã•ã‚Œã‚‹
 	}
 
 	void StopAnimation()
@@ -129,20 +129,20 @@ public:
 
 	bool IsAnimationPlaying() const { return m_AnimState.play; }
 
-	// ƒAƒjƒ[ƒVƒ‡ƒ“ŠÔ‚ğXVi–ˆƒtƒŒ[ƒ€ŒÄ‚Ño‚µj
+	// ã‚¢ãƒ‹ãƒ¡ãƒ¼ã‚·ãƒ§ãƒ³æ™‚é–“ã‚’æ›´æ–°ï¼ˆæ¯ãƒ•ãƒ¬ãƒ¼ãƒ å‘¼ã³å‡ºã—ï¼‰
 	void UpdateAnimation(float dt);
 
-	// ƒ{[ƒ“s—ñ‚ğXV
+	// ãƒœãƒ¼ãƒ³è¡Œåˆ—ã‚’æ›´æ–°
 	void UpdateBoneMatrices();
 
-	// •âŠÔŠÖ”
+	// è£œé–“é–¢æ•°
 	static XMFLOAT3 InterpolateVec3(const std::vector<KeyVec3>& keys, double time);
 	static XMFLOAT4 InterpolateQuat(const std::vector<KeyQuat>& keys, double time);
 
-	// ƒAƒjƒ[ƒVƒ‡ƒ“•t‚«‚Å•`‰æ
+	// ã‚¢ãƒ‹ãƒ¡ãƒ¼ã‚·ãƒ§ãƒ³ä»˜ãã§æç”»
 	virtual void Draw(void);
 
-	// ƒ}ƒeƒŠƒAƒ‹ƒJƒ‰[‚ÌƒI[ƒo[ƒ‰ƒCƒh
+	// ãƒãƒ†ãƒªã‚¢ãƒ«ã‚«ãƒ©ãƒ¼ã®ã‚ªãƒ¼ãƒãƒ¼ãƒ©ã‚¤ãƒ‰
 	void SetMaterialOverrideColor(const XMFLOAT4& color)
 	{
 		Sprite3D::SetColor(color);
@@ -154,42 +154,42 @@ public:
 	}
 
 	// ============================================================
-	// AssimpƒAƒjƒ[ƒVƒ‡ƒ“’Šoi“à•”—pj
+	// Assimpã‚¢ãƒ‹ãƒ¡ãƒ¼ã‚·ãƒ§ãƒ³æŠ½å‡ºï¼ˆå†…éƒ¨ç”¨ï¼‰
 	// ============================================================
 	
-	// AssimpƒAƒjƒ[ƒVƒ‡ƒ“‚©‚ç©“®’Šo
+	// Assimpã‚¢ãƒ‹ãƒ¡ãƒ¼ã‚·ãƒ§ãƒ³ã‹ã‚‰è‡ªå‹•æŠ½å‡º
 	AnimationClip ExtractAnimationFromAssimp(const aiAnimation* aiAnim);
 
-	// ƒ{[ƒ“–¼‚©‚çƒCƒ“ƒfƒbƒNƒX‚ğŒŸõ
+	// ãƒœãƒ¼ãƒ³åã‹ã‚‰ã‚¤ãƒ³ãƒ‡ãƒƒã‚¯ã‚¹ã‚’æ¤œç´¢
 	int FindBoneIndex(const char* boneName);
 
 	// ============================================================
-	// •¡”ƒAƒjƒ[ƒVƒ‡ƒ“‘Î‰: FBX“à‚ÌƒAƒjƒ[ƒVƒ‡ƒ“‚ğ–¼‘O‚Å’¼ÚÄ¶
+	// è¤‡æ•°ã‚¢ãƒ‹ãƒ¡ãƒ¼ã‚·ãƒ§ãƒ³å¯¾å¿œ: FBXå†…ã®ã‚¢ãƒ‹ãƒ¡ãƒ¼ã‚·ãƒ§ãƒ³ã‚’åå‰ã§ç›´æ¥å†ç”Ÿ
 	// ============================================================
 
-	// FBX“à‚©‚ç–¼‘O‚ÅƒAƒjƒ[ƒVƒ‡ƒ“‚ğ’T‚µ‚ÄÄ¶i„§•û–@j
+	// FBXå†…ã‹ã‚‰åå‰ã§ã‚¢ãƒ‹ãƒ¡ãƒ¼ã‚·ãƒ§ãƒ³ã‚’æ¢ã—ã¦å†ç”Ÿï¼ˆæ¨å¥¨æ–¹æ³•ï¼‰
 	bool PlayAnimationByName(const char* animName, bool loop = true);
 
-	// —˜—p‰Â”\‚ÈƒAƒjƒ[ƒVƒ‡ƒ“”‚ğæ“¾
+	// åˆ©ç”¨å¯èƒ½ãªã‚¢ãƒ‹ãƒ¡ãƒ¼ã‚·ãƒ§ãƒ³æ•°ã‚’å–å¾—
 	unsigned int GetAnimationCount() const;
 
-	// ƒCƒ“ƒfƒbƒNƒX‚©‚çƒAƒjƒ[ƒVƒ‡ƒ“–¼‚ğæ“¾
+	// ã‚¤ãƒ³ãƒ‡ãƒƒã‚¯ã‚¹ã‹ã‚‰ã‚¢ãƒ‹ãƒ¡ãƒ¼ã‚·ãƒ§ãƒ³åã‚’å–å¾—
 	const char* GetAnimationName(unsigned int index) const;
 
-	// ƒCƒ“ƒfƒbƒNƒX‚©‚çƒAƒjƒ[ƒVƒ‡ƒ“‚ğÄ¶
+	// ã‚¤ãƒ³ãƒ‡ãƒƒã‚¯ã‚¹ã‹ã‚‰ã‚¢ãƒ‹ãƒ¡ãƒ¼ã‚·ãƒ§ãƒ³ã‚’å†ç”Ÿ
 	bool PlayAnimationByIndex(unsigned int index, bool loop = true);
 
-	// ƒuƒŒƒ“ƒhŠÔ‚Ìİ’èi•b’PˆÊj
+	// ãƒ–ãƒ¬ãƒ³ãƒ‰æ™‚é–“ã®è¨­å®šï¼ˆç§’å˜ä½ï¼‰
 	void SetAnimationBlendDuration(double duration)
 	{
 		m_BlendState.blendDuration = duration;
 	}
 
-	// Œ»İ‚ÌƒuƒŒƒ“ƒhó‘Ô‚ğæ“¾
+	// ç¾åœ¨ã®ãƒ–ãƒ¬ãƒ³ãƒ‰çŠ¶æ…‹ã‚’å–å¾—
 	bool IsAnimationBlending() const { return m_BlendState.isBlending; }
 
 private:
-	// “à•”—pFFBX“à‚ÌƒAƒjƒ[ƒVƒ‡ƒ“‚©‚ç AnimationClip ‚ğì¬Eİ’è
+	// å†…éƒ¨ç”¨ï¼šFBXå†…ã®ã‚¢ãƒ‹ãƒ¡ãƒ¼ã‚·ãƒ§ãƒ³ã‹ã‚‰ AnimationClip ã‚’ä½œæˆãƒ»è¨­å®š
 	void SetAnimationClip(const AnimationClip& clip)
 	{
 		m_AnimClip = clip;
@@ -198,6 +198,6 @@ private:
 		m_AnimState.play = false;
 	}
 
-	// ƒuƒŒƒ“ƒh—p•â•ŠÖ”F“Á’è‚Ìó‘Ô‚©‚çœs—ñ‚ğŒvZ
+	// ãƒ–ãƒ¬ãƒ³ãƒ‰ç”¨è£œåŠ©é–¢æ•°ï¼šç‰¹å®šã®çŠ¶æ…‹ã‹ã‚‰éª¨è¡Œåˆ—ã‚’è¨ˆç®—
 	void UpdateBoneMatricesForState(const AnimationState& state, BoneMatrices& outMatrices);
 };

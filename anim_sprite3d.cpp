@@ -1,4 +1,4 @@
-#include "model.h"
+ï»¿#include "model.h"
 #include "anim_sprite3d.h"
 #include "shader.h"
 #include "camera.h"
@@ -6,7 +6,7 @@
 #include <cmath>
 #include <map>
 
-// ƒNƒH[ƒ^ƒjƒIƒ“‹…–ÊüŒ`•âŠÔ
+// ã‚¯ã‚©ãƒ¼ã‚¿ãƒ‹ã‚ªãƒ³çƒé¢ç·šå½¢è£œé–“
 static XMFLOAT4 QuatSlerp(const XMFLOAT4& q1, const XMFLOAT4& q2, float t)
 {
 	XMVECTOR v1 = XMLoadFloat4(&q1);
@@ -17,7 +17,7 @@ static XMFLOAT4 QuatSlerp(const XMFLOAT4& q1, const XMFLOAT4& q2, float t)
 	return qResult;
 }
 
-// ƒNƒH[ƒ^ƒjƒIƒ“‚©‚ç‰ñ“]s—ñ‚Ö‚Ì•ÏŠ·
+// ã‚¯ã‚©ãƒ¼ã‚¿ãƒ‹ã‚ªãƒ³ã‹ã‚‰å›è»¢è¡Œåˆ—ã¸ã®å¤‰æ›
 static XMMATRIX QuatToMatrix(const XMFLOAT4& q)
 {
 	XMVECTOR quat = XMLoadFloat4(&q);
@@ -86,7 +86,7 @@ XMFLOAT3 AnimSprite3D::InterpolateVec3(const std::vector<KeyVec3>& keys, double 
 		return keys[0].value;
 	}
 
-	// ŠÔ‚Ì”ÍˆÍŠOƒ`ƒFƒbƒN
+	// æ™‚é–“ã®ç¯„å›²å¤–ãƒã‚§ãƒƒã‚¯
 	if (time <= keys.front().time)
 	{
 		return keys.front().value;
@@ -96,13 +96,13 @@ XMFLOAT3 AnimSprite3D::InterpolateVec3(const std::vector<KeyVec3>& keys, double 
 		return keys.back().value;
 	}
 
-	// ƒL[ƒtƒŒ[ƒ€‚ğ“ñ•ª’Tõ‚ÅŒ©‚Â‚¯‚é
-	int keyIndex = 0;
+	// ã‚­ãƒ¼ãƒ•ãƒ¬ãƒ¼ãƒ ã‚’äºŒåˆ†æ¢ç´¢ã§è¦‹ã¤ã‘ã‚‹
+	size_t keyIndex = 0;
 	for (size_t i = 0; i + 1 < keys.size(); i++)
 	{
 		if (time >= keys[i].time && time < keys[i + 1].time)
 		{
-			keyIndex = (int)i;
+			keyIndex = i;
 			break;
 		}
 	}
@@ -140,7 +140,7 @@ XMFLOAT4 AnimSprite3D::InterpolateQuat(const std::vector<KeyQuat>& keys, double 
 		return keys[0].value;
 	}
 
-	// ŠÔ‚Ì”ÍˆÍŠOƒ`ƒFƒbƒN
+	// æ™‚é–“ã®ç¯„å›²å¤–ãƒã‚§ãƒƒã‚¯
 	if (time <= keys.front().time)
 	{
 		return keys.front().value;
@@ -150,13 +150,13 @@ XMFLOAT4 AnimSprite3D::InterpolateQuat(const std::vector<KeyQuat>& keys, double 
 		return keys.back().value;
 	}
 
-	// ƒL[ƒtƒŒ[ƒ€‚ğ“ñ•ª’Tõ‚ÅŒ©‚Â‚¯‚é
-	int keyIndex = 0;
+	// ã‚­ãƒ¼ãƒ•ãƒ¬ãƒ¼ãƒ ã‚’äºŒåˆ†æ¢ç´¢ã§è¦‹ã¤ã‘ã‚‹
+	size_t keyIndex = 0;
 	for (size_t i = 0; i + 1 < keys.size(); i++)
 	{
 		if (time >= keys[i].time && time < keys[i + 1].time)
 		{
-			keyIndex = (int)i;
+			keyIndex = i;
 			break;
 		}
 	}
@@ -181,14 +181,14 @@ XMFLOAT4 AnimSprite3D::InterpolateQuat(const std::vector<KeyQuat>& keys, double 
 
 void AnimSprite3D::UpdateAnimation(float dt)
 {
-	// ƒuƒŒƒ“ƒhˆ—
+	// ãƒ–ãƒ¬ãƒ³ãƒ‰å‡¦ç†
 	if (m_BlendState.isBlending)
 	{
 		m_BlendState.blendElapsed += dt;
 		
 		if (m_BlendState.blendElapsed >= m_BlendState.blendDuration)
 		{
-			// ƒuƒŒƒ“ƒhŠ®—¹FV‚µ‚¢ƒAƒjƒ[ƒVƒ‡ƒ“‚ÉØ‚è‘Ö‚¦
+			// ãƒ–ãƒ¬ãƒ³ãƒ‰å®Œäº†ï¼šæ–°ã—ã„ã‚¢ãƒ‹ãƒ¡ãƒ¼ã‚·ãƒ§ãƒ³ã«åˆ‡ã‚Šæ›¿ãˆ
 			m_BlendState.isBlending = false;
 			SetAnimationClip(m_BlendState.targetClip);
 			PlayAnimation(m_AnimState.loop);
@@ -201,16 +201,16 @@ void AnimSprite3D::UpdateAnimation(float dt)
 		return;
 	}
 
-	// dti•b’PˆÊj‚ğƒeƒBƒbƒN’PˆÊ‚É•ÏŠ·‚µ‚ÄŠÔ‚ği‚ß‚é
+	// dtï¼ˆç§’å˜ä½ï¼‰ã‚’ãƒ†ã‚£ãƒƒã‚¯å˜ä½ã«å¤‰æ›ã—ã¦æ™‚é–“ã‚’é€²ã‚ã‚‹
 	double ticksPerSecond = m_AnimState.clip->tps;
 	if (ticksPerSecond <= 0.0)
 	{
-		ticksPerSecond = 24.0;  // ƒfƒtƒHƒ‹ƒg’l
+		ticksPerSecond = 24.0;  // ãƒ‡ãƒ•ã‚©ãƒ«ãƒˆå€¤
 	}
 
 	m_AnimState.time += dt * ticksPerSecond;
 
-	// ƒAƒjƒ[ƒVƒ‡ƒ“I—¹”»’è
+	// ã‚¢ãƒ‹ãƒ¡ãƒ¼ã‚·ãƒ§ãƒ³çµ‚äº†åˆ¤å®š
 	if (m_AnimState.time >= m_AnimState.clip->duration)
 	{
 		if (m_AnimState.loop)
@@ -218,7 +218,7 @@ void AnimSprite3D::UpdateAnimation(float dt)
 			double duration = m_AnimState.clip->duration;
 			if (duration > 0.0)
 			{
-				// ƒ‹[ƒvˆ—FŠÔ‚ğ‚¿‰z‚³‚¸A³Šm‚ÉƒŠƒZƒbƒg
+				// ãƒ«ãƒ¼ãƒ—å‡¦ç†ï¼šæ™‚é–“ã‚’æŒã¡è¶Šã•ãšã€æ­£ç¢ºã«ãƒªã‚»ãƒƒãƒˆ
 				m_AnimState.time = fmod(m_AnimState.time, duration);
 				if (m_AnimState.time < 0.0)
 					m_AnimState.time += duration;
@@ -236,43 +236,43 @@ void AnimSprite3D::UpdateAnimation(float dt)
 
 void AnimSprite3D::UpdateBoneMatrices()
 {
-	// ƒuƒŒƒ“ƒh’†‚Ìê‡‚Í“Á•Êˆ—
+	// ãƒ–ãƒ¬ãƒ³ãƒ‰ä¸­ã®å ´åˆã¯ç‰¹åˆ¥å‡¦ç†
 	if (m_BlendState.isBlending)
 	{
 		double blendT = m_BlendState.blendElapsed / m_BlendState.blendDuration;
 		if (blendT > 1.0) blendT = 1.0;
 		
-		// ‘O‚ÌƒAƒjƒ[ƒVƒ‡ƒ“ó‘Ô‚©‚çœs—ñ‚ğŒvZ
+		// å‰ã®ã‚¢ãƒ‹ãƒ¡ãƒ¼ã‚·ãƒ§ãƒ³çŠ¶æ…‹ã‹ã‚‰éª¨è¡Œåˆ—ã‚’è¨ˆç®—
 		UpdateBoneMatricesForState(m_BlendState.previousState, m_BoneMatrices);
 		
-		// V‚µ‚¢ƒAƒjƒ[ƒVƒ‡ƒ“ó‘Ô‚©‚çœs—ñ‚ğŒvZ
+		// æ–°ã—ã„ã‚¢ãƒ‹ãƒ¡ãƒ¼ã‚·ãƒ§ãƒ³çŠ¶æ…‹ã‹ã‚‰éª¨è¡Œåˆ—ã‚’è¨ˆç®—
 		BoneMatrices targetMatrices;
 		AnimationState tempState;
 		tempState.clip = &m_BlendState.targetClip;
-		tempState.time = 0.0;  // V‚µ‚¢ƒAƒjƒ[ƒVƒ‡ƒ“‚ÍŠJnˆÊ’u‚©‚ç
+		tempState.time = 0.0;  // æ–°ã—ã„ã‚¢ãƒ‹ãƒ¡ãƒ¼ã‚·ãƒ§ãƒ³ã¯é–‹å§‹ä½ç½®ã‹ã‚‰
 		UpdateBoneMatricesForState(tempState, targetMatrices);
 		
-		// 2‚Â‚Ìs—ñ‚ğƒuƒŒƒ“ƒhiŠe¬•ª‚ğüŒ`•âŠÔj
+		// 2ã¤ã®è¡Œåˆ—ã‚’ãƒ–ãƒ¬ãƒ³ãƒ‰ï¼ˆå„æˆåˆ†ã‚’ç·šå½¢è£œé–“ï¼‰
 		float blendF = (float)blendT;
 		for (int i = 0; i < BoneMatrices::MAX_BONES; i++)
 		{
-			// s—ñ‚ÌŠe¬•ª‚ğüŒ`•âŠÔ
+			// è¡Œåˆ—ã®å„æˆåˆ†ã‚’ç·šå½¢è£œé–“
 			XMMATRIX from = m_BoneMatrices.matrices[i];
 			XMMATRIX to = targetMatrices.matrices[i];
 			
-			// s—ñ‚ğ•‚“®¬”“_”z—ñ‚É•ÏŠ·
+			// è¡Œåˆ—ã‚’æµ®å‹•å°æ•°ç‚¹é…åˆ—ã«å¤‰æ›
 			float fromM[16], toM[16];
 			XMStoreFloat4x4((XMFLOAT4X4*)fromM, from);
 			XMStoreFloat4x4((XMFLOAT4X4*)toM, to);
 			
-			// Še¬•ª‚ğüŒ`•âŠÔ
+			// å„æˆåˆ†ã‚’ç·šå½¢è£œé–“
 			float blendM[16];
 			for (int j = 0; j < 16; j++)
 			{
 				blendM[j] = fromM[j] * (1.0f - blendF) + toM[j] * blendF;
 			}
 			
-			// ƒuƒŒƒ“ƒhŒ‹‰Ê‚ğs—ñ‚É–ß‚·
+			// ãƒ–ãƒ¬ãƒ³ãƒ‰çµæœã‚’è¡Œåˆ—ã«æˆ»ã™
 			m_BoneMatrices.matrices[i] = XMLoadFloat4x4((const XMFLOAT4X4*)blendM);
 		}
 		return;
@@ -280,7 +280,7 @@ void AnimSprite3D::UpdateBoneMatrices()
 
 	if (!m_AnimState.clip || m_AnimState.clip->tracks.empty())
 	{
-		// ƒAƒjƒ[ƒVƒ‡ƒ“‚ª‚È‚¢ê‡‚ÍƒAƒCƒfƒ“ƒeƒBƒeƒBs—ñ‚Å‰Šú‰»
+		// ã‚¢ãƒ‹ãƒ¡ãƒ¼ã‚·ãƒ§ãƒ³ãŒãªã„å ´åˆã¯ã‚¢ã‚¤ãƒ‡ãƒ³ãƒ†ã‚£ãƒ†ã‚£è¡Œåˆ—ã§åˆæœŸåŒ–
 		for (int i = 0; i < BoneMatrices::MAX_BONES; i++)
 		{
 			m_BoneMatrices.matrices[i] = XMMatrixIdentity();
@@ -291,11 +291,11 @@ void AnimSprite3D::UpdateBoneMatrices()
 	const AnimationClip& clip = *m_AnimState.clip;
 	double time = m_AnimState.time;
 
-	// ŠÔ‚Ì”ÍˆÍƒ`ƒFƒbƒN
+	// æ™‚é–“ã®ç¯„å›²ãƒã‚§ãƒƒã‚¯
 	if (time < 0.0) time = 0.0;
 	if (time > clip.duration) time = clip.duration;
 
-	// ƒgƒ‰ƒbƒN‚ÌƒTƒCƒY•ª‚¾‚¯s—ñ‚ğXV
+	// ãƒˆãƒ©ãƒƒã‚¯ã®ã‚µã‚¤ã‚ºåˆ†ã ã‘è¡Œåˆ—ã‚’æ›´æ–°
 	int trackSize = (int)clip.tracks.size();
 for (int i = 0; i < trackSize && i < BoneMatrices::MAX_BONES; i++)
 	{
@@ -312,7 +312,7 @@ for (int i = 0; i < trackSize && i < BoneMatrices::MAX_BONES; i++)
 		m_BoneMatrices.matrices[i] = scaleMat * rotMat * transMat;
 	}
 
-	// –¢g—p‚Ìƒ{[ƒ“s—ñ‚ÍƒAƒCƒfƒ“ƒeƒBƒeƒB‚Å‰Šú‰»
+	// æœªä½¿ç”¨ã®ãƒœãƒ¼ãƒ³è¡Œåˆ—ã¯ã‚¢ã‚¤ãƒ‡ãƒ³ãƒ†ã‚£ãƒ†ã‚£ã§åˆæœŸåŒ–
 	for (int i = trackSize; i < BoneMatrices::MAX_BONES; i++)
 	{
 		m_BoneMatrices.matrices[i] = XMMatrixIdentity();
@@ -326,16 +326,16 @@ void AnimSprite3D::Draw(void)
 		XMFLOAT4 drawColor = m_UseOriginalColor ? m_OriginalColor : m_Color;
 		bool shouldApplyColorReplace = !m_UseOriginalColor;
 
-		// ƒfƒoƒbƒOFƒAƒjƒ[ƒVƒ‡ƒ“ó‘Ô‚ğŠm”F
+		// ãƒ‡ãƒãƒƒã‚°ï¼šã‚¢ãƒ‹ãƒ¡ãƒ¼ã‚·ãƒ§ãƒ³çŠ¶æ…‹ã‚’ç¢ºèª
 		static int drawCount = 0;
-		if (++drawCount % 300 == 0)  // 5•b‚²‚Æi60FPS*5j
+		if (++drawCount % 300 == 0)  // 5ç§’ã”ã¨ï¼ˆ60FPS*5ï¼‰
 		{
 			hal::dout << "Draw: play=" << m_AnimState.play 
 					  << " time=" << m_AnimState.time
 					  << " boneCount=" << m_BoneCount << std::endl;
 		}
 
-		// ƒAƒjƒ[ƒVƒ‡ƒ“‘Î‰•`‰æŠÖ”‚ğg—p
+		// ã‚¢ãƒ‹ãƒ¡ãƒ¼ã‚·ãƒ§ãƒ³å¯¾å¿œæç”»é–¢æ•°ã‚’ä½¿ç”¨
 		ModelAnimationDraw(
 			m_Model,
 			GetPos(),
@@ -352,7 +352,7 @@ void AnimSprite3D::Draw(void)
 	}
 }
 
-// AssimpƒAƒjƒ[ƒVƒ‡ƒ“î•ñ‚©‚çAnimationClip‚ğ¶¬
+// Assimpã‚¢ãƒ‹ãƒ¡ãƒ¼ã‚·ãƒ§ãƒ³æƒ…å ±ã‹ã‚‰AnimationClipã‚’ç”Ÿæˆ
 AnimationClip AnimSprite3D::ExtractAnimationFromAssimp(const aiAnimation* aiAnim)
 {
     AnimationClip clip;
@@ -370,22 +370,22 @@ AnimationClip AnimSprite3D::ExtractAnimationFromAssimp(const aiAnimation* aiAnim
               << " numChannels=" << aiAnim->mNumChannels 
               << " boneCount=" << m_BoneCount << std::endl;
     
-    // ƒ{[ƒ“î•ñ‚ª‚È‚¢ê‡Aƒ`ƒƒƒlƒ‹î•ñ‚©‚ç“®“I‚Éƒgƒ‰ƒbƒN‚ğì¬
+    // ãƒœãƒ¼ãƒ³æƒ…å ±ãŒãªã„å ´åˆã€ãƒãƒ£ãƒãƒ«æƒ…å ±ã‹ã‚‰å‹•çš„ã«ãƒˆãƒ©ãƒƒã‚¯ã‚’ä½œæˆ
     int maxBoneIndex = m_BoneCount;
     
-    // ƒ`ƒƒƒlƒ‹î•ñ‚©‚çƒ{[ƒ“ƒCƒ“ƒfƒbƒNƒX‚ğ’Tõ
+    // ãƒãƒ£ãƒãƒ«æƒ…å ±ã‹ã‚‰ãƒœãƒ¼ãƒ³ã‚¤ãƒ³ãƒ‡ãƒƒã‚¯ã‚¹ã‚’æ¢ç´¢
     for (unsigned int c = 0; c < aiAnim->mNumChannels; c++)
     {
         aiNodeAnim* nodeAnim = aiAnim->mChannels[c];
         int boneIndex = FindBoneIndex(nodeAnim->mNodeName.data);
         
-        // ƒ{[ƒ“ƒCƒ“ƒfƒbƒNƒX‚ªŒ©‚Â‚©‚ç‚È‚¢ê‡Aƒ`ƒƒƒlƒ‹ƒCƒ“ƒfƒbƒNƒX‚ğg—p
+        // ãƒœãƒ¼ãƒ³ã‚¤ãƒ³ãƒ‡ãƒƒã‚¯ã‚¹ãŒè¦‹ã¤ã‹ã‚‰ãªã„å ´åˆã€ãƒãƒ£ãƒãƒ«ã‚¤ãƒ³ãƒ‡ãƒƒã‚¯ã‚¹ã‚’ä½¿ç”¨
         if (boneIndex < 0)
         {
             boneIndex = c;
         }
         
-        // ƒgƒ‰ƒbƒNƒTƒCƒY‚ğ“®“I‚ÉŠg’£
+        // ãƒˆãƒ©ãƒƒã‚¯ã‚µã‚¤ã‚ºã‚’å‹•çš„ã«æ‹¡å¼µ
         if (boneIndex >= (int)clip.tracks.size())
         {
             clip.tracks.resize(boneIndex + 1);
@@ -398,7 +398,7 @@ AnimationClip AnimSprite3D::ExtractAnimationFromAssimp(const aiAnimation* aiAnim
         
         BoneKeyframes& keyframes = clip.tracks[boneIndex];
         
-        // ˆÊ’uƒL[ƒtƒŒ[ƒ€
+        // ä½ç½®ã‚­ãƒ¼ãƒ•ãƒ¬ãƒ¼ãƒ 
         keyframes.trans.resize(nodeAnim->mNumPositionKeys);
         for (unsigned int k = 0; k < nodeAnim->mNumPositionKeys; k++)
         {
@@ -407,7 +407,7 @@ AnimationClip AnimSprite3D::ExtractAnimationFromAssimp(const aiAnimation* aiAnim
             keyframes.trans[k].value = XMFLOAT3(key.mValue.x, key.mValue.y, key.mValue.z);
         }
         
-        // ‰ñ“]ƒL[ƒtƒŒ[ƒ€
+        // å›è»¢ã‚­ãƒ¼ãƒ•ãƒ¬ãƒ¼ãƒ 
         keyframes.rot.resize(nodeAnim->mNumRotationKeys);
         for (unsigned int k = 0; k < nodeAnim->mNumRotationKeys; k++)
         {
@@ -416,7 +416,7 @@ AnimationClip AnimSprite3D::ExtractAnimationFromAssimp(const aiAnimation* aiAnim
             keyframes.rot[k].value = XMFLOAT4(key.mValue.x, key.mValue.y, key.mValue.z, key.mValue.w);
         }
         
-        // ƒXƒP[ƒŠƒ“ƒOƒL[ƒtƒŒ[ƒ€
+        // ã‚¹ã‚±ãƒ¼ãƒªãƒ³ã‚°ã‚­ãƒ¼ãƒ•ãƒ¬ãƒ¼ãƒ 
         keyframes.scale.resize(nodeAnim->mNumScalingKeys);
         for (unsigned int k = 0; k < nodeAnim->mNumScalingKeys; k++)
         {
@@ -437,10 +437,10 @@ AnimationClip AnimSprite3D::ExtractAnimationFromAssimp(const aiAnimation* aiAnim
     return clip;
 }
 
-// ƒ{[ƒ“–¼‚©‚çƒCƒ“ƒfƒbƒNƒX‚ğ’T‚·
+// ãƒœãƒ¼ãƒ³åã‹ã‚‰ã‚¤ãƒ³ãƒ‡ãƒƒã‚¯ã‚¹ã‚’æ¢ã™
 int AnimSprite3D::FindBoneIndex(const char* boneName)
 {
-    // ƒ{[ƒ“ˆê——‚ÅŒŸõ
+    // ãƒœãƒ¼ãƒ³ä¸€è¦§ã§æ¤œç´¢
     for (int i = 0; i < m_BoneCount; i++)
     {
         if (strcmp(m_AiBones[i]->mName.data, boneName) == 0)
@@ -449,19 +449,19 @@ int AnimSprite3D::FindBoneIndex(const char* boneName)
         }
     }
     
-    // ƒ{[ƒ“‚ª‚È‚¢ê‡Aƒm[ƒhŠK‘w‚©‚çŒŸõ
-    // ƒm[ƒh–¼‚ğƒCƒ“ƒfƒbƒNƒX‚Æ‚µ‚Äg—piŠÈˆÕ“I‚È•û–@j
+    // ãƒœãƒ¼ãƒ³ãŒãªã„å ´åˆã€ãƒãƒ¼ãƒ‰éšå±¤ã‹ã‚‰æ¤œç´¢
+    // ãƒãƒ¼ãƒ‰åã‚’ã‚¤ãƒ³ãƒ‡ãƒƒã‚¯ã‚¹ã¨ã—ã¦ä½¿ç”¨ï¼ˆç°¡æ˜“çš„ãªæ–¹æ³•ï¼‰
     if (m_Model && m_Model->AiScene && m_Model->AiScene->mRootNode)
     {
-        // ƒ‹[ƒgƒm[ƒh‚©‚çŒŸõ‚µ‚ÄAƒm[ƒhŠK‘w‚Å‚ÌƒCƒ“ƒfƒbƒNƒX‚ğ•Ô‚·
-        // ŠÈ—ª‰»: ƒ`ƒƒƒlƒ‹–¼‚ªŒ©‚Â‚©‚Á‚½ê‡‚Íí‚É“¯‚¶ƒCƒ“ƒfƒbƒNƒX‚ğ•Ô‚·
+        // ãƒ«ãƒ¼ãƒˆãƒãƒ¼ãƒ‰ã‹ã‚‰æ¤œç´¢ã—ã¦ã€ãƒãƒ¼ãƒ‰éšå±¤ã§ã®ã‚¤ãƒ³ãƒ‡ãƒƒã‚¯ã‚¹ã‚’è¿”ã™
+        // ç°¡ç•¥åŒ–: ãƒãƒ£ãƒãƒ«åãŒè¦‹ã¤ã‹ã£ãŸå ´åˆã¯å¸¸ã«åŒã˜ã‚¤ãƒ³ãƒ‡ãƒƒã‚¯ã‚¹ã‚’è¿”ã™
         static std::map<std::string, int> nodeIndexMap;
         
         std::string nodeNameStr(boneName);
         if (nodeIndexMap.find(nodeNameStr) == nodeIndexMap.end())
         {
-            // ‰‚ß‚Ä‚±‚Ìƒm[ƒh–¼‚ªoŒ»‚µ‚½ê‡AV‚µ‚¢ƒCƒ“ƒfƒbƒNƒX‚ğŠ„‚è“–‚Ä
-            int newIndex = nodeIndexMap.size();
+            // åˆã‚ã¦ã“ã®ãƒãƒ¼ãƒ‰åãŒå‡ºç¾ã—ãŸå ´åˆã€æ–°ã—ã„ã‚¤ãƒ³ãƒ‡ãƒƒã‚¯ã‚¹ã‚’å‰²ã‚Šå½“ã¦
+            int newIndex = static_cast<int>(nodeIndexMap.size());
             nodeIndexMap[nodeNameStr] = newIndex;
             hal::dout << "FindBoneIndex: New node '" << boneName << "' assigned index " << newIndex << std::endl;
         }
@@ -473,7 +473,7 @@ int AnimSprite3D::FindBoneIndex(const char* boneName)
 }
 
 // ============================================================
-// •¡”ƒAƒjƒ[ƒVƒ‡ƒ“‘Î‰: FBX“à‚ÌƒAƒjƒ[ƒVƒ‡ƒ“‚ğ–¼‘O‚Å’¼ÚÄ¶
+// è¤‡æ•°ã‚¢ãƒ‹ãƒ¡ãƒ¼ã‚·ãƒ§ãƒ³å¯¾å¿œ: FBXå†…ã®ã‚¢ãƒ‹ãƒ¡ãƒ¼ã‚·ãƒ§ãƒ³ã‚’åå‰ã§ç›´æ¥å†ç”Ÿ
 // ============================================================
 
 bool AnimSprite3D::PlayAnimationByName(const char* animName, bool loop)
@@ -484,16 +484,16 @@ bool AnimSprite3D::PlayAnimationByName(const char* animName, bool loop)
         return false;
     }
 
-    // Œ»İÄ¶’†‚ÌƒAƒjƒ[ƒVƒ‡ƒ“‚Æ“¯‚¶–¼‘O‚Ìê‡‚Í–³‹
+    // ç¾åœ¨å†ç”Ÿä¸­ã®ã‚¢ãƒ‹ãƒ¡ãƒ¼ã‚·ãƒ§ãƒ³ã¨åŒã˜åå‰ã®å ´åˆã¯ç„¡è¦–
     if (m_AnimState.play && m_AnimState.currentAnimName == animName)
     {
-        hal::dout << "PlayAnimationByName: Animation '" << animName << "' is already playing, ignoring call" << std::endl;
-        return true;  // Šù‚ÉÄ¶’†‚È‚Ì‚Å¬Œ÷‚Æ‚µ‚Äˆµ‚¤
+        //hal::dout << "PlayAnimationByName: Animation '" << animName << "' is already playing, ignoring call" << std::endl;
+        return true;  // æ—¢ã«å†ç”Ÿä¸­ãªã®ã§æˆåŠŸã¨ã—ã¦æ‰±ã†
     }
 
     hal::dout << "PlayAnimationByName: Looking for '" << animName << "', numAnimations=" << m_Model->AiScene->mNumAnimations << std::endl;
 
-    // FBX“à‚©‚ç–¼‘O‚ÅƒAƒjƒ[ƒVƒ‡ƒ“‚ğŒŸõ
+    // FBXå†…ã‹ã‚‰åå‰ã§ã‚¢ãƒ‹ãƒ¡ãƒ¼ã‚·ãƒ§ãƒ³ã‚’æ¤œç´¢
     for (unsigned int i = 0; i < m_Model->AiScene->mNumAnimations; i++)
     {
         aiAnimation* aiAnim = m_Model->AiScene->mAnimations[i];
@@ -503,30 +503,30 @@ bool AnimSprite3D::PlayAnimationByName(const char* animName, bool loop)
         
         if (strcmp(aiAnim->mName.data, animName) == 0)
         {
-            // ƒAƒjƒ[ƒVƒ‡ƒ“‚ªŒ©‚Â‚©‚Á‚½
+            // ã‚¢ãƒ‹ãƒ¡ãƒ¼ã‚·ãƒ§ãƒ³ãŒè¦‹ã¤ã‹ã£ãŸ
             AnimationClip clip = ExtractAnimationFromAssimp(aiAnim);
             hal::dout << "  -> Extracted: tps=" << clip.tps << " duration=" << clip.duration << " tracks=" << clip.tracks.size() << std::endl;
             
-            // •Ê‚ÌƒAƒjƒ[ƒVƒ‡ƒ“‚ªÄ¶’†‚Ìê‡AƒuƒŒƒ“ƒh‘JˆÚ‚ğŠJn
+            // åˆ¥ã®ã‚¢ãƒ‹ãƒ¡ãƒ¼ã‚·ãƒ§ãƒ³ãŒå†ç”Ÿä¸­ã®å ´åˆã€ãƒ–ãƒ¬ãƒ³ãƒ‰é·ç§»ã‚’é–‹å§‹
             if (m_AnimState.play && m_AnimState.currentAnimName != animName)
             {
                 hal::dout << "Animation: Blending from '" << m_AnimState.currentAnimName << "' to '" << animName << "'" << std::endl;
                 
-                // Œ»İ‚Ìó‘Ô‚ğƒXƒiƒbƒvƒVƒ‡ƒbƒg
+                // ç¾åœ¨ã®çŠ¶æ…‹ã‚’ã‚¹ãƒŠãƒƒãƒ—ã‚·ãƒ§ãƒƒãƒˆ
                 m_BlendState.previousState = m_AnimState;
                 m_BlendState.targetClip = clip;
                 m_BlendState.isBlending = true;
                 m_BlendState.blendElapsed = 0.0;
-                m_BlendState.blendDuration = 0.3;  // 0.3•b‚ÅƒuƒŒƒ“ƒh
+                m_BlendState.blendDuration = 0.3;  // 0.3ç§’ã§ãƒ–ãƒ¬ãƒ³ãƒ‰
             }
             else
             {
-                // ‰‰ñ‹N“®‚Í’Êí‚ÌÄ¶ŠJn
+                // åˆå›èµ·å‹•æ™‚ã¯é€šå¸¸ã®å†ç”Ÿé–‹å§‹
                 SetAnimationClip(clip);
                 PlayAnimation(loop);
             }
             
-            m_AnimState.currentAnimName = animName;  // Œ»İÄ¶’†‚ÌƒAƒjƒ[ƒVƒ‡ƒ“–¼‚ğ•Û‘¶
+            m_AnimState.currentAnimName = animName;  // ç¾åœ¨å†ç”Ÿä¸­ã®ã‚¢ãƒ‹ãƒ¡ãƒ¼ã‚·ãƒ§ãƒ³åã‚’ä¿å­˜
             m_AnimState.loop = loop;
             
             hal::dout << "Animation '" << animName << "' started" << std::endl;
@@ -568,7 +568,7 @@ bool AnimSprite3D::PlayAnimationByIndex(unsigned int index, bool loop)
     AnimationClip clip = ExtractAnimationFromAssimp(aiAnim);
     SetAnimationClip(clip);
     PlayAnimation(loop);
-    m_AnimState.currentAnimName = aiAnim->mName.data;  // ƒAƒjƒ[ƒVƒ‡ƒ“–¼‚ğ•Û‘¶
+    m_AnimState.currentAnimName = aiAnim->mName.data;  // ã‚¢ãƒ‹ãƒ¡ãƒ¼ã‚·ãƒ§ãƒ³åã‚’ä¿å­˜
 
     hal::dout << "AnimSprite3D::PlayAnimationByIndex() - Playing animation at index " << index 
               << " (name: " << aiAnim->mName.data << ")" << std::endl;
@@ -576,14 +576,14 @@ bool AnimSprite3D::PlayAnimationByIndex(unsigned int index, bool loop)
 }
 
 // ============================================================
-// ƒuƒŒƒ“ƒh—p•â•ŠÖ”
+// ãƒ–ãƒ¬ãƒ³ãƒ‰ç”¨è£œåŠ©é–¢æ•°
 // ============================================================
 
 void AnimSprite3D::UpdateBoneMatricesForState(const AnimationState& state, BoneMatrices& outMatrices)
 {
 	if (!state.clip || state.clip->tracks.empty())
 	{
-		// ƒAƒjƒ[ƒVƒ‡ƒ“‚ª‚È‚¢ê‡‚ÍƒAƒCƒfƒ“ƒeƒBƒeƒBs—ñ‚Å‰Šú‰»
+		// ã‚¢ãƒ‹ãƒ¡ãƒ¼ã‚·ãƒ§ãƒ³ãŒãªã„å ´åˆã¯ã‚¢ã‚¤ãƒ‡ãƒ³ãƒ†ã‚£ãƒ†ã‚£è¡Œåˆ—ã§åˆæœŸåŒ–
 		for (int i = 0; i < BoneMatrices::MAX_BONES; i++)
 		{
 			outMatrices.matrices[i] = XMMatrixIdentity();
@@ -594,11 +594,11 @@ void AnimSprite3D::UpdateBoneMatricesForState(const AnimationState& state, BoneM
 	const AnimationClip& clip = *state.clip;
 	double time = state.time;
 
-	// ŠÔ‚Ì”ÍˆÍƒ`ƒFƒbƒN
+	// æ™‚é–“ã®ç¯„å›²ãƒã‚§ãƒƒã‚¯
 	if (time < 0.0) time = 0.0;
 	if (time > clip.duration) time = clip.duration;
 
-	// ƒgƒ‰ƒbƒN‚ÌƒTƒCƒY•ª‚¾‚¯s—ñ‚ğXV
+	// ãƒˆãƒ©ãƒƒã‚¯ã®ã‚µã‚¤ã‚ºåˆ†ã ã‘è¡Œåˆ—ã‚’æ›´æ–°
 	int trackSize = (int)clip.tracks.size();
 	for (int i = 0; i < trackSize && i < BoneMatrices::MAX_BONES; i++)
 	{
@@ -615,7 +615,7 @@ void AnimSprite3D::UpdateBoneMatricesForState(const AnimationState& state, BoneM
 		outMatrices.matrices[i] = scaleMat * rotMat * transMat;
 	}
 
-	// –¢g—p‚Ìƒ{[ƒ“s—ñ‚ÍƒAƒCƒfƒ“ƒeƒBƒeƒB‚Å‰Šú‰»
+	// æœªä½¿ç”¨ã®ãƒœãƒ¼ãƒ³è¡Œåˆ—ã¯ã‚¢ã‚¤ãƒ‡ãƒ³ãƒ†ã‚£ãƒ†ã‚£ã§åˆæœŸåŒ–
 	for (int i = trackSize; i < BoneMatrices::MAX_BONES; i++)
 	{
 		outMatrices.matrices[i] = XMMatrixIdentity();

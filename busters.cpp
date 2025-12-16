@@ -1,4 +1,4 @@
-#include "busters.h"
+﻿#include "busters.h"
 #include "Camera.h"
 #include "shader.h"
 #include "keyboard.h"
@@ -9,6 +9,7 @@
 #include "furniture.h"
 #include <stdlib.h>
 
+// 階層別Bustersリスト
 static Busters* g_BustersList[MAP_FLOORS];
 
 // =================================================================
@@ -25,6 +26,7 @@ Busters::Busters(const XMFLOAT3& pos, const XMFLOAT3& scale, const XMFLOAT3& rot
 	m_MoveSpeed(0.03f),
 	m_DistanceToGhost(0.0f)
 {
+	// 乱数初期化 (警告対策: キャストを追加)
 	srand((unsigned int)GetTickCount64());
 }
 
@@ -93,7 +95,7 @@ void Busters::Update(void)
 			nextStepPos.y = m_Position.y;
 		}
 
-		m_MoveSpeed = 0.06f;
+		m_MoveSpeed = 0.06f; // 少し速め
 		break;
 
 	case BUSTERS_CHASE: // 追跡
@@ -145,6 +147,7 @@ void Busters::CheckState(void)
 		return;
 	}
 
+	// 追加: 間に壁があるかチェック (視線が通っているか？)
 	bool hasWall = Field_CheckWallBetween(m_Position, ghostPos);
 
 	if (!hasWall && m_DistanceToGhost < BUSTERS_PATROL_RANGH)
@@ -247,6 +250,8 @@ void Busters::OnStopped(void)
 {
 	m_WaitTimer = 300; // 5秒停止 (長時間)
 	this->SetColor(0.5f, 0.0f, 0.5f, 1.0f); // 紫（混乱）
+	m_WaitTimer = 120; // 2秒間動かなくなる
+	this->SetColor(0.0f, 0.0f, 1.0f, 1.0f); // 青色（怯え中）
 }
 
 void Busters::SetIsGhostDiscover(bool discover)

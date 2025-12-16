@@ -1,23 +1,23 @@
-#include "debugdraw.h"
+ï»¿#include "debugdraw.h"
 #include "Camera.h"
 #include "shader.h"
 #include "keyboard.h"
 #include "sprite3d.h"
 #include "anim_sprite3d.h"
 
-AnimSprite3D* g_AnimModelDraw = NULL;  // ƒAƒjƒ[ƒVƒ‡ƒ“‘Î‰ƒ‚ƒfƒ‹
-static bool isUse = true;  // ˆ—‚Ì—LŒø/–³Œø‚ğ§Œä
+AnimSprite3D* g_AnimModelDraw = NULL;  // ã‚¢ãƒ‹ãƒ¡ãƒ¼ã‚·ãƒ§ãƒ³å¯¾å¿œãƒ¢ãƒ‡ãƒ«
+static bool isUse = true;  // å‡¦ç†ã®æœ‰åŠ¹/ç„¡åŠ¹ã‚’åˆ¶å¾¡
 
 void DebugDraw_Initialize(void)
 {
 	if (!isUse) return;
 	
-	// ƒAƒjƒ[ƒVƒ‡ƒ“‘Î‰ƒ‚ƒfƒ‹icyancube.fbxj
+	// ã‚¢ãƒ‹ãƒ¡ãƒ¼ã‚·ãƒ§ãƒ³å¯¾å¿œãƒ¢ãƒ‡ãƒ«ï¼ˆcyancube.fbxï¼‰
 	g_AnimModelDraw = new AnimSprite3D(
-		{ 0.0f, 0.0f, 0.0f },			//ˆÊ’u
-		{ 1.0f, 1.0f, 1.0f },			//ƒXƒP[ƒ‹
-		{ 0.0f, 0.0f, 0.0f },			//‰ñ“]i“xj
-		"asset\\model\\kirbyanim.fbx"	//ƒ‚ƒfƒ‹ƒpƒX
+		{ 0.0f, 0.0f, 0.0f },			//ä½ç½®
+		{ 1.0f, 1.0f, 1.0f },			//ã‚¹ã‚±ãƒ¼ãƒ«
+		{ 0.0f, 0.0f, 0.0f },			//å›è»¢ï¼ˆåº¦ï¼‰
+		"asset\\model\\kirbyanim.fbx"	//ãƒ¢ãƒ‡ãƒ«ãƒ‘ã‚¹
 	);
 }
 
@@ -25,70 +25,70 @@ void DebugDraw_Update(void)
 {
 	if (!isUse) return;
 	
-	// ƒAƒjƒ[ƒVƒ‡ƒ“XVi–ˆƒtƒŒ[ƒ€ŒÄ‚Ño‚µj
-	const float dt = 1.0f / 60.0f;  // 60FPS‘z’è
+	// ã‚¢ãƒ‹ãƒ¡ãƒ¼ã‚·ãƒ§ãƒ³æ›´æ–°ï¼ˆæ¯ãƒ•ãƒ¬ãƒ¼ãƒ å‘¼ã³å‡ºã—ï¼‰
+	const float dt = 1.0f / 60.0f;  // 60FPSæƒ³å®š
 	g_AnimModelDraw->UpdateAnimation(dt);
 
-	// ƒL[ƒ{[ƒh“ü—Í‚ÅƒAƒjƒ[ƒVƒ‡ƒ“Ø‚è‘Ö‚¦
-	// ƒJƒƒ‰‚Ìy²‰ñ“]Šp“x‚ğæ“¾iƒˆ[Šp‚ğƒ‰ƒWƒAƒ“‚É•ÏŠ·j
+	// ã‚­ãƒ¼ãƒœãƒ¼ãƒ‰å…¥åŠ›ã§ã‚¢ãƒ‹ãƒ¡ãƒ¼ã‚·ãƒ§ãƒ³åˆ‡ã‚Šæ›¿ãˆ
+	// ã‚«ãƒ¡ãƒ©ã®yè»¸å›è»¢è§’åº¦ã‚’å–å¾—ï¼ˆãƒ¨ãƒ¼è§’ã‚’ãƒ©ã‚¸ã‚¢ãƒ³ã«å¤‰æ›ï¼‰
 	const float PI = 3.14159265f;
 	float cameraYaw = Camera_GetYaw();
 	float cameraYawRad = cameraYaw * PI / 180.0f;
 	
-	// ˆÚ“®‘¬“x
+	// ç§»å‹•é€Ÿåº¦
 	const float moveSpeed = 0.028f;
 	XMFLOAT3 moveDirection = { 0.0f, 0.0f, 0.0f };
 	bool isMoving = false;
 
-	// ƒL[“ü—Í‚É‰‚¶‚½ˆÚ“®•ûŒü‚ÌŒvZ
+	// ã‚­ãƒ¼å…¥åŠ›ã«å¿œã˜ãŸç§»å‹•æ–¹å‘ã®è¨ˆç®—
 	if (Keyboard_IsKeyDown(KK_UP))
 	{
-		// ãƒL[FƒJƒƒ‰‚ªŒü‚¢‚Ä‚¢‚é•ûŒü‚Ö‘Oi
+		// ä¸Šã‚­ãƒ¼ï¼šã‚«ãƒ¡ãƒ©ãŒå‘ã„ã¦ã„ã‚‹æ–¹å‘ã¸å‰é€²
 		moveDirection.x += sinf(cameraYawRad) * moveSpeed;
 		moveDirection.z += cosf(cameraYawRad) * moveSpeed;
 		isMoving = true;
 	}
 	if (Keyboard_IsKeyDown(KK_DOWN))
 	{
-		// ‰ºƒL[FƒJƒƒ‰‚ªŒü‚¢‚Ä‚¢‚é•ûŒü‚Ì‹t•ûŒü‚ÖŒã‘Ş
+		// ä¸‹ã‚­ãƒ¼ï¼šã‚«ãƒ¡ãƒ©ãŒå‘ã„ã¦ã„ã‚‹æ–¹å‘ã®é€†æ–¹å‘ã¸å¾Œé€€
 		moveDirection.x -= sinf(cameraYawRad) * moveSpeed;
 		moveDirection.z -= cosf(cameraYawRad) * moveSpeed;
 		isMoving = true;
 	}
 	if (Keyboard_IsKeyDown(KK_LEFT))
 	{
-		// ¶ƒL[FƒJƒƒ‰‚ªŒü‚¢‚Ä‚¢‚é•ûŒü‚Ì¶•ûŒü‚ÖˆÚ“®
+		// å·¦ã‚­ãƒ¼ï¼šã‚«ãƒ¡ãƒ©ãŒå‘ã„ã¦ã„ã‚‹æ–¹å‘ã®å·¦æ–¹å‘ã¸ç§»å‹•
 		moveDirection.x -= sinf(cameraYawRad + PI / 2.0f) * moveSpeed;
 		moveDirection.z -= cosf(cameraYawRad + PI / 2.0f) * moveSpeed;
 		isMoving = true;
 	}
 	if (Keyboard_IsKeyDown(KK_RIGHT))
 	{
-		// ‰EƒL[FƒJƒƒ‰‚ªŒü‚¢‚Ä‚¢‚é•ûŒü‚Ì‰E•ûŒü‚ÖˆÚ“®
+		// å³ã‚­ãƒ¼ï¼šã‚«ãƒ¡ãƒ©ãŒå‘ã„ã¦ã„ã‚‹æ–¹å‘ã®å³æ–¹å‘ã¸ç§»å‹•
 		moveDirection.x -= sinf(cameraYawRad - PI / 2.0f) * moveSpeed;
 		moveDirection.z -= cosf(cameraYawRad - PI / 2.0f) * moveSpeed;
 		isMoving = true;
 	}
 
-	// ƒ‚ƒfƒ‹‚ÌˆÊ’u‚ğXV
+	// ãƒ¢ãƒ‡ãƒ«ã®ä½ç½®ã‚’æ›´æ–°
 	XMFLOAT3 currentPos = g_AnimModelDraw->GetPos();
 	currentPos.x += moveDirection.x;
 	currentPos.z += moveDirection.z;
 	g_AnimModelDraw->SetPos(currentPos);
 
-	// ˆÚ“®•ûŒü‚É‰‚¶‚Äƒ‚ƒfƒ‹‚ğy²‰ñ“]‚³‚¹‚é
+	// ç§»å‹•æ–¹å‘ã«å¿œã˜ã¦ãƒ¢ãƒ‡ãƒ«ã‚’yè»¸å›è»¢ã•ã›ã‚‹
 	if (isMoving)
 	{
-		// ˆÚ“®•ûŒü‚Ìy²‰ñ“]Šp“x‚ğŒvZiƒ‰ƒWƒAƒ“‚©‚ç“x”–@‚Ö•ÏŠ·j
+		// ç§»å‹•æ–¹å‘ã®yè»¸å›è»¢è§’åº¦ã‚’è¨ˆç®—ï¼ˆãƒ©ã‚¸ã‚¢ãƒ³ã‹ã‚‰åº¦æ•°æ³•ã¸å¤‰æ›ï¼‰
 		float targetAngle = atan2f(-moveDirection.x, -moveDirection.z) * 180.0f / PI;
 		XMFLOAT3 currentRotation = g_AnimModelDraw->GetRot();
 		
-		// Šp“x‚Ì·•ª‚ğŒvZi-180“x`180“x‚Ì”ÍˆÍ‚É³‹K‰»j
+		// è§’åº¦ã®å·®åˆ†ã‚’è¨ˆç®—ï¼ˆ-180åº¦ï½180åº¦ã®ç¯„å›²ã«æ­£è¦åŒ–ï¼‰
 		float angleDiff = targetAngle - currentRotation.y;
 		while (angleDiff > 180.0f) angleDiff -= 360.0f;
 		while (angleDiff < -180.0f) angleDiff += 360.0f;
 		
-		// –Ú•WŠp“x‚ÉŒü‚¯‚ÄƒXƒ€[ƒY‚É‰ñ“]i‰ñ“]‘¬“x‚Í5“x/ƒtƒŒ[ƒ€j
+		// ç›®æ¨™è§’åº¦ã«å‘ã‘ã¦ã‚¹ãƒ ãƒ¼ã‚ºã«å›è»¢ï¼ˆå›è»¢é€Ÿåº¦ã¯5åº¦/ãƒ•ãƒ¬ãƒ¼ãƒ ï¼‰
 		const float rotationSpeed = 5.0f;
 		if (fabsf(angleDiff) > rotationSpeed)
 		{
@@ -101,11 +101,11 @@ void DebugDraw_Update(void)
 		
 		g_AnimModelDraw->SetRot(currentRotation);
 		
-		g_AnimModelDraw->PlayAnimationByName("run", true);
+		g_AnimModelDraw->PlayAnimationByName("run", true);	// ç§»å‹•ä¸­ã¯èµ°ã‚‹ã‚¢ãƒ‹ãƒ¡ãƒ¼ã‚·ãƒ§ãƒ³
 	}
 	else
 	{
-		g_AnimModelDraw->PlayAnimationByName("wait", true);
+		g_AnimModelDraw->PlayAnimationByName("wait", true);	// åœæ­¢ä¸­ã¯å¾…æ©Ÿã‚¢ãƒ‹ãƒ¡ãƒ¼ã‚·ãƒ§ãƒ³
 	}
 
 }
@@ -114,7 +114,7 @@ void DebugDraw_Draw(void)
 {
 	if (!isUse) return;
 	
-	g_AnimModelDraw->Draw();  // ƒAƒjƒ[ƒVƒ‡ƒ“‘Î‰ƒ‚ƒfƒ‹‚ğ•`‰æ
+	g_AnimModelDraw->Draw();  // ã‚¢ãƒ‹ãƒ¡ãƒ¼ã‚·ãƒ§ãƒ³å¯¾å¿œãƒ¢ãƒ‡ãƒ«ã‚’æç”»
 }
 
 void DebugDraw_Finalize(void)
