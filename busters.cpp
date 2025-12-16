@@ -9,7 +9,6 @@
 #include "furniture.h"
 #include <stdlib.h>
 
-// 階層別Bustersリスト
 static Busters* g_BustersList[MAP_FLOORS];
 
 // =================================================================
@@ -26,21 +25,23 @@ Busters::Busters(const XMFLOAT3& pos, const XMFLOAT3& scale, const XMFLOAT3& rot
 	m_MoveSpeed(0.03f),
 	m_DistanceToGhost(0.0f)
 {
-	// 乱数初期化 (警告対策: キャストを追加)
 	srand((unsigned int)GetTickCount64());
 }
 
 void Busters::Update(void)
 {
 	JumpUpdate(*(Transform3D*)this);
-	CheckState();
 
-	// 停止タイマーがある場合は動かない (足止め・待機)
+	// 停止中（リアクション中）は、思考(CheckState)も移動もしない
+	// これにより、色がCheckStateによって勝手に上書きされるのを防ぐ
 	if (m_WaitTimer > 0)
 	{
 		m_WaitTimer--;
-		return;
+		return; // ここで処理を終える
 	}
+
+	// タイマーが0の時だけ、周りを見て(CheckState)移動する
+	CheckState();
 
 	XMFLOAT3 nextStepPos = m_Position;
 
@@ -84,7 +85,7 @@ void Busters::Update(void)
 		m_MoveSpeed = 0.03f;
 		break;
 
-	case BUSTERS_SUSPICION: // 警戒（おびき寄せられた時もこれを使う）
+	case BUSTERS_SUSPICION: // 警戒
 		m_PathList.clear();
 		m_TargetFurnitureIndex = -1;
 
@@ -95,7 +96,7 @@ void Busters::Update(void)
 			nextStepPos.y = m_Position.y;
 		}
 
-		m_MoveSpeed = 0.06f; // 少し速め
+		m_MoveSpeed = 0.06f;
 		break;
 
 	case BUSTERS_CHASE: // 追跡
@@ -118,7 +119,7 @@ void Busters::CheckState(void)
 	Ghost* ghost = GetGhost();
 	if (!ghost) return;
 
-	// 停止中（足止め中や驚き中）は状態遷移しない
+	// すでにWaitTimerがある場合は状態遷移させない
 	if (m_WaitTimer > 0) return;
 
 	XMFLOAT3 ghostPos = ghost->GetPos();
@@ -129,25 +130,24 @@ void Busters::CheckState(void)
 	// 変身中
 	if (ghost->GetState() == GS_TRANSFORM || ghost->GetState() == GS_SCARE)
 	{
-		// おびき寄せ(SUSPICION)の場合は、そのまま近づかせるためSEARCHに戻さない
-		if (m_State != BUSTERS_SEARCH && m_State != BUSTERS_SUSPICION)
+		// 警戒状態ですでに近くにいるなら、Searchに戻ってキョロキョロする
+		if (m_State == BUSTERS_SUSPICION && m_DistanceToGhost < 2.0f)
+		{
+			m_State = BUSTERS_SEARCH;
+			this->ResetColor();
+			m_WaitTimer = 60;
+		}
+		// それ以外でSearchでもSuspicionでもなければSearchに戻す
+		else if (m_State != BUSTERS_SEARCH && m_State != BUSTERS_SUSPICION)
 		{
 			m_State = BUSTERS_SEARCH;
 			this->ResetColor();
 			ghost->SetIsDetectedByBuster(false);
 			m_WaitTimer = 60;
 		}
-		// おびき寄せ中の場合、距離が近くなったら解除
-		if (m_State == BUSTERS_SUSPICION && m_DistanceToGhost < 2.0f)
-		{
-			m_State = BUSTERS_SEARCH;
-			this->ResetColor();
-			m_WaitTimer = 60; // 到着したのでキョロキョロ
-		}
 		return;
 	}
 
-	// 追加: 間に壁があるかチェック (視線が通っているか？)
 	bool hasWall = Field_CheckWallBetween(m_Position, ghostPos);
 
 	if (!hasWall && m_DistanceToGhost < BUSTERS_PATROL_RANGH)
@@ -239,23 +239,26 @@ void Busters::OnLured(XMFLOAT3 targetPos)
 {
 	// 警戒状態にして強制的にターゲット(幽霊/家具)に向かわせる
 	m_State = BUSTERS_SUSPICION;
-	this->SetColor(0.0f, 1.0f, 1.0f, 1.0f); // シアン（気付いた）
+	this->SetColor(0.0f, 1.0f, 1.0f, 1.0f); // シアン
 
-	// パスをクリアして直線的に向かうようにする
+	// 1秒間停止タイマーを入れる
+	m_WaitTimer = 60;
+
 	m_PathList.clear();
 }
 
 // 足止めされた時
 void Busters::OnStopped(void)
 {
-	m_WaitTimer = 300; // 5秒停止 (長時間)
-	this->SetColor(0.5f, 0.0f, 0.5f, 1.0f); // 紫（混乱）
-	m_WaitTimer = 120; // 2秒間動かなくなる
-	this->SetColor(0.0f, 0.0f, 1.0f, 1.0f); // 青色（怯え中）
+	m_WaitTimer = 300; // 5秒停止
+	this->SetColor(0.5f, 0.0f, 0.5f, 1.0f); // 紫
 }
 
 void Busters::SetIsGhostDiscover(bool discover)
 {
+	// WaitTimer中は色を変えない
+	if (m_WaitTimer > 0) return;
+
 	if (discover) this->SetColor(0.0f, 1.0f, 0.0f, 1.0f);
 	else this->ResetColor();
 }
