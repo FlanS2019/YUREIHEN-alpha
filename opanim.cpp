@@ -48,22 +48,9 @@ static float g_basutaScale = 1.0f;                     // 追加: basuta 用ス�
 static const float g_basutaTargetScale = 0.60f;        // basuta 縮小後スケール
 static const float g_basutaShrinkStart = 500.0f;       // 近づきはじめる距離（調整可）
 
-// bikkuri（ビックリマーク）表示管理 - タイマー方式に変更（フェード終了からの遅延）
-static bool g_bikkuriShown = false;       // 現在表示中か
-static float g_bikkuriTimer = 0.0f;
-static const float g_bikkuriDuration = 0.9f;
-static bool g_bikkuriFlip = false;        // 反転フラグ（描画時使用）
-static const float g_bikkuriLeadTime = 0.35f;
-static bool g_bikkuriShownOnce = false;   // 描画確定後に true になる（再表示防止）
-
 // フェード終了後からの遅延で出現させるための変数
 static bool g_fadeEnded = false;
 static float g_timeSinceFadeEnd = 0.0f;
-static const float g_bikkuriAfterFadeDelay = 4.0f; // フェード終了から何秒後に表示するか
-
-// タイマー方式用（既存互換で残す — 現状はフェード終了遅延を優先）
-static float g_bikkuriTriggerTime = -1.0f;             // 未設定時は -1
-static const float g_bikkuriBasutaStartRef = 0.8f;     // basuta 開始参照時間（OpAnim_Update 内の basutaStart と整合）
 
 // inazuma（稲妻）管理（右端に表示、ランダム発生・フラッシュ演出）
 static float g_inazumaTimer = 0.0f;
@@ -205,17 +192,26 @@ void OpAnim_Initialize(ID3D11Device* pDevice, ID3D11DeviceContext* pContext)
         L"asset\\yureihen\\inazuma2.png"   // テクスチャパス
     );
 
+    // inazuma スプライト（修正: basuta を上書きしていた箇所を修正して別インスタンスにする）
+    g_inazumaSprite = new Sprite(
+        XMFLOAT2(0.0f, 0.0f),           // 初期位置（描画時に更新）
+        XMFLOAT2(300.0f, 720.0f),         // 稲妻は縦長にしておく
+        0.0f,                             // 回転
+        XMFLOAT4(1.0f, 1.0f, 1.0f, 0.0f), // 色（初期状態では透明）
+        BLENDSTATE_ALFA,                  // ブレンドステート
+        L"asset\\yureihen\\kuromurasaki.png"   // テクスチャパス
+    );
+
     // Sprite 側とは別に、ここで描画に使用する SRV をロードしておく
     for (int i = 0; i < 5; ++i) g_Texture[i] = nullptr;
     g_Texture[0] = LoadTexture(L"asset\\yureihen\\yakata_jimen1.png");
     g_Texture[1] = LoadTexture(L"asset\\yureihen\\yurei1.png");
     g_Texture[2] = LoadTexture(L"asset\\yureihen\\basuta1.png");
-    g_Texture[3] = LoadTexture(L"asset\\yureihen\\bikkuri.png");
-    g_Texture[4] = LoadTexture(L"asset\\yureihen\\inazuma2.png");
+    g_Texture[3] = LoadTexture(L"asset\\yureihen\\inazuma2.png");
+    g_Texture[4] = LoadTexture(L"asset\\yureihen\\kuromurasaki.png");
 
-    // 問題：配列サイズ4とループ5が不一致。テクスチャは実質4つ
     // LoadTexture が失敗した場合は目印になる 1x1 テクスチャで置き換える（NULL 回避）
-    for (int i = 0; i < 5; ++i)
+    for (int i = 0; i < 4; ++i)
     {
         if (!g_Texture[i] && g_pDevice)
         {
@@ -254,10 +250,6 @@ void OpAnim_Initialize(ID3D11Device* pDevice, ID3D11DeviceContext* pContext)
     // フェード関連リセット
     g_fadeEnded = false;
     g_timeSinceFadeEnd = 0.0f;
-    // bikkuri フラグ初期化
-    g_bikkuriShown = false;
-    g_bikkuriShownOnce = false;
-    g_bikkuriTimer = 0.0f;
 }
 
 void OpAnim_Finalize(void)
@@ -293,14 +285,6 @@ void OpAnim_Update()
 
     const float delta = 1.0f / 60.0f;
     timer += delta;
-
-    // 初期化されていない場合、タイマー方式の bikkuri トリガーをセット（互換）
-    if (g_bikkuriTriggerTime < 0.0f)
-    {
-        // g_bikkuriBasutaStartRef を基準に、リード時間分前にトリガー設定（未使用だが残す）
-        g_bikkuriTriggerTime = g_bikkuriBasutaStartRef - g_bikkuriLeadTime;
-        if (g_bikkuriTriggerTime < 0.0f) g_bikkuriTriggerTime = 0.0f;
-    }
 
     // --- 稲妻ロジック: ランダム間隔で短時間のストライクを作る ---
     // 次の発生までカウントダウン
@@ -355,17 +339,8 @@ void OpAnim_Update()
     {
         g_shrinkTriggered = true;
         g_shrinkTimer = 0.0f;
-
-        // ここで bikkuri を即時表示する（縮小アニメ開始に連動）
-        // 既に表示中または描画確定済みでなければトリガー
-        if (!g_bikkuriShown && !g_bikkuriShownOnce)
-        {
-            // 表示の向きは幽霊の向きに合わせる
-            g_bikkuriFlip = g_ghostFacingLeft;
-            g_bikkuriShown = true;
-            g_bikkuriTimer = 0.0f;
-        }
     }
+
     // フェード開始トリガー（既存）
     if (!fadeStarted && timer > 7.0f && GetFadeState() == FADE_NONE)
     {
@@ -379,19 +354,6 @@ void OpAnim_Update()
     {
         g_fadeEnded = true;
         g_timeSinceFadeEnd = 0.0f;
-    }
-
-    // フェード終了後の遅延で bikkuri を表示（1 回だけ）
-    if (g_fadeEnded && !g_bikkuriShownOnce && !g_bikkuriShown)
-    {
-        g_timeSinceFadeEnd += delta;
-        if (g_timeSinceFadeEnd >= g_bikkuriAfterFadeDelay)
-        {
-            // ghost の向きに寄せて表示（表示向きはその時点の幽霊向きで決定）
-            g_bikkuriFlip = g_ghostFacingLeft;
-            g_bikkuriShown = true;
-            g_bikkuriTimer = 0.0f;
-        }
     }
 
     if (!g_positionsInitialized)
@@ -421,18 +383,11 @@ void OpAnim_Update()
         if (alpha[1] > 1.0f) alpha[1] = 1.0f;
     }
 
-    // basuta 到来前リードはタイマートリガーに置き換え済み（ただしフォールバックは残す）
     if (timer > basutaStart)
     {
         alpha[2] += delta / fadeDuration;
         if (alpha[2] > 1.0f) alpha[2] = 1.0f;
 
-        // フォールバック: もしタイマーで出なかった場合、basuta 到来時点の判定で表示
-        if (!g_basutaMoving && !g_bikkuriShown && !g_bikkuriShownOnce)
-        {
-            g_bikkuriFlip = (g_basutaTarget.x < g_basutaPos.x);
-            g_bikkuriShown = true; g_bikkuriTimer = 0.0f;
-        }
         g_basutaMoving = true;
     }
 
@@ -505,18 +460,6 @@ void OpAnim_Update()
     {
         // 動いていないときは通常サイズに戻す
         g_basutaScale = 1.0f;
-    }
-
-    // bikkuri タイマー（表示中は Update で時間を管理）
-    if (g_bikkuriShown)
-    {
-        g_bikkuriTimer += delta;
-        if (g_bikkuriTimer >= g_bikkuriDuration)
-        {
-            g_bikkuriShown = false;
-            g_bikkuriTimer = 0.0f;
-            // g_bikkuriShownOnce は描画が確実に行われた後に LogoDraw (OpAnimDraw) で true にする
-        }
     }
 
     // 幽霊状態管理（既存ロジックを簡潔に維持）
@@ -636,7 +579,7 @@ void OpAnim_Update()
 
     if (Keyboard_IsKeyDownTrigger(KK_E)) SetScene(SCENE_TITLE);
 
-    // フレーム終わりに前フレーム向きを更新（bikkuri トリガーはこの更新より前に行われる）
+    // フレーム終わりに前フレーム向きを更新
     g_prevGhostFacingLeft = g_ghostFacingLeft;
 }
 
@@ -698,7 +641,6 @@ void OpAnimDraw(void)
         }
     }
 
-    // 以下は既存の描画処理をそのまま維持（屋敷・幽霊・basuta・bikkuri）
     // 屋敷
     if (g_Texture[0])
     {
@@ -725,40 +667,6 @@ void OpAnimDraw(void)
         XMFLOAT2 drawPos = { g_basutaPos.x + g_basutaOffset.x, g_basutaPos.y + g_basutaOffset.y };
         XMFLOAT2 basutaSize = { g_imageSize.x * g_basutaScale, g_imageSize.y * g_basutaScale };
         Sprite_Single_Draw(drawPos, basutaSize, 0.0f, col2, BLENDSTATE_ALFA, g_Texture[2]);
-    }
-
-    // bikkuri（位置を幽霊により近づける）
-    if (g_bikkuriShown && g_Texture[3])
-    {
-        XMFLOAT2 bsize = { 180.0f, 180.0f };
-        XMFLOAT2 bpos;
-
-        // 幽霊にもっと近づける: 横は幽霊の向きに寄せて、縦はやや上に寄せる
-        float horizontalOffset = g_imageSize.x * 0.22f;  // 以前より小さめ（近づける）
-        float verticalOffsetFactor = 0.35f;              // 以前の 0.45 -> 0.35 にして近づける
-
-        float faceOffset = g_ghostFacingLeft ? -horizontalOffset : horizontalOffset;
-        bpos.x = g_ghostPos.x + g_ghostOffset.x + faceOffset;
-        bpos.y = g_ghostPos.y + g_ghostOffset.y + (g_imageSize.y * verticalOffsetFactor);
-
-        float halfH = bsize.y * 0.5f;
-        const float margin = 8.0f;
-        if (bpos.y + halfH + margin > screenHeight) bpos.y = screenHeight - halfH - margin;
-        if (bpos.y - halfH - margin < 0.0f) bpos.y = halfH + margin;
-
-        if (g_SolidTex)
-        {
-            g_pContext->PSSetShaderResources(0, 1, &g_SolidTex);
-            XMFLOAT4 dbgBg = { 0.0f,0.0f,0.0f,0.45f };
-            XMFLOAT2 bgSize = { bsize.x + 20.0f, bsize.y + 20.0f };
-            Sprite_Single_Draw({ bpos.x, bpos.y }, bgSize, 0.0f, dbgBg, BLENDSTATE_ALFA, g_SolidTex);
-        }
-
-        g_pContext->PSSetShaderResources(0, 1, &g_Texture[3]);
-        FLIPTYPE2D bflip = g_bikkuriFlip ? FLIPTYPE2D::FLIPTYPE2D_HORIZONTAL : FLIPTYPE2D::FLIPTYPE2D_NONE;
-        Sprite_Single_Draw(bpos, bsize, 0.0f, XMFLOAT4{ 1,1,1,1 }, BLENDSTATE_ALFA, g_Texture[3], bflip);
-
-        if (!g_bikkuriShownOnce) g_bikkuriShownOnce = true;
     }
 
     // --- 稲妻描画: 画面右端に複数ボルト＋画面フラッシュ ---
@@ -819,4 +727,3 @@ void OpAnimDraw(void)
         }
     }
 }
-
