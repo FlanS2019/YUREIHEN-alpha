@@ -41,7 +41,7 @@ void Ghost_Update(void)
 		break;
 	case GS_FURNITURE_FOUND:
 		g_Ghost->SetIsDraw(true);		// 描画有効化
-		g_Ghost->Move();				// 移動処理
+		g_Ghost->Move();				// 移動処理5e
 		g_Ghost->FurnitureSearch();		// 近くの家具検知と色変更
 		g_Ghost->FloorMove();			// 階段移動処理
 
