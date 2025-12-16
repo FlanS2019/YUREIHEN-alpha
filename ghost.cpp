@@ -237,7 +237,7 @@ void Ghost::ScareStart(void)
 			// 敵に家具の位置を教える
 			BustersLured(ghostPos);
 			// コンボは増えないが、おびき寄せ成功として少しゲージが増えてもいいかも
-			AddScareGauge(0.1);
+			AddScareGauge(0.1f);
 		}
 		break;
 
