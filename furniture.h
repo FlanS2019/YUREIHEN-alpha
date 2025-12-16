@@ -10,55 +10,56 @@
 
 using namespace DirectX;
 
-// Furniture クラス - 色を変更でき、ジャンプ機能を持つ
+// アクションの種類
+enum FURNITURE_ACTION
+{
+	ACTION_SCARE,	// 既存の驚かし（ジャンプ）
+	ACTION_LURE,	// おびき寄せ（振動）
+	ACTION_STOP,	// 足止め（回転）
+};
+
+// Furniture クラス
 class Furniture : public Sprite3D, public Jump
 {
 protected:
-	//ghostとの距離を保持する変数
 	float m_DistanceToGhost;
+
+	// アクション制御用
+	FURNITURE_ACTION m_ActionType;
+	bool m_IsActing;
+	float m_ActionTimer;
+	XMFLOAT3 m_BasePos; // 振動アニメーション用
+
 public:
-	Furniture(const XMFLOAT3& pos, const XMFLOAT3& scale, const XMFLOAT3& rot, const char* pass)
+	// コンストラクタに actionType を追加
+	Furniture(const XMFLOAT3& pos, const XMFLOAT3& scale, const XMFLOAT3& rot, const char* pass, FURNITURE_ACTION actionType = ACTION_SCARE)
 		: Sprite3D(pos, scale, rot, pass),
-		  Jump(0.01f, 0.2f, 1.0f), m_DistanceToGhost()  // gravity, jumpPower, groundLevel
+		Jump(0.01f, 0.2f, pos.y), // 地面の高さを初期Y座標とする
+		m_DistanceToGhost(0.0f),
+		m_ActionType(actionType),
+		m_IsActing(false),
+		m_ActionTimer(0.0f),
+		m_BasePos(pos)
 	{
 	}
 
 	~Furniture() = default;
 
-	// 更新メソッド（ジャンプ処理とghostとの距離）
-	void Update(void)
-	{
-		// ジャンプ状態の更新（基クラスJumpのJumpUpdateを呼ぶ）
-		// Furniture は Sprite3D でもあり Jump でもあるため、
-		// Sprite3D（Transform3D）への参照として渡す
-		JumpUpdate(*(Transform3D*)this);
+	void Update(void);
 
-		// ghostとの距離計算
-		// Ghost と Furniture の距離を計算
-		XMFLOAT3 furniturePos = m_Position;
-		XMFLOAT3 ghostPos = GetGhost()->GetPos();
-		XMVECTOR ghostVec = XMLoadFloat3(&ghostPos);
-		XMVECTOR furnitureVec = XMLoadFloat3(&furniturePos);
-		XMVECTOR distVec = XMVectorSubtract(furnitureVec, ghostVec);
-		m_DistanceToGhost =  XMVectorGetX(XMVector3Length(distVec));
-	}
+	// アクション開始
+	void StartAction(void);
 
-	//ゲッター	
-	float GetDistanceToGhost(void) const
-	{
-		return m_DistanceToGhost;
-	}
+	// ゲッター
+	float GetDistanceToGhost(void) const { return m_DistanceToGhost; }
+	FURNITURE_ACTION GetActionType(void) const { return m_ActionType; }
+	bool GetIsActing(void) const { return m_IsActing || GetIsJumping(); }
 };
 
 void Furniture_Initialize(void);
 void Furniture_Update(void);
 void Furniture_Draw(void);
 void Furniture_Finalize(void);
-
-// ゲッター関数
 Furniture* GetFurniture(int index);
-
-// ジャンプ関数
 bool FurnitureScareStart(int index);
-
 bool FurnitureScareEnded(int index);

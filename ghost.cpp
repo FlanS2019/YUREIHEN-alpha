@@ -31,11 +31,11 @@ void Ghost_Initialize(ID3D11Device* pDevice, ID3D11DeviceContext* pContext)
 	{
 		XMFLOAT3 circlePos = g_Ghost->GetPos();
 
-		circlePos.y = 0.05f;
+		circlePos.y = 0.01f;
 
 		g_Ghost->m_pRangeCircle = new Sprite3D(
 			circlePos,
-			{ SCARE_RANGE, 1.0f, SCARE_RANGE },
+			{ SCARE_RANGE * 2.0, 0.1f, SCARE_RANGE * 2.0 },
 			{ 0.0f, 0.0f, 0.0f },
 			"asset\\model\\circle.fbx"
 		);
@@ -73,23 +73,20 @@ void Ghost_Update(void)
 
 		break;
 	case GS_TRANSFORM:
-		g_Ghost->SetIsDraw(false);		// 描画無効化（家具になっているため）
-		g_Ghost->Transforming();	    // 変身中処理
+		g_Ghost->SetIsDraw(false);
+		g_Ghost->Transforming();
 
-		// 検出範囲の円を更新（位置を家具の足元に合わせる）
+		// 検出範囲の円を更新
 		if (g_Ghost->m_pRangeCircle)
 		{
 			Furniture* pFurniture = GetFurniture(g_Ghost->GetInRangeNum());
 			if (pFurniture)
 			{
 				XMFLOAT3 circlePos = pFurniture->GetPos();
-				// 家具のモデルサイズの半分を取得し、足元のY座標を計算
-				XMFLOAT3 furnitureModelSize = pFurniture->GetModelSize();
-				XMFLOAT3 furnitureScale = pFurniture->GetScale();
 
 				float groundY = pFurniture->GetGroundLevel();
 
-				circlePos.y = groundY + 0.05f;
+				circlePos.y = groundY + 0.01f;
 
 				g_Ghost->m_pRangeCircle->SetPos(circlePos);
 			}
@@ -195,29 +192,56 @@ void Ghost::Transforming(void)
 
 void Ghost::ScareStart(void)
 {
+	// 家具のアクション開始（見た目）
 	FurnitureScareStart(m_InRangeFurnitureNum);
 
-	// Ghost（Furniture） と buster の距離を計算
-	Busters* pBuster = GetBusters();
-	if (pBuster)
-	{
-		XMFLOAT3 busterPos = pBuster->GetPos();
-		XMFLOAT3 ghostPos = GetPos();
-		XMVECTOR ghostVec = XMLoadFloat3(&ghostPos);
-		XMVECTOR busterVec = XMLoadFloat3(&busterPos);
-		XMVECTOR distVec = XMVectorSubtract(busterVec, ghostVec);
-		float distance = XMVectorGetX(XMVector3Length(distVec));
+	// 家具の情報を取得
+	Furniture* pFurniture = GetFurniture(m_InRangeFurnitureNum);
+	if (!pFurniture) return;
 
-		//距離が一定以下なら驚かせる
+	// バスターズとの距離計算
+	Busters* pBuster = GetBusters();
+	if (!pBuster) return;
+
+	XMFLOAT3 busterPos = pBuster->GetPos();
+	XMFLOAT3 ghostPos = GetPos();
+	XMVECTOR distVec = XMVectorSubtract(XMLoadFloat3(&busterPos), XMLoadFloat3(&ghostPos));
+	float distance = XMVectorGetX(XMVector3Length(distVec));
+
+	// アクションタイプによって効果を変える
+	FURNITURE_ACTION action = pFurniture->GetActionType();
+
+	switch (action)
+	{
+	case ACTION_SCARE: // 既存：範囲小、ダメージ大
 		if (distance <= SCARE_RANGE)
 		{
-			BustersScare();			// バスターズを驚かせる
-			ScareComboUP();			//恐怖コンボを上げる
-			AddScareGauge(1.0f * UI_ScareCombo_GetNumber()); // 恐怖ゲージ加算
+			BustersScare(); // 驚く
+			ScareComboUP();
+			AddScareGauge(1.0f * UI_ScareCombo_GetNumber());
 		}
+		break;
+
+	case ACTION_LURE: // おびき寄せ：範囲大（2倍）
+		if (distance <= SCARE_RANGE * 2.0f)
+		{
+			// 敵に家具の位置を教える
+			BustersLured(ghostPos);
+			// コンボは増えないが、おびき寄せ成功として少しゲージが増えてもいいかも
+			AddScareGauge(0.1);
+		}
+		break;
+
+	case ACTION_STOP: // 足止め：範囲中、ダメージ小、長時間停止
+		if (distance <= SCARE_RANGE)
+		{
+			BustersStopped(); // 足止め
+			ScareComboUP();
+			AddScareGauge(0.1f * UI_ScareCombo_GetNumber());
+		}
+		break;
 	}
 }
-
 void Ghost::FurnitureSearch(void)
 {
 	float tempDistance = 999999.0f;
@@ -423,3 +447,4 @@ Ghost* GetGhost(void)
 {
 	return g_Ghost;
 }
+

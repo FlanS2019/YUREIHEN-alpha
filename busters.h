@@ -40,6 +40,8 @@ public:
 	void CheckState(void);
 	void MoveTo(XMFLOAT3 targetPos);
 	void OnScared(void);
+	void OnLured(XMFLOAT3 targetPos); // ‚¨‚Ñ‚«Šñ‚¹‚ç‚ê‚é
+	void OnStopped(void);             // ‘«Ž~‚ß‚³‚ê‚é
 
 	void SetIsGhostDiscover(bool discover);
 };
@@ -51,3 +53,5 @@ void Busters_Finalize(void);
 
 Busters* GetBusters(void);
 void BustersScare(void);
+void BustersLured(XMFLOAT3 pos);
+void BustersStopped(void);
