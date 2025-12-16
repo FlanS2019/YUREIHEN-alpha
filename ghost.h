@@ -88,7 +88,7 @@ public:
 	void FloorMove(void);		// 階段移動処理
 	void ScareStart(void);		// 驚かせ処理
 	void ResetPos(void);		// 状態リセット
-	void DrawRange(void);		// 範囲描画
+
 
 	// 定数アクセサ
 	static float GetDetectionRange(void) { return FURNITURE_DETECTION_RANGE; }

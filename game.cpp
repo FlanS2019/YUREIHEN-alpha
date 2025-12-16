@@ -66,10 +66,10 @@ void Game_Draw(void)
 	SetDepthTest(true);
 
 	Field_Draw();
-	
+	Busters_Draw();
 	Furniture_Draw();
 	Ghost_Draw();
-	Busters_Draw();
+	
 
 	SetDepthTest(false);
 	MainLight->SetEnable(false);

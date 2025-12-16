@@ -87,10 +87,9 @@ void Ghost_Update(void)
 				XMFLOAT3 furnitureModelSize = pFurniture->GetModelSize();
 				XMFLOAT3 furnitureScale = pFurniture->GetScale();
 
-				// 家具の足元のY座標を計算（家具の中心Y - (モデル高さ * スケール / 2)）
-				float furnitureBottomY = pFurniture->GetPos().y - (furnitureModelSize.y * furnitureScale.y / 2.0f);
+				float groundY = pFurniture->GetGroundLevel();
 
-				circlePos.y = furnitureBottomY + 0.005f;
+				circlePos.y = groundY + 0.05f;
 
 				g_Ghost->m_pRangeCircle->SetPos(circlePos);
 			}
