@@ -36,7 +36,7 @@ static int g_LastFrameFloor = -1;
 static XMFLOAT2 WorldToScreen(const XMFLOAT3& worldPos)
 {
 	Camera* camera = GetCamera();
-	// 修正: 明示的なコンストラクタを使用
+	// 明示的なコンストラクタを使用
 	if (!camera) return XMFLOAT2(-100.0f, -100.0f);
 
 	XMMATRIX view = camera->GetView();
@@ -231,7 +231,7 @@ void UI_Update(void)
 
 			XMFLOAT2 screenPos = WorldToScreen(headPos);
 
-			// 修正: SetPos には XMFLOAT2 を渡す
+			// SetPos には XMFLOAT2 を渡す
 			if (g_GuideFloorNum)
 			{
 				g_GuideFloorNum->SetPos(XMFLOAT2(screenPos.x - 25.0f, screenPos.y));
@@ -256,7 +256,7 @@ void UI_Update(void)
 		flash += 0.1f;
 		float alpha = 0.5f + sinf(flash) * 0.5f;
 
-		// 修正: SetColor には XMFLOAT4 を渡す
+		// SetColor には XMFLOAT4 を渡す
 		if (g_GuideClick)
 			g_GuideClick->SetColor(XMFLOAT4(1.0f, 1.0f, 1.0f, alpha));
 	}
