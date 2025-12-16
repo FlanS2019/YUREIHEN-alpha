@@ -207,12 +207,12 @@ void Ghost::ScareStart(void)
 	if (!pBuster) return;
 
 	XMFLOAT3 busterPos = pBuster->GetPos();
+
 	if (g_pScareSound)
 	{
 		PlaySound(g_pScareSound, false);
 	}
 
-	XMFLOAT3 busterPos = GetBusters()->GetPos();
 	XMFLOAT3 ghostPos = GetPos();
 	XMVECTOR distVec = XMVectorSubtract(XMLoadFloat3(&busterPos), XMLoadFloat3(&ghostPos));
 	float distance = XMVectorGetX(XMVector3Length(distVec));

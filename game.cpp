@@ -80,7 +80,7 @@ void Game_Draw(void)
 	Busters_Draw();
 	Furniture_Draw();
 	Ghost_Draw();
-	
+	DebugDraw_Draw();
 
 	SetDepthTest(false);
 	MainLight->SetEnable(false);

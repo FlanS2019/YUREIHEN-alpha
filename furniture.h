@@ -18,10 +18,6 @@ enum FURNITURE_ACTION
 	ACTION_STOP,	// ���~�߁i��]�j
 };
 
-// Furniture �N���X
-class Furniture : public Sprite3D, public Jump
-{
-protected:
 // Furniture クラス - 色を変更でき、ジャンプ機能を持つ
 class Furniture : public Sprite3D, public Jump
 {
