@@ -1,4 +1,4 @@
-#pragma once
+ï»¿#pragma once
 
 #include <d3d11.h>
 #include <DirectXMath.h>
@@ -8,13 +8,13 @@
 
 using namespace DirectX;
 
-// ƒuƒƒbƒN‚Ìí—Ş
+// ãƒ–ãƒ­ãƒƒã‚¯ã®ç¨®é¡
 enum FIELD_TYPE
 {
 	FIELD_NONE = 0,
-	FIELD_BOX,			// •ÇE°
-	FIELD_STAIRS_UP,	// ã‚èŠK’i (“¥‚Ş‚Æã‚ÌŠK‚Ö)
-	FIELD_STAIRS_DOWN,	// ‰º‚èŠK’i (“¥‚Ş‚Æ‰º‚ÌŠK‚Ö)
+	FIELD_BOX,			// å£ãƒ»åºŠ
+	FIELD_STAIRS_UP,	// ä¸Šã‚Šéšæ®µ (è¸ã‚€ã¨ä¸Šã®éšã¸)
+	FIELD_STAIRS_DOWN,	// ä¸‹ã‚Šéšæ®µ (è¸ã‚€ã¨ä¸‹ã®éšã¸)
 	FIELD_MAX
 };
 
@@ -24,6 +24,7 @@ public:
 	XMFLOAT3 pos;
 	FIELD_TYPE no;
 	float rotY;
+	bool isHidden;
 };
 
 void Field_Initialize(ID3D11Device* pDevice, ID3D11DeviceContext* pContext);
@@ -31,15 +32,18 @@ void Field_Finalize(void);
 void Field_Draw(void);
 void Field_Update(void);
 
-// ”»’è—p
+// åˆ¤å®šç”¨
 bool Field_IsFloor(float x, float z);
 FIELD_TYPE Field_GetBlockType(float x, float z);
 bool Field_IsWall(float x, float z);
 bool Field_IsWall(float x, float y, float z);
+bool Field_IsOuterWall(float x, float z);
 float Field_GetFloorY(float x, float y, float z);
+
+bool Field_CheckWallBetween(XMFLOAT3 start, XMFLOAT3 end);
 
 std::vector<XMFLOAT3> Field_FindPath(XMFLOAT3 start, XMFLOAT3 end);
 
-// š’Ç‰Á: ŠK‘w‘€ì—p
-void Field_ChangeFloor(int floorIndex); // w’è‚µ‚½ŠK‘w‚ÉØ‚è‘Ö‚¦‚é
-int Field_GetCurrentFloor(void);        // Œ»İ‚ÌŠK‘w‚ğæ“¾
+// éšå±¤æ“ä½œç”¨
+void Field_ChangeFloor(int floorIndex); // æŒ‡å®šã—ãŸéšå±¤ã«åˆ‡ã‚Šæ›¿ãˆã‚‹
+int Field_GetCurrentFloor(void);        // ç¾åœ¨ã®éšå±¤ã‚’å–å¾—

@@ -1,4 +1,4 @@
-#define NOMINMAX
+ï»¿#define NOMINMAX
 
 #include "model.h"
 #include "texture.h"
@@ -9,10 +9,11 @@
 #include <iostream>
 #include <float.h>
 #include <algorithm>
+#include <map>
 
 using namespace DirectX;
 
-// Assimp‚Ìs—ñ‚ğDirectXMathŒ`®‚É•ÏŠ·
+// Assimpã®è¡Œåˆ—ã‚’DirectXMathå½¢å¼ã«å¤‰æ›
 XMMATRIX AiMatrixToXMMatrix(const aiMatrix4x4& mat)
 {
 	return XMMATRIX(
@@ -23,56 +24,56 @@ XMMATRIX AiMatrixToXMMatrix(const aiMatrix4x4& mat)
 	);
 }
 
-// ƒƒbƒVƒ…‚Ìî•ñ‚ğ•Û‚·‚é\‘¢‘Ì
+// ãƒ¡ãƒƒã‚·ãƒ¥ã®æƒ…å ±ã‚’ä¿æŒã™ã‚‹æ§‹é€ ä½“
 struct MeshData
 {
-	unsigned int indexCount;  // ƒCƒ“ƒfƒbƒNƒX”
+	unsigned int indexCount;  // ã‚¤ãƒ³ãƒ‡ãƒƒã‚¯ã‚¹æ•°
 };
 
-// ƒOƒ[ƒoƒ‹•Ï”iƒƒbƒVƒ…‚²‚Æ‚ÌƒCƒ“ƒfƒbƒNƒX”‚ğ•Ûj
+// ã‚°ãƒ­ãƒ¼ãƒãƒ«å¤‰æ•°ï¼ˆãƒ¡ãƒƒã‚·ãƒ¥ã”ã¨ã®ã‚¤ãƒ³ãƒ‡ãƒƒã‚¯ã‚¹æ•°ã‚’ä¿æŒï¼‰
 static MeshData* g_meshData = nullptr;
 static unsigned int g_meshCount = 0;
 
-// ƒƒbƒVƒ…ƒ}ƒeƒŠƒAƒ‹î•ñ\‘¢‘Ì
+// ãƒ¡ãƒƒã‚·ãƒ¥ãƒãƒ†ãƒªã‚¢ãƒ«æƒ…å ±æ§‹é€ ä½“
 struct MeshMaterialData
 {
-	XMFLOAT4 diffuseColor;     // ƒfƒBƒtƒ…[ƒYFiƒnƒCƒp[ƒVƒF[ƒhİ’èj
-	bool hasTexture;           // ƒeƒNƒXƒ`ƒƒ‚ğ‚Â‚©
-	std::string texturePath;   // ƒeƒNƒXƒ`ƒƒƒpƒX
+	XMFLOAT4 diffuseColor;     // ãƒ‡ã‚£ãƒ•ãƒ¥ãƒ¼ã‚ºè‰²ï¼ˆãƒã‚¤ãƒ‘ãƒ¼ã‚·ã‚§ãƒ¼ãƒ‰è¨­å®šï¼‰
+	bool hasTexture;           // ãƒ†ã‚¯ã‚¹ãƒãƒ£ã‚’æŒã¤ã‹
+	std::string texturePath;   // ãƒ†ã‚¯ã‚¹ãƒãƒ£ãƒ‘ã‚¹
 };
 
-// ƒOƒ[ƒoƒ‹•Ï”iƒƒbƒVƒ…‚²‚Æ‚Ìƒ}ƒeƒŠƒAƒ‹î•ñj
+// ã‚°ãƒ­ãƒ¼ãƒãƒ«å¤‰æ•°ï¼ˆãƒ¡ãƒƒã‚·ãƒ¥ã”ã¨ã®ãƒãƒ†ãƒªã‚¢ãƒ«æƒ…å ±ï¼‰
 static MeshMaterialData* g_meshMaterialData = nullptr;
 
-// ƒm[ƒh‚ğÄ‹A“I‚É•`‰æ‚·‚é“à•”ŠÖ”
+// ãƒãƒ¼ãƒ‰ã‚’å†å¸°çš„ã«æç”»ã™ã‚‹å†…éƒ¨é–¢æ•°
 void RenderNode(MODEL* model, aiNode* node, XMMATRIX parentTransform, const XMFLOAT4& color, bool useColorReplace = false)
 {
-	// ‚±‚Ìƒm[ƒh‚Ìƒ[ƒJƒ‹•ÏŠ·s—ñ‚Æe‚Ì•ÏŠ·‚ğ‘g‚İ‡‚í‚¹
+	// ã“ã®ãƒãƒ¼ãƒ‰ã®ãƒ­ãƒ¼ã‚«ãƒ«å¤‰æ›è¡Œåˆ—ã¨è¦ªã®å¤‰æ›ã‚’çµ„ã¿åˆã‚ã›
 	XMMATRIX currentTransform = AiMatrixToXMMatrix(node->mTransformation) * parentTransform;
 
-	// ‚±‚Ìƒm[ƒhˆÈ‰º‚Ì‚·‚×‚Ä‚ÌƒƒbƒVƒ…‚ğ•`‰æ
+	// ã“ã®ãƒãƒ¼ãƒ‰ä»¥ä¸‹ã®ã™ã¹ã¦ã®ãƒ¡ãƒƒã‚·ãƒ¥ã‚’æç”»
 	for (unsigned int i = 0; i < node->mNumMeshes; i++)
 	{
 		unsigned int meshIndex = node->mMeshes[i];
 		aiMesh* mesh = model->AiScene->mMeshes[meshIndex];
 
-		// ƒ}ƒeƒŠƒAƒ‹‚ÌF‚ğŒvZ
+		// ãƒãƒ†ãƒªã‚¢ãƒ«ã®è‰²ã‚’è¨ˆç®—
 		XMFLOAT4 finalColor;
 		if (useColorReplace)
 		{
-			// F‚ğ’u‚«Š·‚¦iƒ}ƒeƒŠƒAƒ‹F‚ğ–³‹j
+			// è‰²ã‚’ç½®ãæ›ãˆï¼ˆãƒãƒ†ãƒªã‚¢ãƒ«è‰²ã‚’ç„¡è¦–ï¼‰
 			finalColor = color;
 		}
 		else
 		{
-			// ƒ‰ƒCƒgŒvZ‚ğ—LŒø‰»‚·‚éˆ—
-			// ƒ}ƒeƒŠƒAƒ‹F‚ª•‚¢ê‡‚Í”’‚ÉƒŠƒZƒbƒg
+			// ãƒ©ã‚¤ãƒˆè¨ˆç®—ã‚’æœ‰åŠ¹åŒ–ã™ã‚‹å‡¦ç†
+			// ãƒãƒ†ãƒªã‚¢ãƒ«è‰²ãŒé»’ã„å ´åˆã¯ç™½ã«ãƒªã‚»ãƒƒãƒˆ
 			if (meshIndex < model->AiScene->mNumMeshes && model->MeshMaterials)
 			{
 				XMFLOAT4 meshColor = model->MeshMaterials[meshIndex].diffuseColor;
 				
-				// yd—vzƒƒbƒVƒ…‚ÌF‚ª•‚¢ê‡‚Í•K‚¸”’‚ÉƒŠƒZƒbƒg
-				// ‚±‚ê‚É‚æ‚èƒ‰ƒCƒg‚ª³‚µ‚­”½‰f‚³‚ê‚é
+				// ã€é‡è¦ã€‘ãƒ¡ãƒƒã‚·ãƒ¥ã®è‰²ãŒé»’ã„å ´åˆã¯å¿…ãšç™½ã«ãƒªã‚»ãƒƒãƒˆ
+				// ã“ã‚Œã«ã‚ˆã‚Šãƒ©ã‚¤ãƒˆãŒæ­£ã—ãåæ˜ ã•ã‚Œã‚‹
 				if (meshColor.x == 0.0f && meshColor.y == 0.0f && meshColor.z == 0.0f)
 				{
 					meshColor = XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f);
@@ -93,23 +94,23 @@ void RenderNode(MODEL* model, aiNode* node, XMMATRIX parentTransform, const XMFL
 		
 		Shader_SetMaterialColor(finalColor);
 
-		// ƒeƒNƒXƒ`ƒƒ‚ğƒVƒF[ƒ_[‚Éİ’è(ƒvƒŠƒLƒƒƒbƒVƒ…‚³‚ê‚½’l‚ğg—p)
+		// ãƒ†ã‚¯ã‚¹ãƒãƒ£ã‚’ã‚·ã‚§ãƒ¼ãƒ€ãƒ¼ã«è¨­å®š(ãƒ—ãƒªã‚­ãƒ£ãƒƒã‚·ãƒ¥ã•ã‚ŒãŸå€¤ã‚’ä½¿ç”¨)
 		ID3D11ShaderResourceView* textureToSet = model->MeshMaterials[meshIndex].textureView;
 		Direct3D_GetDeviceContext()->PSSetShaderResources(0, 1, &textureToSet);
 
-		// ’¸“_ƒoƒbƒtƒ@İ’è
+		// é ‚ç‚¹ãƒãƒƒãƒ•ã‚¡è¨­å®š
 		UINT stride = sizeof(Vertex3D);
 		UINT offset = 0;
 		Direct3D_GetDeviceContext()->IASetVertexBuffers(0, 1, &model->VertexBuffer[meshIndex], &stride, &offset);
 
-		// ƒCƒ“ƒfƒbƒNƒXƒoƒbƒtƒ@İ’è
+		// ã‚¤ãƒ³ãƒ‡ãƒƒã‚¯ã‚¹ãƒãƒƒãƒ•ã‚¡è¨­å®š
 		Direct3D_GetDeviceContext()->IASetIndexBuffer(model->IndexBuffer[meshIndex], DXGI_FORMAT_R32_UINT, 0);
 
-		// •`‰æ(•Û‚³‚ê‚Ä‚¢‚éƒCƒ“ƒfƒbƒNƒX”‚ğg—p)
+		// æç”»(ä¿æŒã•ã‚Œã¦ã„ã‚‹ã‚¤ãƒ³ãƒ‡ãƒƒã‚¯ã‚¹æ•°ã‚’ä½¿ç”¨)
 		Direct3D_GetDeviceContext()->DrawIndexed(model->MeshIndexCounts[meshIndex], 0, 0);
 	}
 
-	// qƒm[ƒh‚ğÄ‹AÀs
+	// å­ãƒãƒ¼ãƒ‰ã‚’å†å¸°å®Ÿè¡Œ
 	for (unsigned int i = 0; i < node->mNumChildren; i++)
 	{
 		RenderNode(model, node->mChildren[i], currentTransform, color, useColorReplace);
@@ -122,31 +123,31 @@ MODEL* ModelLoad(const char* FileName)
 
 	const std::string modelPath(FileName);
 
-	// Assimp‚Ìƒtƒ‰ƒO‚ğ‰ü‘P: Triangulateƒtƒ‰ƒO‚Å©“®“I‚ÉOŠpŒ`‰»
+	// Assimpã®ãƒ•ãƒ©ã‚°ã‚’æ”¹å–„: Triangulateãƒ•ãƒ©ã‚°ã§è‡ªå‹•çš„ã«ä¸‰è§’å½¢åŒ–
 	model->AiScene = aiImportFile(FileName, 
 		aiProcessPreset_TargetRealtime_MaxQuality | 
 		aiProcess_ConvertToLeftHanded |
-		aiProcess_Triangulate |              // lŠpŒ`ˆÈã‚ğOŠpŒ`‰»
-		aiProcess_GenSmoothNormals |         // ƒXƒ€[ƒY–@ü¶¬
-		aiProcess_JoinIdenticalVertices |    // d•¡’¸“_íœ
-		aiProcess_OptimizeGraph              // ƒOƒ‰ƒtÅ“K‰»
+		aiProcess_Triangulate |              // å››è§’å½¢ä»¥ä¸Šã‚’ä¸‰è§’å½¢åŒ–
+		aiProcess_GenSmoothNormals |         // ã‚¹ãƒ ãƒ¼ã‚ºæ³•ç·šç”Ÿæˆ
+		aiProcess_JoinIdenticalVertices |    // é‡è¤‡é ‚ç‚¹å‰Šé™¤
+		aiProcess_OptimizeGraph              // ã‚°ãƒ©ãƒ•æœ€é©åŒ–
 	);
 
 	if (!model->AiScene)
 	{
-		// ƒGƒ‰[“à—e‚ğæ“¾
+		// ã‚¨ãƒ©ãƒ¼å†…å®¹ã‚’å–å¾—
 		const char* errorString = aiGetErrorString();
 
-		std::string msg = "ƒ‚ƒfƒ‹‚Ì“Ç‚İ‚İ‚É¸”s‚µ‚Ü‚µ‚½B\n";
-		msg += "ƒtƒ@ƒCƒ‹ƒpƒX: " + std::string(FileName) + "\n";
-		msg += "ƒGƒ‰[“à—e: " + std::string(errorString);
+		std::string msg = "ãƒ¢ãƒ‡ãƒ«ã®èª­ã¿è¾¼ã¿ã«å¤±æ•—ã—ã¾ã—ãŸã€‚\n";
+		msg += "ãƒ•ã‚¡ã‚¤ãƒ«ãƒ‘ã‚¹: " + std::string(FileName) + "\n";
+		msg += "ã‚¨ãƒ©ãƒ¼å†…å®¹: " + std::string(errorString);
 
-		// ƒƒbƒZ[ƒWƒ{ƒbƒNƒX‚ğ•\¦
+		// ãƒ¡ãƒƒã‚»ãƒ¼ã‚¸ãƒœãƒƒã‚¯ã‚¹ã‚’è¡¨ç¤º
 		MessageBoxA(NULL, msg.c_str(), "Model Load Error", MB_OK | MB_ICONERROR);
 
-		// ‹­§I—¹‚¹‚¸‚ÉˆÀ‘S‚ÉI‚í‚éi‚Ü‚½‚Í‚±‚±‚Å~‚ß‚éj
+		// å¼·åˆ¶çµ‚äº†ã›ãšã«å®‰å…¨ã«çµ‚ã‚ã‚‹ï¼ˆã¾ãŸã¯ã“ã“ã§æ­¢ã‚ã‚‹ï¼‰
 		delete model;
-		return nullptr; // ŒÄ‚Ño‚µŒ³‚Ånullptrƒ`ƒFƒbƒN‚ª•K—v‚É‚È‚è‚Ü‚·‚ªA‚Ü‚¸‚Í‚±‚±‚Å‹C‚Ã‚¯‚Ü‚·
+		return nullptr; // å‘¼ã³å‡ºã—å…ƒã§nullptrãƒã‚§ãƒƒã‚¯ãŒå¿…è¦ã«ãªã‚Šã¾ã™ãŒã€ã¾ãšã¯ã“ã“ã§æ°—ã¥ã‘ã¾ã™
 	}
 	//assert(model->AiScene);
 
@@ -159,25 +160,25 @@ MODEL* ModelLoad(const char* FileName)
 	{
 		aiMesh* mesh = model->AiScene->mMeshes[m];
 
-		// ƒ}ƒeƒŠƒAƒ‹î•ñ‚Ìæ“¾
+		// ãƒãƒ†ãƒªã‚¢ãƒ«æƒ…å ±ã®å–å¾—
 		{
 			aiMaterial* material = model->AiScene->mMaterials[mesh->mMaterialIndex];
 
-			// ƒfƒBƒtƒ…[ƒYFiŠî–{Fj‚ğæ“¾
+			// ãƒ‡ã‚£ãƒ•ãƒ¥ãƒ¼ã‚ºè‰²ï¼ˆåŸºæœ¬è‰²ï¼‰ã‚’å–å¾—
 			aiColor4D diffuseColor(1.0f, 1.0f, 1.0f, 1.0f);
 			aiReturn colorResult = material->Get(AI_MATKEY_COLOR_DIFFUSE, diffuseColor);
 			
-			// ƒ}ƒeƒŠƒAƒ‹F‚ªæ“¾‚Å‚«‚È‚©‚Á‚½ê‡A‚Ü‚½‚Í‘S‚Ä0‚Ìê‡‚Í”’‚ğƒfƒtƒHƒ‹ƒg‚Éİ’è
+			// ãƒãƒ†ãƒªã‚¢ãƒ«è‰²ãŒå–å¾—ã§ããªã‹ã£ãŸå ´åˆã€ã¾ãŸã¯å…¨ã¦0ã®å ´åˆã¯ç™½ã‚’ãƒ‡ãƒ•ã‚©ãƒ«ãƒˆã«è¨­å®š
 			if (colorResult != AI_SUCCESS || 
 				(diffuseColor.r == 0.0f && diffuseColor.g == 0.0f && diffuseColor.b == 0.0f))
 			{
-				diffuseColor = aiColor4D(1.0f, 1.0f, 1.0f, 1.0f);  // ƒfƒtƒHƒ‹ƒg‚Í”’
+				diffuseColor = aiColor4D(1.0f, 1.0f, 1.0f, 1.0f);  // ãƒ‡ãƒ•ã‚©ãƒ«ãƒˆã¯ç™½
 				std::cout << "Mesh " << m << ": Material color not found or black, using white as default" << std::endl;
 			}
 
 			model->MeshMaterials[m].diffuseColor = XMFLOAT4(diffuseColor.r, diffuseColor.g, diffuseColor.b, diffuseColor.a);
 
-			// ƒeƒNƒXƒ`ƒƒî•ñ‚Ìæ“¾
+			// ãƒ†ã‚¯ã‚¹ãƒãƒ£æƒ…å ±ã®å–å¾—
 			aiString texturePath;
 			if (AI_SUCCESS == material->GetTexture(aiTextureType_DIFFUSE, 0, &texturePath))
 			{
@@ -191,46 +192,46 @@ MODEL* ModelLoad(const char* FileName)
 			}
 		}
 
-		// ’¸“_ƒoƒbƒtƒ@¶¬
+		// é ‚ç‚¹ãƒãƒƒãƒ•ã‚¡ç”Ÿæˆ
 		{
 			Vertex3D* vertex = new Vertex3D[mesh->mNumVertices];
 
 			for (unsigned int v = 0; v < mesh->mNumVertices; v++)
 			{
-				// À•W•ÏŠ·’ˆÓ: aiProcess_ConvertToLeftHanded‚ğg‚¤ê‡‚Í‘f’¼‚É‘ã“ü
+				// åº§æ¨™å¤‰æ›æ³¨æ„: aiProcess_ConvertToLeftHandedã‚’ä½¿ã†å ´åˆã¯ç´ ç›´ã«ä»£å…¥
 				vertex[v].position = XMFLOAT3(mesh->mVertices[v].x, mesh->mVertices[v].y, mesh->mVertices[v].z);
 				
-				// ƒeƒNƒXƒ`ƒƒÀ•W‚ª‘¶İ‚·‚é‚©ƒ`ƒFƒbƒN
+				// ãƒ†ã‚¯ã‚¹ãƒãƒ£åº§æ¨™ãŒå­˜åœ¨ã™ã‚‹ã‹ãƒã‚§ãƒƒã‚¯
 				if (mesh->HasTextureCoords(0))
 				{
 					vertex[v].texCoord = XMFLOAT2(mesh->mTextureCoords[0][v].x, mesh->mTextureCoords[0][v].y);
 				}
 				else
 				{
-					// ƒeƒNƒXƒ`ƒƒÀ•W‚ª‚È‚¢ê‡‚ÍƒfƒtƒHƒ‹ƒg’l
+					// ãƒ†ã‚¯ã‚¹ãƒãƒ£åº§æ¨™ãŒãªã„å ´åˆã¯ãƒ‡ãƒ•ã‚©ãƒ«ãƒˆå€¤
 					vertex[v].texCoord = XMFLOAT2(0.5f, 0.5f);
 				}
 				
 				vertex[v].color = XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f);
 				
-				// –@ü‚ª‘¶İ‚·‚é‚©ƒ`ƒFƒbƒN
+				// æ³•ç·šãŒå­˜åœ¨ã™ã‚‹ã‹ãƒã‚§ãƒƒã‚¯
 				if (mesh->HasNormals())
 				{
 					vertex[v].normal = XMFLOAT3(mesh->mNormals[v].x, mesh->mNormals[v].y, mesh->mNormals[v].z);
 				}
 				else
 				{
-					// –@ü‚ª‚È‚¢ê‡‚ÍƒfƒtƒHƒ‹ƒgiãŒü‚«j
+					// æ³•ç·šãŒãªã„å ´åˆã¯ãƒ‡ãƒ•ã‚©ãƒ«ãƒˆï¼ˆä¸Šå‘ãï¼‰
 					vertex[v].normal = XMFLOAT3(0.0f, 1.0f, 0.0f);
 				}
 			}
 
 			D3D11_BUFFER_DESC bd;
 			ZeroMemory(&bd, sizeof(bd));
-			bd.Usage = D3D11_USAGE_DYNAMIC;
+			bd.Usage = D3D11_USAGE_DYNAMIC;  // å‹•çš„æ›´æ–°å¯¾å¿œã«å¤‰æ›´
 			bd.ByteWidth = sizeof(Vertex3D) * mesh->mNumVertices;
 			bd.BindFlags = D3D11_BIND_VERTEX_BUFFER;
-			bd.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
+			bd.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;  // CPUæ›¸ãè¾¼ã¿å¯¾å¿œ
 
 			D3D11_SUBRESOURCE_DATA sd;
 			ZeroMemory(&sd, sizeof(sd));
@@ -246,31 +247,32 @@ MODEL* ModelLoad(const char* FileName)
 
 			delete[] vertex;
 
-			// ƒfƒoƒbƒOî•ño—Í
+			// ãƒ‡ãƒãƒƒã‚°æƒ…å ±å‡ºåŠ›
 			std::cout << "Mesh " << m << " created: " 
 					  << mesh->mNumVertices << " vertices, "
 					  << (mesh->HasNormals() ? "WITH" : "WITHOUT") << " normals, "
-					  << (mesh->HasTextureCoords(0) ? "WITH" : "WITHOUT") << " UVs" << std::endl;
+					  << (mesh->HasTextureCoords(0) ? "WITH" : "WITHOUT") << " UVs" 
+					  << (mesh->HasBones() ? ", WITH bones" : "") << std::endl;
 		}
 
-		// ƒCƒ“ƒfƒbƒNƒXƒoƒbƒtƒ@¶¬
+		// ã‚¤ãƒ³ãƒ‡ãƒƒã‚¯ã‚¹ãƒãƒƒãƒ•ã‚¡ç”Ÿæˆ
 		{
-			// OŠpŒ`‰»‚³‚ê‚Ä‚¢‚é‚½‚ßA‚·‚×‚Ä‚ÌƒtƒFƒCƒX‚Í3‚Â‚ÌƒCƒ“ƒfƒbƒNƒX‚ğ‚Â
+			// ä¸‰è§’å½¢åŒ–ã•ã‚Œã¦ã„ã‚‹ãŸã‚ã€ã™ã¹ã¦ã®ãƒ•ã‚§ã‚¤ã‚¹ã¯3ã¤ã®ã‚¤ãƒ³ãƒ‡ãƒƒã‚¯ã‚¹ã‚’æŒã¤
 			unsigned int indexCount = 0;
 			
-			// ƒCƒ“ƒfƒbƒNƒX”‚ğŒvZ
+			// ã‚¤ãƒ³ãƒ‡ãƒƒã‚¯ã‚¹æ•°ã‚’è¨ˆç®—
 			for (unsigned int f = 0; f < mesh->mNumFaces; f++)
 			{
 				const aiFace* face = &mesh->mFaces[f];
 				
 				if (face->mNumIndices >= 3)
 				{
-					// OŠpŒ`‰»Œã‚Í’Êí3A‹H‚É4ˆÈã‚Ìê‡‚ÍÅ‰‚ÌOŠpŒ`‚Ì‚İ‚ğg—p
+					// ä¸‰è§’å½¢åŒ–å¾Œã¯é€šå¸¸3ã€ç¨€ã«4ä»¥ä¸Šã®å ´åˆã¯æœ€åˆã®ä¸‰è§’å½¢ã®ã¿ã‚’ä½¿ç”¨
 					indexCount += 3;
 				}
 			}
 
-			// ƒCƒ“ƒfƒbƒNƒX”‚ğ•Û‘¶
+			// ã‚¤ãƒ³ãƒ‡ãƒƒã‚¯ã‚¹æ•°ã‚’ä¿å­˜
 			model->MeshIndexCounts[m] = indexCount;
 
 			std::cout << "Mesh " << m << ": " << indexCount << " indices (" << mesh->mNumFaces << " faces)" << std::endl;
@@ -282,7 +284,7 @@ MODEL* ModelLoad(const char* FileName)
 			{
 				const aiFace* face = &mesh->mFaces[f];
 
-				// OŠpŒ`ƒ`ƒFƒbƒNi‚æ‚è_“î‚É‘Î‰j
+				// ä¸‰è§’å½¢ãƒã‚§ãƒƒã‚¯ï¼ˆã‚ˆã‚ŠæŸ”è»Ÿã«å¯¾å¿œï¼‰
 				if (face->mNumIndices >= 3 && indexOffset + 3 <= indexCount)
 				{
 					index[indexOffset + 0] = face->mIndices[0];
@@ -315,7 +317,7 @@ MODEL* ModelLoad(const char* FileName)
 		}
 	}
 
-	// ƒeƒNƒXƒ`ƒƒ“Ç‚İ‚İ
+	// ãƒ†ã‚¯ã‚¹ãƒãƒ£èª­ã¿è¾¼ã¿
 	for (unsigned int i = 0; i < model->AiScene->mNumTextures; i++)
 	{
 		aiTexture* aitexture = model->AiScene->mTextures[i];
@@ -341,14 +343,14 @@ MODEL* ModelLoad(const char* FileName)
 		model->Texture[aitexture->mFilename.data] = texture;
 	}
 
-	// ƒ_ƒ~[”’ƒeƒNƒXƒ`ƒƒiƒeƒNƒXƒ`ƒƒ‚È‚µƒƒbƒVƒ…—pj‚ğƒ‚ƒfƒ‹‚²‚Æ‚É“Ç‚İ‚İ
+	// ãƒ€ãƒŸãƒ¼ç™½ãƒ†ã‚¯ã‚¹ãƒãƒ£ï¼ˆãƒ†ã‚¯ã‚¹ãƒãƒ£ãªã—ãƒ¡ãƒƒã‚·ãƒ¥ç”¨ï¼‰ã‚’ãƒ¢ãƒ‡ãƒ«ã”ã¨ã«èª­ã¿è¾¼ã¿
 	model->WhiteTexture = LoadTexture(L"asset\\texture\\fade.png");
 	if (!model->WhiteTexture)
 	{
 		std::cerr << "Failed to load white texture (fade.png)" << std::endl;
 	}
 
-	// ƒƒbƒVƒ…‚²‚Æ‚ÌƒeƒNƒXƒ`ƒƒ‚ğƒvƒŠƒLƒƒƒbƒVƒ…
+	// ãƒ¡ãƒƒã‚·ãƒ¥ã”ã¨ã®ãƒ†ã‚¯ã‚¹ãƒãƒ£ã‚’ãƒ—ãƒªã‚­ãƒ£ãƒƒã‚·ãƒ¥
 	for (unsigned int m = 0; m < model->AiScene->mNumMeshes; m++)
 	{
 		if (model->MeshMaterials[m].hasTexture && model->Texture.count(model->MeshMaterials[m].texturePath))
@@ -400,15 +402,15 @@ void ModelDraw(MODEL* model, XMFLOAT3 pos, XMFLOAT3 rot, XMFLOAT3 scale, const X
 {
 	if (!model) return;
 
-	// ƒJƒƒ‰æ“¾
+	// ã‚«ãƒ¡ãƒ©å–å¾—
 	Camera* pCamera = GetCamera();
 	if (!pCamera) return;
 
-	// ƒrƒ…[EƒvƒƒWƒFƒNƒVƒ‡ƒ“s—ñ‚Ìæ“¾
+	// ãƒ“ãƒ¥ãƒ¼ãƒ»ãƒ—ãƒ­ã‚¸ã‚§ã‚¯ã‚·ãƒ§ãƒ³è¡Œåˆ—ã®å–å¾—
 	XMMATRIX View = pCamera->GetView();
 	XMMATRIX Projection = pCamera->GetProjection();
 
-	// ƒ‚ƒfƒ‹‚Ì•ÏŠ·s—ñ
+	// ãƒ¢ãƒ‡ãƒ«ã®å¤‰æ›è¡Œåˆ—
 	XMMATRIX TranslationMatrix = XMMatrixTranslation(pos.x,pos.y,pos.z);
 	XMMATRIX RotationMatrix = XMMatrixRotationRollPitchYaw(
 		XMConvertToRadians(rot.x),
@@ -416,27 +418,27 @@ void ModelDraw(MODEL* model, XMFLOAT3 pos, XMFLOAT3 rot, XMFLOAT3 scale, const X
 		XMConvertToRadians(rot.z));
 	XMMATRIX ScalingMatrix = XMMatrixScaling(scale.x, scale.y, scale.z);
 
-	// ƒ[ƒ‹ƒhs—ñ‚ÌŒvZ(ƒXƒP[ƒ‹ ¨ ‰ñ“] ¨ ˆÚ“®‚Ì‡)
+	// ãƒ¯ãƒ¼ãƒ«ãƒ‰è¡Œåˆ—ã®è¨ˆç®—(ã‚¹ã‚±ãƒ¼ãƒ« â†’ å›è»¢ â†’ ç§»å‹•ã®é †)
 	XMMATRIX World = ScalingMatrix * RotationMatrix * TranslationMatrix;
 
-	// WVPs—ñ‚ÌŒvZ
+	// WVPè¡Œåˆ—ã®è¨ˆç®—
 	XMMATRIX WVP = World * View * Projection;
 
-	// ƒVƒF[ƒ_[‚És—ñ‚ğİ’è
-	Shader_SetMatrix(WVP);           // WVPs—ñ‚ğİ’è
-	Shader_SetWorldMatrix(World);    // ƒ[ƒ‹ƒhs—ñ‚ğİ’è
+	// ã‚·ã‚§ãƒ¼ãƒ€ãƒ¼ã«è¡Œåˆ—ã‚’è¨­å®š
+	Shader_SetMatrix(WVP);           // WVPè¡Œåˆ—ã‚’è¨­å®š
+	Shader_SetWorldMatrix(World);    // ãƒ¯ãƒ¼ãƒ«ãƒ‰è¡Œåˆ—ã‚’è¨­å®š
 
-	// ƒVƒF[ƒ_[‚ğg—p‚µ‚ÄƒpƒCƒvƒ‰ƒCƒ“‚ğİ’è
+	// ã‚·ã‚§ãƒ¼ãƒ€ãƒ¼ã‚’ä½¿ç”¨ã—ã¦ãƒ‘ã‚¤ãƒ—ãƒ©ã‚¤ãƒ³ã‚’è¨­å®š
 	Shader_Begin();
 
-	// ƒvƒŠƒ~ƒeƒBƒuEƒgƒ|ƒƒW[‚ğİ’è
+	// ãƒ—ãƒªãƒŸãƒ†ã‚£ãƒ–ãƒ»ãƒˆãƒãƒ­ã‚¸ãƒ¼ã‚’è¨­å®š
 	Direct3D_GetDeviceContext()->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 
-	// ƒ‹[ƒgƒm[ƒh‚©‚çÄ‹A“I‚É•`‰æŠJn(•ÏŠ·‚ÍƒXƒP[ƒ‹s—ñ)
-	// color‚ª“n‚³‚ê‚È‚©‚Á‚½ê‡iƒfƒtƒHƒ‹ƒgj‚Í”’F‚ğŠm•Û
+	// ãƒ«ãƒ¼ãƒˆãƒãƒ¼ãƒ‰ã‹ã‚‰å†å¸°çš„ã«æç”»é–‹å§‹(å¤‰æ›ã¯ã‚¹ã‚±ãƒ¼ãƒ«è¡Œåˆ—)
+	// colorãŒæ¸¡ã•ã‚Œãªã‹ã£ãŸå ´åˆï¼ˆãƒ‡ãƒ•ã‚©ãƒ«ãƒˆï¼‰ã¯ç™½è‰²ã‚’ç¢ºä¿
 	XMFLOAT4 finalColor = color;
 	
-	// ƒJƒ‰[•ÏX‚ğg—p‚µ‚Ä‚¢‚È‚¢‚È‚ç”’‚ÉŒÅ’è
+	// ã‚«ãƒ©ãƒ¼å¤‰æ›´ã‚’ä½¿ç”¨ã—ã¦ã„ãªã„ãªã‚‰ç™½ã«å›ºå®š
 	if (!useColorReplace)
 	{
 		finalColor = XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f);
@@ -446,81 +448,392 @@ void ModelDraw(MODEL* model, XMFLOAT3 pos, XMFLOAT3 rot, XMFLOAT3 scale, const X
 	RenderNode(model, model->AiScene->mRootNode, identity, finalColor, useColorReplace);
 }
 
-XMFLOAT3 ModelGetSize(MODEL* model)
+// ã‚¢ãƒ‹ãƒ¡ãƒ¼ã‚·ãƒ§ãƒ³å¯¾å¿œã®ãƒãƒ¼ãƒ‰æç”»é–¢æ•°ï¼ˆãƒãƒ¼ãƒ‰å¤‰æ›é©ç”¨ç‰ˆï¼‰
+void RenderNodeAnimation(MODEL* model, aiNode* node, XMMATRIX parentTransform, const BoneMatrices& boneMatrices, const XMFLOAT4& color, bool useColorReplace = false, XMMATRIX worldTransform = XMMatrixIdentity())
 {
-	if (!model || !model->AiScene || model->AiScene->mNumMeshes == 0)
+	// ã“ã®ãƒãƒ¼ãƒ‰ã®ãƒ­ãƒ¼ã‚«ãƒ«å¤‰æ›è¡Œåˆ—ã¨è¦ªã®å¤‰æ›ã‚’çµ„ã¿åˆã‚ã›
+	XMMATRIX currentTransform = AiMatrixToXMMatrix(node->mTransformation) * parentTransform;
+
+	// ãƒãƒ¼ãƒ‰åãŒã‚¢ãƒ‹ãƒ¡ãƒ¼ã‚·ãƒ§ãƒ³å¯¾è±¡ã®å ´åˆã€ãƒœãƒ¼ãƒ³è¡Œåˆ—ã‚’é©ç”¨
+	// FindBoneIndexã§å‰²ã‚Šå½“ã¦ã‚‰ã‚ŒãŸã‚¤ãƒ³ãƒ‡ãƒƒã‚¯ã‚¹ã¨ãƒãƒ¼ãƒ‰åã‹ã‚‰å¯¾å¿œã‚’å–ã‚‹
+	int nodeAnimIndex = -1;
+	
+	// ãƒãƒ¼ãƒ‰åã¨ãƒœãƒ¼ãƒ³è¡Œåˆ—ã‚¤ãƒ³ãƒ‡ãƒƒã‚¯ã‚¹ã®ãƒãƒƒãƒ”ãƒ³ã‚°ï¼ˆç°¡ç•¥åŒ–ï¼‰
+	// ExtractAnimationFromAssimpã§å‹•çš„ã«å‰²ã‚Šå½“ã¦ã‚‰ã‚ŒãŸã‚¤ãƒ³ãƒ‡ãƒƒã‚¯ã‚¹ã‚’ä½¿ç”¨
+	static std::map<std::string, int> nodeToMatrixIndex;
+	std::string nodeName(node->mName.data);
+	
+	if (nodeToMatrixIndex.find(nodeName) == nodeToMatrixIndex.end())
 	{
-		return XMFLOAT3(1.0f, 1.0f, 1.0f);  // ƒfƒtƒHƒ‹ƒgƒTƒCƒY‚ğ•Ô‚·
+		// æœ€åˆã®ã‚¢ãƒ‹ãƒ¡ãƒ¼ã‚·ãƒ§ãƒ³æƒ…å ±ã‹ã‚‰ãƒãƒƒãƒ”ãƒ³ã‚°ã‚’ä½œæˆ
+		if (model && model->AiScene && model->AiScene->mNumAnimations > 0)
+		{
+			aiAnimation* anim = model->AiScene->mAnimations[0];
+			for (unsigned int c = 0; c < anim->mNumChannels; c++)
+			{
+				std::string channelName(anim->mChannels[c]->mNodeName.data);
+				if (channelName == nodeName)
+				{
+					nodeToMatrixIndex[nodeName] = c;
+					break;
+				}
+			}
+		}
+	}
+	
+	if (nodeToMatrixIndex.find(nodeName) != nodeToMatrixIndex.end())
+	{
+		nodeAnimIndex = nodeToMatrixIndex[nodeName];
+		if (nodeAnimIndex >= 0 && nodeAnimIndex < BoneMatrices::MAX_BONES)
+		{
+			// ãƒœãƒ¼ãƒ³è¡Œåˆ—ã‚’é©ç”¨ï¼ˆãƒãƒ¼ãƒ‰éšå±¤å¤‰æ›ã®ä»£ã‚ã‚Šã«ã‚¢ãƒ‹ãƒ¡ãƒ¼ã‚·ãƒ§ãƒ³è¡Œåˆ—ã‚’ä½¿ç”¨ï¼‰
+			currentTransform = boneMatrices.matrices[nodeAnimIndex] * parentTransform;
+		}
 	}
 
-	// ƒoƒEƒ“ƒfƒBƒ“ƒOƒ{ƒbƒNƒX‚ÌÅ¬EÅ‘åÀ•W‚ğŒvZ
-	float minX = FLT_MAX, minY = FLT_MAX, minZ = FLT_MAX;
-	float maxX = -FLT_MAX, maxY = -FLT_MAX, maxZ = -FLT_MAX;
+	// ã“ã®ãƒãƒ¼ãƒ‰ä»¥ä¸‹ã®ã™ã¹ã¦ã®ãƒ¡ãƒƒã‚·ãƒ¥ã‚’æç”»
+	for (unsigned int i = 0; i < node->mNumMeshes; i++)
+	{
+		unsigned int meshIndex = node->mMeshes[i];
+		aiMesh* mesh = model->AiScene->mMeshes[meshIndex];
 
-	// ‚·‚×‚Ä‚ÌƒƒbƒVƒ…‚©‚ç’¸“_‚ğæ“¾‚µ‚ÄƒoƒEƒ“ƒfƒBƒ“ƒOƒ{ƒbƒNƒX‚ğŒvZ
+		// ãƒãƒ†ãƒªã‚¢ãƒ«ã®è‰²ã‚’è¨ˆç®—
+		XMFLOAT4 finalColor;
+		if (useColorReplace)
+		{
+			finalColor = color;
+		}
+		else
+		{
+			if (meshIndex < model->AiScene->mNumMeshes && model->MeshMaterials)
+			{
+				XMFLOAT4 meshColor = model->MeshMaterials[meshIndex].diffuseColor;
+				
+				if (meshColor.x == 0.0f && meshColor.y == 0.0f && meshColor.z == 0.0f)
+				{
+					meshColor = XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f);
+				}
+				
+				finalColor = XMFLOAT4(
+					meshColor.x * color.x,
+					meshColor.y * color.y,
+					meshColor.z * color.z,
+					meshColor.w * color.w
+				);
+			}
+			else
+			{
+				finalColor = color;
+			}
+		}
+		
+		Shader_SetMaterialColor(finalColor);
+
+		// ãƒ†ã‚¯ã‚¹ãƒãƒ£ã‚’ã‚·ã‚§ãƒ¼ãƒ€ãƒ¼ã«è¨­å®š
+		ID3D11ShaderResourceView* textureToSet = model->MeshMaterials[meshIndex].textureView;
+		Direct3D_GetDeviceContext()->PSSetShaderResources(0, 1, &textureToSet);
+
+		// é ‚ç‚¹ãƒãƒƒãƒ•ã‚¡è¨­å®š
+		UINT stride = sizeof(Vertex3D);
+		UINT offset = 0;
+		Direct3D_GetDeviceContext()->IASetVertexBuffers(0, 1, &model->VertexBuffer[meshIndex], &stride, &offset);
+
+		// ã‚¤ãƒ³ãƒ‡ãƒƒã‚¯ã‚¹ãƒãƒƒãƒ•ã‚¡è¨­å®š
+		Direct3D_GetDeviceContext()->IASetIndexBuffer(model->IndexBuffer[meshIndex], DXGI_FORMAT_R32_UINT, 0);
+
+		// ãƒ¯ãƒ¼ãƒ«ãƒ‰è¡Œåˆ—ã®è¨­å®šï¼ˆã‚¢ãƒ‹ãƒ¡ãƒ¼ã‚·ãƒ§ãƒ³å¤‰æ› + ãƒ¢ãƒ‡ãƒ«ãƒ¯ãƒ¼ãƒ«ãƒ‰å¤‰æ›ã‚’çµ„ã¿åˆã‚ã›ï¼‰
+		XMMATRIX meshWorldMatrix = currentTransform * worldTransform;
+		Shader_SetWorldMatrix(meshWorldMatrix);
+
+		// WVPè¡Œåˆ—ã®è¨ˆç®—ã¨è¨­å®š
+		Camera* pCamera = GetCamera();
+		if (pCamera)
+		{
+			XMMATRIX View = pCamera->GetView();
+			XMMATRIX Projection = pCamera->GetProjection();
+			XMMATRIX WVP = meshWorldMatrix * View * Projection;
+			Shader_SetMatrix(WVP);
+		}
+
+		// æç”»
+		Direct3D_GetDeviceContext()->DrawIndexed(model->MeshIndexCounts[meshIndex], 0, 0);
+	}
+
+	// å­ãƒãƒ¼ãƒ‰ã‚’å†å¸°å®Ÿè¡Œ
+	for (unsigned int i = 0; i < node->mNumChildren; i++)
+	{
+		RenderNodeAnimation(model, node->mChildren[i], currentTransform, boneMatrices, color, useColorReplace, worldTransform);
+	}
+}
+
+// ã‚¢ãƒ‹ãƒ¡ãƒ¼ã‚·ãƒ§ãƒ³å¯¾å¿œã®æç”»é–¢æ•°
+void ModelAnimationDraw(MODEL* model, XMFLOAT3 pos, XMFLOAT3 rot, XMFLOAT3 scale, const BoneMatrices& boneMatrices, const XMFLOAT4& color, bool useColorReplace)
+{
+	if (!model) return;
+
+	// ãƒ¢ãƒ‡ãƒ«ã®å¤‰æ›è¡Œåˆ—ï¼ˆä½ç½®ã€å›è»¢ã€ã‚¹ã‚±ãƒ¼ãƒ«ï¼‰
+	XMMATRIX TranslationMatrix = XMMatrixTranslation(pos.x, pos.y, pos.z);
+	XMMATRIX RotationMatrix = XMMatrixRotationRollPitchYaw(
+		XMConvertToRadians(rot.x),
+		XMConvertToRadians(rot.y),
+		XMConvertToRadians(rot.z));
+	XMMATRIX ScalingMatrix = XMMatrixScaling(scale.x, scale.y, scale.z);
+
+	// ãƒ¯ãƒ¼ãƒ«ãƒ‰è¡Œåˆ—ã®è¨ˆç®—(ã‚¹ã‚±ãƒ¼ãƒ« â†’ å›è»¢ â†’ ç§»å‹•ã®é †)
+	XMMATRIX worldMatrix = ScalingMatrix * RotationMatrix * TranslationMatrix;
+
+	// ã‚·ã‚§ãƒ¼ãƒ€ãƒ¼ã‚’ä½¿ç”¨ã—ã¦ãƒ‘ã‚¤ãƒ—ãƒ©ã‚¤ãƒ³ã‚’è¨­å®š
+	Shader_Begin();
+
+	// ãƒ—ãƒªãƒŸãƒ†ã‚£ãƒ–ãƒ»ãƒˆãƒãƒ­ã‚¸ãƒ¼ã‚’è¨­å®š
+	Direct3D_GetDeviceContext()->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+
+	// ãƒ«ãƒ¼ãƒˆãƒãƒ¼ãƒ‰ã‹ã‚‰å†å¸°çš„ã«æç”»é–‹å§‹
+	XMFLOAT4 finalColor = color;
+	
+	if (!useColorReplace)
+	{
+		finalColor = XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f);
+	}
+	
+	XMMATRIX identity = XMMatrixIdentity();
+	RenderNodeAnimation(model, model->AiScene->mRootNode, identity, boneMatrices, finalColor, useColorReplace, worldMatrix);
+}
+
+// ãƒãƒ¼ãƒ‰æ¯ã®ãƒœãƒ¼ãƒ³è¡Œåˆ—ã‚’å–å¾—ï¼ˆã‚¢ãƒ‹ãƒ¡ãƒ¼ã‚·ãƒ§ãƒ³ç”¨ï¼‰
+// æ³¨æ„: æ—¢å­˜ã®model.cppå†…ã« RenderNodeAnimation é–¢æ•°ãŒå®Ÿè£…ã•ã‚Œã¦ã„ã‚‹ãŸã‚ã€
+// ãã‚Œã‚’æ´»ç”¨ã™ã‚‹å‰æã§ã€ModelAnimationDraw ã‚’å‘¼ã³å‡ºã™ã‚ˆã†ã«ã™ã‚‹
+
+// ã‚¢ãƒ‹ãƒ¡ãƒ¼ã‚·ãƒ§ãƒ³æ™‚åˆ»ã‹ã‚‰ãƒœãƒ¼ãƒ³è¡Œåˆ—ã‚’è¨ˆç®—ã™ã‚‹é–¢æ•°
+void ModelCalculateBoneMatrices(MODEL* model, double animationTime, BoneMatrices& outBoneMatrices)
+{
+	if (!model || !model->AiScene || model->AiScene->mNumAnimations == 0)
+	{
+		// ã‚¢ãƒ‹ãƒ¡ãƒ¼ã‚·ãƒ§ãƒ³ãŒç„¡ã„å ´åˆã¯ã‚¢ã‚¤ãƒ‡ãƒ³ãƒ†ã‚£ãƒ†ã‚£è¡Œåˆ—ã‚’è¿”ã™
+		outBoneMatrices.boneCount = 0;
+		return;
+	}
+
+	// æœ€åˆã®ã‚¢ãƒ‹ãƒ¡ãƒ¼ã‚·ãƒ§ãƒ³ã‚’ä½¿ç”¨
+	aiAnimation* animation = model->AiScene->mAnimations[0];
+	
+	// ã‚¢ãƒ‹ãƒ¡ãƒ¼ã‚·ãƒ§ãƒ³æ™‚åˆ»ã‚’å‘¨æœŸçš„ã«ãƒ«ãƒ¼ãƒ—
+	double animDuration = animation->mDuration;
+	double ticksPerSecond = animation->mTicksPerSecond > 0 ? animation->mTicksPerSecond : 24.0;
+	double animationTick = fmod(animationTime * ticksPerSecond, animDuration);
+	if (animationTick < 0) animationTick += animDuration;
+
+	// å„ãƒœãƒ¼ãƒ³ã®ã‚¢ãƒ‹ãƒ¡ãƒ¼ã‚·ãƒ§ãƒ³è¡Œåˆ—ã‚’è¨ˆç®—
+	outBoneMatrices.boneCount = 0;
+
+	// ã‚·ãƒ¼ãƒ³ã®ã™ã¹ã¦ã®ãƒ¡ãƒƒã‚·ãƒ¥ã‚’ãƒ«ãƒ¼ãƒ—ã—ã¦ãƒœãƒ¼ãƒ³æƒ…å ±ã‚’åé›†
+	for (unsigned int meshIdx = 0; meshIdx < model->AiScene->mNumMeshes; meshIdx++)
+	{
+		aiMesh* mesh = model->AiScene->mMeshes[meshIdx];
+
+		if (!mesh->HasBones()) continue;
+
+		// ãƒ¡ãƒƒã‚·ãƒ¥ã®ã™ã¹ã¦ã®ãƒœãƒ¼ãƒ³ã‚’ãƒ«ãƒ¼ãƒ—
+		for (unsigned int boneIdx = 0; boneIdx < mesh->mNumBones; boneIdx++)
+		{
+			aiBone* bone = mesh->mBones[boneIdx];
+
+			if (outBoneMatrices.boneCount >= BoneMatrices::MAX_BONES)
+			{
+				break;  // ãƒœãƒ¼ãƒ³æ•°ã®ä¸Šé™ã«é”ã—ãŸ
+			}
+
+			// ãƒœãƒ¼ãƒ³åã‹ã‚‰ã‚¢ãƒ‹ãƒ¡ãƒ¼ã‚·ãƒ§ãƒ³ãƒãƒ£ãƒãƒ«ã‚’æ¤œç´¢
+			aiNodeAnim* nodeAnim = nullptr;
+			for (unsigned int chanIdx = 0; chanIdx < animation->mNumChannels; chanIdx++)
+			{
+				if (std::string(animation->mChannels[chanIdx]->mNodeName.data) == bone->mName.data)
+				{
+					nodeAnim = animation->mChannels[chanIdx];
+					break;
+				}
+			}
+
+			if (!nodeAnim)
+			{
+				// ã“ã®ãƒœãƒ¼ãƒ³ã®ã‚¢ãƒ‹ãƒ¡ãƒ¼ã‚·ãƒ§ãƒ³ãƒãƒ£ãƒãƒ«ãŒç„¡ã„å ´åˆã¯ã‚¢ã‚¤ãƒ‡ãƒ³ãƒ†ã‚£ãƒ†ã‚£è¡Œåˆ—
+				outBoneMatrices.matrices[outBoneMatrices.boneCount] = XMMatrixIdentity();
+				outBoneMatrices.boneCount++;
+				continue;
+			}
+
+			// ä½ç½®ã€å›è»¢ã€ã‚¹ã‚±ãƒ¼ãƒ«ã®ã‚­ãƒ¼ãƒ•ãƒ¬ãƒ¼ãƒ ã‹ã‚‰è£œé–“å€¤ã‚’å–å¾—
+			XMFLOAT3 position = XMFLOAT3(0, 0, 0);
+			XMFLOAT4 rotation = XMFLOAT4(0, 0, 0, 1);  // w ã¯1.0f
+			XMFLOAT3 scale = XMFLOAT3(1, 1, 1);
+
+			// ä½ç½®ã®è£œé–“
+			if (nodeAnim->mNumPositionKeys > 0)
+			{
+				int posKeyIdx = 0;
+				for (unsigned int k = 0; k < nodeAnim->mNumPositionKeys - 1; k++)
+				{
+					if (animationTick <= nodeAnim->mPositionKeys[k + 1].mTime)
+					{
+						posKeyIdx = k;
+						break;
+					}
+				}
+
+				aiVectorKey& key1 = nodeAnim->mPositionKeys[posKeyIdx];
+				aiVectorKey& key2 = nodeAnim->mPositionKeys[(posKeyIdx + 1) % nodeAnim->mNumPositionKeys];
+
+				double timeDiff = key2.mTime - key1.mTime;
+				double t = 0.0;
+				if (timeDiff > 0.001)
+				{
+					t = (animationTick - key1.mTime) / timeDiff;
+					t = std::max(0.0, std::min(1.0, t));  // 0-1ã®ç¯„å›²ã§ã‚¯ãƒ©ãƒ³ãƒ—
+				}
+
+				position.x = key1.mValue.x + (key2.mValue.x - key1.mValue.x) * (float)t;
+				position.y = key1.mValue.y + (key2.mValue.y - key1.mValue.y) * (float)t;
+				position.z = key1.mValue.z + (key2.mValue.z - key1.mValue.z) * (float)t;
+			}
+
+			// å›è»¢ã®è£œé–“ï¼ˆå››å…ƒæ•°SLERPï¼‰
+			if (nodeAnim->mNumRotationKeys > 0)
+			{
+				int rotKeyIdx = 0;
+				for (unsigned int k = 0; k < nodeAnim->mNumRotationKeys - 1; k++)
+				{
+					if (animationTick <= nodeAnim->mRotationKeys[k + 1].mTime)
+					{
+						rotKeyIdx = k;
+						break;
+					}
+				}
+
+				aiQuatKey& key1 = nodeAnim->mRotationKeys[rotKeyIdx];
+				aiQuatKey& key2 = nodeAnim->mRotationKeys[(rotKeyIdx + 1) % nodeAnim->mNumRotationKeys];
+
+				double timeDiff = key2.mTime - key1.mTime;
+				double t = 0.0;
+				if (timeDiff > 0.001)
+				{
+					t = (animationTick - key1.mTime) / timeDiff;
+					t = std::max(0.0, std::min(1.0, t));  // 0-1ã®ç¯„å›²ã§ã‚¯ãƒ©ãƒ³ãƒ—
+				}
+
+				// ç°¡æ˜“çš„ãªç·šå½¢è£œé–“ï¼ˆæœ¬æ¥ã¯SLERPã‚’ä½¿ç”¨ã™ã¹ãï¼‰
+				XMVECTOR q1 = XMVectorSet(key1.mValue.x, key1.mValue.y, key1.mValue.z, key1.mValue.w);
+				XMVECTOR q2 = XMVectorSet(key2.mValue.x, key2.mValue.y, key2.mValue.z, key2.mValue.w);
+				XMVECTOR qInterp = XMQuaternionSlerp(q1, q2, (float)t);
+				
+				XMStoreFloat4(&rotation, qInterp);
+			}
+
+			// ã‚¹ã‚±ãƒ¼ãƒ«ã®è£œé–“
+			if (nodeAnim->mNumScalingKeys > 0)
+			{
+				int scaleKeyIdx = 0;
+				for (unsigned int k = 0; k < nodeAnim->mNumScalingKeys - 1; k++)
+				{
+					if (animationTick <= nodeAnim->mScalingKeys[k + 1].mTime)
+					{
+						scaleKeyIdx = k;
+						break;
+					}
+				}
+
+				aiVectorKey& key1 = nodeAnim->mScalingKeys[scaleKeyIdx];
+				aiVectorKey& key2 = nodeAnim->mScalingKeys[(scaleKeyIdx + 1) % nodeAnim->mNumScalingKeys];
+
+				double timeDiff = key2.mTime - key1.mTime;
+				double t = 0.0;
+				if (timeDiff > 0.001)
+				{
+					t = (animationTick - key1.mTime) / timeDiff;
+					t = std::max(0.0, std::min(1.0, t));  // 0-1ã®ç¯„å›²ã§ã‚¯ãƒ©ãƒ³ãƒ—
+				}
+
+				scale.x = key1.mValue.x + (key2.mValue.x - key1.mValue.x) * (float)t;
+				scale.y = key1.mValue.y + (key2.mValue.y - key1.mValue.y) * (float)t;
+				scale.z = key1.mValue.z + (key2.mValue.z - key1.mValue.z) * (float)t;
+			}
+
+			// è¡Œåˆ—ã‚’è¨ˆç®—ï¼ˆã‚¹ã‚±ãƒ¼ãƒ« â†’ å›è»¢ â†’ ä½ç½®ï¼‰
+			XMMATRIX scaleMat = XMMatrixScaling(scale.x, scale.y, scale.z);
+			XMMATRIX rotMat = XMMatrixRotationQuaternion(XMLoadFloat4(&rotation));
+			XMMATRIX transMat = XMMatrixTranslation(position.x, position.y, position.z);
+
+			outBoneMatrices.matrices[outBoneMatrices.boneCount] = scaleMat * rotMat * transMat;
+			outBoneMatrices.boneCount++;
+		}
+	}
+}
+
+// ãƒ¢ãƒ‡ãƒ«ã®ã‚µã‚¤ã‚ºã‚’å–å¾—
+XMFLOAT3 ModelGetSize(MODEL* model)
+{
+	if (!model || !model->AiScene)
+	{
+		return XMFLOAT3(0.0f, 0.0f, 0.0f);
+	}
+
+	XMFLOAT3 minBounds(FLT_MAX, FLT_MAX, FLT_MAX);
+	XMFLOAT3 maxBounds(-FLT_MAX, -FLT_MAX, -FLT_MAX);
+
 	for (unsigned int m = 0; m < model->AiScene->mNumMeshes; m++)
 	{
 		aiMesh* mesh = model->AiScene->mMeshes[m];
 
 		for (unsigned int v = 0; v < mesh->mNumVertices; v++)
 		{
-			const aiVector3D& vertex = mesh->mVertices[v];
+			aiVector3D pos = mesh->mVertices[v];
 
-			minX = std::min(minX, vertex.x);
-			minY = std::min(minY, vertex.y);
-			minZ = std::min(minZ, vertex.z);
+			minBounds.x = std::min(minBounds.x, pos.x);
+			minBounds.y = std::min(minBounds.y, pos.y);
+			minBounds.z = std::min(minBounds.z, pos.z);
 
-			maxX = std::max(maxX, vertex.x);
-			maxY = std::max(maxY, vertex.y);
-			maxZ = std::max(maxZ, vertex.z);
+			maxBounds.x = std::max(maxBounds.x, pos.x);
+			maxBounds.y = std::max(maxBounds.y, pos.y);
+			maxBounds.z = std::max(maxBounds.z, pos.z);
 		}
 	}
 
-	// –³ŒÀ‘å‚Ì‚Ü‚Ü‚Ìê‡‚ÍƒfƒtƒHƒ‹ƒg’l‚ğ•Ô‚·
-	if (minX == FLT_MAX || maxX == -FLT_MAX)
-	{
-		return XMFLOAT3(1.0f, 1.0f, 1.0f);
-	}
-
-	// ƒTƒCƒY‚ğŒvZiÅ‘åÀ•W - Å¬À•Wj
 	XMFLOAT3 size(
-		maxX - minX,
-		maxY - minY,
-		maxZ - minZ
+		maxBounds.x - minBounds.x,
+		maxBounds.y - minBounds.y,
+		maxBounds.z - minBounds.z
 	);
-
-	// ƒTƒCƒY‚ª0‚Ìê‡‚ÍÅ¬’l‚ğİ’è
-	if (size.x == 0.0f) size.x = 1.0f;
-	if (size.y == 0.0f) size.y = 1.0f;
-	if (size.z == 0.0f) size.z = 1.0f;
 
 	return size;
 }
 
-// ƒ‚ƒfƒ‹‚Ì•½‹Ï“I‚Èƒ}ƒeƒŠƒAƒ‹ƒJƒ‰[‚ğæ“¾‚·‚éŠÖ”
+// ãƒãƒ†ãƒªã‚¢ãƒ«ã®å¹³å‡è‰²ã‚’å–å¾—
 XMFLOAT4 ModelGetAverageMaterialColor(MODEL* model)
 {
-	if (!model || !model->AiScene || model->AiScene->mNumMeshes == 0)
+	if (!model || !model->AiScene || model->AiScene->mNumMaterials == 0)
 	{
-		return XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f);  // ƒfƒtƒHƒ‹ƒg‚Í”’
+		return XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f);
 	}
 
 	float r = 0.0f, g = 0.0f, b = 0.0f, a = 0.0f;
+	unsigned int count = 0;
 
-	// ‚·‚×‚Ä‚ÌƒƒbƒVƒ…‚Ìƒ}ƒeƒŠƒAƒ‹ƒJƒ‰[‚Ì•½‹Ï‚ğŒvZ
-	for (unsigned int m = 0; m < model->AiScene->mNumMeshes; m++)
+	for (unsigned int m = 0; m < model->AiScene->mNumMaterials; m++)
 	{
-		r += model->MeshMaterials[m].diffuseColor.x;
-		g += model->MeshMaterials[m].diffuseColor.y;
-		b += model->MeshMaterials[m].diffuseColor.z;
-		a += model->MeshMaterials[m].diffuseColor.w;
+		if (!model->MeshMaterials || m >= model->AiScene->mNumMeshes) continue;
+
+		XMFLOAT4 matColor = model->MeshMaterials[m].diffuseColor;
+
+		r += matColor.x;
+		g += matColor.y;
+		b += matColor.z;
+		a += matColor.w;
+		count++;
 	}
 
-	unsigned int meshCount = model->AiScene->mNumMeshes;
-	return XMFLOAT4(
-		r / meshCount,
-		g / meshCount,
-		b / meshCount,
-		a / meshCount
-	);
+	if (count > 0)
+	{
+		return XMFLOAT4(r / count, g / count, b / count, a / count);
+	}
+
+	return XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f);
 }

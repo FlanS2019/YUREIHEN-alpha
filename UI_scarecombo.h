@@ -1,23 +1,23 @@
-#pragma once
+ï»¿#pragma once
 
 #define SCARECOMBO_MAX (5)
-#define SCARECOMBO_OVER_TIME (5000)// ƒ~ƒŠ•b
+#define SCARECOMBO_OVER_TIME (5000)// ãƒŸãƒªç§’
 #define SCARECOMBO_BAR_SIZE_X (140.0f)
 #define SCARECOMBO_BAR_POS_X (SCREEN_WIDTH - 200.0f)
 
-// ‹°•|ƒRƒ“ƒ{‚Ì‰Šú‰»
+// ææ€–ã‚³ãƒ³ãƒœã®åˆæœŸåŒ–
 void UI_ScareCombo_Initialize(void);
 
-// ‹°•|ƒRƒ“ƒ{‚ÌXV
+// ææ€–ã‚³ãƒ³ãƒœã®æ›´æ–°
 void UI_ScareCombo_Update(void);
 
-// ‹°•|ƒRƒ“ƒ{‚Ì•`‰æ
+// ææ€–ã‚³ãƒ³ãƒœã®æç”»
 void UI_ScareCombo_Draw(void);
 
-// ‹°•|ƒRƒ“ƒ{‚ÌI—¹
+// ææ€–ã‚³ãƒ³ãƒœã®çµ‚äº†
 void UI_ScareCombo_Finalize(void);
 
-// ‹°•|ƒRƒ“ƒ{‚ğ‰ÁZ
+// ææ€–ã‚³ãƒ³ãƒœã‚’åŠ ç®—
 void ScareComboUP(void);
 
 int UI_ScareCombo_GetNumber(void);

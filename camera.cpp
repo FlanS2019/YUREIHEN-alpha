@@ -1,4 +1,4 @@
-#include "camera.h"
+ï»¿#include "camera.h"
 #include "d3d11.h"
 #include "DirectXMath.h"
 using namespace DirectX;
@@ -11,24 +11,24 @@ using namespace DirectX;
 
 #define ROTATE_Y_MAX (80.0f)
 #define MOUSE_SENSITIVITY (0.15f)
-#define CAMERA_DISTANCE (6.0f)  // ’‹‘ÎÛ‚©‚ç‚ÌƒJƒƒ‰‹——£‚ğ’Zk
-#define CAMERA_OFFSET_Y (1.5f)  //@’‹“_‚ğ‚¿‚å‚Á‚Æã‚ÉƒIƒtƒZƒbƒg
+#define CAMERA_DISTANCE (6.0f)  // æ³¨è¦–å¯¾è±¡ã‹ã‚‰ã®ã‚«ãƒ¡ãƒ©è·é›¢ã‚’çŸ­ç¸®
+#define CAMERA_OFFSET_Y (1.5f)  //ã€€æ³¨è¦–ç‚¹ã‚’ã¡ã‚‡ã£ã¨ä¸Šã«ã‚ªãƒ•ã‚»ãƒƒãƒˆ
 
 static Camera* CameraObject;
-static float g_pitch = 0.0f;  // ã‰º‹“_Šp“x
-static float g_yaw = 0.0f;    // ¶‰E‹“_Šp“x
-static float g_lastPitch = 0.0f;  // ‘OƒtƒŒ[ƒ€‚Ìƒsƒbƒ`
-static float g_lastYaw = 0.0f;    // ‘OƒtƒŒ[ƒ€‚Ìƒˆ[
-static XMFLOAT3 g_targetPos = { 0.0f, 0.0f, 0.0f };  // ’‹‘ÎÛˆÊ’u
+static float g_pitch = 0.0f;  // ä¸Šä¸‹è¦–ç‚¹è§’åº¦
+static float g_yaw = 0.0f;    // å·¦å³è¦–ç‚¹è§’åº¦
+static float g_lastPitch = 0.0f;  // å‰ãƒ•ãƒ¬ãƒ¼ãƒ ã®ãƒ”ãƒƒãƒ
+static float g_lastYaw = 0.0f;    // å‰ãƒ•ãƒ¬ãƒ¼ãƒ ã®ãƒ¨ãƒ¼
+static XMFLOAT3 g_targetPos = { 0.0f, 0.0f, 0.0f };  // æ³¨è¦–å¯¾è±¡ä½ç½®
 
 void Camera_Initialize(void)
 {
     CameraObject = new Camera();
     
-    // ƒ}ƒEƒX‚ğ‘Š‘Îƒ‚[ƒh‚Éİ’è
+    // ãƒã‚¦ã‚¹ã‚’ç›¸å¯¾ãƒ¢ãƒ¼ãƒ‰ã«è¨­å®š
     Mouse_SetMode(MOUSE_POSITION_MODE_RELATIVE);
     
-    // ƒJ[ƒ\ƒ‹‚ğ”ñ•\¦
+    // ã‚«ãƒ¼ã‚½ãƒ«ã‚’éè¡¨ç¤º
     ShowCursor(FALSE);
     
     g_pitch = 0.0f;
@@ -38,10 +38,10 @@ void Camera_Initialize(void)
 
 void Camera_Finalize(void)
 {
-    // ƒ}ƒEƒX‚ğâ‘Îƒ‚[ƒh‚É–ß‚·
+    // ãƒã‚¦ã‚¹ã‚’çµ¶å¯¾ãƒ¢ãƒ¼ãƒ‰ã«æˆ»ã™
     Mouse_SetMode(MOUSE_POSITION_MODE_ABSOLUTE);
     
-    // ƒJ[ƒ\ƒ‹‚ğ•\¦
+    // ã‚«ãƒ¼ã‚½ãƒ«ã‚’è¡¨ç¤º
     ShowCursor(TRUE);
     
     delete CameraObject;
@@ -49,11 +49,11 @@ void Camera_Finalize(void)
 
 void Camera_Update(void)
 {
-    // ƒ}ƒEƒX“ü—Í
+    // ãƒã‚¦ã‚¹å…¥åŠ›
     Mouse_State mouseState;
     Mouse_GetState(&mouseState);
     
-    // ESCƒL[‚ÅI—¹
+    // ESCã‚­ãƒ¼ã§çµ‚äº†
     if (Keyboard_IsKeyDownTrigger(KK_ESCAPE))
     {
         Mouse_SetMode(MOUSE_POSITION_MODE_ABSOLUTE);
@@ -61,23 +61,23 @@ void Camera_Update(void)
         return;
     }
     
-    // ƒ}ƒEƒXƒƒbƒNó‘Ô‚Å‚È‚¢ê‡‚Í‹“_‘€ì‚ğƒXƒLƒbƒv
+    // ãƒã‚¦ã‚¹ãƒ­ãƒƒã‚¯çŠ¶æ…‹ã§ãªã„å ´åˆã¯è¦–ç‚¹æ“ä½œã‚’ã‚¹ã‚­ãƒƒãƒ—
     if (mouseState.positionMode == MOUSE_POSITION_MODE_ABSOLUTE)
     {
-        // ƒEƒBƒ“ƒhƒE‚ªƒAƒNƒeƒBƒu‚É‚È‚Á‚½‚çƒ}ƒEƒXƒƒbƒN‚ğÄ“x—LŒø‚É‚·‚é
+        // ã‚¦ã‚£ãƒ³ãƒ‰ã‚¦ãŒã‚¢ã‚¯ãƒ†ã‚£ãƒ–ã«ãªã£ãŸã‚‰ãƒã‚¦ã‚¹ãƒ­ãƒƒã‚¯ã‚’å†åº¦æœ‰åŠ¹ã«ã™ã‚‹
         if (mouseState.leftButton)
         {
             Mouse_SetMode(MOUSE_POSITION_MODE_RELATIVE);
             ShowCursor(FALSE);
         }
-        return;  // ƒ}ƒEƒXƒƒbƒN‰ğœ’†‚Í‹“_‘€ì‚ğ‚µ‚È‚¢
+        return;  // ãƒã‚¦ã‚¹ãƒ­ãƒƒã‚¯è§£é™¤ä¸­ã¯è¦–ç‚¹æ“ä½œã‚’ã—ãªã„
     }
     
-    // ƒ}ƒEƒXˆÚ“®—Ê‚ğ‰ñ“]Šp“x‚É”½‰f
+    // ãƒã‚¦ã‚¹ç§»å‹•é‡ã‚’å›è»¢è§’åº¦ã«åæ˜ 
     g_yaw += static_cast<float>(mouseState.x) * MOUSE_SENSITIVITY;
-    g_pitch -= static_cast<float>(mouseState.y) * MOUSE_SENSITIVITY;  // c•ûŒü‚ğ”½“]
+    g_pitch -= static_cast<float>(mouseState.y) * MOUSE_SENSITIVITY;  // ç¸¦æ–¹å‘ã‚’åè»¢
     
-    // ƒsƒbƒ`Šp“x‚ğ§ŒÀ
+    // ãƒ”ãƒƒãƒè§’åº¦ã‚’åˆ¶é™
     if (g_pitch > ROTATE_Y_MAX)
     {
         g_pitch = ROTATE_Y_MAX;
@@ -87,7 +87,7 @@ void Camera_Update(void)
         g_pitch = -ROTATE_Y_MAX;
     }
     
-    // ƒsƒbƒ`‚Æƒˆ[‚Ì•ÏX‚ğŒŸo‚µ‚Äo—Í
+    // ãƒ”ãƒƒãƒã¨ãƒ¨ãƒ¼ã®å¤‰æ›´ã‚’æ¤œå‡ºã—ã¦å‡ºåŠ›
     if (g_pitch != g_lastPitch || g_yaw != g_lastYaw)
     {
         //hal::dout << "Camera - Pitch: " << g_pitch << ", Yaw: " << g_yaw << std::endl;
@@ -95,21 +95,21 @@ void Camera_Update(void)
         g_lastYaw = g_yaw;
     }
     
-    // ’‹‘ÎÛˆÊ’u‚ğ’†S‚ÉŒvZ
+    // æ³¨è¦–å¯¾è±¡ä½ç½®ã‚’ä¸­å¿ƒã«è¨ˆç®—
     XMVECTOR targetVec = XMLoadFloat3(&g_targetPos);
     
-    // ƒJƒƒ‰ˆÊ’u‚ğŒvZi’‹‘ÎÛü‚è‚É‹…‘Ì‰ñ“]j
+    // ã‚«ãƒ¡ãƒ©ä½ç½®ã‚’è¨ˆç®—ï¼ˆæ³¨è¦–å¯¾è±¡å‘¨ã‚Šã«çƒä½“å›è»¢ï¼‰
     float pitchRad = XMConvertToRadians(g_pitch);
     float yawRad = XMConvertToRadians(g_yaw);
     
-    // ’‹‘ÎÛ ‚©‚ç‘Š‘Î“I‚ÈƒJƒƒ‰ˆÊ’ui•„†‚ğ”½“]j
+    // æ³¨è¦–å¯¾è±¡ ã‹ã‚‰ç›¸å¯¾çš„ãªã‚«ãƒ¡ãƒ©ä½ç½®ï¼ˆç¬¦å·ã‚’åè»¢ï¼‰
     float camX = -sinf(yawRad) * cosf(pitchRad) * CAMERA_DISTANCE;
-    float camY = -sinf(pitchRad) * CAMERA_DISTANCE + 1.5f;  // ã•ûŒü‚ÉƒIƒtƒZƒbƒg
+    float camY = -sinf(pitchRad) * CAMERA_DISTANCE + 1.5f;  // ä¸Šæ–¹å‘ã«ã‚ªãƒ•ã‚»ãƒƒãƒˆ
     float camZ = -cosf(yawRad) * cosf(pitchRad) * CAMERA_DISTANCE;
     
     XMVECTOR cameraPos = XMVectorAdd(targetVec, XMVectorSet(camX, camY, camZ, 0.0f));
     
-    // ƒJƒƒ‰ˆÊ’u‚ğŒvZ
+    // ã‚«ãƒ¡ãƒ©ä½ç½®ã‚’è¨ˆç®—
     XMFLOAT3 newCameraPos;
     XMStoreFloat3(&newCameraPos, cameraPos);
     

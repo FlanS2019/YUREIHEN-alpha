@@ -1,4 +1,4 @@
-#include "result.h"
+ï»¿#include "result.h"
 #include "main.h"
 #include "sprite.h"
 #include "texture.h"
@@ -6,25 +6,25 @@
 #include "fade.h"
 #include "debug_ostream.h"
 
-// ‡@Sprite‚ÌƒCƒ“ƒXƒ^ƒ“ƒXAƒ|ƒCƒ“ƒ^—pˆÓ
+// â‘ Spriteã®ã‚¤ãƒ³ã‚¹ã‚¿ãƒ³ã‚¹ã€ãƒã‚¤ãƒ³ã‚¿ç”¨æ„
 static Sprite* g_pResultSprite = nullptr;
 
 void Result_Initialize(ID3D11Device* pDevice, ID3D11DeviceContext* pContext)
 {
-	// ‡AŠeŽí‰Šú‰»
+	// â‘¡å„ç¨®åˆæœŸåŒ–
 	g_pResultSprite = new Sprite(
-		{ SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2.0f },		//ˆÊ’u
-		{ SCREEN_WIDTH , SCREEN_HEIGHT },	//ƒTƒCƒY
-		0.0f,											//‰ñ“]i“xj
+		{ SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2.0f },		//ä½ç½®
+		{ SCREEN_WIDTH , SCREEN_HEIGHT },	//ã‚µã‚¤ã‚º
+		0.0f,											//å›žè»¢ï¼ˆåº¦ï¼‰
 		{ 1.0f, 1.0f, 1.0f, 1.0f },						//RGBA
 		BLENDSTATE_NONE,								//BlendState
-		L"asset\\texture\\result.png"					//ƒeƒNƒXƒ`ƒƒƒpƒX
+		L"asset\\texture\\result.png"					//ãƒ†ã‚¯ã‚¹ãƒãƒ£ãƒ‘ã‚¹
 	);
 }
 
 void Result_Update(void)
 {
-	// ‡B“K“–‚Èˆ—@ƒAƒjƒ[ƒVƒ‡ƒ“‚È‚Ç‚à‚±‚±‚Å
+	// â‘¢é©å½“ãªå‡¦ç†ã€€ã‚¢ãƒ‹ãƒ¡ãƒ¼ã‚·ãƒ§ãƒ³ãªã©ã‚‚ã“ã“ã§
 	if (Keyboard_IsKeyDown(KK_ENTER))
 	{
 		StartFade(SCENE_ANM_LOGO);
@@ -33,7 +33,7 @@ void Result_Update(void)
 
 void Result_Draw(void)
 {
-	// ‡CDraw‚·‚é‚¾‚¯‚Å‚¢‚¢IIIIIII
+	// â‘£Drawã™ã‚‹ã ã‘ã§ã„ã„ï¼ï¼ï¼ï¼ï¼ï¼ï¼
 	g_pResultSprite->Draw();
 }
 

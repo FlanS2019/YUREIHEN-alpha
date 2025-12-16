@@ -1,4 +1,4 @@
-
+ï»¿
 #include "texture.h"
 #include <Windows.h>
 #include <cstdio>
@@ -9,7 +9,7 @@ ID3D11ShaderResourceView* LoadTexture(const wchar_t* texpass)
 	ScratchImage image;
 	ID3D11ShaderResourceView* g_Texture = nullptr;
 
-	// •W€“I‚È•û–@‚Åƒ[ƒhi–ß‚è’l‚ğƒ`ƒFƒbƒNj
+	// æ¨™æº–çš„ãªæ–¹æ³•ã§ãƒ­ãƒ¼ãƒ‰ï¼ˆæˆ»ã‚Šå€¤ã‚’ãƒã‚§ãƒƒã‚¯ï¼‰
 	HRESULT hr = LoadFromWICFile(texpass, WIC_FLAGS_FORCE_SRGB, &metadata, image);
 	if (FAILED(hr))
 	{
@@ -19,7 +19,7 @@ ID3D11ShaderResourceView* LoadTexture(const wchar_t* texpass)
 		return nullptr;
 	}
 
-	// •W€“I‚É SRV ‚ğì¬i–ß‚è’l‚ğƒ`ƒFƒbƒNj
+	// æ¨™æº–çš„ã« SRV ã‚’ä½œæˆï¼ˆæˆ»ã‚Šå€¤ã‚’ãƒã‚§ãƒƒã‚¯ï¼‰
 	hr = CreateShaderResourceView(
 		Direct3D_GetDevice(),
 		image.GetImages(),
@@ -33,7 +33,7 @@ ID3D11ShaderResourceView* LoadTexture(const wchar_t* texpass)
 		wchar_t msg[512];
 		swprintf_s(msg, L"CreateShaderResourceView failed: hr=0x%08X path=%ls\n", static_cast<unsigned int>(hr), texpass ? texpass : L"(null)");
 		OutputDebugStringW(msg);
-		// ¸”s‚Í NULL ‚ğ•Ô‚·iŒÄ‚Ño‚µ‘¤‚ÅƒtƒH[ƒ‹ƒoƒbƒNˆ—‚ğs‚¤j
+		// å¤±æ•—æ™‚ã¯ NULL ã‚’è¿”ã™ï¼ˆå‘¼ã³å‡ºã—å´ã§ãƒ•ã‚©ãƒ¼ãƒ«ãƒãƒƒã‚¯å‡¦ç†ã‚’è¡Œã†ï¼‰
 		return nullptr;
 	}
 	return g_Texture;
@@ -48,25 +48,25 @@ ID3D11ShaderResourceView* LoadTexture(const wchar_t* texpass)
 //	ScratchImage image; 
 //	ID3D11ShaderResourceView* g_Texture = NULL;
 //
-//	// •W€“I‚È•û–@‚Åƒ[ƒh
-//	// WIC_FLAGS_NONE: ƒƒ^ƒf[ƒ^‚ğ‚»‚Ì‚Ü‚Üg—p
+//	// æ¨™æº–çš„ãªæ–¹æ³•ã§ãƒ­ãƒ¼ãƒ‰
+//	// WIC_FLAGS_NONE: ãƒ¡ã‚¿ãƒ‡ãƒ¼ã‚¿ã‚’ãã®ã¾ã¾ä½¿ç”¨
 //	LoadFromWICFile(texpass, WIC_FLAGS_FORCE_SRGB, &metadata, image);
-//	// sRGB•ÏŠ·‚µ‚È‚¢
+//	// sRGBå¤‰æ›ã—ãªã„
 //	
-//	//// ƒƒ^ƒf[ƒ^‚ÅsRGB‘Î‰ƒtƒH[ƒ}ƒbƒg‚ğƒ`ƒFƒbƒN
+//	//// ãƒ¡ã‚¿ãƒ‡ãƒ¼ã‚¿ã§sRGBå¯¾å¿œãƒ•ã‚©ãƒ¼ãƒãƒƒãƒˆã‚’ãƒã‚§ãƒƒã‚¯
 //	//bool isSRGB = DirectX::IsSRGB(metadata.format);
 //	//
-//	//// sRGB‘Î‰ƒtƒH[ƒ}ƒbƒg‚Å‚È‚¢ê‡‚Í•ÏŠ·
+//	//// sRGBå¯¾å¿œãƒ•ã‚©ãƒ¼ãƒãƒƒãƒˆã§ãªã„å ´åˆã¯å¤‰æ›
 //	//if (!isSRGB)
 //	//{
-//	//	// üŒ`ƒtƒH[ƒ}ƒbƒg ¨ sRGB‘Î‰ƒtƒH[ƒ}ƒbƒg‚É•ÏŠ·
+//	//	// ç·šå½¢ãƒ•ã‚©ãƒ¼ãƒãƒƒãƒˆ â†’ sRGBå¯¾å¿œãƒ•ã‚©ãƒ¼ãƒãƒƒãƒˆã«å¤‰æ›
 //	//	metadata.format = DirectX::MakeSRGB(metadata.format);
 //	//}
 //	//
-//	//// ƒtƒH[ƒ}ƒbƒg‚ğƒI[ƒo[ƒ‰ƒCƒh
+//	//// ãƒ•ã‚©ãƒ¼ãƒãƒƒãƒˆã‚’ã‚ªãƒ¼ãƒãƒ¼ãƒ©ã‚¤ãƒ‰
 //	//image.OverrideFormat(metadata.format);
 //	
-//	// •W€“I‚Éì¬
+//	// æ¨™æº–çš„ã«ä½œæˆ
 //	CreateShaderResourceView(
 //		Direct3D_GetDevice(),
 //		image.GetImages(),
@@ -75,7 +75,7 @@ ID3D11ShaderResourceView* LoadTexture(const wchar_t* texpass)
 //		&g_Texture
 //	);
 //	
-//	assert(g_Texture);		//ƒ[ƒh¸”s‚Éƒ_ƒCƒAƒƒO‚ğ•\¦
+//	assert(g_Texture);		//ãƒ­ãƒ¼ãƒ‰å¤±æ•—æ™‚ã«ãƒ€ã‚¤ã‚¢ãƒ­ã‚°ã‚’è¡¨ç¤º
 //
 //	return g_Texture;
 //}

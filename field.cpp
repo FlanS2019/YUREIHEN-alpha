@@ -1,40 +1,41 @@
-#include "field.h"
+ï»¿#include "field.h"
 #include "texture.h"
 #include "Camera.h"
 #include "sprite.h"
 #include "box.h"
-#include "define.h" 
+#include "define.h"
+#include "ghost.h"
 #include <vector>
 #include <queue>
 #include <map>
 #include <cmath> 
 
-// ƒOƒ[ƒoƒ‹•Ï”
+// ã‚°ãƒ­ãƒ¼ãƒãƒ«å¤‰æ•°
 static ID3D11Device* g_pDevice = NULL;
 static ID3D11DeviceContext* g_pContext = NULL;
 static ID3D11Buffer* g_VertexBuffer = NULL;
 static ID3D11Buffer* g_IndexBuffer = NULL;
 
-static ID3D11ShaderResourceView* g_TextureBox;   // ” —p
-static ID3D11ShaderResourceView* g_TextureStairs;// ŠK’i—p
+static ID3D11ShaderResourceView* g_TextureBox;   // ç®±ç”¨
+static ID3D11ShaderResourceView* g_TextureStairs;// éšæ®µç”¨
 
 XMFLOAT3 rotateBox = XMFLOAT3(0, 0, 0);
 static std::vector<MAPDATA> g_MapList;
 
-// Œ»İ‚ÌŠK‘w (0=1ŠK, 1=2ŠK, 2=3ŠK)
+// ç¾åœ¨ã®éšå±¤ (0=1éš, 1=2éš, 2=3éš)
 static int g_CurrentFloor = 0;
 
 // =====================================================================
-// ƒ}ƒbƒvƒfƒUƒCƒ“ (3ŠK‘w•ª)
-// 0:‚È‚µ, 1:°, 2:•Ç, 3:ã‚èŠK’i, 4:‰º‚èŠK’i
+// ãƒãƒƒãƒ—ãƒ‡ã‚¶ã‚¤ãƒ³ (3éšå±¤åˆ†)
+// 0:ãªã—, 1:åºŠ, 2:å£, 3:ä¸Šã‚Šéšæ®µ, 4:ä¸‹ã‚Šéšæ®µ
 // =====================================================================
-#define MAP_FLOORS (3)
+
 #define MAP_W (41)
 #define MAP_H (41)
 
-// ƒ}ƒbƒvƒf[ƒ^ (3ŸŒ³”z—ñ)
+// ãƒãƒƒãƒ—ãƒ‡ãƒ¼ã‚¿ (3æ¬¡å…ƒé…åˆ—)
 static int LevelMap[MAP_FLOORS][MAP_H][MAP_W] = {
-	// --- 1ŠK (Floor 0) ---
+	// --- 1éš (Floor 0) ---
 	{
 		{2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2},
 		{2,1,1,1,1,1,2,1,1,1,1,1,1,1,1,1,1,1,1,2,1,1,1,1,1,1,1,1,1,2,1,1,1,1,1,1,1,1,1,1,2},
@@ -49,14 +50,14 @@ static int LevelMap[MAP_FLOORS][MAP_H][MAP_W] = {
 		{2,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,2,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,2},
 		{2,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,2,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,2},
 		{2,2,2,1,2,2,2,2,2,2,2,1,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,1,2,2,2,2,2,2,2,1,2,2,2,2,2},
-		{2,1,1,1,1,1,2,1,1,1,1,1,1,1,1,1,1,1,1,2,1,1,1,1,1,1,1,1,1,2,1,1,1,1,1,1,1,1,1,1,2},
-		{2,1,1,1,1,1,2,1,1,1,1,1,1,1,1,1,1,1,1,2,1,1,1,1,1,1,1,1,1,2,1,1,1,1,1,1,1,1,1,1,2},
-		{2,1,1,1,1,1,2,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,2,1,1,1,1,1,1,1,1,1,1,2},
+		{2,1,1,1,1,1,2,1,1,1,1,1,1,1,1,1,1,3,3,2,1,1,1,1,1,1,1,1,1,2,1,1,1,1,1,1,1,1,1,1,2},
+		{2,1,1,1,1,1,2,1,1,1,1,1,1,1,1,1,1,3,3,2,1,1,1,1,1,1,1,1,1,2,1,1,1,1,1,1,1,1,1,1,2},
+		{2,1,1,1,1,1,2,1,1,1,1,1,1,1,1,1,1,3,3,1,1,1,1,1,1,1,1,1,1,2,1,1,1,1,1,1,1,1,1,1,2},
 		{2,1,1,1,1,1,2,1,1,1,1,1,1,1,1,1,1,1,1,2,1,1,1,1,1,1,1,1,1,2,1,1,1,1,1,1,1,1,1,1,2},
 		{2,1,1,1,1,1,2,1,1,1,1,1,1,1,1,1,1,1,1,2,1,1,1,1,1,1,1,1,1,2,1,1,1,1,1,1,1,1,1,1,2},
 		{2,2,2,1,2,2,2,1,1,1,1,1,1,1,1,1,1,1,1,2,1,1,1,1,1,1,1,1,1,2,2,2,1,2,2,2,2,2,2,2,2},
 		{2,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,2,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,2},
-		{2,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,3,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,2}, // š3: ã‚èŠK’i(’†‰›)
+		{2,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,2,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,2}, // 3: ä¸Šã‚Šéšæ®µ(ä¸­å¤®)
 		{2,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,2,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,2},
 		{2,2,2,1,2,2,2,1,1,1,1,1,1,1,1,1,1,1,1,2,1,1,1,1,1,1,1,1,1,2,2,2,1,2,2,2,2,2,2,2,2},
 		{2,1,1,1,1,1,2,1,1,1,1,1,1,1,1,1,1,1,1,2,1,1,1,1,1,1,1,1,1,2,1,1,1,1,1,1,1,1,1,1,2},
@@ -78,7 +79,7 @@ static int LevelMap[MAP_FLOORS][MAP_H][MAP_W] = {
 		{2,1,1,1,1,1,2,1,1,1,1,1,1,1,1,1,1,1,1,2,1,1,1,1,1,1,1,1,1,2,1,1,1,1,1,1,1,1,1,1,2},
 		{2,2,2,2,2,2,2,2,2,1,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2},
 	},
-	// --- 2ŠK (Floor 1) ---
+	// --- 2éš (Floor 1) ---
 	{
 		{2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2},
 		{2,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,2,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,2},
@@ -93,21 +94,21 @@ static int LevelMap[MAP_FLOORS][MAP_H][MAP_W] = {
 		{2,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,2,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,2},
 		{2,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,2,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,2},
 		{2,2,2,1,2,2,2,2,2,2,2,1,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,1,2,2,2,2,2,2,2,1,2,2,2,2,2},
-		{2,1,1,1,1,1,2,1,1,1,1,1,1,1,1,1,1,1,1,2,1,1,1,1,1,1,1,1,1,2,1,1,1,1,1,1,1,1,1,1,2},
-		{2,1,1,1,1,1,2,1,1,1,1,1,1,1,1,1,1,1,1,2,1,1,1,1,1,1,1,1,1,2,1,1,1,1,1,1,1,1,1,1,2},
-		{2,1,1,1,1,1,2,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,2,1,1,1,1,1,1,1,1,1,1,2},
+		{2,1,1,1,1,1,2,1,1,1,1,1,1,1,1,1,1,4,4,2,1,1,1,1,1,1,1,1,1,2,1,1,1,1,1,1,1,1,1,1,2},
+		{2,1,1,1,1,1,2,1,1,1,1,1,1,1,1,1,1,4,4,2,1,1,1,1,1,1,1,1,1,2,1,1,1,1,1,1,1,1,1,1,2},
+		{2,1,1,1,1,1,2,1,1,1,1,1,1,1,1,1,1,4,4,1,1,1,1,1,1,1,1,1,1,2,1,1,1,1,1,1,1,1,1,1,2},
 		{2,1,1,1,1,1,2,1,1,1,1,1,1,1,1,1,1,1,1,2,1,1,1,1,1,1,1,1,1,2,1,1,1,1,1,1,1,1,1,1,2},
 		{2,1,1,1,1,1,2,1,1,1,1,1,1,1,1,1,1,1,1,2,1,1,1,1,1,1,1,1,1,2,1,1,1,1,1,1,1,1,1,1,2},
 		{2,2,2,1,2,2,2,1,1,1,1,1,1,1,1,1,1,1,1,2,1,1,1,1,1,1,1,1,1,2,2,2,1,2,2,2,2,2,2,2,2},
 		{2,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,2,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,2},
-		{2,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,4,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,2}, // š4: ‰º‚èŠK’i(’†‰›)
+		{2,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,4,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,2}, // 4: ä¸‹ã‚Šéšæ®µ(ä¸­å¤®)
 		{2,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,2,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,2},
 		{2,2,2,1,2,2,2,1,1,1,1,1,1,1,1,1,1,1,1,2,1,1,1,1,1,1,1,1,1,2,2,2,1,2,2,2,2,2,2,2,2},
 		{2,1,1,1,1,1,2,1,1,1,1,1,1,1,1,1,1,1,1,2,1,1,1,1,1,1,1,1,1,2,1,1,1,1,1,1,1,1,1,1,2},
 		{2,1,1,1,1,1,2,1,1,1,1,1,1,1,1,1,1,1,1,2,1,1,1,1,1,1,1,1,1,2,1,1,1,1,1,1,1,1,1,1,2},
-		{2,1,1,1,1,1,2,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,2,1,1,1,1,1,1,1,1,1,1,2},
-		{2,1,1,1,1,1,2,1,1,1,1,1,1,1,1,1,1,1,1,2,1,1,1,1,1,1,1,1,1,2,1,1,1,1,1,1,1,1,1,1,2},
-		{2,1,1,1,1,1,2,1,1,1,1,1,1,1,1,1,1,1,1,2,1,1,1,1,1,1,1,1,1,2,1,1,1,1,1,1,1,1,1,1,2},
+		{2,1,1,1,1,1,2,1,1,1,1,1,1,1,1,1,1,3,3,1,1,1,1,1,1,1,1,1,1,2,1,1,1,1,1,1,1,1,1,1,2},
+		{2,1,1,1,1,1,2,1,1,1,1,1,1,1,1,1,1,3,3,2,1,1,1,1,1,1,1,1,1,2,1,1,1,1,1,1,1,1,1,1,2},
+		{2,1,1,1,1,1,2,1,1,1,1,1,1,1,1,1,1,3,3,2,1,1,1,1,1,1,1,1,1,2,1,1,1,1,1,1,1,1,1,1,2},
 		{2,2,2,1,2,2,2,2,2,2,2,1,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,1,2,2,2,2,2,2,2,1,2,2,2,2,2},
 		{2,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,2,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,2},
 		{2,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,2,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,2},
@@ -120,9 +121,9 @@ static int LevelMap[MAP_FLOORS][MAP_H][MAP_W] = {
 		{2,1,1,1,1,1,2,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,2,1,1,1,1,1,1,1,1,1,1,2},
 		{2,1,1,1,1,1,2,1,1,1,1,1,1,1,1,1,1,1,1,2,1,1,1,1,1,1,1,1,1,2,1,1,1,1,1,1,1,1,1,1,2},
 		{2,1,1,1,1,1,2,1,1,1,1,1,1,1,1,1,1,1,1,2,1,1,1,1,1,1,1,1,1,2,1,1,1,1,1,1,1,1,1,1,2},
-		{2,2,2,2,2,2,2,2,2,3,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2}, // š3: ã‚èŠK’i(“üŒû‰œ)
+		{2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2}, // 3: ä¸Šã‚Šéšæ®µ(å…¥å£å¥¥)
 	},
-	// --- 3ŠK (Floor 2) ---
+	// --- 3éš (Floor 2) ---
 	{
 		{2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2},
 		{2,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,2},
@@ -149,9 +150,9 @@ static int LevelMap[MAP_FLOORS][MAP_H][MAP_W] = {
 		{2,2,2,1,2,2,2,1,1,1,1,1,1,1,1,1,1,1,1,2,1,1,1,1,1,1,1,1,1,2,2,2,1,2,2,2,2,2,2,2,2},
 		{2,1,1,1,1,1,2,1,1,1,1,1,1,1,1,1,1,1,1,2,1,1,1,1,1,1,1,1,1,2,1,1,1,1,1,1,1,1,1,1,2},
 		{2,1,1,1,1,1,2,1,1,1,1,1,1,1,1,1,1,1,1,2,1,1,1,1,1,1,1,1,1,2,1,1,1,1,1,1,1,1,1,1,2},
-		{2,1,1,1,1,1,2,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,2,1,1,1,1,1,1,1,1,1,1,2},
-		{2,1,1,1,1,1,2,1,1,1,1,1,1,1,1,1,1,1,1,2,1,1,1,1,1,1,1,1,1,2,1,1,1,1,1,1,1,1,1,1,2},
-		{2,1,1,1,1,1,2,1,1,1,1,1,1,1,1,1,1,1,1,2,1,1,1,1,1,1,1,1,1,2,1,1,1,1,1,1,1,1,1,1,2},
+		{2,1,1,1,1,1,2,1,1,1,1,1,1,1,1,1,1,4,4,1,1,1,1,1,1,1,1,1,1,2,1,1,1,1,1,1,1,1,1,1,2},
+		{2,1,1,1,1,1,2,1,1,1,1,1,1,1,1,1,1,4,4,2,1,1,1,1,1,1,1,1,1,2,1,1,1,1,1,1,1,1,1,1,2},
+		{2,1,1,1,1,1,2,1,1,1,1,1,1,1,1,1,1,4,4,2,1,1,1,1,1,1,1,1,1,2,1,1,1,1,1,1,1,1,1,1,2},
 		{2,2,2,1,2,2,2,2,2,2,2,1,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,1,2,2,2,2,2,2,2,1,2,2,2,2,2},
 		{2,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,2,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,2},
 		{2,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,2,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,2},
@@ -164,24 +165,24 @@ static int LevelMap[MAP_FLOORS][MAP_H][MAP_W] = {
 		{2,1,1,1,1,1,2,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,2,1,1,1,1,1,1,1,1,1,1,2},
 		{2,1,1,1,1,1,2,1,1,1,1,1,1,1,1,1,1,1,1,2,1,1,1,1,1,1,1,1,1,2,1,1,1,1,1,1,1,1,1,1,2},
 		{2,1,1,1,1,1,2,1,1,1,1,1,1,1,1,1,1,1,1,2,1,1,1,1,1,1,1,1,1,2,1,1,1,1,1,1,1,1,1,1,2},
-		{2,2,2,2,2,2,2,2,2,4,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2}, // š4: ‰º‚èŠK’i(“üŒû‰œ)
+		{2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2}, // 4: ä¸‹ã‚Šéšæ®µ(å…¥å£å¥¥)
 	},
 };
 
-// “à•”ŠÖ”: À•W•ÏŠ·
+// å†…éƒ¨é–¢æ•°: åº§æ¨™å¤‰æ›
 static int WorldToGridX(float x) { return (int)round(x + MAP_W / 2.0f); }
 static int WorldToGridZ(float z) { return (int)round(MAP_H / 2.0f - z); }
 static float GridToWorldX(int gx) { return (float)gx - MAP_W / 2.0f; }
 static float GridToWorldZ(int gz) { return MAP_H / 2.0f - (float)gz; }
 
-// ƒ}ƒbƒvƒf[ƒ^Ä“Ç‚İ‚İiŠK‘w‚ª•Ï‚í‚Á‚½‚Æ‚«‚ÉŒÄ‚Ôj
+// ãƒãƒƒãƒ—ãƒ‡ãƒ¼ã‚¿å†èª­ã¿è¾¼ã¿ï¼ˆéšå±¤ãŒå¤‰ã‚ã£ãŸã¨ãã«å‘¼ã¶ï¼‰
 void LoadMapData(int floor)
 {
 	if (floor < 0 || floor >= MAP_FLOORS) return;
 
 	g_MapList.clear();
 
-	// ’†S‚ğ(0,0)‚É‚·‚é‚½‚ß‚ÌƒIƒtƒZƒbƒg
+	// ä¸­å¿ƒã‚’(0,0)ã«ã™ã‚‹ãŸã‚ã®ã‚ªãƒ•ã‚»ãƒƒãƒˆ
 	float offsetX = MAP_W / 2.0f;
 	float offsetZ = MAP_H / 2.0f;
 
@@ -191,7 +192,7 @@ void LoadMapData(int floor)
 		{
 			int blockType = LevelMap[floor][z][x];
 
-			// 1(°) ˆÈã‚È‚çA‚Ü‚¸u°v‚ğì‚é
+			// 1(åºŠ) ä»¥ä¸Šãªã‚‰ã€ã¾ãšã€ŒåºŠã€ã‚’ä½œã‚‹
 			if (blockType >= FIELD_BOX)
 			{
 				MAPDATA floorData;
@@ -200,22 +201,27 @@ void LoadMapData(int floor)
 				g_MapList.push_back(floorData);
 			}
 
-			// •ÇAŠK’i‚Ìì¬
-			if (blockType == 2) // •Ç
+			// å£ã€éšæ®µã®ä½œæˆ
+			if (blockType == 2) // å£
 			{
-				MAPDATA wallData;
-				wallData.pos = XMFLOAT3((x - offsetX), 0.0f, (offsetZ - z));
-				wallData.no = FIELD_BOX;
-				g_MapList.push_back(wallData);
+				for (int h = 0; h < 5; h++)
+				{
+					MAPDATA wallData;
+					// Yåº§æ¨™ã‚’ 0.0, 1.0, 2.0... ã¨ãšã‚‰ã—ã¦é…ç½®
+					wallData.pos = XMFLOAT3((x - offsetX), (float)h, (offsetZ - z));
+					wallData.no = FIELD_BOX;
+					wallData.isHidden = false;
+					g_MapList.push_back(wallData);
+				}
 			}
-			else if (blockType == 3) // ã‚èŠK’i
+			else if (blockType == 3) // ä¸Šã‚Šéšæ®µ
 			{
 				MAPDATA stairData;
 				stairData.pos = XMFLOAT3((x - offsetX), 0.0f, (offsetZ - z));
 				stairData.no = FIELD_STAIRS_UP;
 				g_MapList.push_back(stairData);
 			}
-			else if (blockType == 4) // ‰º‚èŠK’i
+			else if (blockType == 4) // ä¸‹ã‚Šéšæ®µ
 			{
 				MAPDATA stairData;
 				stairData.pos = XMFLOAT3((x - offsetX), 0.0f, (offsetZ - z));
@@ -232,10 +238,10 @@ void Field_Initialize(ID3D11Device* pDevice, ID3D11DeviceContext* pContext)
 	g_pContext = pContext;
 
 	g_TextureBox = LoadTexture(L"asset\\texture\\grass.png");
-	g_TextureStairs = LoadTexture(L"asset\\texture\\wood.png"); // ŠK’i—pi‚È‚¯‚ê‚Îgrass.png‚Å‚à‰Âj
+	g_TextureStairs = LoadTexture(L"asset\\texture\\wood.png"); // éšæ®µç”¨ï¼ˆãªã‘ã‚Œã°grass.pngã§ã‚‚å¯ï¼‰
 
-	// 1ŠK‚©‚çƒXƒ^[ƒg
-	g_CurrentFloor = 0;
+	// 3éšã‹ã‚‰ã‚¹ã‚¿ãƒ¼ãƒˆ
+	g_CurrentFloor = 2;
 	LoadMapData(g_CurrentFloor);
 
 	if (!g_MapList.empty()) {
@@ -243,8 +249,98 @@ void Field_Initialize(ID3D11Device* pDevice, ID3D11DeviceContext* pContext)
 	}
 }
 
+// field.cpp ã® Field_Update é–¢æ•°
+
 void Field_Update(void)
 {
+	// 1. éè¡¨ç¤ºãƒ•ãƒ©ã‚°ç®¡ç†ç”¨ã®ä¸€æ™‚é…åˆ— (falseã§åˆæœŸåŒ–)
+	// ã‚¹ã‚¿ãƒƒã‚¯ã‚ªãƒ¼ãƒãƒ¼ãƒ•ãƒ­ãƒ¼ã‚’é˜²ããŸã‚staticã«ã™ã‚‹ã‹ã€vectorã‚’ä½¿ã†
+	std::vector<std::vector<bool>> shouldHide(MAP_H, std::vector<bool>(MAP_W, false));
+
+	Ghost* ghost = GetGhost();
+	if (!ghost) return;
+
+	// 2. ã‚«ãƒ¡ãƒ©ã¨ãƒ—ãƒ¬ã‚¤ãƒ¤ãƒ¼ã®ä½ç½®ã‚’å–å¾—
+	XMFLOAT3 cameraPos = GetCamera()->GetPos();
+	XMFLOAT3 playerPos = ghost->GetPos();
+
+	// ãƒ—ãƒ¬ã‚¤ãƒ¤ãƒ¼ã®å°‘ã—ä¸Š(é ­ã‚ãŸã‚Š)ã‚’ç›®æ¨™ã«ã™ã‚‹
+	playerPos.y += 1.0f;
+
+	// 3. ãƒ¬ã‚¤ã‚­ãƒ£ã‚¹ãƒˆ (ã‚«ãƒ¡ãƒ© -> ãƒ—ãƒ¬ã‚¤ãƒ¤ãƒ¼)
+	float dx = playerPos.x - cameraPos.x;
+	float dz = playerPos.z - cameraPos.z;
+	float dist = sqrtf(dx * dx + dz * dz);
+
+	// è¿‘ã™ãã‚‹å ´åˆã¯è¨ˆç®—ä¸è¦
+	if (dist < 0.5f) return;
+
+	float stepX = dx / dist;
+	float stepZ = dz / dist;
+
+	// ã‚«ãƒ¡ãƒ©ã‹ã‚‰ãƒ—ãƒ¬ã‚¤ãƒ¤ãƒ¼ã®æ‰‹å‰(1.0m)ã¾ã§ãƒã‚§ãƒƒã‚¯
+	float currentDist = 0.0f;
+
+	while (currentDist < dist - 1.0f)
+	{
+		float checkX = cameraPos.x + stepX * currentDist;
+		float checkZ = cameraPos.z + stepZ * currentDist;
+
+		// ã‚°ãƒªãƒƒãƒ‰åº§æ¨™ã«å¤‰æ›
+		int gridX = WorldToGridX(checkX);
+		int gridZ = WorldToGridZ(checkZ);
+
+		// ç¯„å›²å†…ã‹ã¤ã€å£ãŒã‚ã‚‹å ´æ‰€ãªã‚‰
+		if (gridX >= 0 && gridX < MAP_W && gridZ >= 0 && gridZ < MAP_H)
+		{
+			// ç¾åœ¨ã®éšå±¤ã§å£ã‹ã©ã†ã‹ãƒã‚§ãƒƒã‚¯
+			if (LevelMap[g_CurrentFloor][gridZ][gridX] == 2)
+			{
+				// é‡è¦: ãƒ’ãƒƒãƒˆã—ãŸå£ã®ã€Œå‘¨å›²1ãƒã‚¹ã€ã‚‚å«ã‚ã¦éè¡¨ç¤ºãƒ•ãƒ©ã‚°ã‚’ç«‹ã¦ã‚‹
+				// ã“ã‚Œã§ã€Œç‚¹ã€ã§ã¯ãªãã€Œå¤ªã„ç·šï¼ˆ3x3ã®å¹…ï¼‰ã€ã§å£ãŒæ¶ˆãˆã‚‹
+				int range = 2; // åŠå¾„ (1ãªã‚‰3x3, 2ãªã‚‰5x5)
+
+				for (int oz = -range; oz <= range; oz++)
+				{
+					for (int ox = -range; ox <= range; ox++)
+					{
+						int targetX = gridX + ox;
+						int targetZ = gridZ + oz;
+
+						// é…åˆ—å¤–å‚ç…§ãƒã‚§ãƒƒã‚¯
+						if (targetX >= 0 && targetX < MAP_W && targetZ >= 0 && targetZ < MAP_H)
+						{
+							shouldHide[targetZ][targetX] = true;
+						}
+					}
+				}
+			}
+		}
+
+		currentDist += 0.5f; // 0.5mé€²ã‚ã‚‹
+	}
+
+	// 4. ãƒãƒƒãƒ—ãƒ‡ãƒ¼ã‚¿ã«åæ˜ 
+	for (auto& mapData : g_MapList)
+	{
+		// åº§æ¨™ã‹ã‚‰é…åˆ—ã‚¤ãƒ³ãƒ‡ãƒƒã‚¯ã‚¹ã‚’è¨ˆç®—
+		int mapGridX = WorldToGridX(mapData.pos.x);
+		int mapGridZ = WorldToGridZ(mapData.pos.z);
+
+		// ç¯„å›²ãƒã‚§ãƒƒã‚¯
+		if (mapGridX >= 0 && mapGridX < MAP_W && mapGridZ >= 0 && mapGridZ < MAP_H)
+		{
+			// åºŠ(Y=-1.0)ã¯æ¶ˆã•ãªã„ã€‚å£(Y>=0.0)ã§ã€ã‹ã¤ãƒ•ãƒ©ã‚°ãŒç«‹ã£ã¦ã„ãŸã‚‰æ¶ˆã™
+			if (mapData.pos.y >= 0.0f && shouldHide[mapGridZ][mapGridX])
+			{
+				mapData.isHidden = true;
+			}
+			else
+			{
+				mapData.isHidden = false;
+			}
+		}
+	}
 }
 
 void Field_Draw(void)
@@ -263,7 +359,9 @@ void Field_Draw(void)
 
 	for (const auto& mapData : g_MapList)
 	{
-		// ƒeƒNƒXƒ`ƒƒØ‚è‘Ö‚¦
+		if (mapData.isHidden) continue;
+
+		// ãƒ†ã‚¯ã‚¹ãƒãƒ£åˆ‡ã‚Šæ›¿ãˆ
 		if (mapData.no == FIELD_STAIRS_UP || mapData.no == FIELD_STAIRS_DOWN)
 		{
 			g_pContext->PSSetShaderResources(0, 1, &g_TextureStairs);
@@ -299,7 +397,7 @@ void Field_Finalize(void)
 	g_MapList.clear();
 }
 
-// ŠK‘wØ‚è‘Ö‚¦
+// éšå±¤åˆ‡ã‚Šæ›¿ãˆ
 void Field_ChangeFloor(int floorIndex)
 {
 	if (floorIndex < 0 || floorIndex >= MAP_FLOORS) return;
@@ -312,7 +410,7 @@ int Field_GetCurrentFloor(void)
 	return g_CurrentFloor;
 }
 
-// •Ç”»’è“™‚ÍŒ»İ‚ÌŠK‘w‚Ìƒ}ƒbƒvƒf[ƒ^‚ğQÆ‚·‚é
+// å£åˆ¤å®šç­‰ã¯ç¾åœ¨ã®éšå±¤ã®ãƒãƒƒãƒ—ãƒ‡ãƒ¼ã‚¿ã‚’å‚ç…§ã™ã‚‹
 FIELD_TYPE Field_GetBlockType(float x, float z)
 {
 	int mapX = WorldToGridX(x);
@@ -328,6 +426,9 @@ FIELD_TYPE Field_GetBlockType(float x, float z)
 	return FIELD_NONE;
 }
 
+// ----------------------------------------------------------------
+// å…¨ã¦ã®å£ã‚’åˆ¤å®šï¼ˆBusters, è¦–ç·šåˆ¤å®šç”¨ï¼‰
+// ----------------------------------------------------------------
 bool Field_IsWall(float x, float z)
 {
 	int mapX = WorldToGridX(x);
@@ -335,8 +436,35 @@ bool Field_IsWall(float x, float z)
 
 	if (mapX >= 0 && mapX < MAP_W && mapZ >= 0 && mapZ < MAP_H)
 	{
-		if (LevelMap[g_CurrentFloor][mapZ][mapX] == 2) return true;
+		// å£ãƒ–ãƒ­ãƒƒã‚¯(2)ãªã‚‰ true
+		if (LevelMap[g_CurrentFloor][mapZ][mapX] == 2)
+		{
+			return true;
+		}
 	}
+	return false;
+}
+
+// ----------------------------------------------------------------
+// å¤–å‘¨ã®å£ã ã‘åˆ¤å®šï¼ˆGhostç”¨ï¼‰
+// ----------------------------------------------------------------
+bool Field_IsOuterWall(float x, float z)
+{
+	int mapX = WorldToGridX(x);
+	int mapZ = WorldToGridZ(z);
+
+	// ãƒãƒƒãƒ—ç¯„å›²å¤–ãªã‚‰å£æ‰±ã„
+	if (mapX < 0 || mapX >= MAP_W || mapZ < 0 || mapZ >= MAP_H) return true;
+
+	// å¤–å‘¨ï¼ˆç«¯ã£ã“ï¼‰ã®å£ãƒ–ãƒ­ãƒƒã‚¯ãªã‚‰ true
+	if (mapX == 0 || mapX == MAP_W - 1 || mapZ == 0 || mapZ == MAP_H - 1)
+	{
+		if (LevelMap[g_CurrentFloor][mapZ][mapX] == 2)
+		{
+			return true;
+		}
+	}
+
 	return false;
 }
 
@@ -344,6 +472,40 @@ bool Field_IsWall(float x, float y, float z)
 {
 	if (y > -0.5f) return Field_IsWall(x, z);
 	return false;
+}
+
+bool Field_CheckWallBetween(XMFLOAT3 start, XMFLOAT3 end)
+{
+	float dx = end.x - start.x;
+	float dz = end.z - start.z;
+	float dist = sqrtf(dx * dx + dz * dz);
+
+	// è·é›¢ãŒè¿‘ã™ãã‚‹å ´åˆã¯ã€Œå£ãªã—ã€ã¨ã¿ãªã™
+	if (dist < 0.5f) return false;
+
+	// æ­£è¦åŒ–ï¼ˆ1.0må˜ä½ã®ãƒ™ã‚¯ãƒˆãƒ«ã«ã™ã‚‹ï¼‰
+	float stepX = dx / dist;
+	float stepZ = dz / dist;
+
+	// 0.5måˆ»ã¿ã§å°‘ã—ãšã¤é€²ã‚“ã§å£ãŒã‚ã‚‹ã‹èª¿ã¹ã‚‹
+	// â€»å§‹ç‚¹(è‡ªåˆ†)ã¨çµ‚ç‚¹(ç›¸æ‰‹)ã®åº§æ¨™ãã®ã‚‚ã®ã¯ãƒã‚§ãƒƒã‚¯ã—ãªã„ã‚ˆã†ã«å°‘ã—å†…å´ã‚’è¦‹ã‚‹
+	float currentDist = 0.5f;
+
+	while (currentDist < dist - 0.5f)
+	{
+		float checkX = start.x + stepX * currentDist;
+		float checkZ = start.z + stepZ * currentDist;
+
+		// ç¾åœ¨ã®éšå±¤ã§å£åˆ¤å®š
+		if (Field_IsWall(checkX, checkZ))
+		{
+			return true; // é€”ä¸­ã§å£ã«å½“ãŸã£ãŸ
+		}
+
+		currentDist += 0.5f; // 0.5mé€²ã‚ã‚‹
+	}
+
+	return false; // æœ€å¾Œã¾ã§å£ãŒãªã‹ã£ãŸ
 }
 
 float Field_GetFloorY(float x, float y, float z)
@@ -359,17 +521,17 @@ float Field_GetFloorY(float x, float y, float z)
 }
 
 // =========================================================
-// Œo˜H’Tõ
+// çµŒè·¯æ¢ç´¢
 // =========================================================
 
-// Node\‘¢‘Ì (ŠÖ”‚æ‚è‘O‚É’è‹`)
+// Nodeæ§‹é€ ä½“ (é–¢æ•°ã‚ˆã‚Šå‰ã«å®šç¾©)
 struct Node {
 	int x, z;
-	float cost;      // ÀˆÚ“®ƒRƒXƒg
-	float heuristic; // „’èƒRƒXƒg
-	int parentX, parentZ; // eƒm[ƒhiŒo˜H•œŒ³—pj
+	float cost;      // å®Ÿç§»å‹•ã‚³ã‚¹ãƒˆ
+	float heuristic; // æ¨å®šã‚³ã‚¹ãƒˆ
+	int parentX, parentZ; // è¦ªãƒãƒ¼ãƒ‰ï¼ˆçµŒè·¯å¾©å…ƒç”¨ï¼‰
 
-	// —Dæ“x•t‚«ƒLƒ…[‚Ì‚½‚ß‚Ì”äŠr‰‰Zq (ƒRƒXƒg‚ª¬‚³‚¢•û‚ª—Dæ)
+	// å„ªå…ˆåº¦ä»˜ãã‚­ãƒ¥ãƒ¼ã®ãŸã‚ã®æ¯”è¼ƒæ¼”ç®—å­ (ã‚³ã‚¹ãƒˆãŒå°ã•ã„æ–¹ãŒå„ªå…ˆ)
 	bool operator>(const Node& other) const {
 		return (cost + heuristic) > (other.cost + other.heuristic);
 	}
@@ -379,20 +541,20 @@ std::vector<XMFLOAT3> Field_FindPath(XMFLOAT3 start, XMFLOAT3 end)
 {
 	std::vector<XMFLOAT3> path;
 
-	// ƒXƒ^[ƒg‚ÆƒS[ƒ‹‚ÌƒOƒŠƒbƒhÀ•W‚ğŒvZ
+	// ã‚¹ã‚¿ãƒ¼ãƒˆã¨ã‚´ãƒ¼ãƒ«ã®ã‚°ãƒªãƒƒãƒ‰åº§æ¨™ã‚’è¨ˆç®—
 	int startX = WorldToGridX(start.x);
 	int startZ = WorldToGridZ(start.z);
 	int endX = WorldToGridX(end.x);
 	int endZ = WorldToGridZ(end.z);
 
-	// ”ÍˆÍŠOƒ`ƒFƒbƒN
+	// ç¯„å›²å¤–ãƒã‚§ãƒƒã‚¯
 	if (startX < 0 || startX >= MAP_W || startZ < 0 || startZ >= MAP_H ||
 		endX < 0 || endX >= MAP_W || endZ < 0 || endZ >= MAP_H)
 	{
-		return path; // ‹ó‚ÌƒpƒX‚ğ•Ô‚·
+		return path; // ç©ºã®ãƒ‘ã‚¹ã‚’è¿”ã™
 	}
 
-	// ƒS[ƒ‹‚ª•Ç‚È‚ç•â³ (Œ»İ‚ÌŠK‘w‚ğQÆ)
+	// ã‚´ãƒ¼ãƒ«ãŒå£ãªã‚‰è£œæ­£ (ç¾åœ¨ã®éšå±¤ã‚’å‚ç…§)
 	if (LevelMap[g_CurrentFloor][endZ][endX] == 2)
 	{
 		int dx[] = { 0, 0, 1, -1 };
@@ -406,19 +568,19 @@ std::vector<XMFLOAT3> Field_FindPath(XMFLOAT3 start, XMFLOAT3 end)
 		}
 	}
 
-	// ’Tõ—pƒf[ƒ^
+	// æ¢ç´¢ç”¨ãƒ‡ãƒ¼ã‚¿
 	std::priority_queue<Node, std::vector<Node>, std::greater<Node>> openList;
 
-	// –K–âÏ‚İƒŠƒXƒg (vector‚Ìvector‚ÅŠm•Û)
+	// è¨ªå•æ¸ˆã¿ãƒªã‚¹ãƒˆ (vectorã®vectorã§ç¢ºä¿)
 	std::vector<std::vector<bool>> closedList(MAP_H, std::vector<bool>(MAP_W, false));
 	std::vector<std::vector<Node>> nodes(MAP_H, std::vector<Node>(MAP_W));
 
-	// ƒXƒ^[ƒgƒm[ƒh’Ç‰Á
+	// ã‚¹ã‚¿ãƒ¼ãƒˆãƒãƒ¼ãƒ‰è¿½åŠ 
 	Node startNode = { startX, startZ, 0.0f, 0.0f, -1, -1 };
 	openList.push(startNode);
 	nodes[startZ][startX] = startNode;
 
-	// •ûŒüiã‰º¶‰Ej
+	// æ–¹å‘ï¼ˆä¸Šä¸‹å·¦å³ï¼‰
 	int dirX[] = { 0, 0, -1, 1 };
 	int dirZ[] = { -1, 1, 0, 0 };
 
@@ -429,7 +591,7 @@ std::vector<XMFLOAT3> Field_FindPath(XMFLOAT3 start, XMFLOAT3 end)
 		Node current = openList.top();
 		openList.pop();
 
-		// ƒS[ƒ‹“’B
+		// ã‚´ãƒ¼ãƒ«åˆ°é”
 		if (current.x == endX && current.z == endZ)
 		{
 			found = true;
@@ -439,31 +601,31 @@ std::vector<XMFLOAT3> Field_FindPath(XMFLOAT3 start, XMFLOAT3 end)
 		if (closedList[current.z][current.x]) continue;
 		closedList[current.z][current.x] = true;
 
-		// —×Úƒm[ƒh‚ğ’Tõ
+		// éš£æ¥ãƒãƒ¼ãƒ‰ã‚’æ¢ç´¢
 		for (int i = 0; i < 4; i++)
 		{
 			int nextX = current.x + dirX[i];
 			int nextZ = current.z + dirZ[i];
 
-			// ƒ}ƒbƒv”ÍˆÍŠOƒ`ƒFƒbƒN
+			// ãƒãƒƒãƒ—ç¯„å›²å¤–ãƒã‚§ãƒƒã‚¯
 			if (nextX < 0 || nextX >= MAP_W || nextZ < 0 || nextZ >= MAP_H) continue;
 
-			// •Ç”»’è (2‚Í•Ç) ¦Œ»İ‚ÌŠK‘w‚ğQÆ
+			// å£åˆ¤å®š (2ã¯å£) â€»ç¾åœ¨ã®éšå±¤ã‚’å‚ç…§
 			if (LevelMap[g_CurrentFloor][nextZ][nextX] == 2) continue;
 
-			// Šù‚ÉŠm’èÏ‚İ‚È‚çƒXƒLƒbƒv
+			// æ—¢ã«ç¢ºå®šæ¸ˆã¿ãªã‚‰ã‚¹ã‚­ãƒƒãƒ—
 			if (closedList[nextZ][nextX]) continue;
 
 			float newCost = current.cost + 1.0f;
 
-			// ƒqƒ…[ƒŠƒXƒeƒBƒbƒNiƒ}ƒ“ƒnƒbƒ^ƒ“‹——£j
+			// ãƒ’ãƒ¥ãƒ¼ãƒªã‚¹ãƒ†ã‚£ãƒƒã‚¯ï¼ˆãƒãƒ³ãƒãƒƒã‚¿ãƒ³è·é›¢ï¼‰
 			float h = (float)(std::abs(endX - nextX) + std::abs(endZ - nextZ));
 
-			// V‚µ‚¢ƒm[ƒh‚ğì¬‚µ‚Ä’Ç‰Á
+			// æ–°ã—ã„ãƒãƒ¼ãƒ‰ã‚’ä½œæˆã—ã¦è¿½åŠ 
 			Node neighbor = { nextX, nextZ, newCost, h, current.x, current.z };
 			openList.push(neighbor);
 
-			// eî•ñ‚ğ‹L˜^iŠÈˆÕ”ÅF–¢–K–â‚È‚çXVj
+			// è¦ªæƒ…å ±ã‚’è¨˜éŒ²ï¼ˆç°¡æ˜“ç‰ˆï¼šæœªè¨ªå•ãªã‚‰æ›´æ–°ï¼‰
 			if (nodes[nextZ][nextX].parentX == 0 && nodes[nextZ][nextX].parentZ == 0)
 			{
 				nodes[nextZ][nextX] = neighbor;
@@ -471,26 +633,26 @@ std::vector<XMFLOAT3> Field_FindPath(XMFLOAT3 start, XMFLOAT3 end)
 		}
 	}
 
-	// Œo˜H•œŒ³ (ƒS[ƒ‹‚©‚çe‚ğ’H‚Á‚ÄƒXƒ^[ƒg‚Ü‚Å–ß‚é)
+	// çµŒè·¯å¾©å…ƒ (ã‚´ãƒ¼ãƒ«ã‹ã‚‰è¦ªã‚’è¾¿ã£ã¦ã‚¹ã‚¿ãƒ¼ãƒˆã¾ã§æˆ»ã‚‹)
 	if (found)
 	{
 		int cx = endX;
 		int cz = endZ;
 
-		// –³ŒÀƒ‹[ƒv–h~‚Ì‚½‚ßÅ‘åƒXƒeƒbƒv”‚ğİ‚¯‚é
+		// ç„¡é™ãƒ«ãƒ¼ãƒ—é˜²æ­¢ã®ãŸã‚æœ€å¤§ã‚¹ãƒ†ãƒƒãƒ—æ•°ã‚’è¨­ã‘ã‚‹
 		int maxSteps = MAP_W * MAP_H;
 		int steps = 0;
 
 		while (cx != -1 && cz != -1 && steps < maxSteps)
 		{
-			// ƒ[ƒ‹ƒhÀ•W‚É•ÏŠ·‚µ‚Ä’Ç‰Á
+			// ãƒ¯ãƒ¼ãƒ«ãƒ‰åº§æ¨™ã«å¤‰æ›ã—ã¦è¿½åŠ 
 			path.push_back({ GridToWorldX(cx), 0.0f, GridToWorldZ(cz) });
 
 			Node& n = nodes[cz][cx];
 			int px = n.parentX;
 			int pz = n.parentZ;
 
-			// ƒXƒ^[ƒg’n“_‚Ü‚Å–ß‚Á‚½‚çI—¹
+			// ã‚¹ã‚¿ãƒ¼ãƒˆåœ°ç‚¹ã¾ã§æˆ»ã£ãŸã‚‰çµ‚äº†
 			if (cx == startX && cz == startZ) break;
 
 			cx = px;

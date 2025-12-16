@@ -1,6 +1,6 @@
-/*==============================================================================
+ï»¿/*==============================================================================
 
-   ƒ|ƒŠƒSƒ“•`‰æ [game.cpp]
+   ãƒãƒªã‚´ãƒ³æç”» [game.cpp]
 
 ==============================================================================*/
 #include <d3d11.h>
@@ -21,22 +21,25 @@ using namespace DirectX;
 #include "ghost.h"
 #include "furniture.h"
 #include "busters.h"
+#include "debugdraw.h"
+#include "sound.h"
 
 Light* MainLight;
+SoundData* g_pBGM = nullptr;
 
 void Game_Initialize(ID3D11Device* pDevice, ID3D11DeviceContext* pContext)
 {
-	// ƒfƒoƒCƒX‚ÆƒfƒoƒCƒXƒRƒ“ƒeƒLƒXƒg‚Ìƒ`ƒFƒbƒN
+	// ãƒ‡ãƒã‚¤ã‚¹ã¨ãƒ‡ãƒã‚¤ã‚¹ã‚³ãƒ³ãƒ†ã‚­ã‚¹ãƒˆã®ãƒã‚§ãƒƒã‚¯
 	if (!pDevice || !pContext) {
-		hal::dout << "Game_Initialize() : —^‚¦‚ç‚ê‚½ƒfƒoƒCƒX‚©ƒRƒ“ƒeƒLƒXƒg‚ª•s³‚Å‚·" << std::endl;
+		hal::dout << "Game_Initialize() : ä¸ãˆã‚‰ã‚ŒãŸãƒ‡ãƒã‚¤ã‚¹ã‹ã‚³ãƒ³ãƒ†ã‚­ã‚¹ãƒˆãŒä¸æ­£ã§ã™" << std::endl;
 		return;
 	}
 
 	MainLight = new Light
 	(TRUE,
-		XMFLOAT4(0.0f, -10.0f, -10.0f, 1.0f),	//Œü‚«
-		XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f),	//Œõ‚ÌF
-		XMFLOAT4(0.5f, 0.5f, 0.5f, 1.0f)	//ŠÂ‹«Œõ
+		XMFLOAT4(0.0f, -10.0f, -10.0f, 1.0f),	//å‘ã
+		XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f),	//å…‰ã®è‰²
+		XMFLOAT4(0.5f, 0.5f, 0.5f, 1.0f)	//ç’°å¢ƒå…‰
 	);
 
 	Camera_Initialize();
@@ -45,6 +48,13 @@ void Game_Initialize(ID3D11Device* pDevice, ID3D11DeviceContext* pContext)
 	UI_Initialize();
 	Furniture_Initialize();
 	Busters_Initialize();
+	DebugDraw_Initialize();
+
+	// BGMèª­ã¿è¾¼ã¿ãƒ»å†ç”Ÿ
+	g_pBGM = LoadMP3("asset/sound/bgm/HauntedHalloween.mp3");
+	if (g_pBGM) {
+		PlaySound(g_pBGM, true);
+	}
 }
 
 void Game_Update(void)
@@ -55,6 +65,7 @@ void Game_Update(void)
 	UI_Update();
 	Furniture_Update();
 	Busters_Update();
+	DebugDraw_Update();
 }
 
 void Game_Draw(void)
@@ -62,24 +73,32 @@ void Game_Draw(void)
 	MainLight->SetEnable(true);
 	Shader_SetLight(MainLight);
 
-	//3D•`‰æ‚Ì‘O‚É[“xƒeƒXƒg‚ğ—LŒø‚É‚·‚é
+	//3Dæç”»ã®å‰ã«æ·±åº¦ãƒ†ã‚¹ãƒˆã‚’æœ‰åŠ¹ã«ã™ã‚‹
 	SetDepthTest(true);
 
 	Field_Draw();
 	Ghost_Draw();
 	Furniture_Draw();
 	Busters_Draw();
+	DebugDraw_Draw();
 
 	SetDepthTest(false);
 	MainLight->SetEnable(false);
 	Shader_SetLight(MainLight);
 
-	//2D•`‰æˆ—‚ğ‚±‚±‚É‹Lq
+	//2Dæç”»å‡¦ç†ã‚’ã“ã“ã«è¨˜è¿°
 	UI_Draw();
 }
 
 void Game_Finalize(void)
 {
+	// BGMè§£æ”¾
+	if (g_pBGM) {
+		StopSound(g_pBGM);
+		UnloadSound(g_pBGM);
+		g_pBGM = nullptr;
+	}
+
 	delete MainLight;
 
 	Camera_Finalize();
@@ -88,4 +107,5 @@ void Game_Finalize(void)
 	UI_Finalize();
 	Furniture_Finalize();
 	Busters_Finalize();
+	DebugDraw_Finalize();
 }

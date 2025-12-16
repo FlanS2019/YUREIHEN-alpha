@@ -297,7 +297,7 @@ void OpAnim_Update()
         g_inazumaStrikeDuration = 0.06f + Rand01() * 0.18f; // 短いストライク（0.06～0.24s）
         g_inazumaFlash = 0.9f + Rand01() * 0.25f; // 強めの画面フラッシュ
         // 複数ボルトを短時間でちらつかせる
-        for (int i = 0; i < 4; ++i) g_inazumaBoltAlphas[i] = 0.5f + Rand01() * 0.6f;
+        for (int i = 0; i < 4; i++) g_inazumaBoltAlphas[i] = 0.5f + Rand01() * 0.6f;
     }
 
     if (g_inazumaActive)

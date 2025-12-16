@@ -1,4 +1,4 @@
-#pragma once
+ï»¿#pragma once
 
 #include <d3d11.h>
 #include "direct3d.h"
@@ -7,41 +7,41 @@
 #include <DirectXMath.h>
 using namespace DirectX;
 
-// 2D ƒtƒŠƒbƒv ƒ^ƒCƒv
+// 2D ãƒ•ãƒªãƒƒãƒ— ã‚¿ã‚¤ãƒ—
 enum class FLIPTYPE2D : unsigned char
 {
-	FLIPTYPE2D_NONE = 0x00,        // ƒtƒŠƒbƒv‚È‚µ
-	FLIPTYPE2D_HORIZONTAL = 0x01,  // ¶‰E”½“]
-	FLIPTYPE2D_VERTICAL = 0x02,    // ã‰º”½“]
-	FLIPTYPE2D_BOTH = 0x03         // ã‰º¶‰E”½“]
+	FLIPTYPE2D_NONE = 0x00,        // ãƒ•ãƒªãƒƒãƒ—ãªã—
+	FLIPTYPE2D_HORIZONTAL = 0x01,  // å·¦å³åè»¢
+	FLIPTYPE2D_VERTICAL = 0x02,    // ä¸Šä¸‹åè»¢
+	FLIPTYPE2D_BOTH = 0x03         // ä¸Šä¸‹å·¦å³åè»¢
 };
 
-// ’¸“_\‘¢‘Ì
+// é ‚ç‚¹æ§‹é€ ä½“
 struct Vertex
 {
-	XMFLOAT3 position; // ’¸“_À•W
+	XMFLOAT3 position; // é ‚ç‚¹åº§æ¨™
 	XMFLOAT3 normal;
-	XMFLOAT4 color;    // ’¸“_ƒJƒ‰[iR,G,B,Aj
-	XMFLOAT2 texCoord; // ƒeƒNƒXƒ`ƒƒÀ•W
+	XMFLOAT4 color;    // é ‚ç‚¹ã‚«ãƒ©ãƒ¼ï¼ˆR,G,B,Aï¼‰
+	XMFLOAT2 texCoord; // ãƒ†ã‚¯ã‚¹ãƒãƒ£åº§æ¨™
 };
 
-// ƒvƒƒgƒ^ƒCƒvéŒ¾
+// ãƒ—ãƒ­ãƒˆã‚¿ã‚¤ãƒ—å®£è¨€
 void Sprite_Initialize(void);
 void Sprite_Finalize(void);
 void Sprite_Single_Draw(XMFLOAT2 pos, XMFLOAT2 size, float rot, XMFLOAT4 color, BLENDSTATE bstate, ID3D11ShaderResourceView* texture, FLIPTYPE2D flipType = FLIPTYPE2D::FLIPTYPE2D_NONE);
 void Sprite_Split_Draw(XMFLOAT2 pos, XMFLOAT2 size, float rot, XMFLOAT4 color, BLENDSTATE bstate, ID3D11ShaderResourceView* texture, int divideX, int divideY, int textureNumber);
 
-// Sprite ƒNƒ‰ƒX 2D —p Transform2D ‚É‘g‚Ş
+// Sprite ã‚¯ãƒ©ã‚¹ 2D ç”¨ Transform2D ã«çµ„ã‚€
 class Sprite : public Transform2D
 {
 protected:
-	XMFLOAT4 m_Color;    // ƒXƒvƒ‰ƒCƒg‚ÌF
-	BLENDSTATE m_BlendState; // ƒuƒŒƒ“ƒhƒXƒe[ƒg
-	ID3D11ShaderResourceView* m_Texture; // ƒeƒNƒXƒ`ƒƒ
-	FLIPTYPE2D m_FlipType; // ƒtƒŠƒbƒvİ’è
+	XMFLOAT4 m_Color;    // ã‚¹ãƒ—ãƒ©ã‚¤ãƒˆã®è‰²
+	BLENDSTATE m_BlendState; // ãƒ–ãƒ¬ãƒ³ãƒ‰ã‚¹ãƒ†ãƒ¼ãƒˆ
+	ID3D11ShaderResourceView* m_Texture; // ãƒ†ã‚¯ã‚¹ãƒãƒ£
+	FLIPTYPE2D m_FlipType; // ãƒ•ãƒªãƒƒãƒ—è¨­å®š
 public:
-	// pos: ’†SˆÊ’u, size: •‚Æ‚‚³, rotation: Šp“x(“x)
-	// texturePath: ƒeƒNƒXƒ`ƒƒƒtƒ@ƒCƒ‹ƒpƒX(LoadTextureŠÖ”‚Å“Ç‚İ‚İ)
+	// pos: ä¸­å¿ƒä½ç½®, size: å¹…ã¨é«˜ã•, rotation: è§’åº¦(åº¦)
+	// texturePath: ãƒ†ã‚¯ã‚¹ãƒãƒ£ãƒ•ã‚¡ã‚¤ãƒ«ãƒ‘ã‚¹(LoadTextureé–¢æ•°ã§èª­ã¿è¾¼ã¿)
 	Sprite(const XMFLOAT2& pos, const XMFLOAT2& size, float rotation, const XMFLOAT4& color, BLENDSTATE bstate, const wchar_t* texturePath)
 		: Transform2D(pos, rotation, size), m_Color(color), m_BlendState(bstate), m_Texture(nullptr), m_FlipType(FLIPTYPE2D::FLIPTYPE2D_NONE)
 	{
@@ -65,27 +65,27 @@ public:
 	FLIPTYPE2D GetFlipType(void) const { return m_FlipType; }
 	void SetFlipType(FLIPTYPE2D flipType) { m_FlipType = flipType; }
 
-	// ƒCƒ“ƒXƒ^ƒ“ƒX‚²‚Æ‚É•`‰æ‚·‚é
+	// ã‚¤ãƒ³ã‚¹ã‚¿ãƒ³ã‚¹ã”ã¨ã«æç”»ã™ã‚‹
 	void Draw()
 	{
 		Sprite_Single_Draw(m_Position, m_Scale, m_Rotation, m_Color, m_BlendState, m_Texture, m_FlipType);
 	}
 };
 
-// SplitSprite ƒNƒ‰ƒX •ªŠ„ƒeƒNƒXƒ`ƒƒ—p
+// SplitSprite ã‚¯ãƒ©ã‚¹ åˆ†å‰²ãƒ†ã‚¯ã‚¹ãƒãƒ£ç”¨
 class SplitSprite : public Transform2D
 {
 protected:
-	XMFLOAT4 m_Color;    // ƒXƒvƒ‰ƒCƒg‚ÌF
-	BLENDSTATE m_BlendState; // ƒuƒŒƒ“ƒhƒXƒe[ƒg
-	ID3D11ShaderResourceView* m_Texture; // ƒeƒNƒXƒ`ƒƒ
-	int m_DivideX;       // ‰¡•ªŠ„”
-	int m_DivideY;       // c•ªŠ„”
-	int m_TextureNumber; // •`‰æ‚·‚éƒeƒNƒXƒ`ƒƒ”Ô†
+	XMFLOAT4 m_Color;    // ã‚¹ãƒ—ãƒ©ã‚¤ãƒˆã®è‰²
+	BLENDSTATE m_BlendState; // ãƒ–ãƒ¬ãƒ³ãƒ‰ã‚¹ãƒ†ãƒ¼ãƒˆ
+	ID3D11ShaderResourceView* m_Texture; // ãƒ†ã‚¯ã‚¹ãƒãƒ£
+	int m_DivideX;       // æ¨ªåˆ†å‰²æ•°
+	int m_DivideY;       // ç¸¦åˆ†å‰²æ•°
+	int m_TextureNumber; // æç”»ã™ã‚‹ãƒ†ã‚¯ã‚¹ãƒãƒ£ç•ªå·
 public:
-	// pos: ’†SˆÊ’u, size: •‚Æ‚‚³, rotation: Šp“x(“x)
-	// divideX: ‰¡•ªŠ„”, divideY: c•ªŠ„”, textureNumber: •`‰æ‚·‚éƒeƒNƒXƒ`ƒƒ”Ô†
-	// texturePath: ƒeƒNƒXƒ`ƒƒƒtƒ@ƒCƒ‹ƒpƒX(LoadTextureŠÖ”‚Å“Ç‚İ‚İ)
+	// pos: ä¸­å¿ƒä½ç½®, size: å¹…ã¨é«˜ã•, rotation: è§’åº¦(åº¦)
+	// divideX: æ¨ªåˆ†å‰²æ•°, divideY: ç¸¦åˆ†å‰²æ•°, textureNumber: æç”»ã™ã‚‹ãƒ†ã‚¯ã‚¹ãƒãƒ£ç•ªå·
+	// texturePath: ãƒ†ã‚¯ã‚¹ãƒãƒ£ãƒ•ã‚¡ã‚¤ãƒ«ãƒ‘ã‚¹(LoadTextureé–¢æ•°ã§èª­ã¿è¾¼ã¿)
 	SplitSprite(const XMFLOAT2& pos, const XMFLOAT2& size, float rotation, const XMFLOAT4& color, BLENDSTATE bstate, const wchar_t* texturePath, int divideX, int divideY)
 		: Transform2D(pos, rotation, size), m_Color(color), m_BlendState(bstate), m_Texture(nullptr), m_DivideX(divideX), m_DivideY(divideY), m_TextureNumber(0)
 	{
@@ -109,8 +109,8 @@ public:
 	void SetTextureNumber(int textureNumber) { m_TextureNumber = textureNumber; }
 	int GetTextureNumber(void) const { return m_TextureNumber; }
 
-	// ƒCƒ“ƒXƒ^ƒ“ƒX‚²‚Æ‚É•`‰æ‚·‚é
-	//@•`‰æ‚·‚éƒeƒNƒXƒ`ƒƒ”Ô†‚ğˆø”‚Åw’èiƒfƒtƒHƒ‹ƒg0j
+	// ã‚¤ãƒ³ã‚¹ã‚¿ãƒ³ã‚¹ã”ã¨ã«æç”»ã™ã‚‹
+	//ã€€æç”»ã™ã‚‹ãƒ†ã‚¯ã‚¹ãƒãƒ£ç•ªå·ã‚’å¼•æ•°ã§æŒ‡å®šï¼ˆãƒ‡ãƒ•ã‚©ãƒ«ãƒˆ0ï¼‰
 	void Draw()
 	{
 		Sprite_Split_Draw(m_Position, m_Scale, m_Rotation, m_Color, m_BlendState, m_Texture, m_DivideX, m_DivideY, m_TextureNumber);

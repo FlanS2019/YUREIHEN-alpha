@@ -1,4 +1,4 @@
-#pragma once
+ï»¿#pragma once
 
 #include <d3d11.h>
 #include <DirectXMath.h>
@@ -10,11 +10,11 @@
 
 using namespace DirectX;
 
-// Furniture ƒNƒ‰ƒX - F‚ğ•ÏX‚Å‚«AƒWƒƒƒ“ƒv‹@”\‚ğ‚Â
+// Furniture ã‚¯ãƒ©ã‚¹ - è‰²ã‚’å¤‰æ›´ã§ãã€ã‚¸ãƒ£ãƒ³ãƒ—æ©Ÿèƒ½ã‚’æŒã¤
 class Furniture : public Sprite3D, public Jump
 {
 protected:
-	//ghost‚Æ‚Ì‹——£‚ğ•Û‚·‚é•Ï”
+	//ghostã¨ã®è·é›¢ã‚’ä¿æŒã™ã‚‹å¤‰æ•°
 	float m_DistanceToGhost;
 public:
 	Furniture(const XMFLOAT3& pos, const XMFLOAT3& scale, const XMFLOAT3& rot, const char* pass)
@@ -25,16 +25,16 @@ public:
 
 	~Furniture() = default;
 
-	// XVƒƒ\ƒbƒhiƒWƒƒƒ“ƒvˆ—‚Æghost‚Æ‚Ì‹——£j
+	// æ›´æ–°ãƒ¡ã‚½ãƒƒãƒ‰ï¼ˆã‚¸ãƒ£ãƒ³ãƒ—å‡¦ç†ã¨ghostã¨ã®è·é›¢ï¼‰
 	void Update(void)
 	{
-		// ƒWƒƒƒ“ƒvó‘Ô‚ÌXViŠîƒNƒ‰ƒXJump‚ÌJumpUpdate‚ğŒÄ‚Ôj
-		// Furniture ‚Í Sprite3D ‚Å‚à‚ ‚è Jump ‚Å‚à‚ ‚é‚½‚ßA
-		// Sprite3DiTransform3Dj‚Ö‚ÌQÆ‚Æ‚µ‚Ä“n‚·
+		// ã‚¸ãƒ£ãƒ³ãƒ—çŠ¶æ…‹ã®æ›´æ–°ï¼ˆåŸºã‚¯ãƒ©ã‚¹Jumpã®JumpUpdateã‚’å‘¼ã¶ï¼‰
+		// Furniture ã¯ Sprite3D ã§ã‚‚ã‚ã‚Š Jump ã§ã‚‚ã‚ã‚‹ãŸã‚ã€
+		// Sprite3Dï¼ˆTransform3Dï¼‰ã¸ã®å‚ç…§ã¨ã—ã¦æ¸¡ã™
 		JumpUpdate(*(Transform3D*)this);
 
-		// ghost‚Æ‚Ì‹——£ŒvZ
-		// Ghost ‚Æ Furniture ‚Ì‹——£‚ğŒvZ
+		// ghostã¨ã®è·é›¢è¨ˆç®—
+		// Ghost ã¨ Furniture ã®è·é›¢ã‚’è¨ˆç®—
 		XMFLOAT3 furniturePos = m_Position;
 		XMFLOAT3 ghostPos = GetGhost()->GetPos();
 		XMVECTOR ghostVec = XMLoadFloat3(&ghostPos);
@@ -43,7 +43,7 @@ public:
 		m_DistanceToGhost =  XMVectorGetX(XMVector3Length(distVec));
 	}
 
-	//ƒQƒbƒ^[	
+	//ã‚²ãƒƒã‚¿ãƒ¼	
 	float GetDistanceToGhost(void) const
 	{
 		return m_DistanceToGhost;
@@ -55,10 +55,10 @@ void Furniture_Update(void);
 void Furniture_Draw(void);
 void Furniture_Finalize(void);
 
-// ƒQƒbƒ^[ŠÖ”
+// ã‚²ãƒƒã‚¿ãƒ¼é–¢æ•°
 Furniture* GetFurniture(int index);
 
-// ƒWƒƒƒ“ƒvŠÖ”
+// ã‚¸ãƒ£ãƒ³ãƒ—é–¢æ•°
 bool FurnitureScareStart(int index);
 
 bool FurnitureScareEnded(int index);

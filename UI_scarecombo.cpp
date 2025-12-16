@@ -1,49 +1,49 @@
-#include "UI_scarecombo.h"
+ï»¿#include "UI_scarecombo.h"
 #include "UI.h"
 #include "debug_ostream.h"
 #include <windows.h>
 
-// ƒOƒ[ƒoƒ‹•Ï”
+// ã‚°ãƒ­ãƒ¼ãƒãƒ«å¤‰æ•°
 static Number* g_ScareCombo = nullptr;
-static Sprite* g_ScareComboBar = nullptr;//‹°•|ƒRƒ“ƒ{‚ÌŽžŠÔØ‚ê‚ð•\Ž¦
-DWORD g_StartTime = GetTickCount64();
-DWORD g_KeikaTime = GetTickCount64();
+static Sprite* g_ScareComboBar = nullptr;//ææ€–ã‚³ãƒ³ãƒœã®æ™‚é–“åˆ‡ã‚Œã‚’è¡¨ç¤º
+ULONGLONG g_StartTime = GetTickCount64();
+ULONGLONG g_KeikaTime = GetTickCount64();
 
 
-// ‹°•|ƒRƒ“ƒ{‚Ì‰Šú‰»
+ // ææ€–ã‚³ãƒ³ãƒœã®åˆæœŸåŒ–
 void UI_ScareCombo_Initialize(void)
 {
 	g_ScareCombo = new Number(
-		{ SCREEN_WIDTH - 110.0f, 170.0f },	// ˆÊ’u
-		{ 70.0f, 70.0f },					// ƒTƒCƒY
+		{ SCREEN_WIDTH - 110.0f, 170.0f },	// ä½ç½®
+		{ 70.0f, 70.0f },					// ã‚µã‚¤ã‚º
 		{ 1.0f, 1.0f, 1.0f, 1.0f },			// RGBA
 		BLENDSTATE_ALFA,					// BlendState
-		L"asset\\texture\\num.png",			// ƒeƒNƒXƒ`ƒƒƒpƒX
-		5, 3,								// •ªŠ„”X, Y
-		55.0f								// Œ…ŠÔŠu
+		L"asset\\texture\\num.png",			// ãƒ†ã‚¯ã‚¹ãƒãƒ£ãƒ‘ã‚¹
+		5, 3,								// åˆ†å‰²æ•°X, Y
+		55.0f								// æ¡é–“éš”
 	);
 
 	g_ScareComboBar = new Sprite(
-		{ SCARECOMBO_BAR_POS_X, 200.0f },	// ˆÊ’u
-		{ SCARECOMBO_BAR_SIZE_X, 20.0f },					// ƒTƒCƒY
+		{ SCARECOMBO_BAR_POS_X, 200.0f },	// ä½ç½®
+		{ SCARECOMBO_BAR_SIZE_X, 20.0f },					// ã‚µã‚¤ã‚º
 		0.0f,
 		{ 1.0f, 1.0f, 0.0f, 1.0f },			// RGBA
 		BLENDSTATE_ALFA,					// BlendState
-		L"asset\\texture\\fade.png"			// ƒeƒNƒXƒ`ƒƒƒpƒX
+		L"asset\\texture\\fade.png"			// ãƒ†ã‚¯ã‚¹ãƒãƒ£ãƒ‘ã‚¹
 	);
 
-	g_ScareCombo->SetShowX(true); // ”{”Ú“ªŽquxv‚ð•\Ž¦
+	g_ScareCombo->SetShowX(true); // å€æ•°æŽ¥é ­å­ã€Œxã€ã‚’è¡¨ç¤º
 	g_ScareCombo->SetNumber(1);
 	g_StartTime = GetTickCount64();
 	g_KeikaTime = GetTickCount64();
 }
 
-// ‹°•|ƒRƒ“ƒ{‚ÌXV
+// ææ€–ã‚³ãƒ³ãƒœã®æ›´æ–°
 void UI_ScareCombo_Update(void)
 {
 	g_KeikaTime = GetTickCount64();
 
-	// ‹°•|ƒRƒ“ƒ{‚ÌŽc‚èŽžŠÔƒo[‚ÌƒXƒP[ƒ‹XV
+	// ææ€–ã‚³ãƒ³ãƒœã®æ®‹ã‚Šæ™‚é–“ãƒãƒ¼ã®ã‚¹ã‚±ãƒ¼ãƒ«æ›´æ–°
 	if (g_ScareCombo->GetNumber() > 1)
 	{
 		g_ScareComboBar->SetPosX(SCARECOMBO_BAR_POS_X);
@@ -59,17 +59,17 @@ void UI_ScareCombo_Update(void)
 		g_ScareComboBar->AddPosX((SCARECOMBO_BAR_SIZE_X * (ratio / 2)));
 	}
 
-	// ‹°•|ƒRƒ“ƒ{Ø‚êˆ—
+	// ææ€–ã‚³ãƒ³ãƒœåˆ‡ã‚Œå‡¦ç†
 	if (g_KeikaTime - g_StartTime >= SCARECOMBO_OVER_TIME && g_ScareCombo->GetNumber() != 1)
 	{
 		g_ScareCombo->SetNumber(1);
 	}
 }
 
-// ‹°•|ƒRƒ“ƒ{‚Ì•`‰æ
+// ææ€–ã‚³ãƒ³ãƒœã®æç”»
 void UI_ScareCombo_Draw(void)
 {
-	// ‹°•|ƒRƒ“ƒ{‚ÌŽc‚èŽžŠÔƒo[‚Í1ƒRƒ“ƒ{ˆÈã‚Ì‚Æ‚«‚Ì‚Ý•\Ž¦
+	// ææ€–ã‚³ãƒ³ãƒœã®æ®‹ã‚Šæ™‚é–“ãƒãƒ¼ã¯1ã‚³ãƒ³ãƒœä»¥ä¸Šã®ã¨ãã®ã¿è¡¨ç¤º
 	if (g_ScareCombo->GetNumber() > 1)
 	{
 		g_ScareComboBar->Draw();
@@ -77,7 +77,7 @@ void UI_ScareCombo_Draw(void)
 	g_ScareCombo->Draw();
 }
 
-// ‹°•|ƒRƒ“ƒ{‚ÌI—¹
+// ææ€–ã‚³ãƒ³ãƒœã®çµ‚äº†
 void UI_ScareCombo_Finalize(void)
 {
 	delete g_ScareCombo;
@@ -89,9 +89,9 @@ void UI_ScareCombo_Finalize(void)
 void ScareComboUP(void)
 {
 	g_StartTime = GetTickCount64();
-	//g_ScareComboNum‚ð‰ÁŽZ
+	//g_ScareComboNumã‚’åŠ ç®—
 	g_ScareCombo->AddNumber(1);
-	//5‚ð’´‚¦‚È‚¢‚æ‚¤‚É
+	//5ã‚’è¶…ãˆãªã„ã‚ˆã†ã«
 	if (g_ScareCombo->GetNumber() > SCARECOMBO_MAX)
 	{
 		g_ScareCombo->SetNumber(SCARECOMBO_MAX);
