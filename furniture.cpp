@@ -4,9 +4,13 @@
 #include "ghost.h"
 #include "keyboard.h"
 #include "define.h"
+#include <cmath>   // sinf�p
 
 Furniture* g_Furniture[FURNITURE_NUM]{};
 
+// =========================================================
+// �Ƌ�̔z�u (Initialize)
+// =========================================================
 void Furniture_Initialize(void)
 {
 	// ----------------------------------------------------
@@ -45,6 +49,7 @@ void Furniture_Initialize(void)
 		"asset\\model\\tree.fbx"
 	);
 
+	// 3: �� -> STOP (���~��/��])
 	g_Furniture[4] = new Furniture(
 		{ -6.0f, 0.0f, -2.0f },			// 左手前
 		{ 1.5f, 1.5f, 1.5f },
@@ -72,6 +77,89 @@ void Furniture_Initialize(void)
 
 // ... (以下変更なし) ...
 
+// �Ƌ�ʂ̍X�V����
+void Furniture::Update(void)
+{
+	// 1. Ghost�Ƃ̋����v�Z (��������)
+	if (GetGhost())
+	{
+		XMFLOAT3 ghostPos = GetGhost()->GetPos();
+		XMVECTOR ghostVec = XMLoadFloat3(&ghostPos);
+		XMVECTOR furnitureVec = XMLoadFloat3(&m_Position);
+		XMVECTOR distVec = XMVectorSubtract(furnitureVec, ghostVec);
+		m_DistanceToGhost = XMVectorGetX(XMVector3Length(distVec));
+	}
+
+	// 2. �A�N�V�������Ƃ̋��� (�r������)
+	if (m_IsActing || GetIsJumping())
+	{
+
+		switch (m_ActionType)
+		{
+		case ACTION_SCARE: // ������ -> �W�����v�����̂�
+			JumpUpdate(*(Transform3D*)this);
+			break;
+
+		case ACTION_LURE: // ���т��� -> �U�������̂�
+		{
+			m_ActionTimer += 1.0f;
+			// �U���v�Z
+			float shakeAmount = 0.1f;
+			float offsetX = sinf(m_ActionTimer * 2.0f) * shakeAmount;
+
+			// ����
+			float decay = 1.0f - (m_ActionTimer / 60.0f);
+			if (decay < 0.0f) decay = 0.0f;
+			offsetX *= decay;
+
+			SetPosX(m_BasePos.x + offsetX);
+
+			if (m_ActionTimer >= 60.0f)
+			{
+				m_IsActing = false;
+				SetPos(m_BasePos);
+			}
+		}
+		break;
+
+		case ACTION_STOP: // ���~�� -> ��]�����̂�
+		{
+			m_ActionTimer += 1.0f;
+			// ��]�v�Z
+			float speed = 30.0f;
+			AddRotY(speed);
+
+			if (m_ActionTimer >= 60.0f)
+			{
+				m_IsActing = false;
+			}
+		}
+		break;
+		}
+	}
+}
+
+void Furniture::StartAction(void)
+{
+	if (GetIsActing()) return; // �d�����s�h�~
+
+	if (m_ActionType == ACTION_SCARE)
+	{
+		JumpStart(); // �W�����v�t���OON
+	}
+	else
+	{
+		m_IsActing = true; // �ėp�A�N�V�����t���OON
+		m_ActionTimer = 0.0f;
+	}
+}
+
+
+// =========================================================
+// �O���[�o���֐��̎���
+// =========================================================
+
+// Game_Update����Ă΂��S�̂̍X�V����
 void Furniture_Update(void)
 {
 	for (int i = 0; i < FURNITURE_NUM; i++)
