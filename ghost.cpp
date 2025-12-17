@@ -228,6 +228,8 @@ void Ghost::ScareStart(void)
 			BustersScare(); // 驚く
 			ScareComboUP();
 			AddScareGauge(1.0f * UI_ScareCombo_GetNumber());
+
+			Busters_CheckGaugeEvent();
 		}
 		break;
 

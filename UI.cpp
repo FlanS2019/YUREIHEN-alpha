@@ -176,7 +176,7 @@ void UI_Update(void)
 
 	}
 	
-	// 恐怖ゲージが最大なら勝利シーンへ移行（デバッグ用）
+	// 恐怖ゲージが最大なら勝利シーンへ移行（デバッグ用）///////////////////////////////////
 	if (g_ScareGauge->GetValue() >= g_ScareGauge->GetMaxValue())
 	{
 		StartFade(SCENE_ANM_WIN);
@@ -313,5 +313,25 @@ void AddScareGauge(float value)
 	if (g_ScareGauge)
 	{
 		g_ScareGauge->AddValue(value);
+	}
+}
+
+// =================================================================
+// ゲージ状態判定とリセット
+// =================================================================
+bool UI_IsScareGaugeMax(void)
+{
+	if (g_ScareGauge)
+	{
+		return (g_ScareGauge->GetValue() >= g_ScareGauge->GetMaxValue());
+	}
+	return false;
+}
+
+void UI_ResetScareGauge(void)
+{
+	if (g_ScareGauge)
+	{
+		g_ScareGauge->SetValue(g_ScareGauge->GetMinValue());
 	}
 }

@@ -9,6 +9,12 @@
 #include "furniture.h"
 #include <stdlib.h>
 
+#include "UI.h"     // UI操作用
+#include "scene.h"  // SCENE定数用
+#include "fade.h"   // StartFade用
+#include "ghost.h"  // Ghost操作用
+
+
 static Busters* g_BustersList[MAP_FLOORS];
 
 // =================================================================
@@ -32,15 +38,13 @@ void Busters::Update(void)
 {
 	JumpUpdate(*(Transform3D*)this);
 
-	// 停止中（リアクション中）は、思考(CheckState)も移動もしない
-	// これにより、色がCheckStateによって勝手に上書きされるのを防ぐ
+	// 停止中（リアクション中）は思考(CheckState)も移動もしない
 	if (m_WaitTimer > 0)
 	{
 		m_WaitTimer--;
-		return; // ここで処理を終える
+		return;
 	}
 
-	// タイマーが0の時だけ、周りを見て(CheckState)移動する
 	CheckState();
 
 	XMFLOAT3 nextStepPos = m_Position;
@@ -50,7 +54,6 @@ void Busters::Update(void)
 	case BUSTERS_SEARCH: // 探索
 		if (m_TargetFurnitureIndex == -1)
 		{
-			// ランダムに家具を目指す
 			m_TargetFurnitureIndex = rand() % FURNITURE_NUM;
 			Furniture* targetFurniture = GetFurniture(m_TargetFurnitureIndex);
 			if (targetFurniture)
@@ -79,7 +82,7 @@ void Busters::Update(void)
 		else if (m_TargetFurnitureIndex != -1)
 		{
 			m_TargetFurnitureIndex = -1;
-			m_WaitTimer = 60; // 到着したら少し休む
+			m_WaitTimer = 60;
 		}
 
 		m_MoveSpeed = 0.03f;
@@ -88,14 +91,11 @@ void Busters::Update(void)
 	case BUSTERS_SUSPICION: // 警戒
 		m_PathList.clear();
 		m_TargetFurnitureIndex = -1;
-
-		// 幽霊（家具）の方へ向かう
 		if (GetGhost())
 		{
 			nextStepPos = GetGhost()->GetPos();
 			nextStepPos.y = m_Position.y;
 		}
-
 		m_MoveSpeed = 0.06f;
 		break;
 
@@ -118,8 +118,6 @@ void Busters::CheckState(void)
 {
 	Ghost* ghost = GetGhost();
 	if (!ghost) return;
-
-	// すでにWaitTimerがある場合は状態遷移させない
 	if (m_WaitTimer > 0) return;
 
 	XMFLOAT3 ghostPos = ghost->GetPos();
@@ -130,14 +128,12 @@ void Busters::CheckState(void)
 	// 変身中
 	if (ghost->GetState() == GS_TRANSFORM || ghost->GetState() == GS_SCARE)
 	{
-		// 警戒状態ですでに近くにいるなら、Searchに戻ってキョロキョロする
 		if (m_State == BUSTERS_SUSPICION && m_DistanceToGhost < 2.0f)
 		{
 			m_State = BUSTERS_SEARCH;
 			this->ResetColor();
 			m_WaitTimer = 60;
 		}
-		// それ以外でSearchでもSuspicionでもなければSearchに戻す
 		else if (m_State != BUSTERS_SEARCH && m_State != BUSTERS_SUSPICION)
 		{
 			m_State = BUSTERS_SEARCH;
@@ -225,40 +221,31 @@ void Busters::MoveTo(XMFLOAT3 targetPos)
 	if (!hitZ) m_Position.z = nextZ;
 }
 
-// 驚き
 void Busters::OnScared(void)
 {
 	JumpStart();
 	m_TargetFurnitureIndex = -1;
-	m_WaitTimer = 120; // 2秒停止
+	m_WaitTimer = 120;
 	this->SetColor(0.0f, 0.0f, 1.0f, 1.0f); // 青
 }
 
-// おびき寄せられた時
 void Busters::OnLured(XMFLOAT3 targetPos)
 {
-	// 警戒状態にして強制的にターゲット(幽霊/家具)に向かわせる
 	m_State = BUSTERS_SUSPICION;
 	this->SetColor(0.0f, 1.0f, 1.0f, 1.0f); // シアン
-
-	// 1秒間停止タイマーを入れる
 	m_WaitTimer = 60;
-
 	m_PathList.clear();
 }
 
-// 足止めされた時
 void Busters::OnStopped(void)
 {
-	m_WaitTimer = 300; // 5秒停止
+	m_WaitTimer = 300;
 	this->SetColor(0.5f, 0.0f, 0.5f, 1.0f); // 紫
 }
 
 void Busters::SetIsGhostDiscover(bool discover)
 {
-	// WaitTimer中は色を変えない
 	if (m_WaitTimer > 0) return;
-
 	if (discover) this->SetColor(0.0f, 1.0f, 0.0f, 1.0f);
 	else this->ResetColor();
 }
@@ -324,4 +311,44 @@ void BustersStopped(void)
 {
 	Busters* target = GetBusters();
 	if (target) target->OnStopped();
+}
+
+// =================================================================
+// ゲージMAX時の処理
+// =================================================================
+void Busters_CheckGaugeEvent(void)
+{
+	// ゲージがMAXでなければ何もしない
+	if (!UI_IsScareGaugeMax()) return;
+
+	// 現在の階層を取得
+	int currentFloor = Field_GetCurrentFloor();
+
+	if (currentFloor > 0)
+	{
+		// -------------------------------------------------
+		// 2階以上の場合 -> 下の階へ逃げる
+		// -------------------------------------------------
+
+		// 1. ゲージをリセット
+		UI_ResetScareGauge();
+
+		// 2. 下の階へ移動
+		Field_ChangeFloor(currentFloor - 1);
+
+		// 3. プレイヤー(Ghost)も追って移動（位置リセット）
+		if (GetGhost())
+		{
+			GetGhost()->ResetPos();
+			GetGhost()->SetPos({ 0.0f, Ghost::GetGhostPosY(), 0.0f });
+		}
+	}
+	else
+	{
+		// -------------------------------------------------
+		// 1階の場合
+		// -------------------------------------------------
+
+		StartFade(SCENE_ANM_WIN);
+	}
 }
