@@ -120,27 +120,39 @@ void Field_Initialize(ID3D11Device* pDevice, ID3D11DeviceContext* pContext)
 // LevelMapを使わず Floor1 を使うように変更
 void Field_Update(void)
 {
-	// 1. 非表示フラグ管理用の一時配列
-	std::vector<std::vector<bool>> shouldHide(MAP_H, std::vector<bool>(MAP_W, false));
+
+	static std::vector<std::vector<bool>> shouldHide(MAP_H, std::vector<bool>(MAP_W, false));
+
+	// 配列のクリア
+	for (int z = 0; z < MAP_H; z++) {
+		for (int x = 0; x < MAP_W; x++) {
+			shouldHide[z][x] = false;
+		}
+	}
 
 	Ghost* ghost = GetGhost();
 	if (!ghost) return;
 
 	XMFLOAT3 cameraPos = GetCamera()->GetPos();
 	XMFLOAT3 playerPos = ghost->GetPos();
+
+	// プレイヤーの頭の高さ(Y+1.0f)を目標にする
 	playerPos.y += 1.0f;
 
+	// 3. レイキャスト (カメラ -> プレイヤー)
 	float dx = playerPos.x - cameraPos.x;
 	float dz = playerPos.z - cameraPos.z;
 	float dist = sqrtf(dx * dx + dz * dz);
 
+	// 近すぎる場合は計算不要
 	if (dist < 0.5f) return;
 
 	float stepX = dx / dist;
 	float stepZ = dz / dist;
+
 	float currentDist = 0.0f;
 
-	while (currentDist < dist - 1.0f)
+	while (currentDist < dist - 0.5f) // プレイヤーの手前0.5mまでチェック
 	{
 		float checkX = cameraPos.x + stepX * currentDist;
 		float checkZ = cameraPos.z + stepZ * currentDist;
@@ -150,11 +162,15 @@ void Field_Update(void)
 
 		if (gridX >= 0 && gridX < MAP_W && gridZ >= 0 && gridZ < MAP_H)
 		{
-
+			// Floor1[1][z][x] (Y=1: 目の高さの壁) をチェック
 			int mcID = Floor1[1][gridZ][gridX];
+
+			// 壁(FIELD_BOX)があれば隠す
 			if (ConvertMapID(mcID) == FIELD_BOX)
 			{
-				int range = 2;
+
+				int range = 2; // 1 = 3x3マス, 2 = 5x5マス
+
 				for (int oz = -range; oz <= range; oz++)
 				{
 					for (int ox = -range; ox <= range; ox++)
@@ -170,10 +186,11 @@ void Field_Update(void)
 				}
 			}
 		}
-		currentDist += 0.5f;
+
+		currentDist += 0.1f;
 	}
 
-	// マップデータに反映
+	// 4. マップデータに反映
 	for (auto& mapData : g_MapList)
 	{
 		int mapGridX = WorldToGridX(mapData.pos.x);
@@ -181,6 +198,7 @@ void Field_Update(void)
 
 		if (mapGridX >= 0 && mapGridX < MAP_W && mapGridZ >= 0 && mapGridZ < MAP_H)
 		{
+			// 床(Y<0)は消さない。壁(Y>=0)で、かつフラグが立っていたら消す
 			if (mapData.pos.y >= 0.0f && shouldHide[mapGridZ][mapGridX])
 			{
 				mapData.isHidden = true;
@@ -192,7 +210,6 @@ void Field_Update(void)
 		}
 	}
 }
-
 void Field_Draw(void)
 {
 	Shader_Begin();
