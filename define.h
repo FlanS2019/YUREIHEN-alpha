@@ -6,6 +6,14 @@
 
 #define MAP_FLOORS (3)
 
+//=== Camera 関連定数 ===
+#define PITCH_LIMIT_LOOK_UP    (20.0f)   // 上を見る限界（カメラが下がる限界）: 床埋まり防止
+#define PITCH_LIMIT_LOOK_DOWN  (-10.0f)  // 下を見る限界（カメラが上がる限界）: 天井埋まり防止
+
+#define MOUSE_SENSITIVITY (0.15f)
+#define CAMERA_DISTANCE (6.0f)  // カメラ距離
+#define CAMERA_OFFSET_Y (1.5f)  // 注視点のオフセット
+
 //=== Furniture 関連定数 ===
 #define FURNITURE_NUM (6)
 #define FURNITURE_DETECTION_RANGE (5.0f) // Ghost検出範囲
