@@ -14,7 +14,6 @@
 #include "fade.h"   // StartFade用
 #include "ghost.h"  // Ghost操作用
 
-
 static Busters* g_BustersList[MAP_FLOORS];
 
 // =================================================================
@@ -38,7 +37,6 @@ void Busters::Update(void)
 {
 	JumpUpdate(*(Transform3D*)this);
 
-	// 停止中（リアクション中）は思考(CheckState)も移動もしない
 	if (m_WaitTimer > 0)
 	{
 		m_WaitTimer--;
@@ -314,14 +312,12 @@ void BustersStopped(void)
 }
 
 // =================================================================
-// ゲージMAX時の処理
+// ゲージMAX時の処理 (修正版: デバッグ削除 & 敗北回避)
 // =================================================================
 void Busters_CheckGaugeEvent(void)
 {
-	// ゲージがMAXでなければ何もしない
 	if (!UI_IsScareGaugeMax()) return;
 
-	// 現在の階層を取得
 	int currentFloor = Field_GetCurrentFloor();
 
 	if (currentFloor > 0)
@@ -330,25 +326,26 @@ void Busters_CheckGaugeEvent(void)
 		// 2階以上の場合 -> 下の階へ逃げる
 		// -------------------------------------------------
 
-		// 1. ゲージをリセット
+		// 1. ゲージをリセット (通常は0になります)
 		UI_ResetScareGauge();
+
+		AddScareGauge(1.0f);
 
 		// 2. 下の階へ移動
 		Field_ChangeFloor(currentFloor - 1);
 
-		// 3. プレイヤー(Ghost)も追って移動（位置リセット）
-		if (GetGhost())
-		{
-			GetGhost()->ResetPos();
-			GetGhost()->SetPos({ 0.0f, Ghost::GetGhostPosY(), 0.0f });
-		}
+		//// 3. プレイヤー(Ghost)も追って移動
+		//if (GetGhost())
+		//{
+		//	GetGhost()->ResetPos();
+		//	GetGhost()->SetPos({ 0.0f, Ghost::GetGhostPosY(), 0.0f });
+		//}
 	}
 	else
 	{
 		// -------------------------------------------------
-		// 1階の場合
+		// 1階の場合 -> 逃げ場なし（プレイヤーの勝利）
 		// -------------------------------------------------
-
 		StartFade(SCENE_ANM_WIN);
 	}
 }
