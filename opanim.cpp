@@ -188,15 +188,15 @@ void OpAnim_Initialize(ID3D11Device* pDevice, ID3D11DeviceContext* pContext)
 		L"asset\\yureihen\\basuta1.png"   // テクスチャパス
 	);
 
-	// inazuma スプライト（修正: basuta を上書きしていた箇所を修正して別インスタンスにする）
-	g_inazumaSprite = new Sprite(
-		XMFLOAT2(0.0f, 0.0f),           // 初期位置（描画時に更新）
-		XMFLOAT2(300.0f, 720.0f),         // 稲妻は縦長にしておく
-		0.0f,                             // 回転
-		XMFLOAT4(1.0f, 1.0f, 1.0f, 0.0f), // 色（初期状態では透明）
-		BLENDSTATE_ALFA,                  // ブレンドステート
-		L"asset\\yureihen\\kuromurasaki.png"   // テクスチャパス
-	);
+	//// inazuma スプライト（修正: basuta を上書きしていた箇所を修正して別インスタンスにする）
+	//g_inazumaSprite = new Sprite(
+	//	XMFLOAT2(0.0f, 0.0f),           // 初期位置（描画時に更新）
+	//	XMFLOAT2(300.0f, 720.0f),         // 稲妻は縦長にしておく
+	//	0.0f,                             // 回転
+	//	XMFLOAT4(1.0f, 1.0f, 1.0f, 0.0f), // 色（初期状態では透明）
+	//	BLENDSTATE_ALFA,                  // ブレンドステート
+	//	L"asset\\yureihen\\kuromurasaki.png"   // テクスチャパス
+	//);
 
 	// Sprite 側とは別に、ここで描画に使用する SRV をロードしておく
 	for (int i = 0; i < 5; ++i) g_Texture[i] = nullptr;
@@ -205,6 +205,7 @@ void OpAnim_Initialize(ID3D11Device* pDevice, ID3D11DeviceContext* pContext)
 	g_Texture[2] = LoadTexture(L"asset\\yureihen\\basuta1.png");
 	g_Texture[3] = LoadTexture(L"asset\\yureihen\\bikkuri.png");
 	g_Texture[4] = LoadTexture(L"asset\\yureihen\\inazuma2.png");
+	//g_Texture[5] = LoadTexture(L"asset\\yureihen\\kuromurasaki.png");
 
 	// 問題：配列サイズ4とループ5が不一致。テクスチャは実質4つ
 	// LoadTexture が失敗した場合は目印になる 1x1 テクスチャで置き換える（NULL 回避）
