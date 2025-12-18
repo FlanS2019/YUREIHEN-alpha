@@ -24,7 +24,7 @@ void Animation_Win_Initialize(ID3D11Device* pDevice, ID3D11DeviceContext* pConte
 		0.0f,										// 回転（度）
 		{ 1.0f, 1.0f, 1.0f, 1.0f },				// 色
 		BLENDSTATE_ALFA,							// BlendState
-		L"asset\\texture\\WinAnim\\winanim.png"				// テクスチャパス
+		L"asset\\yureihen\\WinAnim\\WinAnime.png"				// テクスチャパス
 	);
 }
 
