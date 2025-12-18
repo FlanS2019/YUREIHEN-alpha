@@ -32,7 +32,7 @@ void Animation_Lose_Initialize(ID3D11Device* pDevice, ID3D11DeviceContext* pCont
 		0.0f,										// 回転（度）
 		{ 1.0f, 1.0f, 1.0f, 1.0f },				// 色
 		BLENDSTATE_ALFA,							// BlendState
-		L"asset\\yureihen\\Losehaikei.png"		// テクスチャパス
+		L"asset\\yureihen\\LoseAnim\\Losehaikei.png"		// テクスチャパス
 	);
 
 	// ゴーストスプライト
@@ -46,7 +46,7 @@ void Animation_Lose_Initialize(ID3D11Device* pDevice, ID3D11DeviceContext* pCont
 		0.0f,											// 回転（度）
 		{ 1.0f, 1.0f, 1.0f, 0.0f },					// 色（初期は完全透明）
 		BLENDSTATE_ALFA,								// BlendState
-		L"asset\\yureihen\\LoseGhost.png"				// テクスチャパス
+		L"asset\\yureihen\\LoseAnim\\LoseGhost.png"				// テクスチャパス
 	);
 
 	// インクの開始Yを画面外上部に設定（画像高さの半分分上）
@@ -59,7 +59,7 @@ void Animation_Lose_Initialize(ID3D11Device* pDevice, ID3D11DeviceContext* pCont
 		0.0f,
 		{ 1.0f, 1.0f, 1.0f, 0.0f }, // 初期は透明（表示されないようにする）
 		BLENDSTATE_ALFA,
-		L"asset\\yureihen\\LoseAnimeLogo.png"
+		L"asset\\yureihen\\LoseAnim\\LoseAnimeLogo.png"
 	);
 
 	g_LoseStartTime = timeGetTime();
