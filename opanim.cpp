@@ -13,11 +13,13 @@
 #include <cmath>
 #include <d3d11.h>
 #include <cstdint>
+#include <iostream>
 
 using namespace DirectX;
 
 // テクスチャ
 static ID3D11ShaderResourceView* g_TexKuromurasaki = nullptr;	// 黒紫（背景）
+static ID3D11ShaderResourceView* g_TexBikkuri = nullptr;	// 黒紫（背景）
 static ID3D11ShaderResourceView* g_TexYakata = nullptr;		// 屋敷
 static ID3D11ShaderResourceView* g_TexBasuta = nullptr;		// バスター
 static ID3D11ShaderResourceView* g_TexYurei = nullptr;		// 幽霊
@@ -31,6 +33,10 @@ static ID3D11DeviceContext* g_pContext = nullptr;
 static const XMFLOAT2 g_baseSize = { 500.0f, 500.0f };
 static const float SCREEN_CENTER_X = SCREEN_WIDTH / 2.0f;
 static const float SCREEN_CENTER_Y = SCREEN_HEIGHT / 2.0f;
+
+//幽霊のみ別サイズ
+static const XMFLOAT2 g_yureiSize = { 280.0f, 280.0f };
+
 
 //屋敷と黒紫の位置・表示
 static XMFLOAT2 g_yakataPos = { 0.0f, 0.0f };
@@ -57,6 +63,7 @@ static const float g_basutaMoveStartTime = 1.5f;
 //幽霊パラメータ
 static XMFLOAT2 g_yureiPos = { 0.0f, 0.0f };
 static XMFLOAT2 g_yureiTargetPos = { 0.0f, 0.0f };
+static XMFLOAT2 g_yureiCurrentPos = { 0.0f, 0.0f };
 static float g_yureiAlpha = 0.0f;
 static float g_yureiTimer = 0.0f;
 static bool g_yureiReacting = false;
@@ -69,13 +76,19 @@ static const float g_yureiReactDistance = 600.0f;
 // --- 幽霊を一瞬だけ右向きにするためのフリップ制御 ---
 static bool g_yureiFlipActive = false;
 static float g_yureiFlipTimer = 0.0f;
-static const float g_yureiFlipDuration = 0.5f; // 0.5秒だけ右向きにする
+static const float g_yureiFlipDuration = 0.5f; // 秒だけ右向きにする
 
 //タイムライン
 static float g_elapsedTime = 0.0f;
 static bool g_fadeStarted = false;
 static bool g_waitStarted = false;
 static float g_waitTimer = 0.0f;
+
+// --- 幽霊フリップ解除後の待機と右方向移動制御 ---
+static bool g_yureiWaitingAfterFlip = false;
+static float g_yureiWaitTimer = 0.0f;
+static const float g_yureiWaitDuration = 1.0f;	// フリップ解除後の待機時間
+static const float g_yureiLeftMoveSpeed = -120.0f;	// 右方向移動速度
 
 //ランダム関数
 static float Rand01()
@@ -160,14 +173,15 @@ void OpAnim_Initialize(ID3D11Device* pDevice, ID3D11DeviceContext* pContext)
 	g_TexYurei = LoadTextureOrFallback(L"asset\\yureihen\\Alpha_Tex\\yurei1.png", white);
 	g_TexInazuma = LoadTextureOrFallback(L"asset\\yureihen\\inazuma2.png", white);
 	g_TexKuromurasaki = LoadTextureOrFallback(L"asset\\yureihen\\Alpha_Tex\\kuromurasaki.png", white);
+	g_TexBikkuri = LoadTextureOrFallback(L"asset\\yureihen\\Alpha_Tex\\bikkuri2.png", white);
 
-	// 屋敷位置初期化
+	// 屋敷初期化
 	g_yakataPos.x = SCREEN_CENTER_X - 400.0f;
 	g_yakataPos.y = SCREEN_CENTER_Y + 120.0f;
 
-	// 幽霊初期位置（屋敷の右下）
-	g_yureiPos.x = g_yakataPos.x + 100.0f;
-	g_yureiPos.y = g_yakataPos.y + 80.0f;
+	// 幽霊初期位置（屋敷近く・右側）
+	g_yureiPos.x = g_yakataPos.x + 80.0f;
+	g_yureiPos.y = g_yakataPos.y - 150.0f;
 
 	// バスター初期位置（画面右外）
 	g_basutaStartPos.x = SCREEN_WIDTH + 200.0f;
@@ -267,6 +281,7 @@ void OpAnim_Update()
 		// バスター上下揺れ
 		g_basutaCurrentPos.y += sinf(g_elapsedTime * 3.5f) * 8.0f;
 
+
 		// バスターフェードイン（時間ベース）
 		float fadeDuration = 2.0f;
 		float fadeTime = g_elapsedTime - g_basutaMoveStartTime;
@@ -277,7 +292,7 @@ void OpAnim_Update()
 
 	// --- 幽霊更新 ---
 	// バスターを見つけたら反応
-	if (!g_yureiReacting && g_basutaAlpha > 0.5f)
+	if (!g_yureiReacting && g_elapsedTime > 3.5f)
 	{
 		float dx = g_basutaCurrentPos.x - g_yureiPos.x;
 		float dy = g_basutaCurrentPos.y - g_yureiPos.y;
@@ -289,12 +304,18 @@ void OpAnim_Update()
 			g_yureiTimer = 0.0f;
 
 			// ここで一瞬だけ右向き（水平反転）にするためのフラグをセット
-			g_yureiFlipActive = true;
-			g_yureiFlipTimer = 0.0f;
+			if (!g_yureiFlipActive)
+			{
+				g_yureiFlipActive = true;
+				g_yureiFlipTimer = 0.0f;
+				std::cout << "幽霊が右を向いた" << std::endl;
+			}
 		}
 	}
+	// 幽霊の上下揺れ（毎フレーム g_yureiCurrentPos を初期化してから揺れを加算）
+	g_yureiCurrentPos = g_yureiPos;
+	g_yureiCurrentPos.y += sinf(g_elapsedTime * 4.5f) * 8.0f;	// 幽霊フェードイン（時間経過で自然に出現）
 
-	// 幽霊フェードイン（時間経過で自然に出現）
 	if (g_elapsedTime >= g_yureiAppearTime)
 	{
 		float fadeTime = g_elapsedTime - g_yureiAppearTime;
@@ -306,23 +327,15 @@ void OpAnim_Update()
 	if (g_yureiReacting)
 	{
 		g_yureiTimer += delta;
-		float moveTime = 3.0f;
-		float moveRatio = g_yureiTimer / moveTime;
 
-		if (moveRatio >= 1.0f)
+		// 待機中は位置更新なし
+		if (!g_yureiWaitingAfterFlip && !g_yureiFlipActive)
 		{
-			g_yureiPos = g_yureiTargetPos;
-			moveRatio = 1.0f;
+			// 右向き終了＆待機終了後のみ移動
+			g_yureiPos.x += g_yureiLeftMoveSpeed * delta;
 		}
-		else
-		{
-			// スムーズな移動: 線形補間に速度係数を組み合わせ
-			g_yureiPos.x += (g_yureiTargetPos.x - g_yureiPos.x) * delta * (g_yureiMoveSpeed / 100.0f);
-			g_yureiPos.y += (g_yureiTargetPos.y - g_yureiPos.y) * delta * (g_yureiMoveSpeed / 100.0f);
-		}
-
 		// 幽霊フェードアウト（館へ入る）
-		float fadeOutTime = moveTime - 0.5f;
+		float fadeOutTime = 5.0f;
 		if (g_yureiTimer > fadeOutTime)
 		{
 			float outRatio = (g_yureiTimer - fadeOutTime) / 0.5f;
@@ -330,7 +343,6 @@ void OpAnim_Update()
 			g_yureiAlpha *= (1.0f - outRatio);
 		}
 	}
-
 	// 幽霊のフリップタイマー更新（右向きにする短い時間の管理）
 	if (g_yureiFlipActive)
 	{
@@ -339,6 +351,19 @@ void OpAnim_Update()
 		{
 			g_yureiFlipActive = false;
 			g_yureiFlipTimer = 0.0f;
+			// フリップ解除直後、待機フェーズを開始
+			g_yureiWaitingAfterFlip = true;
+			g_yureiWaitTimer = 0.0f;
+		}
+	}
+
+	// フリップ解除後の待機時間管理
+	if (g_yureiWaitingAfterFlip && g_yureiReacting)
+	{
+		g_yureiWaitTimer += delta;
+		if (g_yureiWaitTimer >= g_yureiWaitDuration)
+		{
+			g_yureiWaitingAfterFlip = false;
 		}
 	}
 
@@ -407,10 +432,10 @@ void OpAnimDraw(void)
 			// 一瞬だけ左右反転して右向きに見せる
 			flipType = FLIPTYPE2D::FLIPTYPE2D_HORIZONTAL;
 		}
-		Sprite_Single_Draw(g_yureiPos, g_baseSize, 0.0f,
+		// g_yureiPos を g_yureiCurrentPos に変更
+		Sprite_Single_Draw(g_yureiCurrentPos, g_yureiSize, 0.0f,
 			XMFLOAT4{ 1.0f, 1.0f, 1.0f, g_yureiAlpha }, BLENDSTATE_ALFA, g_TexYurei, flipType);
 	}
-
 	// 稲妻（画面中央付近に表示、フラッシュ時は加算で明るく）
 	if (g_TexInazuma)
 	{
@@ -421,7 +446,7 @@ void OpAnimDraw(void)
 		float yPos = screenHeight * 0.5f;
 
 		// 若干の揺れ
-		float wobbleY = sinf(g_elapsedTime * 2.0f) * 6.0f;
+		float wobbleY = 0;
 		float baseAlpha = 0.5f;
 		float flashBoost = g_inazumaFlashAlpha * 0.9f;
 		float inazumaAlpha = baseAlpha + flashBoost;
