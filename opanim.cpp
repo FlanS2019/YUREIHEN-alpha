@@ -22,39 +22,39 @@ static ID3D11ShaderResourceView* g_TexYakata = nullptr;		// 屋敷
 static ID3D11ShaderResourceView* g_TexBasuta = nullptr;		// バスター
 static ID3D11ShaderResourceView* g_TexYurei = nullptr;		// 幽霊
 static ID3D11ShaderResourceView* g_TexInazuma = nullptr;		// 稲妻
-static ID3D11ShaderResourceView* g_SolidTex = nullptr;		// 単色テクスチャ
+static ID3D11ShaderResourceView* g_SolidTex = nullptr;		// 単色テクスチャ（フォールバック）
 
 static ID3D11Device* g_pDevice = nullptr;
 static ID3D11DeviceContext* g_pContext = nullptr;
 
-// 基本パラメータ
+//基本パラメータ
 static const XMFLOAT2 g_baseSize = { 500.0f, 500.0f };
 static const float SCREEN_CENTER_X = SCREEN_WIDTH / 2.0f;
 static const float SCREEN_CENTER_Y = SCREEN_HEIGHT / 2.0f;
 
-// 屋敷と黒紫の位置・表示
+//屋敷と黒紫の位置・表示
 static XMFLOAT2 g_yakataPos = { 0.0f, 0.0f };
 static bool g_yakataInitialized = false;
 
-// 稲妻パラメータ
+//稲妻パラメータ
 static float g_inazumaTimer = 0.0f;
-static float g_inazumaNextTrigger = 0.5f;
+static float g_inazumaNextTrigger = 0.2f;
 static bool g_inazumaActive = false;
 static float g_inazumaFlashAlpha = 0.0f;
 static unsigned int g_inazumaSeed = 0xC0FFEEu;
-static const XMFLOAT2 g_inazumaSize = { 1920.0f, 1080.0f };	// 稲妻サイズ
+static const XMFLOAT2 g_inazumaSize = { 1280.0f, 720.0f };	// 稲妻サイズ
 
-// バスターパラメータ
+//バスターパラメータ
 static XMFLOAT2 g_basutaStartPos = { 0.0f, 0.0f };
 static XMFLOAT2 g_basutaCurrentPos = { 0.0f, 0.0f };
 static XMFLOAT2 g_basutaTargetPos = { 0.0f, 0.0f };
 static float g_basutaAlpha = 0.0f;
 static float g_basutaTimer = 0.0f;
 static bool g_basutaMoving = false;
-static const float g_basutaMoveSpeed = 150.0f;
+static const float g_basutaMoveSpeed = 140.0f;
 static const float g_basutaMoveStartTime = 1.5f;
 
-// 幽霊パラメータ
+//幽霊パラメータ
 static XMFLOAT2 g_yureiPos = { 0.0f, 0.0f };
 static XMFLOAT2 g_yureiTargetPos = { 0.0f, 0.0f };
 static float g_yureiAlpha = 0.0f;
@@ -66,13 +66,18 @@ static const float g_yureiFadeDuration = 1.5f;
 static const float g_yureiMoveSpeed = 100.0f;
 static const float g_yureiReactDistance = 600.0f;
 
-// タイムライン
+// --- 幽霊を一瞬だけ右向きにするためのフリップ制御 ---
+static bool g_yureiFlipActive = false;
+static float g_yureiFlipTimer = 0.0f;
+static const float g_yureiFlipDuration = 0.5f; // 0.5秒だけ右向きにする
+
+//タイムライン
 static float g_elapsedTime = 0.0f;
 static bool g_fadeStarted = false;
 static bool g_waitStarted = false;
 static float g_waitTimer = 0.0f;
 
-// ランダム関数
+//ランダム関数
 static float Rand01()
 {
 	g_inazumaSeed = g_inazumaSeed * 1664525u + 1013904223u;
@@ -88,10 +93,12 @@ static float EaseOutCubic(float t)
 	return 1.0f - inv * inv * inv;
 }
 
-// 単色テクスチャ作成
+// 単色テクスチャ作成（device が null の場合は Direct3D_GetDevice を試す）
 static ID3D11ShaderResourceView* CreateSolidSRV(ID3D11Device* device, uint32_t rgba)
 {
+	if (!device) device = Direct3D_GetDevice();
 	if (!device) return nullptr;
+
 	D3D11_TEXTURE2D_DESC desc = {};
 	desc.Width = 1;
 	desc.Height = 1;
@@ -122,30 +129,41 @@ static ID3D11ShaderResourceView* CreateSolidSRV(ID3D11Device* device, uint32_t r
 	return srv;
 }
 
+// LoadTexture が失敗したときに単色でフォールバックするユーティリティ
+static ID3D11ShaderResourceView* LoadTextureOrFallback(const wchar_t* path, uint32_t fallbackRGBA)
+{
+	ID3D11ShaderResourceView* tex = LoadTexture(path);
+	if (tex) return tex;
+
+	// LoadTexture に失敗した場合は単色テクスチャを作成して返す
+	if (!g_SolidTex) {
+		g_SolidTex = CreateSolidSRV(g_pDevice, fallbackRGBA);
+	}
+	// 複数のフォールバックを同一 SRV で共有して OK
+	return g_SolidTex;
+}
+
 void OpAnim_Initialize(ID3D11Device* pDevice, ID3D11DeviceContext* pContext)
 {
-	SetFPS(40);
+	// 実行フレームレート（描画は Sprite 側で行われるため 60 に安定させる）
+	SetFPS(60);
 
-	g_pDevice = pDevice;
-	g_pContext = pContext;
+	g_pDevice = pDevice ? pDevice : Direct3D_GetDevice();
+	g_pContext = pContext ? pContext : Direct3D_GetDeviceContext();
 
-	// テクスチャロード
-	g_TexKuromurasaki = LoadTexture(L"asset\\yureihen\\kuromurasaki.png");
-	g_TexYakata = LoadTexture(L"asset\\yureihen\\yakata_jimen1.png");
-	g_TexBasuta = LoadTexture(L"asset\\yureihen\\basuta1.png");
-	g_TexYurei = LoadTexture(L"asset\\yureihen\\yurei1.png");
-	g_TexInazuma = LoadTexture(L"asset\\yureihen\\inazuma2.png");
+	// 単色フォールバック用の白色（RGBA）
+	uint32_t white = (255u) | (255u << 8) | (255u << 16) | (255u << 24);
 
-	// 単色テクスチャ
-	if (g_pDevice && !g_SolidTex)
-	{
-		uint32_t white = (255u) | (255u << 8) | (255u << 16) | (255u << 24);
-		g_SolidTex = CreateSolidSRV(g_pDevice, white);
-	}
+	// テクスチャロード（存在しない場合は単色フォールバック）
+	g_TexYakata = LoadTextureOrFallback(L"asset\\yureihen\\yakata_jimen1.png", white);
+	g_TexBasuta = LoadTextureOrFallback(L"asset\\yureihen\\Alpha_Tex\\basuta1.png", white);
+	g_TexYurei = LoadTextureOrFallback(L"asset\\yureihen\\Alpha_Tex\\yurei1.png", white);
+	g_TexInazuma = LoadTextureOrFallback(L"asset\\yureihen\\inazuma2.png", white);
+	g_TexKuromurasaki = LoadTextureOrFallback(L"asset\\yureihen\\Alpha_Tex\\kuromurasaki.png", white);
 
 	// 屋敷位置初期化
-	g_yakataPos.x = SCREEN_CENTER_X - 150.0f;
-	g_yakataPos.y = SCREEN_CENTER_Y;
+	g_yakataPos.x = SCREEN_CENTER_X - 400.0f;
+	g_yakataPos.y = SCREEN_CENTER_Y + 120.0f;
 
 	// 幽霊初期位置（屋敷の右下）
 	g_yureiPos.x = g_yakataPos.x + 100.0f;
@@ -178,6 +196,8 @@ void OpAnim_Finalize(void)
 	if (g_TexBasuta) { g_TexBasuta->Release(); g_TexBasuta = nullptr; }
 	if (g_TexYurei) { g_TexYurei->Release(); g_TexYurei = nullptr; }
 	if (g_TexInazuma) { g_TexInazuma->Release(); g_TexInazuma = nullptr; }
+
+	// g_SolidTex は共有で作成しているため、ここで解放しておく
 	if (g_SolidTex) { g_SolidTex->Release(); g_SolidTex = nullptr; }
 
 	g_pDevice = nullptr;
@@ -188,6 +208,7 @@ void OpAnim_Finalize(void)
 
 void OpAnim_Update()
 {
+	// fixed delta 60fps に合わせる（Initialize で SetFPS(60) にしている）
 	const float delta = 1.0f / 60.0f;
 	g_elapsedTime += delta;
 
@@ -228,6 +249,7 @@ void OpAnim_Update()
 		float dx = g_basutaTargetPos.x - g_basutaStartPos.x;
 		float dy = g_basutaTargetPos.y - g_basutaStartPos.y;
 		float totalDist = sqrtf(dx * dx + dy * dy);
+		if (totalDist <= 0.001f) totalDist = 0.001f;
 		float moveAmount = g_basutaMoveSpeed * g_basutaTimer;
 		float ratio = moveAmount / totalDist;
 
@@ -245,11 +267,12 @@ void OpAnim_Update()
 		// バスター上下揺れ
 		g_basutaCurrentPos.y += sinf(g_elapsedTime * 3.5f) * 8.0f;
 
-		// バスターフェードイン
+		// バスターフェードイン（時間ベース）
 		float fadeDuration = 2.0f;
 		float fadeTime = g_elapsedTime - g_basutaMoveStartTime;
 		g_basutaAlpha = fadeTime / fadeDuration;
 		if (g_basutaAlpha > 1.0f) g_basutaAlpha = 1.0f;
+		if (g_basutaAlpha < 0.0f) g_basutaAlpha = 0.0f;
 	}
 
 	// --- 幽霊更新 ---
@@ -264,6 +287,10 @@ void OpAnim_Update()
 		{
 			g_yureiReacting = true;
 			g_yureiTimer = 0.0f;
+
+			// ここで一瞬だけ右向き（水平反転）にするためのフラグをセット
+			g_yureiFlipActive = true;
+			g_yureiFlipTimer = 0.0f;
 		}
 	}
 
@@ -289,8 +316,9 @@ void OpAnim_Update()
 		}
 		else
 		{
-			g_yureiPos.x = g_yureiPos.x + (g_yureiTargetPos.x - g_yureiPos.x) * moveRatio * delta * g_yureiMoveSpeed / 100.0f;
-			g_yureiPos.y = g_yureiPos.y + (g_yureiTargetPos.y - g_yureiPos.y) * moveRatio * delta * g_yureiMoveSpeed / 100.0f;
+			// スムーズな移動: 線形補間に速度係数を組み合わせ
+			g_yureiPos.x += (g_yureiTargetPos.x - g_yureiPos.x) * delta * (g_yureiMoveSpeed / 100.0f);
+			g_yureiPos.y += (g_yureiTargetPos.y - g_yureiPos.y) * delta * (g_yureiMoveSpeed / 100.0f);
 		}
 
 		// 幽霊フェードアウト（館へ入る）
@@ -298,7 +326,19 @@ void OpAnim_Update()
 		if (g_yureiTimer > fadeOutTime)
 		{
 			float outRatio = (g_yureiTimer - fadeOutTime) / 0.5f;
+			if (outRatio > 1.0f) outRatio = 1.0f;
 			g_yureiAlpha *= (1.0f - outRatio);
+		}
+	}
+
+	// 幽霊のフリップタイマー更新（右向きにする短い時間の管理）
+	if (g_yureiFlipActive)
+	{
+		g_yureiFlipTimer += delta;
+		if (g_yureiFlipTimer >= g_yureiFlipDuration)
+		{
+			g_yureiFlipActive = false;
+			g_yureiFlipTimer = 0.0f;
 		}
 	}
 
@@ -329,16 +369,17 @@ void OpAnimDraw(void)
 	const float screenWidth = (float)Direct3D_GetBackBufferWidth();
 	const float screenHeight = (float)Direct3D_GetBackBufferHeight();
 
+	// 直交投影を毎フレーム設定（Sprite 内でも設定されるが、ここでも統一しておく）
 	Shader_SetMatrix(XMMatrixOrthographicOffCenterLH(0.0f, screenWidth, screenHeight, 0.0f, 0.0f, 1.0f));
 	SetBlendState(BLENDSTATE_ALFA);
 
-	 //黒紫背景（
+	// 背景（黒紫）
 	if (g_TexKuromurasaki)
 	{
 		g_pContext->PSSetShaderResources(0, 1, &g_TexKuromurasaki);
 		Sprite_Single_Draw(XMFLOAT2{ screenWidth * 0.5f, screenHeight * 0.5f },
 			XMFLOAT2{ screenWidth, screenHeight }, 0.0f,
-			XMFLOAT4{ 1,1,1,1 }, BLENDSTATE_ALFA, g_TexKuromurasaki);
+			XMFLOAT4{ 1.0f, 1.0f, 1.0f, 1.0f }, BLENDSTATE_ALFA, g_TexKuromurasaki);
 	}
 
 	// 屋敷
@@ -346,57 +387,50 @@ void OpAnimDraw(void)
 	{
 		g_pContext->PSSetShaderResources(0, 1, &g_TexYakata);
 		Sprite_Single_Draw(g_yakataPos, g_baseSize, 0.0f,
-			XMFLOAT4{ 1,1,1,1 }, BLENDSTATE_ALFA, g_TexYakata);
+			XMFLOAT4{ 1.0f, 1.0f, 1.0f, 1.0f }, BLENDSTATE_ALFA, g_TexYakata);
 	}
 
-	// バスター
+	// バスター（前景）
 	if (g_TexBasuta && g_basutaAlpha > 0.0f)
 	{
 		g_pContext->PSSetShaderResources(0, 1, &g_TexBasuta);
 		Sprite_Single_Draw(g_basutaCurrentPos, g_baseSize, 0.0f,
-			XMFLOAT4{ 1,1,1,g_basutaAlpha }, BLENDSTATE_ALFA, g_TexBasuta);
+			XMFLOAT4{ 1.0f, 1.0f, 1.0f, g_basutaAlpha }, BLENDSTATE_ALFA, g_TexBasuta);
 	}
 
-	// 幽霊
+	// 幽霊（右向きにする短時間を反映）
 	if (g_TexYurei && g_yureiAlpha > 0.0f)
 	{
 		g_pContext->PSSetShaderResources(0, 1, &g_TexYurei);
+		FLIPTYPE2D flipType = FLIPTYPE2D::FLIPTYPE2D_NONE;
+		if (g_yureiFlipActive) {
+			// 一瞬だけ左右反転して右向きに見せる
+			flipType = FLIPTYPE2D::FLIPTYPE2D_HORIZONTAL;
+		}
 		Sprite_Single_Draw(g_yureiPos, g_baseSize, 0.0f,
-			XMFLOAT4{ 1,1,1,g_yureiAlpha }, BLENDSTATE_ALFA, g_TexYurei);
+			XMFLOAT4{ 1.0f, 1.0f, 1.0f, g_yureiAlpha }, BLENDSTATE_ALFA, g_TexYurei, flipType);
 	}
 
-	// 稲妻テクスチャ（画面右に常時表示、フラッシュ時に輝度UP）
+	// 稲妻（画面中央付近に表示、フラッシュ時は加算で明るく）
 	if (g_TexInazuma)
 	{
 		SetBlendState(BLENDSTATE_ADD);
-
 		g_pContext->PSSetShaderResources(0, 1, &g_TexInazuma);
-		float xPos = screenWidth - 100.0f;
-		float yPos = screenHeight * 0.5f - 50.0f + sinf(g_elapsedTime * 0) * 30.0f;
 
-		// フラッシュしていない時も薄く表示、フラッシュ時は明るく
-		float inazumaAlpha = 1.15f + g_inazumaFlashAlpha * 0.65f;
-		Sprite_Single_Draw(XMFLOAT2{ xPos, yPos }, g_inazumaSize, 0.0f,
-			XMFLOAT4{ 0.9f, 0.9f, 1.0f, inazumaAlpha }, BLENDSTATE_ADD, g_TexInazuma);
+		float xPos = screenWidth * 0.5f;
+		float yPos = screenHeight * 0.5f;
 
-		SetBlendState(BLENDSTATE_ALFA);
-	}
+		// 若干の揺れ
+		float wobbleY = sinf(g_elapsedTime * 2.0f) * 6.0f;
+		float baseAlpha = 0.5f;
+		float flashBoost = g_inazumaFlashAlpha * 0.9f;
+		float inazumaAlpha = baseAlpha + flashBoost;
+		if (inazumaAlpha > 1.5f) inazumaAlpha = 1.5f;
 
-	// 稲妻テクスチャ（画面右に表示）
-	if (g_TexInazuma && g_inazumaFlashAlpha > 0.001f)
-	{
-		// 加算合成ブレンドを使用して、背景に光を加える
-		SetBlendState(BLENDSTATE_ADD);
+		Sprite_Single_Draw(XMFLOAT2{ xPos, yPos + wobbleY }, g_inazumaSize, 0.0f,
+			XMFLOAT4{ 0.95f, 0.95f, 1.0f, inazumaAlpha }, BLENDSTATE_ADD, g_TexInazuma);
 
-		g_pContext->PSSetShaderResources(0, 1, &g_TexInazuma);
-		float xPos = screenWidth - 100.0f;
-		float yPos = screenHeight * 0.5f - 50.0f + sinf(g_elapsedTime * 8.0f) * 30.0f;
-
-		// より明るく、より目立つ色で描画
-		Sprite_Single_Draw(XMFLOAT2{ xPos, yPos }, g_inazumaSize, 0.0f,
-			XMFLOAT4{ 0.9f, 0.9f, 1.0f, g_inazumaFlashAlpha * 0.8f }, BLENDSTATE_ADD, g_TexInazuma);
-
-		// ブレンドステートを戻す
+		// ブレンドを戻す
 		SetBlendState(BLENDSTATE_ALFA);
 	}
 }
