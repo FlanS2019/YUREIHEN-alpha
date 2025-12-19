@@ -37,6 +37,11 @@ static const float SCREEN_CENTER_Y = SCREEN_HEIGHT / 2.0f;
 //幽霊のみ別サイズ
 static const XMFLOAT2 g_yureiSize = { 280.0f, 280.0f };
 
+//bikkuri2のサイズ
+static const XMFLOAT2 g_bikkuriSize = { 100.0f, 100.0f };
+
+//bikkuri2のオフセット位置
+static XMFLOAT2 g_bikkuriOffset = { 0, -100 };
 
 //屋敷と黒紫の位置・表示
 static XMFLOAT2 g_yakataPos = { 0.0f, 0.0f };
@@ -76,7 +81,7 @@ static const float g_yureiReactDistance = 600.0f;
 // --- 幽霊を一瞬だけ右向きにするためのフリップ制御 ---
 static bool g_yureiFlipActive = false;
 static float g_yureiFlipTimer = 0.0f;
-static const float g_yureiFlipDuration = 0.5f; // 秒だけ右向きにする
+static const float g_yureiFlipDuration = 1.5f; // 秒だけ右向きにする
 
 //タイムライン
 static float g_elapsedTime = 0.0f;
@@ -149,7 +154,8 @@ static ID3D11ShaderResourceView* LoadTextureOrFallback(const wchar_t* path, uint
 	if (tex) return tex;
 
 	// LoadTexture に失敗した場合は単色テクスチャを作成して返す
-	if (!g_SolidTex) {
+	if (!g_SolidTex)
+	{
 		g_SolidTex = CreateSolidSRV(g_pDevice, fallbackRGBA);
 	}
 	// 複数のフォールバックを同一 SRV で共有して OK
@@ -435,6 +441,14 @@ void OpAnimDraw(void)
 		// g_yureiPos を g_yureiCurrentPos に変更
 		Sprite_Single_Draw(g_yureiCurrentPos, g_yureiSize, 0.0f,
 			XMFLOAT4{ 1.0f, 1.0f, 1.0f, g_yureiAlpha }, BLENDSTATE_ALFA, g_TexYurei, flipType);
+	}
+
+	// bikkuri2 画像（幽霊が右を向いた瞬間に表示）
+	if (g_TexBikkuri && g_yureiFlipActive && g_yureiAlpha > 0.0f)
+	{
+		XMFLOAT2 bikkuriPos = { g_yureiCurrentPos.x + g_bikkuriOffset.x, g_yureiCurrentPos.y + g_bikkuriOffset.y };
+		Sprite_Single_Draw(bikkuriPos, g_bikkuriSize, 0.0f,
+			XMFLOAT4{ 1.0f, 1.0f, 1.0f, g_yureiAlpha }, BLENDSTATE_ALFA, g_TexBikkuri);
 	}
 	// 稲妻（画面中央付近に表示、フラッシュ時は加算で明るく）
 	if (g_TexInazuma)
