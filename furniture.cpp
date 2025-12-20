@@ -20,7 +20,7 @@ void Furniture_Initialize(void)
 		{ -9.0f, 1.0f, -1.0f },			// 左手前の部屋
 		{ 1.0f, 1.0f, 1.0f },
 		{ 0.0f, 1.0f, 0.0f },
-		"asset\\model\\aaaa.fbx"
+		"asset\\model\\bath.fbx"
 	);
 	
 	g_Furniture[1] = new Furniture(

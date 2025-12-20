@@ -1,81 +1,86 @@
-/*==============================================================================
-
-   2D•`‰æ—pƒsƒNƒZƒ‹ƒVƒF[ƒ_[ [shader_pixel_2d.hlsl]
---------------------------------------------------------------------------------
-
-==============================================================================*/
-Texture2D g_Texture : register(t0);
+ï»¿Texture2D g_Texture : register(t0);
 SamplerState g_SamplerState : register(s0);
 
 struct LIGHT
 {
-    bool enable;
-    bool3 dummy;
-    float4 Direction;
-    float4 Diffuse;
-    float4 Ambient;
+	bool enable;
+	bool3 dummy;
+	float4 Direction;
+	float4 Diffuse;
+	float4 Ambient;
 };
 
 cbuffer Buffer2 : register(b2)
 {
-    LIGHT Light;
+	LIGHT Light;
 };
 
 cbuffer Buffer3 : register(b3)
 {
-    float4 MaterialColor;
+	float4 MaterialColor;
+};
+
+cbuffer Buffer4 : register(b4)
+{
+	float4 CameraPos;
 };
 
 struct PS_INPUT
 {
-    float4 posH : SV_POSITION;
-    float4 color : COLOR0;
-    float2 texcoord : TEXCOORD0;
-    float4 normal : NORMAL0;        // –@üiƒ[ƒ‹ƒhÀ•WŒnj
-    float4 worldPos : TEXCOORD1;    // ƒ[ƒ‹ƒhÀ•W
+	float4 posH : SV_POSITION;
+	float4 color : COLOR0;
+	float2 texcoord : TEXCOORD0;
+	float4 normal : NORMAL0;
+	float4 worldPos : TEXCOORD1;
 };
 
 float4 main(PS_INPUT ps_in) : SV_TARGET
 {
-    // ƒeƒNƒXƒ`ƒƒ‚ğƒTƒ“ƒvƒ‹
-    float4 texColor = g_Texture.Sample(g_SamplerState, ps_in.texcoord);
+	float4 texColor = g_Texture.Sample(g_SamplerState, ps_in.texcoord);
     
-    // ƒ}ƒeƒŠƒAƒ‹ƒJƒ‰[‚ª–³Œø‚Èê‡i‘S‚Ä0‚Ìê‡j‚Í”’‚ÉƒŠƒZƒbƒg
-    float4 materialColorSafe = MaterialColor;
-    if (MaterialColor.r == 0.0f && MaterialColor.g == 0.0f && MaterialColor.b == 0.0f)
-    {
-        materialColorSafe = float4(1.0f, 1.0f, 1.0f, 1.0f);
-    }
+	float4 materialColorSafe = MaterialColor;
+	if (MaterialColor.r == 0.0f && MaterialColor.g == 0.0f && MaterialColor.b == 0.0f)
+	{
+		materialColorSafe = float4(1.0f, 1.0f, 1.0f, 1.0f);
+	}
     
-    // ƒx[ƒXƒJƒ‰[ = ƒeƒNƒXƒ`ƒƒƒJƒ‰[ ~ ƒ}ƒeƒŠƒAƒ‹ƒJƒ‰[ ~ ’¸“_ƒJƒ‰[
-    float4 baseColor = texColor * materialColorSafe * ps_in.color;
+	float4 baseColor = texColor * materialColorSafe * ps_in.color;
     
-    // ƒ‰ƒCƒeƒBƒ“ƒOŒvZiLambertj
-    if (Light.enable)
-    {
-        // –@ü‚ğ³‹K‰»
-        float3 normal = normalize(ps_in.normal.xyz);
+	// Blinn-Phongãƒ©ã‚¤ãƒ†ã‚£ãƒ³ã‚°è¨ˆç®—
+	{
+		float3 normal = normalize(ps_in.normal.xyz);
+		
+		// ãƒ©ã‚¤ãƒˆæ–¹å‘ï¼ˆæ—¢ã«æ­£è¦åŒ–æ¸ˆã¿ï¼‰
+		float3 lightDir = normalize(-Light.Direction.xyz);
+		
+		// ãƒ“ãƒ¥ãƒ¼æ–¹å‘ï¼šãƒ¯ãƒ¼ãƒ«ãƒ‰åº§æ¨™ã§è¨ˆç®—
+		float3 viewDir = normalize(CameraPos.xyz - ps_in.worldPos.xyz);
         
-        // ƒ‰ƒCƒg•ûŒü‚ğ³‹K‰»
-        float3 lightDir = normalize(-Light.Direction.xyz);
+		// ãƒ‡ã‚£ãƒ•ãƒ¥ãƒ¼ã‚ºæˆåˆ†ï¼ˆLambertï¼‰
+		float lambertDiffuse = max(dot(normal, lightDir), 0.0f);
+		float3 diffuse = lambertDiffuse * Light.Diffuse.rgb;
         
-        // Lambert’l‚ÌŒvZ
-        float lambert = max(dot(normal, lightDir), 0.0f);
+		// ã‚¹ãƒšã‚­ãƒ¥ãƒ©æˆåˆ†ï¼ˆBlinn-Phongï¼‰
+		float3 halfDir = normalize(lightDir + viewDir);
+		float blinnSpecular = max(dot(normal, halfDir), 0.0f);
+		
+		// å…‰æ²¢åº¦ãƒ‘ãƒ©ãƒ¡ãƒ¼ã‚¿ï¼šé«˜ã„ã»ã©é¡é¢çš„ï¼ˆåå°„å…‰ãŒã‚ˆã‚Šé›†ä¸­ï¼‰
+		float shininess = 16.0f;
+		float specularIntensity = pow(blinnSpecular, shininess);
+		
+		// ã‚¹ãƒšã‚­ãƒ¥ãƒ©å¼·åº¦ï¼šåå°„å…‰ã®å¼·ã•
+		float specularStrength = 2.0f;
+		float3 specular = specularIntensity * specularStrength * Light.Diffuse.rgb;
         
-        // ƒfƒBƒtƒ…[ƒYƒ‰ƒCƒeƒBƒ“ƒO
-        float3 diffuse = lambert * Light.Diffuse.rgb;
+		// ç’°å¢ƒå…‰ï¼ˆãƒ‡ã‚£ãƒ•ãƒ¥ãƒ¼ã‚ºã‚’ã‚µãƒãƒ¼ãƒˆï¼‰
+		float3 ambient = Light.Ambient.rgb * 1.5f;
         
-        // ƒAƒ“ƒrƒGƒ“ƒgiŠÂ‹«Œõj‚Ì’Ç‰Á
-        float3 ambient = Light.Ambient.rgb;
-        
-        // ÅI“I‚Èƒ‰ƒCƒeƒBƒ“ƒOƒJƒ‰[‚ÌZo
-        baseColor.rgb *= (diffuse + ambient);
-    }
+		// æœ€çµ‚çš„ãªè‰²ã«åˆæˆ
+		// ãƒ†ã‚¯ã‚¹ãƒãƒ£è‰² Ã— (ãƒ‡ã‚£ãƒ•ãƒ¥ãƒ¼ã‚º + ç’°å¢ƒå…‰) + ã‚¹ãƒšã‚­ãƒ¥ãƒ©ï¼ˆç’°å¢ƒå…‰ã®å½±éŸ¿ã‚’å—ã‘ãªã„ï¼‰
+		float3 finalColor = baseColor.rgb * (diffuse + ambient) + specular;
+		
+		baseColor.rgb = finalColor;
+	}
     
-    return baseColor;
+	return baseColor;
 }
-
-//float4 main() : SV_TARGET
-//{
-//    return float4(1.0f, 1.0f, 1.0f, 1.0f);
-//}

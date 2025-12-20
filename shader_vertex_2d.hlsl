@@ -1,11 +1,11 @@
 /*==============================================================================
 
-   2D•`‰æ—p’¸“_ƒVƒF[ƒ_[ [shader_vertex_2d.hlsl]
+   2Dæç”»ç”¨é ‚ç‚¹ã‚·ã‚§ãƒ¼ãƒ€ãƒ¼ [shader_vertex_2d.hlsl]
 --------------------------------------------------------------------------------
 
 ==============================================================================*/
 
-// ’è”ƒoƒbƒtƒ@
+// å®šæ•°ãƒãƒƒãƒ•ã‚¡
 cbuffer Buffer0 : register(b0)
 {
     float4x4 mtx;
@@ -30,7 +30,7 @@ cbuffer Buffer2 : register(b2)
     LIGHT Light;
 };
 
-//“ü—Í—p’¸“_\‘¢‘Ì
+//å…¥åŠ›ç”¨é ‚ç‚¹æ§‹é€ ä½“
 struct VS_INPUT
 {
     float4 posL : POSITION0;
@@ -40,40 +40,42 @@ struct VS_INPUT
 	
 };
 
-//o—Í—p’¸“_\‘¢‘Ì
+//å‡ºåŠ›ç”¨é ‚ç‚¹æ§‹é€ ä½“
 struct VS_OUTPUT
 {
     float4 posH : SV_POSITION;
     float4 color : COLOR0;
     float2 texcoord : TEXCOORD0;
-    float4 normal : NORMAL0;        // –@ü‚ğƒsƒNƒZƒ‹ƒVƒF[ƒ_[‚É“n‚·
-    float4 worldPos : TEXCOORD1;    // ƒ[ƒ‹ƒhÀ•W
+    float4 normal : NORMAL0;        // æ³•ç·šã‚’ãƒ”ã‚¯ã‚»ãƒ«ã‚·ã‚§ãƒ¼ãƒ€ãƒ¼ã«æ¸¡ã™
+    float4 worldPos : TEXCOORD1;    // ãƒ¯ãƒ¼ãƒ«ãƒ‰åº§æ¨™
 };
 
 VS_OUTPUT main(VS_INPUT vs_in)
 {
     VS_OUTPUT vs_out;
     
-    //’¸“_‚ğs—ñ‚Å•ÏŠ·
+    // é ‚ç‚¹åº§æ¨™ã‚’å°„å½±åº§æ¨™ã¸å¤‰æ›
     vs_out.posH = mul(vs_in.posL, mtx);
     
-    //ƒeƒNƒXƒ`ƒƒÀ•W
+    // ãƒ†ã‚¯ã‚¹ãƒãƒ£åº§æ¨™
     vs_out.texcoord = vs_in.texcoord;
     
-    // ƒ[ƒ‹ƒhÀ•W‚ğŒvZiƒ‰ƒCƒeƒBƒ“ƒOŒvZ—pj
+    // ãƒ¯ãƒ¼ãƒ«ãƒ‰åº§æ¨™ã‚’è¨ˆç®—ï¼ˆãƒ©ã‚¤ãƒ†ã‚£ãƒ³ã‚°è¨ˆç®—ç”¨ï¼‰
     vs_out.worldPos = mul(vs_in.posL, worldMtx);
     
-    // –@ü‚ğƒ[ƒ‹ƒhÀ•WŒn‚É•ÏŠ·
-    vs_out.normal = float4(vs_in.normal.xyz, 0.0f);
-    vs_out.normal = mul(vs_out.normal, worldMtx);
-    vs_out.normal = normalize(vs_out.normal);
+    // æ³•ç·šã‚’ãƒ¯ãƒ¼ãƒ«ãƒ‰åº§æ¨™ç³»ã«å¤‰æ›
+    // å›è»¢è¡Œåˆ—ã®ã¿ã‚’é©ç”¨ï¼ˆã‚¹ã‚±ãƒ¼ãƒªãƒ³ã‚°ã®å½±éŸ¿ã‚’é™¤ãï¼‰
+    float3 worldNormal = mul(vs_in.normal.xyz, (float3x3)worldMtx);
     
-    // ’¸“_ƒJƒ‰[‚Í ‚»‚Ì‚Ü‚Üo—Í
+    // æ³•ç·šã‚’æ­£è¦åŒ–
+    vs_out.normal = float4(normalize(worldNormal), 0.0f);
+    
+    // é ‚ç‚¹ã‚«ãƒ©ãƒ¼ï¼ˆãã®ã¾ã¾å‡ºåŠ›ï¼‰
     vs_out.color = vs_in.color;
     
     return vs_out;
 }
 
 //=============================================================================
-// ’¸“_ƒVƒF[ƒ_[
+// é ‚ç‚¹ã‚·ã‚§ãƒ¼ãƒ€ãƒ¼
 //=============================================================================
