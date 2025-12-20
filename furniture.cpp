@@ -4,12 +4,12 @@
 #include "ghost.h"
 #include "keyboard.h"
 #include "define.h"
-#include <cmath>   // sinf�p
+#include <cmath>   // sinf用
 
 Furniture* g_Furniture[FURNITURE_NUM]{};
 
 // =========================================================
-// �Ƌ�̔z�u (Initialize)
+// 家具の配置 (Initialize)
 // =========================================================
 void Furniture_Initialize(void)
 {
@@ -17,12 +17,12 @@ void Furniture_Initialize(void)
 	// 1:ロッキングチェア (Rocking Chair)
 	// ----------------------------------------------------
 	g_Furniture[0] = new Furniture(
-		{ -5.0f, 0.0f, -5.0f },			// 左手前の部屋
+		{ -9.0f, 1.0f, -1.0f },			// 左手前の部屋
 		{ 1.0f, 1.0f, 1.0f },
-		{ 0.0f, 45.0f, 0.0f },
-		"asset\\model\\car_blue.fbx"
+		{ 0.0f, 1.0f, 0.0f },
+		"asset\\model\\aaaa.fbx"
 	);
-
+	
 	g_Furniture[1] = new Furniture(
 		{ 5.0f, 0.0f, -5.0f },			// 右手前の部屋
 		{ 1.0f, 1.0f, 1.0f },
@@ -49,7 +49,7 @@ void Furniture_Initialize(void)
 		"asset\\model\\tree.fbx"
 	);
 
-	// 3: �� -> STOP (���~��/��])
+	// 3: 樹 -> STOP (回転・停止)
 	g_Furniture[4] = new Furniture(
 		{ -6.0f, 0.0f, -2.0f },			// 左手前
 		{ 1.5f, 1.5f, 1.5f },
@@ -75,12 +75,10 @@ void Furniture_Initialize(void)
 	}
 }
 
-// ... (以下変更なし) ...
-
-// �Ƌ�ʂ̍X�V����
+// 家具ごとの更新処理
 void Furniture::Update(void)
 {
-	// 1. Ghost�Ƃ̋����v�Z (��������)
+	// 1. Ghost との距離計算 (幽霊判定用)
 	if (GetGhost())
 	{
 		XMFLOAT3 ghostPos = GetGhost()->GetPos();
@@ -90,24 +88,24 @@ void Furniture::Update(void)
 		m_DistanceToGhost = XMVectorGetX(XMVector3Length(distVec));
 	}
 
-	// 2. �A�N�V�������Ƃ̋��� (�r������)
+	// 2. アクション実行時の処理 (ビジュアル変化)
 	if (m_IsActing || GetIsJumping())
 	{
 
 		switch (m_ActionType)
 		{
-		case ACTION_SCARE: // ������ -> �W�����v�����̂�
+		case ACTION_SCARE: // 驚かせ -> ジャンプの動き
 			JumpUpdate(*(Transform3D*)this);
 			break;
 
-		case ACTION_LURE: // ���т��� -> �U�������̂�
+		case ACTION_LURE: // 誘惑する -> 揺れ動きのもの
 		{
 			m_ActionTimer += 1.0f;
-			// �U���v�Z
+			// 揺れ計算
 			float shakeAmount = 0.1f;
 			float offsetX = sinf(m_ActionTimer * 2.0f) * shakeAmount;
 
-			// ����
+			// 減衰
 			float decay = 1.0f - (m_ActionTimer / 60.0f);
 			if (decay < 0.0f) decay = 0.0f;
 			offsetX *= decay;
@@ -122,10 +120,10 @@ void Furniture::Update(void)
 		}
 		break;
 
-		case ACTION_STOP: // ���~�� -> ��]�����̂�
+		case ACTION_STOP: // 停止中 -> 回転するのもの
 		{
 			m_ActionTimer += 1.0f;
-			// ��]�v�Z
+			// 回転計算
 			float speed = 30.0f;
 			AddRotY(speed);
 
@@ -141,25 +139,25 @@ void Furniture::Update(void)
 
 void Furniture::StartAction(void)
 {
-	if (GetIsActing()) return; // �d�����s�h�~
+	if (GetIsActing()) return; // 二重実行を抑止
 
 	if (m_ActionType == ACTION_SCARE)
 	{
-		JumpStart(); // �W�����v�t���OON
+		JumpStart(); // ジャンプフラグON
 	}
 	else
 	{
-		m_IsActing = true; // �ėp�A�N�V�����t���OON
+		m_IsActing = true; // 行う、アクション開始フラグON
 		m_ActionTimer = 0.0f;
 	}
 }
 
 
 // =========================================================
-// �O���[�o���֐��̎���
+// グローバル関数の実装
 // =========================================================
 
-// Game_Update����Ă΂��S�̂̍X�V����
+// Game_Update から呼ばれ全ての家具の更新処理
 void Furniture_Update(void)
 {
 	for (int i = 0; i < FURNITURE_NUM; i++)
