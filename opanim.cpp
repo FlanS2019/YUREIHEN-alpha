@@ -9,6 +9,7 @@
 #include "direct3d.h"
 #include "texture.h"
 #include "scene.h"
+#include "TextSprite.h"//test
 #include <DirectXMath.h>
 #include <cmath>
 #include <d3d11.h>
@@ -95,6 +96,10 @@ static float g_yureiWaitTimer = 0.0f;
 static const float g_yureiWaitDuration = 1.0f;	// フリップ解除後の待機時間
 static const float g_yureiLeftMoveSpeed = -120.0f;	// 右方向移動速度
 
+//font and sprite
+static TextSprite* g_pTestText = nullptr;
+static FontData* g_pTestFont = nullptr;
+
 //ランダム関数
 static float Rand01()
 {
@@ -165,7 +170,7 @@ static ID3D11ShaderResourceView* LoadTextureOrFallback(const wchar_t* path, uint
 void OpAnim_Initialize(ID3D11Device* pDevice, ID3D11DeviceContext* pContext)
 {
 	// 実行フレームレート（描画は Sprite 側で行われるため 60 に安定させる）
-	SetFPS(60);
+	SetFPS(40);
 
 	g_pDevice = pDevice ? pDevice : Direct3D_GetDevice();
 	g_pContext = pContext ? pContext : Direct3D_GetDeviceContext();
@@ -180,6 +185,24 @@ void OpAnim_Initialize(ID3D11Device* pDevice, ID3D11DeviceContext* pContext)
 	g_TexInazuma = LoadTextureOrFallback(L"asset\\yureihen\\inazuma2.png", white);
 	g_TexKuromurasaki = LoadTextureOrFallback(L"asset\\yureihen\\Alpha_Tex\\kuromurasaki.png", white);
 	g_TexBikkuri = LoadTextureOrFallback(L"asset\\yureihen\\Alpha_Tex\\bikkuri2.png", white);
+
+
+	// TextSprite初期化
+	TextSprite_Initialize();
+	// フォント読み込み（KaiseiDecol-Medium.ttf、32ピクセル）
+	g_pTestFont = TextSprite_LoadFont("asset/font/KaiseiDecol-Medium.ttf", 64.0f, 512);
+
+	//if (g_pTestFont) {
+	//	g_pTestText = new TextSprite(
+	//		{ SCREEN_WIDTH / 2.0f, SCREEN_HEIGHT * 0.85f },	//位置
+	//		{ 1.0f, 1.0f },									//スケール
+	//		0.0f,											//回転（度）
+	//		{ 1.0f, 0.0f, 0.0f, 1.0f },						//RGBA
+	//		BLENDSTATE_ALFA,								//BlendState
+	//		L"nanda?nankakitawooo",							//テキスト
+	//		g_pTestFont
+	//	);
+	//}
 
 	// 屋敷初期化
 	g_yakataPos.x = SCREEN_CENTER_X - 400.0f;
@@ -219,11 +242,19 @@ void OpAnim_Finalize(void)
 
 	// g_SolidTex は共有で作成しているため、ここで解放しておく
 	if (g_SolidTex) { g_SolidTex->Release(); g_SolidTex = nullptr; }
+	
+	if (g_pTestText)
+	{
+		delete g_pTestText;
+		g_pTestText = nullptr;
+	}
+
+	TextSprite_Finalize();
 
 	g_pDevice = nullptr;
 	g_pContext = nullptr;
 
-	SetFPS(60);
+	SetFPS(40);
 }
 
 void OpAnim_Update()
@@ -471,5 +502,10 @@ void OpAnimDraw(void)
 
 		// ブレンドを戻す
 		SetBlendState(BLENDSTATE_ALFA);
+	}
+	// テキスト描画
+	if (g_pTestText)
+	{
+		g_pTestText->Draw();
 	}
 }
