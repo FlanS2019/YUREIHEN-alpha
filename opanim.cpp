@@ -82,7 +82,7 @@ static const float g_yureiReactDistance = 600.0f;
 // --- 幽霊を一瞬だけ右向きにするためのフリップ制御 ---
 static bool g_yureiFlipActive = false;
 static float g_yureiFlipTimer = 0.0f;
-static const float g_yureiFlipDuration = 1.5f; // 秒だけ右向きにする
+static const float g_yureiFlipDuration = 0.5f; // 秒だけ右向きにする
 
 //タイムライン
 static float g_elapsedTime = 0.0f;
@@ -197,7 +197,7 @@ void OpAnim_Initialize(ID3D11Device* pDevice, ID3D11DeviceContext* pContext)
 	//		{ SCREEN_WIDTH / 2.0f, SCREEN_HEIGHT * 0.85f },	//位置
 	//		{ 1.0f, 1.0f },									//スケール
 	//		0.0f,											//回転（度）
-	//		{ 1.0f, 0.0f, 0.0f, 1.0f },						//RGBA
+	//		{ 1.0f, 1.0f, 0.0f, 1.0f },						//RGBA
 	//		BLENDSTATE_ALFA,								//BlendState
 	//		L"nanda?nankakitawooo",							//テキスト
 	//		g_pTestFont
@@ -344,7 +344,7 @@ void OpAnim_Update()
 			if (!g_yureiFlipActive)
 			{
 				g_yureiFlipActive = true;
-				g_yureiFlipTimer = 0.0f;
+				g_yureiFlipTimer = 0.05f;
 				std::cout << "幽霊が右を向いた" << std::endl;
 			}
 		}
