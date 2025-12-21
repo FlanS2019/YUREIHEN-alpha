@@ -29,6 +29,7 @@ static ID3D11ShaderResourceView* g_SolidTex = nullptr;		// 単色テクスチャ
 
 static ID3D11Device* g_pDevice = nullptr;
 static ID3D11DeviceContext* g_pContext = nullptr;
+static Light* g_pOpLight = nullptr;
 
 //基本パラメータ
 static const XMFLOAT2 g_baseSize = { 500.0f, 500.0f };
@@ -175,6 +176,14 @@ void OpAnim_Initialize(ID3D11Device* pDevice, ID3D11DeviceContext* pContext)
 	g_pDevice = pDevice ? pDevice : Direct3D_GetDevice();
 	g_pContext = pContext ? pContext : Direct3D_GetDeviceContext();
 
+	// OP用ライト初期化（ライト計算を無効にして環境光のみ）
+	g_pOpLight = new Light(
+		FALSE,
+		XMFLOAT4(0.0f, -1.0f, 0.0f, 0.0f),
+		XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f),
+		XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f)
+	);
+
 	// 単色フォールバック用の白色（RGBA）
 	uint32_t white = (255u) | (255u << 8) | (255u << 16) | (255u << 24);
 
@@ -247,6 +256,12 @@ void OpAnim_Finalize(void)
 	{
 		delete g_pTestText;
 		g_pTestText = nullptr;
+	}
+
+	if (g_pOpLight)
+	{
+		delete g_pOpLight;
+		g_pOpLight = nullptr;
 	}
 
 	TextSprite_Finalize();
@@ -430,6 +445,9 @@ void OpAnimDraw(void)
 {
 	const float screenWidth = (float)Direct3D_GetBackBufferWidth();
 	const float screenHeight = (float)Direct3D_GetBackBufferHeight();
+
+	// ライト設定（OP用）
+	Shader_SetLight(g_pOpLight);
 
 	// 直交投影を毎フレーム設定（Sprite 内でも設定されるが、ここでも統一しておく）
 	Shader_SetMatrix(XMMatrixOrthographicOffCenterLH(0.0f, screenWidth, screenHeight, 0.0f, 0.0f, 1.0f));

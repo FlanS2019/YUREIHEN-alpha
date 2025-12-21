@@ -6,11 +6,14 @@
 #include "fade.h"
 #include "debug_ostream.h"
 #include "TextSprite.h"
+#include "shader.h"
+#include "direct3d.h"
 
 // ①Spriteのインスタンス、ポインタ用意
 static SplitSprite* g_pTitleSprite = nullptr;
 static TextSprite* g_pTitleText = nullptr;
 static FontData* g_pTitleFont = nullptr;
+static Light* g_pTitleLight = nullptr;
 
 void Title_Initialize(ID3D11Device* pDevice, ID3D11DeviceContext* pContext)
 {
@@ -43,6 +46,14 @@ void Title_Initialize(ID3D11Device* pDevice, ID3D11DeviceContext* pContext)
 			g_pTitleFont
 		);
 	}
+
+	// タイトル画面用ライト（無効 + 白環境光）
+	g_pTitleLight = new Light(
+		FALSE,
+		XMFLOAT4(0.0f, -1.0f, 0.0f, 0.0f),
+		XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f),
+		XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f)
+	);
 }
 
 void Title_Update(void)
@@ -65,6 +76,9 @@ void Title_Update(void)
 
 void Title_Draw(void)
 {
+	// ライト設定（Title画面用）
+	Shader_SetLight(g_pTitleLight);
+
 	// ④Drawするだけでいい！！！！！！！
 	g_pTitleSprite->Draw();
 	
@@ -85,6 +99,11 @@ void Title_Finalize(void)
 	if (g_pTitleText) {
 		delete g_pTitleText;
 		g_pTitleText = nullptr;
+	}
+
+	if (g_pTitleLight) {
+		delete g_pTitleLight;
+		g_pTitleLight = nullptr;
 	}
 	
 	TextSprite_Finalize();

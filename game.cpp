@@ -25,6 +25,7 @@ using namespace DirectX;
 #include "sound.h"
 
 Light* MainLight;
+Light* g_pUILight = nullptr;
 SoundData* g_pBGM = nullptr;
 
 void Game_Initialize(ID3D11Device* pDevice, ID3D11DeviceContext* pContext)
@@ -38,8 +39,16 @@ void Game_Initialize(ID3D11Device* pDevice, ID3D11DeviceContext* pContext)
 	MainLight = new Light
 	(TRUE,
 		XMFLOAT4(0.0f, -1.0f, -1.0f, 1.0f),	//向き（左奥上方から照射）
-		XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f),	//光の色（白、スペキュラ用に強めに）
+		XMFLOAT4(0.2f, 0.2f, 0.2f, 1.0f),	//光の色（白、スペキュラ用に強めに）
 		XMFLOAT4(0.4f, 0.4f, 0.4f, 1.0f)	//環境光（より暗めに）
+	);
+
+	// UI用ライト初期化（環境光のみ）
+	g_pUILight = new Light(
+		FALSE,
+		XMFLOAT4(0.0f, -1.0f, 0.0f, 0.0f),
+		XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f),
+		XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f)
 	);
 
 	Camera_Initialize();
@@ -65,7 +74,7 @@ void Game_Update(void)
 	Field_Update();
 	UI_Update();
 	Furniture_Update();
-	//Busters_Update();
+	Busters_Update();
 	DebugDraw_Update();
 }
 
@@ -84,8 +93,9 @@ void Game_Draw(void)
 	DebugDraw_Draw();
 
 	SetDepthTest(false);
-	MainLight->SetEnable(false);
-	Shader_SetLight(MainLight);
+	
+	// UI描画時用のライト設定（環境光のみ）
+	Shader_SetLight(g_pUILight);
 
 	//2D描画処理をここに記述
 	UI_Draw();
@@ -101,6 +111,10 @@ void Game_Finalize(void)
 	}
 
 	delete MainLight;
+	if (g_pUILight) {
+		delete g_pUILight;
+		g_pUILight = nullptr;
+	}
 
 	Camera_Finalize();
 	Ghost_Finalize();

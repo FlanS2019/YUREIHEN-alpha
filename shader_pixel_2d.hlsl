@@ -1,4 +1,4 @@
-﻿Texture2D g_Texture : register(t0);
+Texture2D g_Texture : register(t0);
 SamplerState g_SamplerState : register(s0);
 
 struct LIGHT
@@ -46,6 +46,18 @@ float4 main(PS_INPUT ps_in) : SV_TARGET
     
 	float4 baseColor = texColor * materialColorSafe * ps_in.color;
     
+	// ライトが無効な場合は環境光のみ適用して返す
+	if (!Light.enable)
+	{
+		float3 ambientOnly = Light.Ambient.rgb;
+		if (ambientOnly.r < 0.1f && ambientOnly.g < 0.1f && ambientOnly.b < 0.1f)
+		{
+			ambientOnly = float3(1.0f, 1.0f, 1.0f);
+		}
+		baseColor.rgb *= ambientOnly;
+		return baseColor;
+	}
+    
 	// Blinn-Phongライティング計算
 	{
 		float3 normal = normalize(ps_in.normal.xyz);
@@ -61,19 +73,43 @@ float4 main(PS_INPUT ps_in) : SV_TARGET
 		float3 diffuse = lambertDiffuse * Light.Diffuse.rgb;
         
 		// スペキュラ成分（Blinn-Phong）
-		float3 halfDir = normalize(lightDir + viewDir);
-		float blinnSpecular = max(dot(normal, halfDir), 0.0f);
-		
-		// 光沢度パラメータ：高いほど鏡面的（反射光がより集中）
-		float shininess = 16.0f;
-		float specularIntensity = pow(blinnSpecular, shininess);
-		
-		// スペキュラ強度：反射光の強さ
-		float specularStrength = 2.0f;
-		float3 specular = specularIntensity * specularStrength * Light.Diffuse.rgb;
+		// MaterialColor.w で光沢有効フラグを制御
+		// w > 0.5 なら光沢あり、w <= 0.5 なら光沢なし
+		float3 specular = float3(0.0f, 0.0f, 0.0f);
+		if (MaterialColor.w > 0.5f)
+		{
+			float3 halfDir = normalize(lightDir + viewDir);
+			float blinnSpecular = max(dot(normal, halfDir), 0.0f);
+			
+			// 光沢度パラメータ：高いほど鏡面的（反射光がより集中）
+			float shininess = 16.0f;
+			float specularIntensity = pow(blinnSpecular, shininess);
+			
+			// スペキュラ強度：反射光の強さ
+			float specularStrength = 2.0f;
+			specular = specularIntensity * specularStrength * Light.Diffuse.rgb;
+		}
+		else
+		{
+			// グレア効果：拡散光的なスペキュラで全体的に明るくする
+			float3 halfDir = normalize(lightDir + viewDir);
+			float blinnSpecular = max(dot(normal, halfDir), 0.0f);
+			
+			// 低い光沢度で柔らかいグレア
+			float shininess = 2.0f;
+			float specularIntensity = pow(blinnSpecular, shininess);
+			
+			// グレア強度：弱めに設定
+			float specularStrength = 0.3f;
+			specular = specularIntensity * specularStrength * Light.Diffuse.rgb;
+		}
         
 		// 環境光（ディフューズをサポート）
-		float3 ambient = Light.Ambient.rgb * 1.5f;
+		float3 ambient = Light.Ambient.rgb;
+		if (ambient.r < 0.01f && ambient.g < 0.01f && ambient.b < 0.01f)
+		{
+			ambient = float3(1.0f, 1.0f, 1.0f);
+		}
         
 		// 最終的な色に合成
 		// テクスチャ色 × (ディフューズ + 環境光) + スペキュラ（環境光の影響を受けない）

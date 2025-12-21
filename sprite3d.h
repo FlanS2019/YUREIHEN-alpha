@@ -53,6 +53,14 @@ public:
 			// m_UseOriginalColor = false（SetColor後）のときは useColorReplace = true（色置き換え）
 			bool shouldApplyColorReplace = !m_UseOriginalColor;
 
+			// 光沢有効フラグを設定（w > 0.5 で有効）
+			// Game画面では光沢なし（w = 0.0）
+			// ライト有効時は光沢を無効化（ブロック、幽霊など）
+			if (!shouldApplyColorReplace)
+			{
+				drawColor.w = 0.0f;  // 光沢無効
+			}
+
 			// モデルを描画
 			ModelDraw(
 				m_Model,

@@ -247,7 +247,6 @@
     <None Include="fix_runtime_library.ps1" />
     <None Include="MODEL_CPP_IMPROVEMENTS.md" />
     <None Include="MODEL_RENDER_CHECKLIST.md" />
-    <None Include="rebuild_directxtk_final.ps1" />
   </ItemGroup>
   <ItemGroup>
     <Library Include="DirectXTex_Debug.lib" />
