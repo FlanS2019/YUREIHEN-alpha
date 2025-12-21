@@ -10,6 +10,7 @@ enum SCENE {
 	SCENE_ANM_LOSE,
 	SCENE_MAX,
 	SCENE_NONE,
+	SCENE_WIN,
 };
 
 void Init(void);

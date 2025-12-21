@@ -7,6 +7,7 @@
 #include "ghost.h"
 #include "component.h"
 #include "define.h"
+#include "billboard.h"
 #include <vector>
 
 using namespace DirectX;
@@ -32,17 +33,20 @@ private:
 	float m_MoveSpeed;
 	float m_DistanceToGhost;
 
+	Billboard* m_Icon;
+
 public:
 	Busters(const XMFLOAT3& pos, const XMFLOAT3& scale, const XMFLOAT3& rot, const char* pass);
-	~Busters() = default;
+	~Busters();
 
 	void Update(void);
+	void Draw(void) override;
 	void CheckState(void);
 	void MoveTo(XMFLOAT3 targetPos);
 	void OnScared(void);
-	void OnLured(XMFLOAT3 targetPos); // ���т��񂹂���
-	void OnStopped(void);             // ���~�߂����
-
+	void OnLured(XMFLOAT3 targetPos);
+	void OnStopped(void);             
+	
 	void SetIsGhostDiscover(bool discover);
 };
 
@@ -55,3 +59,4 @@ Busters* GetBusters(void);
 void BustersScare(void);
 void BustersLured(XMFLOAT3 pos);
 void BustersStopped(void);
+void Busters_CheckGaugeEvent(void);

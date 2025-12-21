@@ -1,15 +1,23 @@
 ﻿#include "busters.h"
+#include "billboard.h"
 #include "Camera.h"
+#include "debug_ostream.h"
+#include "define.h"
+#include "fade.h"
+#include "ghost.h"
 #include "shader.h"
 #include "keyboard.h"
 #include "sprite3d.h"
-#include "debug_ostream.h"
-#include "define.h"
+
 #include "field.h"
 #include "furniture.h"
 #include <stdlib.h>
 
-// 階層別Bustersリスト
+#include "UI.h"
+#include "scene.h"
+
+
+
 static Busters* g_BustersList[MAP_FLOORS];
 
 // =================================================================
@@ -24,23 +32,69 @@ Busters::Busters(const XMFLOAT3& pos, const XMFLOAT3& scale, const XMFLOAT3& rot
 	m_WaitTimer(0),
 	m_Velocity(0.0f, 0.0f, 0.0f),
 	m_MoveSpeed(0.03f),
-	m_DistanceToGhost(0.0f)
+	m_DistanceToGhost(0.0f),
+	m_Icon(nullptr)
 {
-	// 乱数初期化 (警告対策: キャストを追加)
 	srand((unsigned int)GetTickCount64());
+	m_Icon = new Billboard();
+
+	m_Icon->Initialize({ 0.0f, 0.0f, 0.0f }, { 0.7f, 0.7f }, { 0.0f, 0.0f, 0.0f }, true);
+}
+
+Busters::~Busters()
+{
+	if (m_Icon)
+	{
+		delete m_Icon;
+		m_Icon = nullptr;
+	}
 }
 
 void Busters::Update(void)
 {
 	JumpUpdate(*(Transform3D*)this);
-	CheckState();
 
-	// 停止タイマーがある場合は動かない (足止め・待機)
+	// アイコンの状態更新
+	if (m_Icon)
+	{
+		// 状態に合わせてアイコンを一発切り替え
+		switch (m_State)
+		{
+		case BUSTERS_SEARCH:    // 探索中
+			m_Icon->SetIcon(BILLBOARD_ICON::NONE); // 何も出さない
+			break;
+
+		case BUSTERS_SUSPICION: // 警戒中（？）
+			m_Icon->SetIcon(BILLBOARD_ICON::QUESTION);
+			break;
+
+		case BUSTERS_CHASE:     // 追跡中（！）
+			m_Icon->SetIcon(BILLBOARD_ICON::ALERT);
+			break;
+		}
+
+		// びっくりして気絶している場合などの上書き
+		if (m_WaitTimer > 60) 
+		{
+			m_Icon->SetIcon(BILLBOARD_ICON::STUN);
+		}
+
+		// 位置合わせ（頭上）
+		XMFLOAT3 iconPos = m_Position;
+
+		iconPos.y += 3.25f; 
+		
+		m_Icon->SetPos(iconPos);
+		m_Icon->Update();
+	}
+
 	if (m_WaitTimer > 0)
 	{
 		m_WaitTimer--;
 		return;
 	}
+
+	CheckState();
 
 	XMFLOAT3 nextStepPos = m_Position;
 
@@ -49,7 +103,6 @@ void Busters::Update(void)
 	case BUSTERS_SEARCH: // 探索
 		if (m_TargetFurnitureIndex == -1)
 		{
-			// ランダムに家具を目指す
 			m_TargetFurnitureIndex = rand() % FURNITURE_NUM;
 			Furniture* targetFurniture = GetFurniture(m_TargetFurnitureIndex);
 			if (targetFurniture)
@@ -78,24 +131,21 @@ void Busters::Update(void)
 		else if (m_TargetFurnitureIndex != -1)
 		{
 			m_TargetFurnitureIndex = -1;
-			m_WaitTimer = 60; // 到着したら少し休む
+			m_WaitTimer = 60;
 		}
 
 		m_MoveSpeed = 0.03f;
 		break;
 
-	case BUSTERS_SUSPICION: // 警戒（おびき寄せられた時もこれを使う）
+	case BUSTERS_SUSPICION: // 警戒
 		m_PathList.clear();
 		m_TargetFurnitureIndex = -1;
-
-		// 幽霊（家具）の方へ向かう
 		if (GetGhost())
 		{
 			nextStepPos = GetGhost()->GetPos();
 			nextStepPos.y = m_Position.y;
 		}
-
-		m_MoveSpeed = 0.06f; // 少し速め
+		m_MoveSpeed = 0.06f;
 		break;
 
 	case BUSTERS_CHASE: // 追跡
@@ -109,7 +159,7 @@ void Busters::Update(void)
 		m_MoveSpeed = 0.09f;
 		break;
 	}
-
+	
 	MoveTo(nextStepPos);
 }
 
@@ -117,8 +167,6 @@ void Busters::CheckState(void)
 {
 	Ghost* ghost = GetGhost();
 	if (!ghost) return;
-
-	// 停止中（足止め中や驚き中）は状態遷移しない
 	if (m_WaitTimer > 0) return;
 
 	XMFLOAT3 ghostPos = ghost->GetPos();
@@ -129,25 +177,22 @@ void Busters::CheckState(void)
 	// 変身中
 	if (ghost->GetState() == GS_TRANSFORM || ghost->GetState() == GS_SCARE)
 	{
-		// おびき寄せ(SUSPICION)の場合は、そのまま近づかせるためSEARCHに戻さない
-		if (m_State != BUSTERS_SEARCH && m_State != BUSTERS_SUSPICION)
+		if (m_State == BUSTERS_SUSPICION && m_DistanceToGhost < 2.0f)
+		{
+			m_State = BUSTERS_SEARCH;
+			this->ResetColor();
+			m_WaitTimer = 60;
+		}
+		else if (m_State != BUSTERS_SEARCH && m_State != BUSTERS_SUSPICION)
 		{
 			m_State = BUSTERS_SEARCH;
 			this->ResetColor();
 			ghost->SetIsDetectedByBuster(false);
 			m_WaitTimer = 60;
 		}
-		// おびき寄せ中の場合、距離が近くなったら解除
-		if (m_State == BUSTERS_SUSPICION && m_DistanceToGhost < 2.0f)
-		{
-			m_State = BUSTERS_SEARCH;
-			this->ResetColor();
-			m_WaitTimer = 60; // 到着したのでキョロキョロ
-		}
 		return;
 	}
 
-	// 追加: 間に壁があるかチェック (視線が通っているか？)
 	bool hasWall = Field_CheckWallBetween(m_Position, ghostPos);
 
 	if (!hasWall && m_DistanceToGhost < BUSTERS_PATROL_RANGH)
@@ -225,37 +270,31 @@ void Busters::MoveTo(XMFLOAT3 targetPos)
 	if (!hitZ) m_Position.z = nextZ;
 }
 
-// 驚き
 void Busters::OnScared(void)
 {
 	JumpStart();
 	m_TargetFurnitureIndex = -1;
-	m_WaitTimer = 120; // 2秒停止
+	m_WaitTimer = 120;
 	this->SetColor(0.0f, 0.0f, 1.0f, 1.0f); // 青
 }
 
-// おびき寄せられた時
 void Busters::OnLured(XMFLOAT3 targetPos)
 {
-	// 警戒状態にして強制的にターゲット(幽霊/家具)に向かわせる
 	m_State = BUSTERS_SUSPICION;
-	this->SetColor(0.0f, 1.0f, 1.0f, 1.0f); // シアン（気付いた）
-
-	// パスをクリアして直線的に向かうようにする
+	this->SetColor(0.0f, 1.0f, 1.0f, 1.0f); // シアン
+	m_WaitTimer = 60;
 	m_PathList.clear();
 }
 
-// 足止めされた時
 void Busters::OnStopped(void)
 {
-	m_WaitTimer = 300; // 5秒停止 (長時間)
-	this->SetColor(0.5f, 0.0f, 0.5f, 1.0f); // 紫（混乱）
-	m_WaitTimer = 120; // 2秒間動かなくなる
-	this->SetColor(0.0f, 0.0f, 1.0f, 1.0f); // 青色（怯え中）
+	m_WaitTimer = 300;
+	this->SetColor(0.5f, 0.0f, 0.5f, 1.0f); // 紫
 }
 
 void Busters::SetIsGhostDiscover(bool discover)
 {
+	if (m_WaitTimer > 0) return;
 	if (discover) this->SetColor(0.0f, 1.0f, 0.0f, 1.0f);
 	else this->ResetColor();
 }
@@ -321,4 +360,60 @@ void BustersStopped(void)
 {
 	Busters* target = GetBusters();
 	if (target) target->OnStopped();
+}
+
+// =================================================================
+// ゲージMAX時の処理
+// =================================================================
+void Busters_CheckGaugeEvent(void)
+{
+	if (!UI_IsScareGaugeMax()) return;
+
+	int currentFloor = Field_GetCurrentFloor();
+
+	if (currentFloor > 0)
+	{
+		// -------------------------------------------------
+		// 2階以上の場合 -> 下の階へ逃げる
+		// -------------------------------------------------
+
+		// 1. ゲージをリセット
+		UI_ResetScareGauge();
+
+		//0.0以下で敗北になるのでとりあえず1を足す
+		AddScareGauge(1.0f);
+
+		// 2. 下の階へ移動
+		Field_ChangeFloor(currentFloor - 1);
+
+		//// 3. プレイヤー(Ghost)も追って移動
+		//if (GetGhost())
+		//{
+		//	GetGhost()->ResetPos();
+		//	GetGhost()->SetPos({ 0.0f, Ghost::GetGhostPosY(), 0.0f });
+		//}
+	}
+	else
+	{
+		// -------------------------------------------------
+		// 1階の場合 -> 逃げ場なし（プレイヤーの勝利）
+		// -------------------------------------------------
+		StartFade(SCENE_ANM_WIN);
+	}
+}
+
+void Busters::Draw(void)
+{
+	// 1. バスターズ（ボーンあり）を描画
+
+	Sprite3D::Draw();
+
+	if (m_Icon)
+	{
+		// 2. ここで通常のシェーダー（ボーン無し）に戻す
+		Shader_Begin();
+
+		// 3. ビルボード描画
+		m_Icon->Draw();
+	}
 }
