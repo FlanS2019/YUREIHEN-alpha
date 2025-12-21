@@ -169,13 +169,13 @@ void UI_Initialize(void)
 //----------------------------
 void UI_Update(void)
 {
+
 	if (Keyboard_IsKeyDown(KK_L))
 	{
 		SetScene(SCENE_ANM_LOSE);// Debug用に敗北アニメーションへ直接飛ぶ
 		return;
 
 	}
-	
 	// 恐怖ゲージが最大なら勝利シーンへ移行（デバッグ用）
 	if (g_ScareGauge->GetValue() >= g_ScareGauge->GetMaxValue())
 	{
@@ -264,6 +264,13 @@ void UI_Update(void)
 	{
 		if (g_GuideClick)
 			g_GuideClick->SetColor(XMFLOAT4(1.0f, 1.0f, 1.0f, 0.0f));
+	}
+
+	if (Keyboard_IsKeyDown(KK_P))
+	{
+		SetScene(SCENE_ANM_WIN);// Debug用に敗北アニメーションへ直接飛ぶ
+		return;
+
 	}
 }
 

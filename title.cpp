@@ -31,7 +31,8 @@ void Title_Initialize(ID3D11Device* pDevice, ID3D11DeviceContext* pContext)
 	// フォント読み込み（KaiseiDecol-Medium.ttf、32ピクセル）
 	g_pTitleFont = TextSprite_LoadFont("asset/font/KaiseiDecol-Medium.ttf", 64.0f, 512);
 	
-	if (g_pTitleFont) {
+	if (g_pTitleFont) 
+	{
 		g_pTitleText = new TextSprite(
 			{ SCREEN_WIDTH / 2.0f, SCREEN_HEIGHT * 0.85f },	//位置
 			{ 1.0f, 1.0f },									//スケール
@@ -46,6 +47,15 @@ void Title_Initialize(ID3D11Device* pDevice, ID3D11DeviceContext* pContext)
 
 void Title_Update(void)
 {
+	if (Keyboard_IsKeyDown(KK_P))
+	{
+		SetScene(SCENE_ANM_WIN);// Debug用にロゴアニメーションへ直接飛ぶ
+	}
+
+	if (Keyboard_IsKeyDown(KK_L))
+	{
+		SetScene(SCENE_ANM_LOSE);// Debug用にロゴアニメーションへ直接飛ぶ
+	}
 	// ③適当な処理　アニメーションなどもここで
 	if (Keyboard_IsKeyDownTrigger(KK_ENTER))
 	{
@@ -59,7 +69,8 @@ void Title_Draw(void)
 	g_pTitleSprite->Draw();
 	
 	// テキスト描画
-	if (g_pTitleText) {
+	if (g_pTitleText) 
+	{
 		g_pTitleText->Draw();
 	}
 }
