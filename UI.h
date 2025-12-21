@@ -169,6 +169,8 @@ public:
 // 恐怖ゲージ加算
 void AddScareGauge(float value = GAUGE_SCORE_DEF);
 
+bool UI_IsScareGaugeMax(void); // 満タンか？
+void UI_ResetScareGauge(void); // リセットする
 
 // Number クラス テクスチャ分割で数字列を表示
 class Number : public SplitSprite

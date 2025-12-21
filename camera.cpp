@@ -3,16 +3,13 @@
 #include "DirectXMath.h"
 using namespace DirectX;
 #include "direct3d.h"
+#include "define.h"
 #include "shader.h"
 #include "keyboard.h"
 #include "mouse.h"
 #include "texture.h"
 #include "debug_ostream.h"
 
-#define ROTATE_Y_MAX (80.0f)
-#define MOUSE_SENSITIVITY (0.15f)
-#define CAMERA_DISTANCE (6.0f)  // 注視対象からのカメラ距離を短縮
-#define CAMERA_OFFSET_Y (1.5f)  //　注視点をちょっと上にオフセット
 
 static Camera* CameraObject;
 static float g_pitch = 0.0f;  // 上下視点角度
@@ -77,43 +74,42 @@ void Camera_Update(void)
     g_yaw += static_cast<float>(mouseState.x) * MOUSE_SENSITIVITY;
     g_pitch -= static_cast<float>(mouseState.y) * MOUSE_SENSITIVITY;  // 縦方向を反転
     
-    // ピッチ角度を制限
-    if (g_pitch > ROTATE_Y_MAX)
-    {
-        g_pitch = ROTATE_Y_MAX;
-    }
-    else if (g_pitch < -ROTATE_Y_MAX)
-    {
-        g_pitch = -ROTATE_Y_MAX;
-    }
-    
-    // ピッチとヨーの変更を検出して出力
-    if (g_pitch != g_lastPitch || g_yaw != g_lastYaw)
-    {
-        //hal::dout << "Camera - Pitch: " << g_pitch << ", Yaw: " << g_yaw << std::endl;
-        g_lastPitch = g_pitch;
-        g_lastYaw = g_yaw;
-    }
-    
-    // 注視対象位置を中心に計算
-    XMVECTOR targetVec = XMLoadFloat3(&g_targetPos);
-    
-    // カメラ位置を計算（注視対象周りに球体回転）
-    float pitchRad = XMConvertToRadians(g_pitch);
-    float yawRad = XMConvertToRadians(g_yaw);
-    
-    // 注視対象 から相対的なカメラ位置（符号を反転）
-    float camX = -sinf(yawRad) * cosf(pitchRad) * CAMERA_DISTANCE;
-    float camY = -sinf(pitchRad) * CAMERA_DISTANCE + 1.5f;  // 上方向にオフセット
-    float camZ = -cosf(yawRad) * cosf(pitchRad) * CAMERA_DISTANCE;
-    
-    XMVECTOR cameraPos = XMVectorAdd(targetVec, XMVectorSet(camX, camY, camZ, 0.0f));
-    
-    // カメラ位置を計算
-    XMFLOAT3 newCameraPos;
-    XMStoreFloat3(&newCameraPos, cameraPos);
-    
-    CameraObject->UpdateView(newCameraPos, g_targetPos);
+	if (g_pitch > PITCH_LIMIT_LOOK_UP)
+	{
+		g_pitch = PITCH_LIMIT_LOOK_UP;
+	}
+	else if (g_pitch < PITCH_LIMIT_LOOK_DOWN)
+	{
+		g_pitch = PITCH_LIMIT_LOOK_DOWN;
+	}
+
+	// ピッチとヨーの変更を検出して出力
+	if (g_pitch != g_lastPitch || g_yaw != g_lastYaw)
+	{
+		g_lastPitch = g_pitch;
+		g_lastYaw = g_yaw;
+	}
+
+	// 注視対象位置を中心に計算
+	XMVECTOR targetVec = XMLoadFloat3(&g_targetPos);
+
+	// カメラ位置を計算
+	float pitchRad = XMConvertToRadians(g_pitch);
+	float yawRad = XMConvertToRadians(g_yaw);
+
+	// 注視対象 から相対的なカメラ位置
+	float camX = -sinf(yawRad) * cosf(pitchRad) * CAMERA_DISTANCE;
+	// ★補足: ここでさらに +1.5f しているので、合計でターゲット座標+3.0fの高さが基準になっています
+	float camY = -sinf(pitchRad) * CAMERA_DISTANCE + 1.5f;
+	float camZ = -cosf(yawRad) * cosf(pitchRad) * CAMERA_DISTANCE;
+
+	XMVECTOR cameraPos = XMVectorAdd(targetVec, XMVectorSet(camX, camY, camZ, 0.0f));
+
+	// カメラ位置をセット
+	XMFLOAT3 newCameraPos;
+	XMStoreFloat3(&newCameraPos, cameraPos);
+
+	CameraObject->UpdateView(newCameraPos, g_targetPos);
 }
 
 void Camera_Draw(void)
@@ -122,17 +118,17 @@ void Camera_Draw(void)
 
 void Camera_SetTargetPos(XMFLOAT3 targetPos)
 {
-    g_targetPos.x = targetPos.x;
-    g_targetPos.y = targetPos.y + CAMERA_OFFSET_Y;
-    g_targetPos.z = targetPos.z;
+	g_targetPos.x = targetPos.x;
+	g_targetPos.y = targetPos.y + CAMERA_OFFSET_Y;
+	g_targetPos.z = targetPos.z;
 }
 
 float Camera_GetYaw(void)
 {
-    return g_yaw;
+	return g_yaw;
 }
 
 Camera* GetCamera(void)
 {
-    return CameraObject;
+	return CameraObject;
 }

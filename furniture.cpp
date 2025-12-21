@@ -13,72 +13,59 @@ Furniture* g_Furniture[FURNITURE_NUM]{};
 // =========================================================
 void Furniture_Initialize(void)
 {
-	// ----------------------------------------------------
-	// 1:ロッキングチェア (Rocking Chair)
-	// ----------------------------------------------------
+	// 1: ロッキングチェア -> SCARE (驚かし/ジャンプ)
 	g_Furniture[0] = new Furniture(
-		{ -9.0f, 1.0f, -1.0f },			// 左手前の部屋
-		{ 1.0f, 1.0f, 1.0f },
-		{ 0.0f, 1.0f, 0.0f },
-		"asset\\model\\bath.fbx"
+		{ -5.0f, 0.0f, -5.0f }, { 1.0f, 1.0f, 1.0f }, { 0.0f, 45.0f, 0.0f },
+		"asset\\model\\rockingchair.fbx",
+		ACTION_SCARE // 驚かし
 	);
 	
 	g_Furniture[1] = new Furniture(
-		{ 5.0f, 0.0f, -5.0f },			// 右手前の部屋
-		{ 1.0f, 1.0f, 1.0f },
-		{ 0.0f, -45.0f, 0.0f },
-		"asset\\model\\rockingchair.fbx"
+		{ 5.0f, 0.0f, -5.0f }, { 1.0f, 1.0f, 1.0f }, { 0.0f, -45.0f, 0.0f },
+		"asset\\model\\rockingchair.fbx",
+		ACTION_SCARE // 驚かし
 	);
 
-	// ----------------------------------------------------
-	// 2:木 (Tree)
-	// ----------------------------------------------------
-
-	// 中央広間の四隅
+	// 2: 木 -> LURE (おびき寄せ/振動)
 	g_Furniture[2] = new Furniture(
-		{ -6.0f, 0.0f, 6.0f },			// 左奥
-		{ 1.5f, 1.5f, 1.5f },			// 少し大きめに
-		{ 0.0f, 0.0f, 0.0f },
-		"asset\\model\\tree.fbx"
+		{ -6.0f, 0.0f, 6.0f }, { 1.5f, 1.5f, 1.5f }, { 0.0f, 0.0f, 0.0f },
+		"asset\\model\\tree.fbx",
+		ACTION_LURE // おびき寄せ
 	);
 
 	g_Furniture[3] = new Furniture(
-		{ 6.0f, 0.0f, 6.0f },			// 右奥
-		{ 1.5f, 1.5f, 1.5f },
-		{ 0.0f, 45.0f, 0.0f },
-		"asset\\model\\tree.fbx"
+		{ 6.0f, 0.0f, 6.0f }, { 1.5f, 1.5f, 1.5f }, { 0.0f, 45.0f, 0.0f },
+		"asset\\model\\tree.fbx",
+		ACTION_LURE // おびき寄せ
 	);
 
 	// 3: 樹 -> STOP (回転・停止)
 	g_Furniture[4] = new Furniture(
-		{ -6.0f, 0.0f, -2.0f },			// 左手前
-		{ 1.5f, 1.5f, 1.5f },
-		{ 0.0f, 90.0f, 0.0f },
-		"asset\\model\\tree.fbx"
+		{ -6.0f, 0.0f, -2.0f }, { 1.5f, 1.5f, 1.5f }, { 0.0f, 90.0f, 0.0f },
+		"asset\\model\\car_blue.fbx",
+		ACTION_STOP // 足止め
 	);
 
 	g_Furniture[5] = new Furniture(
-		{ 6.0f, 0.0f, -2.0f },			// 右手前
-		{ 1.5f, 1.5f, 1.5f },
-		{ 0.0f, 135.0f, 0.0f },
-		"asset\\model\\tree.fbx"
+		{ 6.0f, 0.0f, -2.0f }, { 1.5f, 1.5f, 1.5f }, { 0.0f, 135.0f, 0.0f },
+		"asset\\model\\tree.fbx",
+		ACTION_STOP // 足止め
 	);
 
-
-	// 共通設定: 全ての家具の着地高さを設定
+	// 共通設定
 	for (int i = 0; i < FURNITURE_NUM; i++)
 	{
-		if (g_Furniture[i])
-		{
-			g_Furniture[i]->SetGroundLevel(0.0f);
-		}
+		if (g_Furniture[i]) g_Furniture[i]->SetGroundLevel(0.0f);
 	}
 }
 
-// 家具ごとの更新処理
+// =========================================================
+// 家具クラスのメソッド実装
+// =========================================================
+
 void Furniture::Update(void)
 {
-	// 1. Ghost との距離計算 (幽霊判定用)
+	// 1. Ghostとの距離計算
 	if (GetGhost())
 	{
 		XMFLOAT3 ghostPos = GetGhost()->GetPos();
@@ -152,7 +139,6 @@ void Furniture::StartAction(void)
 	}
 }
 
-
 // =========================================================
 // グローバル関数の実装
 // =========================================================
@@ -162,10 +148,7 @@ void Furniture_Update(void)
 {
 	for (int i = 0; i < FURNITURE_NUM; i++)
 	{
-		if (g_Furniture[i])
-		{
-			g_Furniture[i]->Update();
-		}
+		if (g_Furniture[i]) g_Furniture[i]->Update();
 	}
 }
 
@@ -173,10 +156,7 @@ void Furniture_Draw(void)
 {
 	for (int i = 0; i < FURNITURE_NUM; i++)
 	{
-		if (g_Furniture[i])
-		{
-			g_Furniture[i]->Draw();
-		}
+		if (g_Furniture[i]) g_Furniture[i]->Draw();
 	}
 }
 
@@ -184,57 +164,31 @@ void Furniture_Finalize(void)
 {
 	for (int i = 0; i < FURNITURE_NUM; i++)
 	{
-		if (g_Furniture[i])
-		{
-			delete g_Furniture[i];
-			g_Furniture[i] = nullptr;
-		}
+		if (g_Furniture[i]) { delete g_Furniture[i]; g_Furniture[i] = nullptr; }
 	}
 }
 
 Furniture* GetFurniture(int index)
 {
-	if (index >= 0 && index < FURNITURE_NUM)
-	{
-		return g_Furniture[index];
-	}
+	if (index >= 0 && index < FURNITURE_NUM) return g_Furniture[index];
 	return nullptr;
 }
 
-//trueなら驚かせ中、falseならindexが不正
 bool FurnitureScareStart(int index)
 {
 	if (index >= 0 && index < FURNITURE_NUM && g_Furniture[index])
 	{
-		//ジャンプ中かどうか確認
-		if (g_Furniture[index]->GetIsJumping())
-		{
-			hal::dout << "Furniture[" << index << "] is already jumping." << std::endl;
-			return true; // すでにジャンプ中なら何もしない
-		}
-
-		g_Furniture[index]->JumpStart();
-		hal::dout << "Furniture[" << index << "] jumped!" << std::endl;
+		g_Furniture[index]->StartAction();
 		return true;
 	}
-	else
-	{
-		hal::dout << "Invalid furniture index: " << index << std::endl;
-		return false;
-	}
+	return false;
 }
 
-//trueなら終了、falseなら驚かせ中
 bool FurnitureScareEnded(int index)
 {
 	if (index >= 0 && index < FURNITURE_NUM && g_Furniture[index])
 	{
-		//ジャンプ中かどうか確認
-		return g_Furniture[index]->GetIsJumpEnded();
+		return !g_Furniture[index]->GetIsActing();
 	}
-	else
-	{
-		hal::dout << "Invalid furniture index: " << index << std::endl;
-		return false;
-	}
+	return false;
 }
