@@ -23,6 +23,7 @@ static ID3D11PixelShader* g_pPixelShader = nullptr;//ピクセルシェーダー
 static ID3D11Buffer* g_pLightConstantBuffer = nullptr;//定数バッファ1個
 static ID3D11Buffer* g_pWorldConstantBuffer = nullptr;//定数バッファ1個
 static ID3D11Buffer* g_pMaterialColorBuffer = nullptr;//マテリアル色バッファ
+static ID3D11Buffer* g_pCameraPositionBuffer = nullptr;//カメラ位置バッファ
 
 // 注意！初期化で外部から設定されるもの。Release不要。
 static ID3D11Device* g_pDevice = nullptr;
@@ -114,6 +115,10 @@ bool Shader_Initialize(ID3D11Device* pDevice, ID3D11DeviceContext* pContext)
 	buffer_desc.ByteWidth = sizeof(XMFLOAT4);
 	g_pDevice->CreateBuffer(&buffer_desc, nullptr, &g_pMaterialColorBuffer);
 
+	// カメラ位置バッファの作成
+	buffer_desc.ByteWidth = sizeof(XMFLOAT4);
+	g_pDevice->CreateBuffer(&buffer_desc, nullptr, &g_pCameraPositionBuffer);
+
 	// 事前コンパイル済みピクセルシェーダーの読み込み
 	std::ifstream ifs_ps("shader_pixel_2d.cso", std::ios::binary);
 	if (!ifs_ps) {
@@ -152,6 +157,8 @@ void Shader_Finalize()
 	SAFE_RELEASE(g_pWorldConstantBuffer);
 	SAFE_RELEASE(g_pLightConstantBuffer);
 	SAFE_RELEASE(g_pMaterialColorBuffer);
+
+	SAFE_RELEASE(g_pCameraPositionBuffer);
 }
 
 void Shader_SetMatrix(const DirectX::XMMATRIX& matrix)
@@ -190,6 +197,13 @@ void Shader_SetMaterialColor(const DirectX::XMFLOAT4& color)
 	g_pContext->UpdateSubresource(g_pMaterialColorBuffer, 0, nullptr, &color, 0, 0);
 }
 
+void Shader_SetCameraPos(const DirectX::XMFLOAT3& pos)
+{
+	// 定数バッファにカメラ位置をセット（XMFLOAT4に変換）
+	XMFLOAT4 cameraPos = { pos.x, pos.y, pos.z, 1.0f };
+	g_pContext->UpdateSubresource(g_pCameraPositionBuffer, 0, nullptr, &cameraPos, 0, 0);
+}
+
 void Shader_Begin()
 {
 	// 頂点シェーダーとピクセルシェーダーを描画パイプラインに設定
@@ -207,4 +221,5 @@ void Shader_Begin()
 	// ピクセルシェーダーにもライト定数バッファとマテリアル色バッファを設定
 	g_pContext->PSSetConstantBuffers(2, 1, &g_pLightConstantBuffer);
 	g_pContext->PSSetConstantBuffers(3, 1, &g_pMaterialColorBuffer);
+	g_pContext->PSSetConstantBuffers(4, 1, &g_pCameraPositionBuffer);
 }

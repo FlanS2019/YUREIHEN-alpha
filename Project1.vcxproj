@@ -164,8 +164,8 @@
     <ClCompile Include="keyboard.cpp" />
     <ClCompile Include="LoseAnim.cpp" />
     <ClCompile Include="main.cpp" />
-    <ClCompile Include="model.cpp" />
     <ClCompile Include="debugdraw.cpp" />
+    <ClCompile Include="model.cpp" />
     <ClCompile Include="mouse.cpp" />
     <ClCompile Include="game.cpp" />
     <ClCompile Include="opanim.cpp" />

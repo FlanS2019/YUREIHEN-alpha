@@ -32,11 +32,8 @@ public:
 		if (m_OriginalColor.x == 0.0f && m_OriginalColor.y == 0.0f && m_OriginalColor.z == 0.0f)
 		{
 			m_OriginalColor = XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f);
-			hal::dout << "Warning: Model material color was black, reset to white" << std::endl;
+			hal::dout << "  Warning: Model material color was black, reset to white" << std::endl;
 		}
-
-		//サイズをデバッグ出力
-		hal::dout << "Model Size: (" << m_ModelSize.x << ", " << m_ModelSize.y << ", " << m_ModelSize.z << ")" << std::endl;
 	}
 	~Sprite3D()
 	{

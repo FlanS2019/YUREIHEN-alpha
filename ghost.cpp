@@ -121,6 +121,13 @@ void Ghost_Update(void)
 		break;
 	}
 
+	// P キーで現在位置をデバッグ出力
+	if (Keyboard_IsKeyDownTrigger(KK_P))
+	{
+		XMFLOAT3 pos = g_Ghost->GetPos();
+		hal::dout << "Ghost Position: X=" << pos.x << ", Y=" << pos.y << ", Z=" << pos.z << std::endl;
+	}
+
 	Camera_SetTargetPos(g_Ghost->GetPos());
 
 

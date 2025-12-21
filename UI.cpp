@@ -77,15 +77,15 @@ void UI_Initialize(void)
 		CLOCK_MIN, CLOCK_MAX
 	);
 
-	// クリックガイド
-	g_GuideClick = new Sprite(
-		{ SCREEN_WIDTH / 2.0f, SCREEN_HEIGHT / 2.0f + 100.0f },
-		{ 100.0f, 100.0f },
-		0.0f,
-		{ 1.0f, 1.0f, 1.0f, 0.0f },
-		BLENDSTATE_ALFA,
-		L"asset\\texture\\click_guide.png"
-	);
+	//// クリックガイド
+	//g_GuideClick = new Sprite(
+	//	{ SCREEN_WIDTH / 2.0f, SCREEN_HEIGHT / 2.0f + 100.0f },
+	//	{ 100.0f, 100.0f },
+	//	0.0f,
+	//	{ 1.0f, 1.0f, 1.0f, 0.0f },
+	//	BLENDSTATE_ALFA,
+	//	L"asset\\texture\\click_guide.png"
+	//);
 
 	// 階層移動ガイド(数字)
 	g_GuideFloorNum = new Number(
@@ -169,6 +169,7 @@ void UI_Initialize(void)
 //----------------------------
 void UI_Update(void)
 {
+
 	if (Keyboard_IsKeyDown(KK_L))
 	{
 		SetScene(SCENE_ANM_LOSE);// Debug用に敗北アニメーションへ直接飛ぶ
@@ -264,6 +265,13 @@ void UI_Update(void)
 	{
 		if (g_GuideClick)
 			g_GuideClick->SetColor(XMFLOAT4(1.0f, 1.0f, 1.0f, 0.0f));
+	}
+
+	if (Keyboard_IsKeyDown(KK_P))
+	{
+		SetScene(SCENE_ANM_WIN);// Debug用に敗北アニメーションへ直接飛ぶ
+		return;
+
 	}
 }
 

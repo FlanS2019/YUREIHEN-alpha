@@ -37,9 +37,9 @@ void Game_Initialize(ID3D11Device* pDevice, ID3D11DeviceContext* pContext)
 
 	MainLight = new Light
 	(TRUE,
-		XMFLOAT4(0.0f, -10.0f, -10.0f, 1.0f),	//向き
-		XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f),	//光の色
-		XMFLOAT4(0.5f, 0.5f, 0.5f, 1.0f)	//環境光
+		XMFLOAT4(0.0f, -1.0f, -1.0f, 1.0f),	//向き（左奥上方から照射）
+		XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f),	//光の色（白、スペキュラ用に強めに）
+		XMFLOAT4(0.4f, 0.4f, 0.4f, 1.0f)	//環境光（より暗めに）
 	);
 
 	Camera_Initialize();
@@ -61,10 +61,11 @@ void Game_Update(void)
 {
 	Ghost_Update();
 	Camera_Update();
+	Shader_SetCameraPos(GetCamera()->GetPos());
 	Field_Update();
 	UI_Update();
 	Furniture_Update();
-	Busters_Update();
+	//Busters_Update();
 	DebugDraw_Update();
 }
 

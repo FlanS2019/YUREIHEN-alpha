@@ -4,7 +4,7 @@
 #include "ghost.h"
 #include "keyboard.h"
 #include "define.h"
-#include <cmath>
+#include <cmath>   // sinf用
 
 Furniture* g_Furniture[FURNITURE_NUM]{};
 
@@ -19,7 +19,7 @@ void Furniture_Initialize(void)
 		"asset\\model\\rockingchair.fbx",
 		ACTION_SCARE // 驚かし
 	);
-
+	
 	g_Furniture[1] = new Furniture(
 		{ 5.0f, 0.0f, -5.0f }, { 1.0f, 1.0f, 1.0f }, { 0.0f, -45.0f, 0.0f },
 		"asset\\model\\rockingchair.fbx",
@@ -39,7 +39,7 @@ void Furniture_Initialize(void)
 		ACTION_LURE // おびき寄せ
 	);
 
-	// 3: 車 -> STOP (足止め/回転)
+	// 3: 樹 -> STOP (回転・停止)
 	g_Furniture[4] = new Furniture(
 		{ -6.0f, 0.0f, -2.0f }, { 1.5f, 1.5f, 1.5f }, { 0.0f, 90.0f, 0.0f },
 		"asset\\model\\car_blue.fbx",
@@ -75,22 +75,20 @@ void Furniture::Update(void)
 		m_DistanceToGhost = XMVectorGetX(XMVector3Length(distVec));
 	}
 
-	// 2. アクションごとの挙動 (完全分岐)
-
-	// アクション中、またはジャンプ中の場合のみ動かす
+	// 2. アクション実行時の処理 (ビジュアル変化)
 	if (m_IsActing || GetIsJumping())
 	{
 
 		switch (m_ActionType)
 		{
-		case ACTION_SCARE: // 驚かし
+		case ACTION_SCARE: // 驚かせ -> ジャンプの動き
 			JumpUpdate(*(Transform3D*)this);
 			break;
 
-		case ACTION_LURE: // おびき寄せ
+		case ACTION_LURE: // 誘惑する -> 揺れ動きのもの
 		{
 			m_ActionTimer += 1.0f;
-			// 振動計算
+			// 揺れ計算
 			float shakeAmount = 0.1f;
 			float offsetX = sinf(m_ActionTimer * 2.0f) * shakeAmount;
 
@@ -109,7 +107,7 @@ void Furniture::Update(void)
 		}
 		break;
 
-		case ACTION_STOP: // 足止め
+		case ACTION_STOP: // 停止中 -> 回転するのもの
 		{
 			m_ActionTimer += 1.0f;
 			// 回転計算
@@ -128,7 +126,7 @@ void Furniture::Update(void)
 
 void Furniture::StartAction(void)
 {
-	if (GetIsActing()) return; // 重複実行防止
+	if (GetIsActing()) return; // 二重実行を抑止
 
 	if (m_ActionType == ACTION_SCARE)
 	{
@@ -136,15 +134,16 @@ void Furniture::StartAction(void)
 	}
 	else
 	{
-		m_IsActing = true; // 汎用アクションフラグON
+		m_IsActing = true; // 行う、アクション開始フラグON
 		m_ActionTimer = 0.0f;
 	}
 }
 
 // =========================================================
-// グローバル関数
+// グローバル関数の実装
 // =========================================================
 
+// Game_Update から呼ばれ全ての家具の更新処理
 void Furniture_Update(void)
 {
 	for (int i = 0; i < FURNITURE_NUM; i++)
