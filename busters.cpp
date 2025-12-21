@@ -1,18 +1,22 @@
 ﻿#include "busters.h"
+#include "billboard.h"
 #include "Camera.h"
+#include "debug_ostream.h"
+#include "define.h"
+#include "fade.h"
+#include "ghost.h"
 #include "shader.h"
 #include "keyboard.h"
 #include "sprite3d.h"
-#include "debug_ostream.h"
-#include "define.h"
+
 #include "field.h"
 #include "furniture.h"
 #include <stdlib.h>
 
-#include "UI.h"     // UI操作用
-#include "scene.h"  // SCENE定数用
-#include "fade.h"   // StartFade用
-#include "ghost.h"  // Ghost操作用
+#include "UI.h"
+#include "scene.h"
+
+
 
 static Busters* g_BustersList[MAP_FLOORS];
 
@@ -28,14 +32,61 @@ Busters::Busters(const XMFLOAT3& pos, const XMFLOAT3& scale, const XMFLOAT3& rot
 	m_WaitTimer(0),
 	m_Velocity(0.0f, 0.0f, 0.0f),
 	m_MoveSpeed(0.03f),
-	m_DistanceToGhost(0.0f)
+	m_DistanceToGhost(0.0f),
+	m_Icon(nullptr)
 {
 	srand((unsigned int)GetTickCount64());
+	m_Icon = new Billboard();
+
+	m_Icon->Initialize({ 0.0f, 0.0f, 0.0f }, { 0.7f, 0.7f }, { 0.0f, 0.0f, 0.0f }, true);
+}
+
+Busters::~Busters()
+{
+	if (m_Icon)
+	{
+		delete m_Icon;
+		m_Icon = nullptr;
+	}
 }
 
 void Busters::Update(void)
 {
 	JumpUpdate(*(Transform3D*)this);
+
+	// アイコンの状態更新
+	if (m_Icon)
+	{
+		// 状態に合わせてアイコンを一発切り替え
+		switch (m_State)
+		{
+		case BUSTERS_SEARCH:    // 探索中
+			m_Icon->SetIcon(BILLBOARD_ICON::NONE); // 何も出さない
+			break;
+
+		case BUSTERS_SUSPICION: // 警戒中（？）
+			m_Icon->SetIcon(BILLBOARD_ICON::QUESTION);
+			break;
+
+		case BUSTERS_CHASE:     // 追跡中（！）
+			m_Icon->SetIcon(BILLBOARD_ICON::ALERT);
+			break;
+		}
+
+		// びっくりして気絶している場合などの上書き
+		if (m_WaitTimer > 60) 
+		{
+			m_Icon->SetIcon(BILLBOARD_ICON::STUN);
+		}
+
+		// 位置合わせ（頭上）
+		XMFLOAT3 iconPos = m_Position;
+
+		iconPos.y += 3.25f; 
+		
+		m_Icon->SetPos(iconPos);
+		m_Icon->Update();
+	}
 
 	if (m_WaitTimer > 0)
 	{
@@ -108,7 +159,7 @@ void Busters::Update(void)
 		m_MoveSpeed = 0.09f;
 		break;
 	}
-
+	
 	MoveTo(nextStepPos);
 }
 
@@ -348,5 +399,21 @@ void Busters_CheckGaugeEvent(void)
 		// 1階の場合 -> 逃げ場なし（プレイヤーの勝利）
 		// -------------------------------------------------
 		StartFade(SCENE_ANM_WIN);
+	}
+}
+
+void Busters::Draw(void)
+{
+	// 1. バスターズ（ボーンあり）を描画
+
+	Sprite3D::Draw();
+
+	if (m_Icon)
+	{
+		// 2. ここで通常のシェーダー（ボーン無し）に戻す
+		Shader_Begin();
+
+		// 3. ビルボード描画
+		m_Icon->Draw();
 	}
 }

@@ -150,6 +150,7 @@
   <ItemGroup>
     <ClCompile Include="animation.cpp" />
     <ClCompile Include="anim_sprite3d.cpp" />
+    <ClCompile Include="billboard.cpp" />
     <ClCompile Include="box.cpp" />
     <ClCompile Include="busters.cpp" />
     <ClCompile Include="camera.cpp" />
@@ -183,6 +184,7 @@
   <ItemGroup>
     <ClInclude Include="animation.h" />
     <ClInclude Include="anim_sprite3d.h" />
+    <ClInclude Include="billboard.h" />
     <ClInclude Include="busters.h" />
     <ClInclude Include="camera.h" />
     <ClInclude Include="component.h" />
