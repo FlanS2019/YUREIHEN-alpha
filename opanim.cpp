@@ -254,7 +254,7 @@ void OpAnim_Finalize(void)
 	g_pDevice = nullptr;
 	g_pContext = nullptr;
 
-	SetFPS(40);
+	SetFPS(60);
 }
 
 void OpAnim_Update()
