@@ -24,24 +24,33 @@ jobs:
     - name: Build with MSBuild
       run: msbuild "${{ env.SOLUTION_PATH }}" /p:Configuration="${{ env.BUILD_CONFIG }}" /p:Platform="${{ env.PLATFORM }}" /m /v:minimal
 
-    - name: Check build output
-      shell: powershell
-      run: |
-        Write-Host "=== x64/Release 以下のファイル構造 ==="
-        Get-ChildItem -Path "x64/Release" -Recurse | Format-Table FullName
-
     - name: Collect files
       shell: powershell
       run: |
-        New-Item -ItemType Directory -Path "release" -Force
+        $releaseDir = "release"
+        New-Item -ItemType Directory -Path $releaseDir -Force | Out-Null
         
-        # x64/Release 直下の全ファイルをコピー
-        if (Test-Path "x64/Release") {
-          Copy-Item -Path "x64/Release\*" -Destination "release" -Recurse -Force -ErrorAction SilentlyContinue
+        # EXE
+        Copy-Item -Path "x64/Release/*.exe" -Destination $releaseDir -Force -ErrorAction SilentlyContinue
+        
+        # DLL
+        Copy-Item -Path "x64/Release/*.dll" -Destination $releaseDir -Force -ErrorAction SilentlyContinue
+        
+        # CSO（コンパイル済みシェーダー）
+        Copy-Item -Path "x64/Release/*.cso" -Destination $releaseDir -Force -ErrorAction SilentlyContinue
+        
+        # assimp フォルダ
+        if (Test-Path "x64/Release/assimp") {
+          Copy-Item -Path "x64/Release/assimp" -Destination $releaseDir -Recurse -Force
+        }
+        
+        # asset フォルダ
+        if (Test-Path "x64/Release/asset") {
+          Copy-Item -Path "x64/Release/asset" -Destination $releaseDir -Recurse -Force
         }
         
         # ZIP化
-        Compress-Archive -Path "release\*" -DestinationPath "DX21_YUREIHEN_GAME.zip" -Force
+        Compress-Archive -Path "$releaseDir/*" -DestinationPath "DX21_YUREIHEN_GAME.zip" -Force
 
     - name: Upload to GitHub Release
       uses: softprops/action-gh-release@v2
