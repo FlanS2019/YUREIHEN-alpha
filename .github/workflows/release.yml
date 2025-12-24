@@ -46,6 +46,7 @@ jobs:
       with:
         files: ${{ env.ARTIFACT_NAME }}.zip
         generate_release_notes: true
+        draft: false
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
@@ -55,3 +56,4 @@ jobs:
       with:
         name: ${{ env.ARTIFACT_NAME }}
         path: ${{ env.ARTIFACT_NAME }}.zip
+        retention-days: 7
