@@ -3,6 +3,9 @@
 on:
   workflow_dispatch:
 
+env:
+  VERSION_FILE: .github/version.txt
+
 jobs:
   build:
     runs-on: windows-latest
@@ -14,6 +17,17 @@ jobs:
       uses: actions/checkout@v4
       with:
         fetch-depth: 0
+
+    - name: Get Version
+      id: version
+      shell: powershell
+      run: |
+        if (Test-Path "${{ env.VERSION_FILE }}") {
+          $version = Get-Content "${{ env.VERSION_FILE }}" -Raw
+        } else {
+          $version = "1"
+        }
+        Write-Output "number=$version" >> $env:GITHUB_OUTPUT
 
     - name: Setup MSBuild
       uses: microsoft/setup-msbuild@v2
@@ -32,16 +46,33 @@ jobs:
         Copy-Item -Path "x64/Release/*.exe" -Destination "release" -Force
         Copy-Item -Path "x64/Release/*.cso" -Destination "release" -Force
         Copy-Item -Path "x64/Release/*.dll" -Destination "release" -Force
+        Copy-Item -Path "assimp-vc143-mt.dll" -Destination "release" -Force
         Copy-Item -Path "assimp" -Destination "release" -Recurse -Force
         Copy-Item -Path "asset" -Destination "release" -Recurse -Force
         
-        Compress-Archive -Path "release/*" -DestinationPath "DX21_YUREIHEN_GAME.zip" -Force
+        Compress-Archive -Path "release/*" -DestinationPath "DX21_YUREIHEN_v${{ steps.version.outputs.number }}.zip" -Force
 
     - name: Create Release
       uses: softprops/action-gh-release@v2
       with:
-        files: DX21_YUREIHEN_GAME.zip
+        files: DX21_YUREIHEN_v${{ steps.version.outputs.number }}.zip
         generate_release_notes: true
         tag_name: Release
+        name: v${{ steps.version.outputs.number }}
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Update Version
+      shell: powershell
+      run: |
+        $version = [int]"${{ steps.version.outputs.number }}" + 1
+        New-Item -ItemType Directory -Path ".github" -Force | Out-Null
+        Set-Content -Path "${{ env.VERSION_FILE }}" -Value $version
+
+    - name: Push Version Update
+      run: |
+        git config user.name "github-actions"
+        git config user.email "github-actions@github.com"
+        git add .github/version.txt
+        git commit -m "bump version to v${{ steps.version.outputs.number }}"
+        git push
