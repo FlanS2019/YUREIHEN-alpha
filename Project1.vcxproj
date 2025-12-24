@@ -240,6 +240,7 @@
     </FxCompile>
   </ItemGroup>
   <ItemGroup>
+    <None Include=".github\workflows\release.yml" />
     <None Include="convert_to_utf8bom.ps1" />
     <None Include="DirectXTex.inl" />
     <None Include="fbxexport.md" />

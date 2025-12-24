@@ -1,0 +1,61 @@
+﻿name: Build and Release DX11 Game
+
+on:
+  push:
+    tags:
+      - 'v[0-9]*'   # v1, v2, v3... みたいなタグを押したときだけ動く
+  workflow_dispatch: # ボタンクリックで手動実行
+
+env:
+  SOLUTION_PATH: 'DX21_YUREIHEN-MAIN.sln'   # 実際のsln名に合わせて変更
+  BUILD_CONFIG: Release
+  PLATFORM: x64
+  BUILD_OUT_DIR: 'x64/Release/Sample'       # VSの出力先と合わせる
+  ARTIFACT_NAME: 'DX21_YUREIHEN_GAME'
+
+jobs:
+  build:
+    runs-on: windows-latest
+    permissions:
+      contents: write   # リリース作成に必要
+
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+
+    - name: Setup MSBuild
+      uses: microsoft/setup-msbuild@v2   # MSBuildをPATHに通す
+
+    - name: Build with MSBuild
+      run: |
+        msbuild ${{ env.SOLUTION_PATH }} ^
+          /p:Configuration=${{ env.BUILD_CONFIG }} ^
+          /p:Platform=${{ env.PLATFORM }} ^
+          /m ^
+          /v:minimal
+
+    - name: Collect files (Sample folder layout)
+      run: |
+        REM リリース用フォルダ作成
+        mkdir release
+
+        REM ローカルの
+        REM C:\Users\...\x64\Sample
+        REM と同じ構成を作るために BUILD_OUT_DIR から全部コピー
+        xcopy /E /I /Y "${{ env.BUILD_OUT_DIR }}" "release"
+
+        REM 必要なら追加で個別コピー（例: 直下exeなど）
+        REM copy /Y "x64\Release\YourGame.exe" "release\"
+
+        REM ZIP化
+        powershell Compress-Archive `
+          -Path "release\*" `
+          -DestinationPath "${{ env.ARTIFACT_NAME }}.zip"
+
+    - name: Create GitHub Release
+      uses: softprops/action-gh-release@v2   # GitHub Releases 作成
+      with:
+        files: ${{ env.ARTIFACT_NAME }}.zip
+        generate_release_notes: true
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
