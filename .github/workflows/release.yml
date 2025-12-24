@@ -3,11 +3,6 @@
 on:
   workflow_dispatch:
 
-env:
-  SOLUTION_PATH: 'Project1.sln'
-  BUILD_CONFIG: Release
-  PLATFORM: x64
-
 jobs:
   build:
     runs-on: windows-latest
@@ -22,34 +17,21 @@ jobs:
       uses: microsoft/setup-msbuild@v2
 
     - name: Build with MSBuild
-      run: msbuild "${{ env.SOLUTION_PATH }}" /p:Configuration="${{ env.BUILD_CONFIG }}" /p:Platform="${{ env.PLATFORM }}" /m /v:minimal
+      run: msbuild "Project1.sln" /p:Configuration="Release" /p:Platform="x64" /m /v:minimal
 
     - name: Collect files
       shell: powershell
       run: |
-        $releaseDir = "release"
-        New-Item -ItemType Directory -Path $releaseDir -Force | Out-Null
+        New-Item -ItemType Directory -Path "release" -Force | Out-Null
         
-        # EXE
-        Copy-Item -Path "x64/Release/*.exe" -Destination $releaseDir -Force -ErrorAction SilentlyContinue
+        Copy-Item -Path "x64/Release/*.exe" -Destination "release" -Force
+        Copy-Item -Path "x64/Release/*.cso" -Destination "release" -Force
+        Copy-Item -Path "assimp" -Destination "release" -Recurse -Force
+        Copy-Item -Path "asset" -Destination "release" -Recurse -Force
         
-        # CSO（コンパイル済みシェーダー）
-        Copy-Item -Path "x64/Release/*.cso" -Destination $releaseDir -Force -ErrorAction SilentlyContinue
-        
-        # assimp フォルダ（プロジェクトルート）
-        if (Test-Path "assimp") {
-          Copy-Item -Path "assimp" -Destination $releaseDir -Recurse -Force
-        }
-        
-        # asset フォルダ（プロジェクトルート）
-        if (Test-Path "asset") {
-          Copy-Item -Path "asset" -Destination $releaseDir -Recurse -Force
-        }
-        
-        # ZIP化
-        Compress-Archive -Path "$releaseDir/*" -DestinationPath "DX21_YUREIHEN_GAME.zip" -Force
+        Compress-Archive -Path "release/*" -DestinationPath "DX21_YUREIHEN_GAME.zip" -Force
 
-    - name: Upload to GitHub Release
+    - name: Create Release
       uses: softprops/action-gh-release@v2
       with:
         files: DX21_YUREIHEN_GAME.zip
