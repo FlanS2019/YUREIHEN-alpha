@@ -33,20 +33,17 @@ jobs:
         # EXE
         Copy-Item -Path "x64/Release/*.exe" -Destination $releaseDir -Force -ErrorAction SilentlyContinue
         
-        # DLL
-        Copy-Item -Path "x64/Release/*.dll" -Destination $releaseDir -Force -ErrorAction SilentlyContinue
-        
         # CSO（コンパイル済みシェーダー）
         Copy-Item -Path "x64/Release/*.cso" -Destination $releaseDir -Force -ErrorAction SilentlyContinue
         
-        # assimp フォルダ
-        if (Test-Path "x64/Release/assimp") {
-          Copy-Item -Path "x64/Release/assimp" -Destination $releaseDir -Recurse -Force
+        # assimp フォルダ（プロジェクトルート）
+        if (Test-Path "assimp") {
+          Copy-Item -Path "assimp" -Destination $releaseDir -Recurse -Force
         }
         
-        # asset フォルダ
-        if (Test-Path "x64/Release/asset") {
-          Copy-Item -Path "x64/Release/asset" -Destination $releaseDir -Recurse -Force
+        # asset フォルダ（プロジェクトルート）
+        if (Test-Path "asset") {
+          Copy-Item -Path "asset" -Destination $releaseDir -Recurse -Force
         }
         
         # ZIP化
