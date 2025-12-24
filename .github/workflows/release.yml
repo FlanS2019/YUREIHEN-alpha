@@ -42,6 +42,5 @@ jobs:
       with:
         files: DX21_YUREIHEN_GAME.zip
         generate_release_notes: true
-        tag_name: v1
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
