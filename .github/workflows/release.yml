@@ -7,8 +7,6 @@ env:
   SOLUTION_PATH: 'Project1.sln'
   BUILD_CONFIG: Release
   PLATFORM: x64
-  BUILD_OUT_DIR: 'x64/Release/Sample'
-  ARTIFACT_NAME: 'DX21_YUREIHEN_GAME'
 
 jobs:
   build:
@@ -26,17 +24,29 @@ jobs:
     - name: Build with MSBuild
       run: msbuild "${{ env.SOLUTION_PATH }}" /p:Configuration="${{ env.BUILD_CONFIG }}" /p:Platform="${{ env.PLATFORM }}" /m /v:minimal
 
+    - name: Check build output
+      shell: powershell
+      run: |
+        Write-Host "=== x64/Release 以下のファイル構造 ==="
+        Get-ChildItem -Path "x64/Release" -Recurse | Format-Table FullName
+
     - name: Collect files
       shell: powershell
       run: |
         New-Item -ItemType Directory -Path "release" -Force
-        Copy-Item -Path "${{ env.BUILD_OUT_DIR }}\*" -Destination "release" -Recurse -Force
-        Compress-Archive -Path "release\*" -DestinationPath "${{ env.ARTIFACT_NAME }}.zip" -Force
+        
+        # x64/Release 直下の全ファイルをコピー
+        if (Test-Path "x64/Release") {
+          Copy-Item -Path "x64/Release\*" -Destination "release" -Recurse -Force -ErrorAction SilentlyContinue
+        }
+        
+        # ZIP化
+        Compress-Archive -Path "release\*" -DestinationPath "DX21_YUREIHEN_GAME.zip" -Force
 
     - name: Upload to GitHub Release
       uses: softprops/action-gh-release@v2
       with:
-        files: ${{ env.ARTIFACT_NAME }}.zip
+        files: DX21_YUREIHEN_GAME.zip
         generate_release_notes: true
         tag_name: v${{ github.run_number }}
       env:
