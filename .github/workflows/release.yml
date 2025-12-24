@@ -3,21 +3,21 @@
 on:
   push:
     tags:
-      - 'v[0-9]*'   # v1, v2, v3... みたいなタグを押したときだけ動く
-  workflow_dispatch: # ボタンクリックで手動実行
+      - 'v[0-9]*'
+  workflow_dispatch:
 
 env:
-  SOLUTION_PATH: 'Project1.sln'   # 実際のsln名
+  SOLUTION_PATH: 'Project1.sln'
   BUILD_CONFIG: Release
   PLATFORM: x64
-  BUILD_OUT_DIR: 'x64/Release/Sample'       # VSの出力先と合わせる
+  BUILD_OUT_DIR: 'x64/Release/Sample'
   ARTIFACT_NAME: 'DX21_YUREIHEN_GAME'
 
 jobs:
   build:
     runs-on: windows-latest
     permissions:
-      contents: write   # リリース作成に必要
+      contents: write
 
     steps:
     - name: Checkout
@@ -34,14 +34,14 @@ jobs:
           /m `
           /v:minimal
 
-    - name: Collect files (Sample folder layout)
+    - name: Collect files
       run: |
         mkdir release
         xcopy /E /I /Y "$env:BUILD_OUT_DIR" "release"
-        powershell Compress-Archive -Path "release\*" -DestinationPath "$env:ARTIFACT_NAME.zip"
+        Compress-Archive -Path "release\*" -DestinationPath "$env:ARTIFACT_NAME.zip" -Force
 
-    - name: Create GitHub Release
-      if: github.ref_type == 'tag'
+    - name: Create Release (tag)
+      if: startsWith(github.ref, 'refs/tags/')
       uses: softprops/action-gh-release@v2
       with:
         files: ${{ env.ARTIFACT_NAME }}.zip
@@ -49,7 +49,7 @@ jobs:
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-    - name: Upload Artifact (workflow_dispatch)
+    - name: Upload Artifact (button)
       if: github.event_name == 'workflow_dispatch'
       uses: actions/upload-artifact@v4
       with:
