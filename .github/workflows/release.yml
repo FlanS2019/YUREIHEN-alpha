@@ -26,6 +26,7 @@ jobs:
         
         Copy-Item -Path "x64/Release/*.exe" -Destination "release" -Force
         Copy-Item -Path "x64/Release/*.cso" -Destination "release" -Force
+        Copy-Item -Path "x64/Release/*.dll" -Destination "release" -Force
         Copy-Item -Path "assimp" -Destination "release" -Recurse -Force
         Copy-Item -Path "asset" -Destination "release" -Recurse -Force
         
@@ -36,6 +37,6 @@ jobs:
       with:
         files: DX21_YUREIHEN_GAME.zip
         generate_release_notes: true
-        tag_name: v${{ github.run_number }}
+        tag_name: v1
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
