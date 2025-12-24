@@ -28,10 +28,10 @@ jobs:
 
     - name: Build with MSBuild
       run: |
-        msbuild ${{ env.SOLUTION_PATH }} ^
-          /p:Configuration=${{ env.BUILD_CONFIG }} ^
-          /p:Platform=${{ env.PLATFORM }} ^
-          /m ^
+        msbuild "${{ env.SOLUTION_PATH }}" `
+          /p:Configuration="${{ env.BUILD_CONFIG }}" `
+          /p:Platform="${{ env.PLATFORM }}" `
+          /m `
           /v:minimal
 
     - name: Collect files (Sample folder layout)
