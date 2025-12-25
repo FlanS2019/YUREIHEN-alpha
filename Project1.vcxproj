@@ -194,10 +194,10 @@
     <ClInclude Include="DirectXTex.h" />
     <ClInclude Include="box.h" />
     <ClInclude Include="fade.h" />
+    <ClInclude Include="Floor1.h" />
     <ClInclude Include="furniture.h" />
     <ClInclude Include="ghost.h" />
     <ClInclude Include="keyboard.h" />
-    <ClInclude Include="levelmap.h" />
     <ClInclude Include="LoseAnim.h" />
     <ClInclude Include="main.h" />
     <ClInclude Include="model.h" />

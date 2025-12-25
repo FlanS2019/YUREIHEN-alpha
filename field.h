@@ -25,6 +25,8 @@ public:
 	FIELD_TYPE no;
 	float rotY;
 	bool isHidden;
+
+	int blockID;
 };
 
 void Field_Initialize(ID3D11Device* pDevice, ID3D11DeviceContext* pContext);
