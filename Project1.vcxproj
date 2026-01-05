@@ -165,6 +165,7 @@
     <ClCompile Include="LoseAnim.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="debugdraw.cpp" />
+    <ClCompile Include="minimap.cpp" />
     <ClCompile Include="model.cpp" />
     <ClCompile Include="mouse.cpp" />
     <ClCompile Include="game.cpp" />
@@ -200,6 +201,7 @@
     <ClInclude Include="keyboard.h" />
     <ClInclude Include="LoseAnim.h" />
     <ClInclude Include="main.h" />
+    <ClInclude Include="minimap.h" />
     <ClInclude Include="model.h" />
     <ClInclude Include="debugdraw.h" />
     <ClInclude Include="mouse.h" />
