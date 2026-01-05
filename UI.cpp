@@ -15,6 +15,7 @@ static Gauge* g_ScareGauge = nullptr;
 Sprite* g_Reticle = nullptr;
 static DWORD g_LastScoreUpdateTime = 0;
 
+static Sprite* g_FloorNumberBG = nullptr;
 static Number* g_FloorNumber = nullptr;
 static Sprite* g_FloorTextF = nullptr;
 
@@ -131,11 +132,18 @@ void UI_Initialize(void)
 	UI_ScareCombo_Initialize();
 
 	// 現在の階層表示
-	float floorPosX = CLOCK_POS_X;
-	float floorPosY = CLOCK_POS_Y + 200.0f;
+
+	g_FloorNumberBG = new Sprite(
+		{ CLOCK_POS_X, CLOCK_POS_Y + 200.0f },
+		{ 200.0f, 200.0f },
+		0.0f,
+		{ 1.0f, 1.0f, 1.0f, 1.0f },
+		BLENDSTATE_ALFA,
+		L"asset\\texture\\kanban.png"
+	);
 
 	g_FloorNumber = new Number(
-		{ floorPosX - 20.0f, floorPosY },
+		{ CLOCK_POS_X - 30.0f, CLOCK_POS_Y + 240.0f },
 		{ 60.0f, 60.0f },
 		{ 1.0f, 1.0f, 1.0f, 1.0f },
 		BLENDSTATE_ALFA,
@@ -146,7 +154,7 @@ void UI_Initialize(void)
 	g_FloorNumber->SetNumber(1);
 
 	g_FloorTextF = new Sprite(
-		{ floorPosX + 30.0f, floorPosY },
+		{ CLOCK_POS_X + 30.0f, CLOCK_POS_Y + 240.0f },
 		{ 60.0f, 60.0f },
 		0.0f,
 		{ 1.0f, 1.0f, 1.0f, 1.0f },
@@ -280,12 +288,14 @@ void UI_Update(void)
 //----------------------------
 void UI_Draw(void)
 {
-	g_Clock->Draw();
-	g_ScareGauge->Draw();
 	UI_ScareCombo_Draw();
 
+	if (g_FloorNumberBG) g_FloorNumberBG->Draw();
 	if (g_FloorNumber) g_FloorNumber->Draw();
 	if (g_FloorTextF) g_FloorTextF->Draw();
+
+	g_Clock->Draw();
+	g_ScareGauge->Draw();
 
 	// クリックガイド
 	if (g_GuideClick) g_GuideClick->Draw();
@@ -308,6 +318,7 @@ void UI_Finalize(void)
 	delete g_Reticle;
 	UI_ScareCombo_Finalize();
 
+	if (g_FloorNumberBG) { delete g_FloorNumberBG; g_FloorNumberBG = nullptr; }
 	if (g_FloorNumber) { delete g_FloorNumber; g_FloorNumber = nullptr; }
 	if (g_FloorTextF) { delete g_FloorTextF; g_FloorTextF = nullptr; }
 

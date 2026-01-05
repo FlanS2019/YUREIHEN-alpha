@@ -1,10 +1,5 @@
 ﻿#pragma once
 
-#define SCARECOMBO_MAX (5)
-#define SCARECOMBO_OVER_TIME (5000)// ミリ秒
-#define SCARECOMBO_BAR_SIZE_X (140.0f)
-#define SCARECOMBO_BAR_POS_X (SCREEN_WIDTH - 200.0f)
-
 // 恐怖コンボの初期化
 void UI_ScareCombo_Initialize(void);
 
