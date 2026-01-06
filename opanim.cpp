@@ -85,17 +85,23 @@ static bool g_yureiFlipActive = false;
 static float g_yureiFlipTimer = 0.0f;
 static const float g_yureiFlipDuration = 0.5f; // 秒だけ右向きにする
 
+// --- フリップ解除後の待機と右方向移動制御 ---
+static bool g_yureiWaitingAfterFlip = false;
+static float g_yureiWaitTimer = 0.0f;
+static const float g_yureiWaitDuration = 1.0f;	// フリップ解除後の待機時間
+static const float g_yureiLeftMoveSpeed = -120.0f;	// 右方向移動速度
+
+// --- フリップ時に開始するフェードアウト制御（新規） ---
+static bool g_yureiFadeOnFlip = false;
+static float g_yureiFadeOnFlipTimer = 0.0f;
+static float g_yureiAlphaBeforeFadeOnFlip = 1.0f;
+static const float g_yureiFadeOnFlipDuration = 1.5f; // フリップ直後にフェードアウトする時間（秒）
+
 //タイムライン
 static float g_elapsedTime = 0.0f;
 static bool g_fadeStarted = false;
 static bool g_waitStarted = false;
 static float g_waitTimer = 0.0f;
-
-// --- 幽霊フリップ解除後の待機と右方向移動制御 ---
-static bool g_yureiWaitingAfterFlip = false;
-static float g_yureiWaitTimer = 0.0f;
-static const float g_yureiWaitDuration = 1.0f;	// フリップ解除後の待機時間
-static const float g_yureiLeftMoveSpeed = -120.0f;	// 右方向移動速度
 
 //font and sprite
 static TextSprite* g_pTestText = nullptr;
@@ -385,9 +391,9 @@ void OpAnim_Update()
 			// 右向き終了＆待機終了後のみ移動
 			g_yureiPos.x += g_yureiLeftMoveSpeed * delta;
 		}
-		// 幽霊フェードアウト（館へ入る）
+		// 幽霊フェードアウト（館へ入る） -- 既存のフェードは、フリップ起点のフェードが有効な場合は適用しない
 		float fadeOutTime = 5.0f;
-		if (g_yureiTimer > fadeOutTime)
+		if (g_yureiTimer > fadeOutTime && !g_yureiFadeOnFlip)
 		{
 			float outRatio = (g_yureiTimer - fadeOutTime) / 0.5f;
 			if (outRatio > 1.0f) outRatio = 1.0f;
@@ -405,6 +411,14 @@ void OpAnim_Update()
 			// フリップ解除直後、待機フェーズを開始
 			g_yureiWaitingAfterFlip = true;
 			g_yureiWaitTimer = 0.0f;
+
+			// --- フリップ解除（最後に右向きになった）タイミングでフェードアウトを開始 ---
+			if (!g_yureiFadeOnFlip)
+			{
+				g_yureiFadeOnFlip = true;
+				g_yureiFadeOnFlipTimer = 0.0f;
+				g_yureiAlphaBeforeFadeOnFlip = g_yureiAlpha;
+			}
 		}
 	}
 
@@ -416,6 +430,21 @@ void OpAnim_Update()
 		{
 			g_yureiWaitingAfterFlip = false;
 		}
+	}
+
+	// --- フリップ起点のフェード処理（有効時） ---
+	if (g_yureiFadeOnFlip)
+	{
+		g_yureiFadeOnFlipTimer += delta;
+		float t = g_yureiFadeOnFlipTimer / g_yureiFadeOnFlipDuration;
+		if (t >= 1.0f)
+		{
+			t = 1.0f;
+			g_yureiFadeOnFlip = false; // フェード完了でフラグクリア
+		}
+		// 初期アルファに対して線形で減衰
+		g_yureiAlpha = g_yureiAlphaBeforeFadeOnFlip * (1.0f - t);
+		if (g_yureiAlpha < 0.0f) g_yureiAlpha = 0.0f;
 	}
 
 	// --- フェードアウトと次シーン遷移 ---
