@@ -109,7 +109,7 @@ void Field_Initialize(ID3D11Device* pDevice, ID3D11DeviceContext* pContext)
 	g_TextureBox = LoadTexture(L"asset\\texture\\grass.png");
 	g_TextureStairs = LoadTexture(L"asset\\texture\\wood.png");
 
-	g_CurrentFloor = 2; // 3階スタート
+	g_CurrentFloor = 0; // 3階スタート
 	LoadMapData(g_CurrentFloor);
 
 	if (!g_MapList.empty()) {
