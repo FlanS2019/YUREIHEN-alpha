@@ -58,11 +58,12 @@ void Title_Initialize(ID3D11Device* pDevice, ID3D11DeviceContext* pContext)
 
 void Title_Update(void)
 {
-	if (Keyboard_IsKeyDown(KK_P))
+	// Debug: Wキーで勝利アニメーションへ直接遷移（タイトル上でのデバッグ用）
+	if (Keyboard_IsKeyDown(KK_W))
 	{
-		SetScene(SCENE_ANM_WIN);// Debug用にロゴアニメーションへ直接飛ぶ
+		SetScene(SCENE_ANM_WIN);// Debug用に勝利アニメーションへ直接飛ぶ
+		return;
 	}
-
 	if (Keyboard_IsKeyDown(KK_L))
 	{
 		SetScene(SCENE_ANM_LOSE);// Debug用にロゴアニメーションへ直接飛ぶ
