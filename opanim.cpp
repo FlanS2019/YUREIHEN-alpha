@@ -97,6 +97,9 @@ static float g_yureiFadeOnFlipTimer = 0.0f;
 static float g_yureiAlphaBeforeFadeOnFlip = 1.0f;
 static const float g_yureiFadeOnFlipDuration = 1.5f; // フリップ直後にフェードアウトする時間（秒）
 
+// --- 幽霊が完全に消えたことを示すフラグ（追加） ---
+static bool g_yureiRemoved = false;
+
 //タイムライン
 static float g_elapsedTime = 0.0f;
 static bool g_fadeStarted = false;
@@ -168,10 +171,10 @@ static ID3D11ShaderResourceView* LoadTextureOrFallback(const wchar_t* path, uint
 	if (tex) return tex;
 
 	// LoadTexture に失敗した場合は単色テクスチャを作成して返す
-	if (!g_SolidTex)
-	{
-		g_SolidTex = CreateSolidSRV(g_pDevice, fallbackRGBA);
-	}
+		if (!g_SolidTex)
+		{
+			g_SolidTex = CreateSolidSRV(g_pDevice, fallbackRGBA);
+		}
 	// 複数のフォールバックを同一 SRV で共有して OK
 	return g_SolidTex;
 }
@@ -206,18 +209,6 @@ void OpAnim_Initialize(ID3D11Device* pDevice, ID3D11DeviceContext* pContext)
 	// フォント読み込み（KaiseiDecol-Medium.ttf、32ピクセル）
 	g_pTestFont = TextSprite_LoadFont("asset/font/KaiseiDecol-Medium.ttf", 64.0f, 512);
 
-	//if (g_pTestFont) {
-	//	g_pTestText = new TextSprite(
-	//		{ SCREEN_WIDTH / 2.0f, SCREEN_HEIGHT * 0.85f },	//位置
-	//		{ 1.0f, 1.0f },									//スケール
-	//		0.0f,											//回転（度）
-	//		{ 1.0f, 1.0f, 0.0f, 1.0f },						//RGBA
-	//		BLENDSTATE_ALFA,								//BlendState
-	//		L"nanda?nankakitawooo",							//テキスト
-	//		g_pTestFont
-	//	);
-	//}
-
 	// 屋敷初期化
 	g_yakataPos.x = SCREEN_CENTER_X - 400.0f;
 	g_yakataPos.y = SCREEN_CENTER_Y + 120.0f;
@@ -242,6 +233,14 @@ void OpAnim_Initialize(ID3D11Device* pDevice, ID3D11DeviceContext* pContext)
 	// 稲妻初期化
 	g_inazumaNextTrigger = 0.5f + Rand01() * 1.5f;
 	g_inazumaActive = false;
+
+	// 幽霊ステータス初期化（追加）
+	g_yureiAlpha = 0.0f;
+	g_yureiTimer = 0.0f;
+	g_yureiReacting = false;
+	g_yureiFlipActive = false;
+	g_yureiFadeOnFlip = false;
+	g_yureiRemoved = false;
 
 	g_yakataInitialized = true;
 }
@@ -373,7 +372,8 @@ void OpAnim_Update()
 	g_yureiCurrentPos = g_yureiPos;
 	g_yureiCurrentPos.y += sinf(g_elapsedTime * 4.5f) * 8.0f;	// 幽霊フェードイン（時間経過で自然に出現）
 
-	if (g_elapsedTime >= g_yureiAppearTime)
+	// 出現フェードは幽霊が"完全に消えていない場合"のみ適用する（消えた後に再出現しないように）
+	if (!g_yureiRemoved && g_elapsedTime >= g_yureiAppearTime)
 	{
 		float fadeTime = g_elapsedTime - g_yureiAppearTime;
 		g_yureiAlpha = fadeTime / g_yureiFadeDuration;
@@ -398,6 +398,13 @@ void OpAnim_Update()
 			float outRatio = (g_yureiTimer - fadeOutTime) / 0.5f;
 			if (outRatio > 1.0f) outRatio = 1.0f;
 			g_yureiAlpha *= (1.0f - outRatio);
+
+			// 微小値は切り捨てて明示的にゼロにする（完全に消えたらフラグを立てる）
+			if (g_yureiAlpha < 0.01f) {
+				g_yureiAlpha = 0.0f;
+				g_yureiReacting = false;
+				g_yureiRemoved = true; // 完全に消えた
+			}
 		}
 	}
 	// 幽霊のフリップタイマー更新（右向きにする短い時間の管理）
@@ -440,11 +447,23 @@ void OpAnim_Update()
 		if (t >= 1.0f)
 		{
 			t = 1.0f;
+			// フェード完了時に明示的にアルファを 0 にしてフラグをクリア
+			g_yureiAlpha = 0.0f;
 			g_yureiFadeOnFlip = false; // フェード完了でフラグクリア
+			// 描画や反応フラグも解除しておく（必要に応じて）
+			g_yureiReacting = false;
+			g_yureiWaitingAfterFlip = false;
+			g_yureiFlipActive = false;
+			g_yureiRemoved = true; // 完全に消えた
 		}
-		// 初期アルファに対して線形で減衰
-		g_yureiAlpha = g_yureiAlphaBeforeFadeOnFlip * (1.0f - t);
-		if (g_yureiAlpha < 0.0f) g_yureiAlpha = 0.0f;
+		else
+		{
+			// 初期アルファに対して線形で減衰
+			g_yureiAlpha = g_yureiAlphaBeforeFadeOnFlip * (1.0f - t);
+			if (g_yureiAlpha < 0.0f) g_yureiAlpha = 0.0f;
+			// 微小値は切り捨てる
+			if (g_yureiAlpha < 0.01f) g_yureiAlpha = 0.0f;
+		}
 	}
 
 	// --- フェードアウトと次シーン遷移 ---
@@ -504,7 +523,8 @@ void OpAnimDraw(void)
 	}
 
 	// 幽霊（右向きにする短時間を反映）
-	if (g_TexYurei && g_yureiAlpha > 0.0f)
+	// 注意: 微小アルファは無視するため閾値を設け、かつ完全に削除された場合は描画しない
+	if (g_TexYurei && !g_yureiRemoved && g_yureiAlpha > 0.01f)
 	{
 		g_pContext->PSSetShaderResources(0, 1, &g_TexYurei);
 		FLIPTYPE2D flipType = FLIPTYPE2D::FLIPTYPE2D_NONE;
@@ -518,7 +538,8 @@ void OpAnimDraw(void)
 	}
 
 	// bikkuri2 画像（幽霊が右を向いた瞬間に表示）
-	if (g_TexBikkuri && g_yureiFlipActive && g_yureiAlpha > 0.0f)
+	// こちらも微小アルファ／削除済みは表示しない
+	if (g_TexBikkuri && !g_yureiRemoved && g_yureiFlipActive && g_yureiAlpha > 0.01f)
 	{
 		XMFLOAT2 bikkuriPos = { g_yureiCurrentPos.x + g_bikkuriOffset.x, g_yureiCurrentPos.y + g_bikkuriOffset.y };
 		Sprite_Single_Draw(bikkuriPos, g_bikkuriSize, 0.0f,
