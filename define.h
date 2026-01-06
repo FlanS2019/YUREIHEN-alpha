@@ -38,5 +38,11 @@
 #define GHOST_MAX_SPEED (0.10f)
 #define FLOOR_COOLDOWN_TIME (2.0f) // 階層移動のクールダウン時間（秒）
 
-
 #define GHOST_POS_Y (1.0f)
+
+//=== Minimap 関連定数 ===
+
+#define MINIMAP_POS_X   (100.0f) 
+#define MINIMAP_POS_Y   (500.0f) 
+#define BLOCK_SIZE      (10.0f)  
+#define VIEW_RANGE      (8) 

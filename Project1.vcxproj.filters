@@ -37,6 +37,7 @@
     <ClCompile Include="UI.cpp" />
     <ClCompile Include="UI_scarecombo.cpp" />
     <ClCompile Include="WinAnim.cpp" />
+    <ClCompile Include="minimap.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="animation.h" />
@@ -75,6 +76,8 @@
     <ClInclude Include="UI.h" />
     <ClInclude Include="UI_scarecombo.h" />
     <ClInclude Include="WinAnim.h" />
+    <ClInclude Include="Floor1.h" />
+    <ClInclude Include="minimap.h" />
   </ItemGroup>
   <ItemGroup>
     <Library Include="DirectXTex_Debug.lib" />
@@ -84,8 +87,6 @@
     <None Include="convert_to_utf8bom.ps1" />
     <None Include="DirectXTex.inl" />
     <None Include="fbxexport.md" />
-    <None Include="MODEL_CPP_IMPROVEMENTS.md" />
-    <None Include="MODEL_RENDER_CHECKLIST.md" />
     <None Include=".github\workflows\release.yml" />
   </ItemGroup>
 </Project>

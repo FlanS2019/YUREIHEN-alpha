@@ -166,6 +166,7 @@
     <ClCompile Include="LoseAnim.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="debugdraw.cpp" />
+    <ClCompile Include="minimap.cpp" />
     <ClCompile Include="model.cpp" />
     <ClCompile Include="mouse.cpp" />
     <ClCompile Include="game.cpp" />
@@ -194,13 +195,14 @@
     <ClInclude Include="DirectXTex.h" />
     <ClInclude Include="box.h" />
     <ClInclude Include="fade.h" />
+    <ClInclude Include="Floor1.h" />
     <ClInclude Include="font.h" />
     <ClInclude Include="furniture.h" />
     <ClInclude Include="ghost.h" />
     <ClInclude Include="keyboard.h" />
-    <ClInclude Include="levelmap.h" />
     <ClInclude Include="LoseAnim.h" />
     <ClInclude Include="main.h" />
+    <ClInclude Include="minimap.h" />
     <ClInclude Include="model.h" />
     <ClInclude Include="debugdraw.h" />
     <ClInclude Include="mouse.h" />
