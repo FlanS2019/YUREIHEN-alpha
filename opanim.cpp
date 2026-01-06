@@ -7,9 +7,9 @@
 #include "Sprite.h"
 #include "Keyboard.h"
 #include "direct3d.h"
+#include "sound.h"
 #include "texture.h"
 #include "scene.h"
-#include "TextSprite.h"//test
 #include <DirectXMath.h>
 #include <cmath>
 #include <d3d11.h>
@@ -20,7 +20,7 @@ using namespace DirectX;
 
 // テクスチャ
 static ID3D11ShaderResourceView* g_TexKuromurasaki = nullptr;	// 黒紫（背景）
-static ID3D11ShaderResourceView* g_TexBikkuri = nullptr;	// 黒紫（背景）
+static ID3D11ShaderResourceView* g_TexBikkuri = nullptr;	// ビックリ画像
 static ID3D11ShaderResourceView* g_TexYakata = nullptr;		// 屋敷
 static ID3D11ShaderResourceView* g_TexBasuta = nullptr;		// バスター
 static ID3D11ShaderResourceView* g_TexYurei = nullptr;		// 幽霊
@@ -29,7 +29,6 @@ static ID3D11ShaderResourceView* g_SolidTex = nullptr;		// 単色テクスチャ
 
 static ID3D11Device* g_pDevice = nullptr;
 static ID3D11DeviceContext* g_pContext = nullptr;
-static Light* g_pOpLight = nullptr;
 
 //基本パラメータ
 static const XMFLOAT2 g_baseSize = { 500.0f, 500.0f };
@@ -38,6 +37,17 @@ static const float SCREEN_CENTER_Y = SCREEN_HEIGHT / 2.0f;
 
 //幽霊のみ別サイズ
 static const XMFLOAT2 g_yureiSize = { 280.0f, 280.0f };
+
+// 幽霊最初の拡大表示（開始からこの秒数だけ縮小して通常サイズへ戻す）
+static const float g_yureiInitialEnlargeDuration = 4.0f;
+static const float g_yureiInitialStartScale = 1.6f;
+
+// 画面ズーム（幽霊を焦点にするカメラ）
+static bool g_cameraZoomActive = false;
+static float g_cameraTimer = 0.0f;
+static const float g_cameraDuration = 4.0f;			// 幽霊出現からのズーム持続時間
+static const float g_cameraStartScale = 1.0f;
+static const float g_cameraTargetScale = 1.4f;		// 画面を何倍に拡大するか
 
 //bikkuri2のサイズ
 static const XMFLOAT2 g_bikkuriSize = { 100.0f, 100.0f };
@@ -97,10 +107,7 @@ static float g_yureiWaitTimer = 0.0f;
 static const float g_yureiWaitDuration = 1.0f;	// フリップ解除後の待機時間
 static const float g_yureiLeftMoveSpeed = -120.0f;	// 右方向移動速度
 
-//font and sprite
-static TextSprite* g_pTestText = nullptr;
-static FontData* g_pTestFont = nullptr;
-
+static SoundData* g_pBGM = nullptr;
 //ランダム関数
 static float Rand01()
 {
@@ -170,19 +177,11 @@ static ID3D11ShaderResourceView* LoadTextureOrFallback(const wchar_t* path, uint
 
 void OpAnim_Initialize(ID3D11Device* pDevice, ID3D11DeviceContext* pContext)
 {
-	// 実行フレームレート（描画は Sprite 側で行われるため 60 に安定させる）
+	// 実行フレームレート
 	SetFPS(40);
 
 	g_pDevice = pDevice ? pDevice : Direct3D_GetDevice();
 	g_pContext = pContext ? pContext : Direct3D_GetDeviceContext();
-
-	// OP用ライト初期化（ライト計算を無効にして環境光のみ）
-	g_pOpLight = new Light(
-		FALSE,
-		XMFLOAT4(0.0f, -1.0f, 0.0f, 0.0f),
-		XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f),
-		XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f)
-	);
 
 	// 単色フォールバック用の白色（RGBA）
 	uint32_t white = (255u) | (255u << 8) | (255u << 16) | (255u << 24);
@@ -194,24 +193,11 @@ void OpAnim_Initialize(ID3D11Device* pDevice, ID3D11DeviceContext* pContext)
 	g_TexInazuma = LoadTextureOrFallback(L"asset\\yureihen\\inazuma2.png", white);
 	g_TexKuromurasaki = LoadTextureOrFallback(L"asset\\yureihen\\Alpha_Tex\\kuromurasaki.png", white);
 	g_TexBikkuri = LoadTextureOrFallback(L"asset\\yureihen\\Alpha_Tex\\bikkuri2.png", white);
-
-
-	// TextSprite初期化
-	TextSprite_Initialize();
-	// フォント読み込み（KaiseiDecol-Medium.ttf、32ピクセル）
-	g_pTestFont = TextSprite_LoadFont("asset/font/KaiseiDecol-Medium.ttf", 64.0f, 512);
-
-	//if (g_pTestFont) {
-	//	g_pTestText = new TextSprite(
-	//		{ SCREEN_WIDTH / 2.0f, SCREEN_HEIGHT * 0.85f },	//位置
-	//		{ 1.0f, 1.0f },									//スケール
-	//		0.0f,											//回転（度）
-	//		{ 1.0f, 1.0f, 0.0f, 1.0f },						//RGBA
-	//		BLENDSTATE_ALFA,								//BlendState
-	//		L"nanda?nankakitawooo",							//テキスト
-	//		g_pTestFont
-	//	);
-	//}
+	// サウンド再生
+	g_pBGM = LoadMP3("asset/sound/bgm/HauntedHalloween.mp3");
+	if (g_pBGM) {
+		PlaySound(g_pBGM, true);
+	}
 
 	// 屋敷初期化
 	g_yakataPos.x = SCREEN_CENTER_X - 400.0f;
@@ -251,30 +237,24 @@ void OpAnim_Finalize(void)
 
 	// g_SolidTex は共有で作成しているため、ここで解放しておく
 	if (g_SolidTex) { g_SolidTex->Release(); g_SolidTex = nullptr; }
-	
-	if (g_pTestText)
-	{
-		delete g_pTestText;
-		g_pTestText = nullptr;
-	}
-
-	if (g_pOpLight)
-	{
-		delete g_pOpLight;
-		g_pOpLight = nullptr;
-	}
-
-	TextSprite_Finalize();
 
 	g_pDevice = nullptr;
 	g_pContext = nullptr;
 
-	SetFPS(60);
+	// BGM解放
+	if (g_pBGM) {
+		StopSound(g_pBGM);
+		UnloadSound(g_pBGM);
+		g_pBGM = nullptr;
+	}
+
+
+	SetFPS(40);
 }
 
 void OpAnim_Update()
 {
-	// fixed delta 60fps に合わせる（Initialize で SetFPS(60) にしている）
+	// fixed delta 60fps に合わせる
 	const float delta = 1.0f / 60.0f;
 	g_elapsedTime += delta;
 
@@ -333,7 +313,6 @@ void OpAnim_Update()
 		// バスター上下揺れ
 		g_basutaCurrentPos.y += sinf(g_elapsedTime * 3.5f) * 8.0f;
 
-
 		// バスターフェードイン（時間ベース）
 		float fadeDuration = 2.0f;
 		float fadeTime = g_elapsedTime - g_basutaMoveStartTime;
@@ -343,7 +322,6 @@ void OpAnim_Update()
 	}
 
 	// --- 幽霊更新 ---
-	// バスターを見つけたら反応
 	if (!g_yureiReacting && g_elapsedTime > 3.5f)
 	{
 		float dx = g_basutaCurrentPos.x - g_yureiPos.x;
@@ -364,15 +342,23 @@ void OpAnim_Update()
 			}
 		}
 	}
-	// 幽霊の上下揺れ（毎フレーム g_yureiCurrentPos を初期化してから揺れを加算）
+
+	// 幽霊の上下揺れ
 	g_yureiCurrentPos = g_yureiPos;
-	g_yureiCurrentPos.y += sinf(g_elapsedTime * 4.5f) * 8.0f;	// 幽霊フェードイン（時間経過で自然に出現）
+	g_yureiCurrentPos.y += sinf(g_elapsedTime * 4.5f) * 8.0f;
 
 	if (g_elapsedTime >= g_yureiAppearTime)
 	{
 		float fadeTime = g_elapsedTime - g_yureiAppearTime;
 		g_yureiAlpha = fadeTime / g_yureiFadeDuration;
 		if (g_yureiAlpha > 1.0f) g_yureiAlpha = 1.0f;
+
+		// 幽霊出現時にカメラズームを開始（1度だけ）
+		if (!g_cameraZoomActive && g_cameraTimer == 0.0f)
+		{
+			g_cameraZoomActive = true;
+			g_cameraTimer = 0.0f;
+		}
 	}
 
 	// 幽霊が館に向かって移動
@@ -383,7 +369,6 @@ void OpAnim_Update()
 		// 待機中は位置更新なし
 		if (!g_yureiWaitingAfterFlip && !g_yureiFlipActive)
 		{
-			// 右向き終了＆待機終了後のみ移動
 			g_yureiPos.x += g_yureiLeftMoveSpeed * delta;
 		}
 		// 幽霊フェードアウト（館へ入る）
@@ -395,7 +380,8 @@ void OpAnim_Update()
 			g_yureiAlpha *= (1.0f - outRatio);
 		}
 	}
-	// 幽霊のフリップタイマー更新（右向きにする短い時間の管理）
+
+	// 幽霊のフリップタイマー更新
 	if (g_yureiFlipActive)
 	{
 		g_yureiFlipTimer += delta;
@@ -403,7 +389,6 @@ void OpAnim_Update()
 		{
 			g_yureiFlipActive = false;
 			g_yureiFlipTimer = 0.0f;
-			// フリップ解除直後、待機フェーズを開始
 			g_yureiWaitingAfterFlip = true;
 			g_yureiWaitTimer = 0.0f;
 		}
@@ -416,6 +401,19 @@ void OpAnim_Update()
 		if (g_yureiWaitTimer >= g_yureiWaitDuration)
 		{
 			g_yureiWaitingAfterFlip = false;
+		}
+	}
+
+	// カメラズームのタイマー更新（幽霊出現時に開始）
+	if (g_cameraZoomActive)
+	{
+		g_cameraTimer += delta;
+		if (g_cameraTimer >= g_cameraDuration)
+		{
+			// ズーム終了（必要ならループやホールドに変更可）
+			g_cameraZoomActive = false;
+			// タイマーを固定しておくと後で参照可能
+			g_cameraTimer = g_cameraDuration;
 		}
 	}
 
@@ -446,11 +444,37 @@ void OpAnimDraw(void)
 	const float screenWidth = (float)Direct3D_GetBackBufferWidth();
 	const float screenHeight = (float)Direct3D_GetBackBufferHeight();
 
-	// ライト設定（OP用）
-	Shader_SetLight(g_pOpLight);
+	// カメラ（投影行列）を幽霊にフォーカスしてズームする
+	if (g_cameraZoomActive)
+	{
+		// スケール（イージング）
+		float t = g_cameraTimer / g_cameraDuration;
+		if (t < 0.0f) t = 0.0f;
+		if (t > 1.0f) t = 1.0f;
+		float eased = EaseOutCubic(t);
+		float scale = g_cameraStartScale + (g_cameraTargetScale - g_cameraStartScale) * eased;
 
-	// 直交投影を毎フレーム設定（Sprite 内でも設定されるが、ここでも統一しておく）
-	Shader_SetMatrix(XMMatrixOrthographicOffCenterLH(0.0f, screenWidth, screenHeight, 0.0f, 0.0f, 1.0f));
+		// ズーム時の表示領域（スケールにより小さくなる）
+		float viewW = screenWidth / scale;
+		float viewH = screenHeight / scale;
+
+		// 中心は幽霊の現在スクリーン座標（スプライト座標系と同じ想定）
+		float centerX = g_yureiCurrentPos.x;
+		float centerY = g_yureiCurrentPos.y;
+
+		float left = centerX - viewW * 0.5f;
+		float right = centerX + viewW * 0.5f;
+		float top = centerY - viewH * 0.5f;
+		float bottom = centerY + viewH * 0.5f;
+
+		Shader_SetMatrix(XMMatrixOrthographicOffCenterLH(left, right, bottom, top, 0.0f, 1.0f));
+	}
+	else
+	{
+		// 通常（画面全体）
+		Shader_SetMatrix(XMMatrixOrthographicOffCenterLH(0.0f, screenWidth, screenHeight, 0.0f, 0.0f, 1.0f));
+	}
+
 	SetBlendState(BLENDSTATE_ALFA);
 
 	// 背景（黒紫）
@@ -460,6 +484,24 @@ void OpAnimDraw(void)
 		Sprite_Single_Draw(XMFLOAT2{ screenWidth * 0.5f, screenHeight * 0.5f },
 			XMFLOAT2{ screenWidth, screenHeight }, 0.0f,
 			XMFLOAT4{ 1.0f, 1.0f, 1.0f, 1.0f }, BLENDSTATE_ALFA, g_TexKuromurasaki);
+	}
+
+	// 稲妻（オーバーレイ）
+	if (g_TexInazuma)
+	{
+		SetBlendState(BLENDSTATE_ADD);
+		g_pContext->PSSetShaderResources(0, 1, &g_TexInazuma);
+
+		float baseAlpha = 0.5f;
+		float flashBoost = g_inazumaFlashAlpha * 0.9f;
+		float inazumaAlpha = baseAlpha + flashBoost;
+		if (inazumaAlpha > 1.5f) inazumaAlpha = 1.5f;
+
+		Sprite_Single_Draw(XMFLOAT2{ screenWidth * 0.5f, screenHeight * 0.5f },
+			XMFLOAT2{ screenWidth, screenHeight }, 0.0f,
+			XMFLOAT4{ 0.95f, 0.95f, 1.0f, inazumaAlpha }, BLENDSTATE_ADD, g_TexInazuma);
+
+		SetBlendState(BLENDSTATE_ALFA);
 	}
 
 	// 屋敷
@@ -478,52 +520,38 @@ void OpAnimDraw(void)
 			XMFLOAT4{ 1.0f, 1.0f, 1.0f, g_basutaAlpha }, BLENDSTATE_ALFA, g_TexBasuta);
 	}
 
-	// 幽霊（右向きにする短時間を反映）
+	// 幽霊（右向きフリップを反映）
 	if (g_TexYurei && g_yureiAlpha > 0.0f)
 	{
+		// 出現（g_yureiAppearTime）からの経過で拡大→通常サイズへ戻す（スプライト固有の拡大）
+		float yureiScale = 1.0f;
+		float timeSinceAppear = g_elapsedTime - g_yureiAppearTime;
+		if (timeSinceAppear < 0.0f) timeSinceAppear = 0.0f;
+		if (timeSinceAppear < g_yureiInitialEnlargeDuration)
+		{
+			float t = timeSinceAppear / g_yureiInitialEnlargeDuration;
+			if (t < 0.0f) t = 0.0f;
+			if (t > 1.0f) t = 1.0f;
+			float eased = EaseOutCubic(t);
+			// eased==0 -> start scale, eased==1 -> normal scale(1.0f)
+			yureiScale = 1.0f + (g_yureiInitialStartScale - 1.0f) * (1.0f - eased);
+		}
+		XMFLOAT2 yureiDrawSize = { g_yureiSize.x * yureiScale, g_yureiSize.y * yureiScale };
+
 		g_pContext->PSSetShaderResources(0, 1, &g_TexYurei);
 		FLIPTYPE2D flipType = FLIPTYPE2D::FLIPTYPE2D_NONE;
-		if (g_yureiFlipActive) {
-			// 一瞬だけ左右反転して右向きに見せる
-			flipType = FLIPTYPE2D::FLIPTYPE2D_HORIZONTAL;
-		}
-		// g_yureiPos を g_yureiCurrentPos に変更
-		Sprite_Single_Draw(g_yureiCurrentPos, g_yureiSize, 0.0f,
+		if (g_yureiFlipActive) flipType = FLIPTYPE2D::FLIPTYPE2D_HORIZONTAL;
+		Sprite_Single_Draw(g_yureiCurrentPos, yureiDrawSize, 0.0f,
 			XMFLOAT4{ 1.0f, 1.0f, 1.0f, g_yureiAlpha }, BLENDSTATE_ALFA, g_TexYurei, flipType);
 	}
 
-	// bikkuri2 画像（幽霊が右を向いた瞬間に表示）
+	// bikkuri（幽霊が右を向いた瞬間に表示）
+	// 幽霊が左向きになった瞬間に消すため、表示条件は g_yureiFlipActive のみに変更
 	if (g_TexBikkuri && g_yureiFlipActive && g_yureiAlpha > 0.0f)
 	{
 		XMFLOAT2 bikkuriPos = { g_yureiCurrentPos.x + g_bikkuriOffset.x, g_yureiCurrentPos.y + g_bikkuriOffset.y };
+		g_pContext->PSSetShaderResources(0, 1, &g_TexBikkuri);
 		Sprite_Single_Draw(bikkuriPos, g_bikkuriSize, 0.0f,
 			XMFLOAT4{ 1.0f, 1.0f, 1.0f, g_yureiAlpha }, BLENDSTATE_ALFA, g_TexBikkuri);
-	}
-	// 稲妻（画面中央付近に表示、フラッシュ時は加算で明るく）
-	if (g_TexInazuma)
-	{
-		SetBlendState(BLENDSTATE_ADD);
-		g_pContext->PSSetShaderResources(0, 1, &g_TexInazuma);
-
-		float xPos = screenWidth * 0.5f;
-		float yPos = screenHeight * 0.5f;
-
-		// 若干の揺れ
-		float wobbleY = 0;
-		float baseAlpha = 0.5f;
-		float flashBoost = g_inazumaFlashAlpha * 0.9f;
-		float inazumaAlpha = baseAlpha + flashBoost;
-		if (inazumaAlpha > 1.5f) inazumaAlpha = 1.5f;
-
-		Sprite_Single_Draw(XMFLOAT2{ xPos, yPos + wobbleY }, g_inazumaSize, 0.0f,
-			XMFLOAT4{ 0.95f, 0.95f, 1.0f, inazumaAlpha }, BLENDSTATE_ADD, g_TexInazuma);
-
-		// ブレンドを戻す
-		SetBlendState(BLENDSTATE_ALFA);
-	}
-	// テキスト描画
-	if (g_pTestText)
-	{
-		g_pTestText->Draw();
 	}
 }
