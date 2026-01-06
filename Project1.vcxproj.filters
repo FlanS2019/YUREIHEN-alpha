@@ -55,6 +55,7 @@
     <ClInclude Include="furniture.h" />
     <ClInclude Include="ghost.h" />
     <ClInclude Include="keyboard.h" />
+    <ClInclude Include="levelmap.h" />
     <ClInclude Include="LoseAnim.h" />
     <ClInclude Include="main.h" />
     <ClInclude Include="model.h" />
@@ -86,9 +87,6 @@
     <None Include="convert_to_utf8bom.ps1" />
     <None Include="DirectXTex.inl" />
     <None Include="fbxexport.md" />
-    <None Include="fix_directxtk_runtime.ps1" />
-    <None Include="fix_runtime_library.ps1" />
-    <None Include="MODEL_CPP_IMPROVEMENTS.md" />
-    <None Include="MODEL_RENDER_CHECKLIST.md" />
+    <None Include=".github\workflows\release.yml" />
   </ItemGroup>
 </Project>
