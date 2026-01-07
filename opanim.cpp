@@ -9,6 +9,7 @@
 #include "direct3d.h"
 #include "texture.h"
 #include "scene.h"
+#include "sound.h"
 #include <DirectXMath.h>
 #include <cmath>
 #include <d3d11.h>
@@ -28,7 +29,6 @@ static ID3D11ShaderResourceView* g_SolidTex = nullptr;		// 単色テクスチャ
 
 static ID3D11Device* g_pDevice = nullptr;
 static ID3D11DeviceContext* g_pContext = nullptr;
-static Light* g_pOpLight = nullptr;
 
 //基本パラメータ
 static const XMFLOAT2 g_baseSize = { 500.0f, 500.0f };
@@ -84,12 +84,29 @@ static bool g_yureiFlipActive = false;
 static float g_yureiFlipTimer = 0.0f;
 static const float g_yureiFlipDuration = 0.5f; // 秒だけ右向きにする
 
+// --- フリップ解除後の待機と右方向移動制御 ---
+static bool g_yureiWaitingAfterFlip = false;
+static float g_yureiWaitTimer = 0.0f;
+static const float g_yureiWaitDuration = 1.0f;	// フリップ解除後の待機時間
+static const float g_yureiLeftMoveSpeed = -120.0f;	// 右方向移動速度
+
+// --- フリップ時に開始するフェードアウト制御（新規） ---
+static bool g_yureiFadeOnFlip = false;
+static float g_yureiFadeOnFlipTimer = 0.0f;
+static float g_yureiAlphaBeforeFadeOnFlip = 1.0f;
+static const float g_yureiFadeOnFlipDuration = 1.5f; // フリップ直後にフェードアウトする時間（秒）
+
+// --- 幽霊が完全に消えたことを示すフラグ（追加） ---
+static bool g_yureiRemoved = false;
+
 //タイムライン
 static float g_elapsedTime = 0.0f;
 static bool g_fadeStarted = false;
 static bool g_waitStarted = false;
 static float g_waitTimer = 0.0f;
 
+//sound
+static SoundData* g_pBGM = nullptr;
 // --- 幽霊フリップ解除後の待機と右方向移動制御 ---
 static bool g_yureiWaitingAfterFlip = false;
 static float g_yureiWaitTimer = 0.0f;
@@ -155,10 +172,10 @@ static ID3D11ShaderResourceView* LoadTextureOrFallback(const wchar_t* path, uint
 	if (tex) return tex;
 
 	// LoadTexture に失敗した場合は単色テクスチャを作成して返す
-	if (!g_SolidTex)
-	{
-		g_SolidTex = CreateSolidSRV(g_pDevice, fallbackRGBA);
-	}
+		if (!g_SolidTex)
+		{
+			g_SolidTex = CreateSolidSRV(g_pDevice, fallbackRGBA);
+		}
 	// 複数のフォールバックを同一 SRV で共有して OK
 	return g_SolidTex;
 }
@@ -171,14 +188,6 @@ void OpAnim_Initialize(ID3D11Device* pDevice, ID3D11DeviceContext* pContext)
 	g_pDevice = pDevice ? pDevice : Direct3D_GetDevice();
 	g_pContext = pContext ? pContext : Direct3D_GetDeviceContext();
 
-	// OP用ライト初期化（ライト計算を無効にして環境光のみ）
-	g_pOpLight = new Light(
-		FALSE,
-		XMFLOAT4(0.0f, -1.0f, 0.0f, 0.0f),
-		XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f),
-		XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f)
-	);
-
 	// 単色フォールバック用の白色（RGBA）
 	uint32_t white = (255u) | (255u << 8) | (255u << 16) | (255u << 24);
 
@@ -190,6 +199,12 @@ void OpAnim_Initialize(ID3D11Device* pDevice, ID3D11DeviceContext* pContext)
 	g_TexKuromurasaki = LoadTextureOrFallback(L"asset\\yureihen\\Alpha_Tex\\kuromurasaki.png", white);
 	g_TexBikkuri = LoadTextureOrFallback(L"asset\\yureihen\\Alpha_Tex\\bikkuri2.png", white);
 
+	// サウンド再生
+	g_pBGM = LoadMP3("asset/sound/bgm/HauntedHalloween.mp3");
+	if (g_pBGM) {
+		PlaySound(g_pBGM, true);
+	}
+  
 	// 屋敷初期化
 	g_yakataPos.x = SCREEN_CENTER_X - 400.0f;
 	g_yakataPos.y = SCREEN_CENTER_Y + 120.0f;
@@ -215,6 +230,14 @@ void OpAnim_Initialize(ID3D11Device* pDevice, ID3D11DeviceContext* pContext)
 	g_inazumaNextTrigger = 0.5f + Rand01() * 1.5f;
 	g_inazumaActive = false;
 
+	// 幽霊ステータス初期化（追加）
+	g_yureiAlpha = 0.0f;
+	g_yureiTimer = 0.0f;
+	g_yureiReacting = false;
+	g_yureiFlipActive = false;
+	g_yureiFadeOnFlip = false;
+	g_yureiRemoved = false;
+
 	g_yakataInitialized = true;
 }
 
@@ -228,6 +251,12 @@ void OpAnim_Finalize(void)
 
 	// g_SolidTex は共有で作成しているため、ここで解放しておく
 	if (g_SolidTex) { g_SolidTex->Release(); g_SolidTex = nullptr; }
+
+	// BGM解放
+	if (g_pBGM) {
+		StopSound(g_pBGM);
+		UnloadSound(g_pBGM);
+		g_pBGM = nullptr;
 	
 
 	if (g_pOpLight)
@@ -240,7 +269,7 @@ void OpAnim_Finalize(void)
 	g_pDevice = nullptr;
 	g_pContext = nullptr;
 
-	SetFPS(60);
+	SetFPS(40);
 }
 
 void OpAnim_Update()
@@ -339,7 +368,8 @@ void OpAnim_Update()
 	g_yureiCurrentPos = g_yureiPos;
 	g_yureiCurrentPos.y += sinf(g_elapsedTime * 4.5f) * 8.0f;	// 幽霊フェードイン（時間経過で自然に出現）
 
-	if (g_elapsedTime >= g_yureiAppearTime)
+	// 出現フェードは幽霊が"完全に消えていない場合"のみ適用する（消えた後に再出現しないように）
+	if (!g_yureiRemoved && g_elapsedTime >= g_yureiAppearTime)
 	{
 		float fadeTime = g_elapsedTime - g_yureiAppearTime;
 		g_yureiAlpha = fadeTime / g_yureiFadeDuration;
@@ -357,13 +387,20 @@ void OpAnim_Update()
 			// 右向き終了＆待機終了後のみ移動
 			g_yureiPos.x += g_yureiLeftMoveSpeed * delta;
 		}
-		// 幽霊フェードアウト（館へ入る）
+		// 幽霊フェードアウト（館へ入る） -- 既存のフェードは、フリップ起点のフェードが有効な場合は適用しない
 		float fadeOutTime = 5.0f;
-		if (g_yureiTimer > fadeOutTime)
+		if (g_yureiTimer > fadeOutTime && !g_yureiFadeOnFlip)
 		{
 			float outRatio = (g_yureiTimer - fadeOutTime) / 0.5f;
 			if (outRatio > 1.0f) outRatio = 1.0f;
 			g_yureiAlpha *= (1.0f - outRatio);
+
+			// 微小値は切り捨てて明示的にゼロにする（完全に消えたらフラグを立てる）
+			if (g_yureiAlpha < 0.01f) {
+				g_yureiAlpha = 0.0f;
+				g_yureiReacting = false;
+				g_yureiRemoved = true; // 完全に消えた
+			}
 		}
 	}
 	// 幽霊のフリップタイマー更新（右向きにする短い時間の管理）
@@ -377,6 +414,14 @@ void OpAnim_Update()
 			// フリップ解除直後、待機フェーズを開始
 			g_yureiWaitingAfterFlip = true;
 			g_yureiWaitTimer = 0.0f;
+
+			// --- フリップ解除（最後に右向きになった）タイミングでフェードアウトを開始 ---
+			if (!g_yureiFadeOnFlip)
+			{
+				g_yureiFadeOnFlip = true;
+				g_yureiFadeOnFlipTimer = 0.0f;
+				g_yureiAlphaBeforeFadeOnFlip = g_yureiAlpha;
+			}
 		}
 	}
 
@@ -387,6 +432,33 @@ void OpAnim_Update()
 		if (g_yureiWaitTimer >= g_yureiWaitDuration)
 		{
 			g_yureiWaitingAfterFlip = false;
+		}
+	}
+
+	// --- フリップ起点のフェード処理（有効時） ---
+	if (g_yureiFadeOnFlip)
+	{
+		g_yureiFadeOnFlipTimer += delta;
+		float t = g_yureiFadeOnFlipTimer / g_yureiFadeOnFlipDuration;
+		if (t >= 1.0f)
+		{
+			t = 1.0f;
+			// フェード完了時に明示的にアルファを 0 にしてフラグをクリア
+			g_yureiAlpha = 0.0f;
+			g_yureiFadeOnFlip = false; // フェード完了でフラグクリア
+			// 描画や反応フラグも解除しておく（必要に応じて）
+			g_yureiReacting = false;
+			g_yureiWaitingAfterFlip = false;
+			g_yureiFlipActive = false;
+			g_yureiRemoved = true; // 完全に消えた
+		}
+		else
+		{
+			// 初期アルファに対して線形で減衰
+			g_yureiAlpha = g_yureiAlphaBeforeFadeOnFlip * (1.0f - t);
+			if (g_yureiAlpha < 0.0f) g_yureiAlpha = 0.0f;
+			// 微小値は切り捨てる
+			if (g_yureiAlpha < 0.01f) g_yureiAlpha = 0.0f;
 		}
 	}
 
@@ -416,9 +488,6 @@ void OpAnimDraw(void)
 {
 	const float screenWidth = (float)Direct3D_GetBackBufferWidth();
 	const float screenHeight = (float)Direct3D_GetBackBufferHeight();
-
-	// ライト設定（OP用）
-	Shader_SetLight(g_pOpLight);
 
 	// 直交投影を毎フレーム設定（Sprite 内でも設定されるが、ここでも統一しておく）
 	Shader_SetMatrix(XMMatrixOrthographicOffCenterLH(0.0f, screenWidth, screenHeight, 0.0f, 0.0f, 1.0f));
@@ -450,7 +519,8 @@ void OpAnimDraw(void)
 	}
 
 	// 幽霊（右向きにする短時間を反映）
-	if (g_TexYurei && g_yureiAlpha > 0.0f)
+	// 注意: 微小アルファは無視するため閾値を設け、かつ完全に削除された場合は描画しない
+	if (g_TexYurei && !g_yureiRemoved && g_yureiAlpha > 0.01f)
 	{
 		g_pContext->PSSetShaderResources(0, 1, &g_TexYurei);
 		FLIPTYPE2D flipType = FLIPTYPE2D::FLIPTYPE2D_NONE;
@@ -464,7 +534,8 @@ void OpAnimDraw(void)
 	}
 
 	// bikkuri2 画像（幽霊が右を向いた瞬間に表示）
-	if (g_TexBikkuri && g_yureiFlipActive && g_yureiAlpha > 0.0f)
+	// こちらも微小アルファ／削除済みは表示しない
+	if (g_TexBikkuri && !g_yureiRemoved && g_yureiFlipActive && g_yureiAlpha > 0.01f)
 	{
 		XMFLOAT2 bikkuriPos = { g_yureiCurrentPos.x + g_bikkuriOffset.x, g_yureiCurrentPos.y + g_bikkuriOffset.y };
 		Sprite_Single_Draw(bikkuriPos, g_bikkuriSize, 0.0f,

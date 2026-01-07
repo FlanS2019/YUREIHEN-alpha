@@ -183,8 +183,7 @@ void UI_Update(void)
 		SetScene(SCENE_ANM_LOSE);// Debug用に敗北アニメーションへ直接飛ぶ
 		return;
 
-	}
-	
+	}	
 	// 恐怖ゲージが最大なら勝利シーンへ移行（デバッグ用）///////////////////////////////////
 	if (g_ScareGauge->GetValue() >= g_ScareGauge->GetMaxValue())
 	{

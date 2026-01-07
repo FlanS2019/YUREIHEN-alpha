@@ -2,6 +2,7 @@
 #include "keyboard.h"
 #include "fade.h"
 #include "debug_ostream.h"
+#include "sound.h"
 #include "WinAnim.h"
 #include <timeapi.h>
 #pragma comment(lib, "winmm.lib")
@@ -9,7 +10,8 @@
 // グローバル変数
 static ID3D11Device* g_pDevice = NULL;
 static ID3D11DeviceContext* g_pContext = NULL;
-
+//sound
+static SoundData* g_pBGM = nullptr;
 
 //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // Win Animation (勝ちアニメーション)
@@ -26,6 +28,12 @@ void Animation_Win_Initialize(ID3D11Device* pDevice, ID3D11DeviceContext* pConte
 		BLENDSTATE_ALFA,							// BlendState
 		L"asset\\yureihen\\WinAnim\\WinAnime.png"				// テクスチャパス
 	);
+
+	// サウンド再生
+	g_pBGM = LoadMP3("asset/sound/bgm/HauntedHalloween.mp3");
+	if (g_pBGM) {
+		PlaySound(g_pBGM, true);
+	}
 }
 
 void Animation_Win_Update(void)
@@ -45,4 +53,12 @@ void Animation_Win_Draw(void)
 void Animation_Win_Finalize(void)
 {
 	delete g_WinSprite;
+
+	// BGM解放
+	if (g_pBGM) {
+		StopSound(g_pBGM);
+		UnloadSound(g_pBGM);
+		g_pBGM = nullptr;
+	}
+
 }
