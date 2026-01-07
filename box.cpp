@@ -1,10 +1,10 @@
 ﻿#include <directxmath.h>
 #include "sprite.h"
 #include "box.h"
+#include "direct3d.h"
 using namespace DirectX;
 
-
-
+// 通常の箱（テクスチャアトラス用などUVが分割されているもの）
 static Vertex3D Box_vdata[BOX_NUM_VERTEX] =
 {
 	//---------------前面--------------------------------
@@ -166,7 +166,7 @@ static Vertex3D Box_vdata[BOX_NUM_VERTEX] =
 };
 
 //1ポリゴン=3頂点*2=1面＊6面
-static UINT  Box_idxdata[6 * 6] =
+static UINT Box_idxdata[6 * 6] =
 {
 	0,1,2,2,1,3,
 	4,5,6,6,5,7,
@@ -219,4 +219,74 @@ void CreateBox(ID3D11Device* pDevice, ID3D11DeviceContext* pContext,
 		CopyMemory(&index[0], &Box_idxdata[0], sizeof(UINT) * 6 * 6);
 		pContext->Unmap(*ppIndexBuffer, 0);
 	}
+}
+
+// 1枚の画像を全面に貼るためのシンプル箱モデル作成関数
+void CreateSimpleBox(ID3D11Device* pDevice, ID3D11Buffer** ppVB, ID3D11Buffer** ppIB)
+{
+	// 1m四方の箱 (UV座標 0.0～1.0)
+	Vertex3D vertices[] = {
+		// 前面 (Z-)
+		{ { -0.5f,  0.5f, -0.5f }, { 0.0f, 0.0f, -1.0f }, { 1,1,1,1 }, { 0.0f, 0.0f } },
+		{ {  0.5f,  0.5f, -0.5f }, { 0.0f, 0.0f, -1.0f }, { 1,1,1,1 }, { 1.0f, 0.0f } },
+		{ { -0.5f, -0.5f, -0.5f }, { 0.0f, 0.0f, -1.0f }, { 1,1,1,1 }, { 0.0f, 1.0f } },
+		{ {  0.5f, -0.5f, -0.5f }, { 0.0f, 0.0f, -1.0f }, { 1,1,1,1 }, { 1.0f, 1.0f } },
+
+		// 背面 (Z+)
+		{ {  0.5f,  0.5f,  0.5f }, { 0.0f, 0.0f, 1.0f }, { 1,1,1,1 }, { 0.0f, 0.0f } },
+		{ { -0.5f,  0.5f,  0.5f }, { 0.0f, 0.0f, 1.0f }, { 1,1,1,1 }, { 1.0f, 0.0f } },
+		{ {  0.5f, -0.5f,  0.5f }, { 0.0f, 0.0f, 1.0f }, { 1,1,1,1 }, { 0.0f, 1.0f } },
+		{ { -0.5f, -0.5f,  0.5f }, { 0.0f, 0.0f, 1.0f }, { 1,1,1,1 }, { 1.0f, 1.0f } },
+
+		// 上面 (Y+)
+		{ { -0.5f,  0.5f,  0.5f }, { 0.0f, 1.0f, 0.0f }, { 1,1,1,1 }, { 0.0f, 0.0f } },
+		{ {  0.5f,  0.5f,  0.5f }, { 0.0f, 1.0f, 0.0f }, { 1,1,1,1 }, { 1.0f, 0.0f } },
+		{ { -0.5f,  0.5f, -0.5f }, { 0.0f, 1.0f, 0.0f }, { 1,1,1,1 }, { 0.0f, 1.0f } },
+		{ {  0.5f,  0.5f, -0.5f }, { 0.0f, 1.0f, 0.0f }, { 1,1,1,1 }, { 1.0f, 1.0f } },
+
+		// 下面 (Y-)
+		{ { -0.5f, -0.5f, -0.5f }, { 0.0f, -1.0f, 0.0f }, { 1,1,1,1 }, { 0.0f, 0.0f } },
+		{ {  0.5f, -0.5f, -0.5f }, { 0.0f, -1.0f, 0.0f }, { 1,1,1,1 }, { 1.0f, 0.0f } },
+		{ { -0.5f, -0.5f,  0.5f }, { 0.0f, -1.0f, 0.0f }, { 1,1,1,1 }, { 0.0f, 1.0f } },
+		{ {  0.5f, -0.5f,  0.5f }, { 0.0f, -1.0f, 0.0f }, { 1,1,1,1 }, { 1.0f, 1.0f } },
+
+		// 左面 (X-)
+		{ { -0.5f,  0.5f,  0.5f }, { -1.0f, 0.0f, 0.0f }, { 1,1,1,1 }, { 0.0f, 0.0f } },
+		{ { -0.5f,  0.5f, -0.5f }, { -1.0f, 0.0f, 0.0f }, { 1,1,1,1 }, { 1.0f, 0.0f } },
+		{ { -0.5f, -0.5f,  0.5f }, { -1.0f, 0.0f, 0.0f }, { 1,1,1,1 }, { 0.0f, 1.0f } },
+		{ { -0.5f, -0.5f, -0.5f }, { -1.0f, 0.0f, 0.0f }, { 1,1,1,1 }, { 1.0f, 1.0f } },
+
+		// 右面 (X+)
+		{ {  0.5f,  0.5f, -0.5f }, { 1.0f, 0.0f, 0.0f }, { 1,1,1,1 }, { 0.0f, 0.0f } },
+		{ {  0.5f,  0.5f,  0.5f }, { 1.0f, 0.0f, 0.0f }, { 1,1,1,1 }, { 1.0f, 0.0f } },
+		{ {  0.5f, -0.5f, -0.5f }, { 1.0f, 0.0f, 0.0f }, { 1,1,1,1 }, { 0.0f, 1.0f } },
+		{ {  0.5f, -0.5f,  0.5f }, { 1.0f, 0.0f, 0.0f }, { 1,1,1,1 }, { 1.0f, 1.0f } },
+	};
+
+	unsigned int indices[] = {
+		0, 1, 2,  2, 1, 3, // 前
+		4, 5, 6,  6, 5, 7, // 後
+		8, 9, 10, 10, 9, 11, // 上
+		12, 13, 14, 14, 13, 15, // 下
+		16, 17, 18, 18, 17, 19, // 左
+		20, 21, 22, 22, 21, 23  // 右
+	};
+
+
+	// 頂点バッファ作成
+	D3D11_BUFFER_DESC bd{};
+	bd.Usage = D3D11_USAGE_DEFAULT;
+	bd.ByteWidth = sizeof(Vertex3D) * 24; // 頂点数24
+	bd.BindFlags = D3D11_BIND_VERTEX_BUFFER;
+	bd.CPUAccessFlags = 0; // デフォルト使用なのでCPUアクセス不要
+
+	D3D11_SUBRESOURCE_DATA sd{};
+	sd.pSysMem = vertices;
+	pDevice->CreateBuffer(&bd, &sd, ppVB);
+
+	// インデックスバッファ作成
+	bd.ByteWidth = sizeof(unsigned int) * 36; // インデックス数36
+	bd.BindFlags = D3D11_BIND_INDEX_BUFFER;
+	sd.pSysMem = indices;
+	pDevice->CreateBuffer(&bd, &sd, ppIB);
 }

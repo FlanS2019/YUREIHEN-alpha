@@ -23,6 +23,7 @@ using namespace DirectX;
 #include "busters.h"
 #include "debugdraw.h"
 #include "sound.h"
+#include "minimap.h"
 
 Light* MainLight;
 Light* g_pUILight = nullptr;
@@ -57,6 +58,7 @@ void Game_Initialize(ID3D11Device* pDevice, ID3D11DeviceContext* pContext)
 	UI_Initialize();
 	Furniture_Initialize();
 	Busters_Initialize();
+	Minimap_Initialize();
 	DebugDraw_Initialize();
 
 	// BGM読み込み・再生
@@ -98,7 +100,9 @@ void Game_Draw(void)
 	Shader_SetLight(g_pUILight);
 
 	//2D描画処理をここに記述
+	
 	UI_Draw();
+	Minimap_Draw();
 }
 
 void Game_Finalize(void)
@@ -121,6 +125,7 @@ void Game_Finalize(void)
 	Field_Finalize();
 	UI_Finalize();
 	Furniture_Finalize();
+	Minimap_Finalize();
 	Busters_Finalize();
 	DebugDraw_Finalize();
 }

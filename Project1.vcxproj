@@ -159,12 +159,14 @@
     <ClCompile Include="fade.cpp" />
     <ClCompile Include="field.cpp" />
     <ClCompile Include="field.h" />
+    <ClCompile Include="font.cpp" />
     <ClCompile Include="furniture.cpp" />
     <ClCompile Include="ghost.cpp" />
     <ClCompile Include="keyboard.cpp" />
     <ClCompile Include="LoseAnim.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="debugdraw.cpp" />
+    <ClCompile Include="minimap.cpp" />
     <ClCompile Include="model.cpp" />
     <ClCompile Include="mouse.cpp" />
     <ClCompile Include="game.cpp" />
@@ -174,7 +176,6 @@
     <ClCompile Include="scene.cpp" />
     <ClCompile Include="sound.cpp" />
     <ClCompile Include="sprite.cpp" />
-    <ClCompile Include="TextSprite.cpp" />
     <ClCompile Include="texture.cpp" />
     <ClCompile Include="title.cpp" />
     <ClCompile Include="UI.cpp" />
@@ -194,12 +195,14 @@
     <ClInclude Include="DirectXTex.h" />
     <ClInclude Include="box.h" />
     <ClInclude Include="fade.h" />
+    <ClInclude Include="Floor1.h" />
+    <ClInclude Include="font.h" />
     <ClInclude Include="furniture.h" />
     <ClInclude Include="ghost.h" />
     <ClInclude Include="keyboard.h" />
-    <ClInclude Include="levelmap.h" />
     <ClInclude Include="LoseAnim.h" />
     <ClInclude Include="main.h" />
+    <ClInclude Include="minimap.h" />
     <ClInclude Include="model.h" />
     <ClInclude Include="debugdraw.h" />
     <ClInclude Include="mouse.h" />
@@ -212,7 +215,6 @@
     <ClInclude Include="sprite.h" />
     <ClInclude Include="sprite3d.h" />
     <ClInclude Include="stb_truetype.h" />
-    <ClInclude Include="TextSprite.h" />
     <ClInclude Include="texture.h" />
     <ClInclude Include="title.h" />
     <ClInclude Include="UI.h" />
@@ -240,11 +242,10 @@
     </FxCompile>
   </ItemGroup>
   <ItemGroup>
+    <None Include=".github\workflows\release.yml" />
     <None Include="convert_to_utf8bom.ps1" />
     <None Include="DirectXTex.inl" />
     <None Include="fbxexport.md" />
-    <None Include="fix_directxtk_runtime.ps1" />
-    <None Include="fix_runtime_library.ps1" />
     <None Include="MODEL_CPP_IMPROVEMENTS.md" />
     <None Include="MODEL_RENDER_CHECKLIST.md" />
   </ItemGroup>

@@ -11,7 +11,7 @@
 #include <cmath> 
 
 // Minecraftのマップデータをインクルード
-#include "levelmap.h" 
+#include "Floor1.h" 
 
 // グローバル変数
 static ID3D11Device* g_pDevice = NULL;
@@ -19,8 +19,12 @@ static ID3D11DeviceContext* g_pContext = NULL;
 static ID3D11Buffer* g_VertexBuffer = NULL;
 static ID3D11Buffer* g_IndexBuffer = NULL;
 
-static ID3D11ShaderResourceView* g_TextureBox;   // 箱用
-static ID3D11ShaderResourceView* g_TextureStairs;// 階段用
+static ID3D11Buffer* g_SimpleVertexBuffer = NULL;
+static ID3D11Buffer* g_SimpleIndexBuffer = NULL;
+
+#define MAX_BLOCK_TYPES 100 
+static ID3D11ShaderResourceView* g_BlockTextures[MAX_BLOCK_TYPES];
+static ID3D11ShaderResourceView* g_TextureStairs; // 階段用
 
 XMFLOAT3 rotateBox = XMFLOAT3(0, 0, 0);
 static std::vector<MAPDATA> g_MapList;
@@ -31,11 +35,10 @@ static int g_CurrentFloor = 0;
 // マップ設定
 // =====================================================================
 
-// サイズ定義を levelmap.h に合わせる
 #undef MAP_W
 #undef MAP_H
 #define MAP_W (MAP_WIDTH)   // 53
-#define MAP_H (MAP_LENGTH)  // 31
+#define MAP_H (MAP_LENGTH)  // 41 (Floor1.hに合わせて修正)
 
 
 // 内部関数: 座標変換
@@ -44,17 +47,37 @@ static int WorldToGridZ(float z) { return (int)round(MAP_H / 2.0f - z); }
 static float GridToWorldX(int gx) { return (float)gx - MAP_W / 2.0f; }
 static float GridToWorldZ(int gz) { return MAP_H / 2.0f - (float)gz; }
 
-// ID変換関数
 FIELD_TYPE ConvertMapID(int minecraftID)
 {
 	switch (minecraftID)
 	{
-	case 5: return FIELD_BOX; // 外壁・床
-	case 1: return FIELD_BOX; // 床・内壁
-	case 2: return FIELD_BOX; // 壁
-	case 3: return FIELD_STAIRS_UP;   // 階段（上り）
-	case 4: return FIELD_STAIRS_DOWN; // 階段（下り）
-	default: return FIELD_NONE;
+	case 0: return FIELD_NONE; // 空気
+
+		// --- 箱（壁・床）として扱うもの ---
+	case 1:  // トウヒの板材
+	case 2:  // ダークオークの原木
+	case 3:  // ダークオークの板材
+	case 4:  // シラカバの板材
+	case 13: // ドア（仮で壁扱い）
+	case 14: // ダークオークフェンス
+	case 15: // オークフェンス
+	case 16: // ダイアモンド
+	case 17: // カーペット
+	case 39: // コピー用ブロック
+		return FIELD_BOX;
+
+		// --- 階段として扱うもの ---
+	case 5: case 6: case 7: case 8: // 下付き階段
+		return FIELD_STAIRS_UP;
+
+	case 9: case 10: case 11: case 12: // 上付き階段
+		return FIELD_STAIRS_DOWN;
+
+		// --- その他 (-1など) ---
+	default:
+		// IDが正の数ならとりあえず箱として表示
+		if (minecraftID > 0) return FIELD_BOX;
+		return FIELD_NONE;
 	}
 }
 
@@ -95,6 +118,11 @@ void LoadMapData(int floor)
 				data.isHidden = false;
 				data.rotY = 0.0f;
 
+				data.blockID = mcID;
+
+				// 階段の向き調整（必要であればIDを見て回転させる）
+				// 例: if(mcID == 5) data.rotY = 90.0f; など
+
 				g_MapList.push_back(data);
 			}
 		}
@@ -106,21 +134,35 @@ void Field_Initialize(ID3D11Device* pDevice, ID3D11DeviceContext* pContext)
 	g_pDevice = pDevice;
 	g_pContext = pContext;
 
-	g_TextureBox = LoadTexture(L"asset\\texture\\grass.png");
+	for (int i = 0; i < MAX_BLOCK_TYPES; i++) g_BlockTextures[i] = nullptr;
+
+	g_BlockTextures[1] = LoadTexture(L"asset\\texture\\yuka.png");  // ID 1
+	g_BlockTextures[2] = LoadTexture(L"asset\\texture\\kabesita.png");   // ID 2
+	g_BlockTextures[3] = LoadTexture(L"asset\\texture\\tunagime.png");// ID 3
+	g_BlockTextures[4] = LoadTexture(L"asset\\texture\\kabeue.png");   // ID 4
+	g_BlockTextures[13] = LoadTexture(L"asset\\texture\\wood.png");           // ID 13
+	g_BlockTextures[14] = LoadTexture(L"asset\\texture\\wood.png");          // ID 14
+	g_BlockTextures[16] = LoadTexture(L"asset\\texture\\green.png");  // ID 16
+	g_BlockTextures[17] = LoadTexture(L"asset\\texture\\tairu.png"); // ID 17
+
+	// デフォルト画像（読み込まれていないID用）
+	if (g_BlockTextures[0] == nullptr) g_BlockTextures[0] = LoadTexture(L"asset\\texture\\grass.png");
+
 	g_TextureStairs = LoadTexture(L"asset\\texture\\wood.png");
 
-	g_CurrentFloor = 2; // 3階スタート
+	g_CurrentFloor = 0; // 3階スタート
 	LoadMapData(g_CurrentFloor);
 
 	if (!g_MapList.empty()) {
 		CreateBox(pDevice, pContext, &g_VertexBuffer, &g_IndexBuffer);
+	
 	}
+
+	CreateSimpleBox(pDevice, &g_SimpleVertexBuffer, &g_SimpleIndexBuffer);
 }
 
-// LevelMapを使わず Floor1 を使うように変更
 void Field_Update(void)
 {
-
 	static std::vector<std::vector<bool>> shouldHide(MAP_H, std::vector<bool>(MAP_W, false));
 
 	// 配列のクリア
@@ -139,12 +181,10 @@ void Field_Update(void)
 	// プレイヤーの頭の高さ(Y+1.0f)を目標にする
 	playerPos.y += 1.0f;
 
-	// 3. レイキャスト (カメラ -> プレイヤー)
 	float dx = playerPos.x - cameraPos.x;
 	float dz = playerPos.z - cameraPos.z;
 	float dist = sqrtf(dx * dx + dz * dz);
 
-	// 近すぎる場合は計算不要
 	if (dist < 0.5f) return;
 
 	float stepX = dx / dist;
@@ -152,7 +192,7 @@ void Field_Update(void)
 
 	float currentDist = 0.0f;
 
-	while (currentDist < dist - 0.5f) // プレイヤーの手前0.5mまでチェック
+	while (currentDist < dist - 0.5f)
 	{
 		float checkX = cameraPos.x + stepX * currentDist;
 		float checkZ = cameraPos.z + stepZ * currentDist;
@@ -162,15 +202,12 @@ void Field_Update(void)
 
 		if (gridX >= 0 && gridX < MAP_W && gridZ >= 0 && gridZ < MAP_H)
 		{
-			// Floor1[1][z][x] (Y=1: 目の高さの壁) をチェック
+			// Y=1 (壁) をチェック
 			int mcID = Floor1[1][gridZ][gridX];
 
-			// 壁(FIELD_BOX)があれば隠す
 			if (ConvertMapID(mcID) == FIELD_BOX)
 			{
-
-				int range = 2; // 1 = 3x3マス, 2 = 5x5マス
-
+				int range = 2;
 				for (int oz = -range; oz <= range; oz++)
 				{
 					for (int ox = -range; ox <= range; ox++)
@@ -186,11 +223,9 @@ void Field_Update(void)
 				}
 			}
 		}
-
 		currentDist += 0.1f;
 	}
 
-	// 4. マップデータに反映
 	for (auto& mapData : g_MapList)
 	{
 		int mapGridX = WorldToGridX(mapData.pos.x);
@@ -198,7 +233,6 @@ void Field_Update(void)
 
 		if (mapGridX >= 0 && mapGridX < MAP_W && mapGridZ >= 0 && mapGridZ < MAP_H)
 		{
-			// 床(Y<0)は消さない。壁(Y>=0)で、かつフラグが立っていたら消す
 			if (mapData.pos.y >= 0.0f && shouldHide[mapGridZ][mapGridX])
 			{
 				mapData.isHidden = true;
@@ -210,6 +244,7 @@ void Field_Update(void)
 		}
 	}
 }
+
 void Field_Draw(void)
 {
 	Shader_Begin();
@@ -220,28 +255,45 @@ void Field_Draw(void)
 
 	UINT stride = sizeof(Vertex3D);
 	UINT offset = 0;
-	g_pContext->IASetVertexBuffers(0, 1, &g_VertexBuffer, &stride, &offset);
-	g_pContext->IASetIndexBuffer(g_IndexBuffer, DXGI_FORMAT_R32_UINT, 0);
 	g_pContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 
 	for (const auto& mapData : g_MapList)
 	{
 		if (mapData.isHidden) continue;
 
+		int id = mapData.blockID;
+
+		// 階段の場合
 		if (mapData.no == FIELD_STAIRS_UP || mapData.no == FIELD_STAIRS_DOWN)
 		{
+			g_pContext->IASetVertexBuffers(0, 1, &g_VertexBuffer, &stride, &offset);
+			g_pContext->IASetIndexBuffer(g_IndexBuffer, DXGI_FORMAT_R32_UINT, 0);
 			g_pContext->PSSetShaderResources(0, 1, &g_TextureStairs);
 		}
 		else
 		{
-			g_pContext->PSSetShaderResources(0, 1, &g_TextureBox);
+			// 箱（壁・床）
+
+			// テクスチャがロードされていない、または範囲外、またはID=0(デフォルト)の場合
+			if (id <= 0 || id >= MAX_BLOCK_TYPES || g_BlockTextures[id] == nullptr)
+			{
+				g_pContext->IASetVertexBuffers(0, 1, &g_VertexBuffer, &stride, &offset);
+				g_pContext->IASetIndexBuffer(g_IndexBuffer, DXGI_FORMAT_R32_UINT, 0);
+				g_pContext->PSSetShaderResources(0, 1, &g_BlockTextures[0]);
+			}
+			else
+			{
+				g_pContext->IASetVertexBuffers(0, 1, &g_SimpleVertexBuffer, &stride, &offset);
+				g_pContext->IASetIndexBuffer(g_SimpleIndexBuffer, DXGI_FORMAT_R32_UINT, 0);
+				g_pContext->PSSetShaderResources(0, 1, &g_BlockTextures[id]);
+			}
 		}
 
 		XMMATRIX ScalingMatrix = XMMatrixScaling(1.0f, 1.0f, 1.0f);
 		XMMATRIX TranslationMatrix = XMMatrixTranslation(mapData.pos.x, mapData.pos.y, mapData.pos.z);
 		XMMATRIX RotationMatrix = XMMatrixRotationRollPitchYaw(
 			XMConvertToRadians(rotateBox.x),
-			XMConvertToRadians(rotateBox.y),
+			XMConvertToRadians(rotateBox.y + mapData.rotY),
 			XMConvertToRadians(rotateBox.z));
 
 		XMMATRIX Model = ScalingMatrix * RotationMatrix * TranslationMatrix;
@@ -250,23 +302,28 @@ void Field_Draw(void)
 		Shader_SetWorldMatrix(Model);
 		Shader_SetMatrix(WVP);
 
-		g_pContext->DrawIndexed(6 * 6, 0, 0);
+		// 描画
+		g_pContext->DrawIndexed(36, 0, 0);
 	}
 }
-
 void Field_Finalize(void)
 {
 	SAFE_RELEASE(g_VertexBuffer);
 	SAFE_RELEASE(g_IndexBuffer);
-	SAFE_RELEASE(g_TextureBox);
+
+	SAFE_RELEASE(g_SimpleVertexBuffer);
+	SAFE_RELEASE(g_SimpleIndexBuffer);
+
+	for (int i = 0; i < MAX_BLOCK_TYPES; i++)
+	{
+		SAFE_RELEASE(g_BlockTextures[i]);
+	}
 	SAFE_RELEASE(g_TextureStairs);
 	g_MapList.clear();
 }
 
 void Field_ChangeFloor(int floorIndex)
 {
-	// 今回は1フロアデータしかないので何もしないか、
-	// floorIndexに応じて Floor2, Floor3 を読むように拡張する
 	g_CurrentFloor = floorIndex;
 	LoadMapData(g_CurrentFloor);
 }
@@ -277,7 +334,7 @@ int Field_GetCurrentFloor(void)
 }
 
 // ----------------------------------------------------------------
-// 判定関数 (Floor1 を参照するように修正)
+// 判定関数
 // ----------------------------------------------------------------
 
 FIELD_TYPE Field_GetBlockType(float x, float z)
@@ -287,13 +344,11 @@ FIELD_TYPE Field_GetBlockType(float x, float z)
 
 	if (gx >= 0 && gx < MAP_W && gz >= 0 && gz < MAP_H)
 	{
-		// Y=1 (壁) を優先チェック
 		int mcID = Floor1[1][gz][gx];
 		FIELD_TYPE type = ConvertMapID(mcID);
 
 		if (type == FIELD_NONE)
 		{
-			// Y=2 (上の壁/階段など) もチェック
 			mcID = Floor1[2][gz][gx];
 			type = ConvertMapID(mcID);
 		}
@@ -309,11 +364,11 @@ bool Field_IsWall(float x, float z)
 
 	if (gx >= 0 && gx < MAP_W && gz >= 0 && gz < MAP_H)
 	{
-		// Y=1 に壁があれば true
+		// Y=1 チェック
 		int mcID = Floor1[1][gz][gx];
 		if (ConvertMapID(mcID) == FIELD_BOX) return true;
 
-		// Y=2 もチェック
+		// Y=2 チェック
 		int mcID2 = Floor1[2][gz][gx];
 		if (ConvertMapID(mcID2) == FIELD_BOX) return true;
 	}
@@ -335,8 +390,6 @@ bool Field_IsWall(float x, float y, float z)
 {
 	int gx = WorldToGridX(x);
 	int gz = WorldToGridZ(z);
-
-
 	int gy = (int)round(y + 1.0f);
 
 	if (gx >= 0 && gx < MAP_W && gz >= 0 && gz < MAP_H && gy >= 0 && gy < MAP_HEIGHT)
@@ -364,34 +417,28 @@ bool Field_CheckWallBetween(XMFLOAT3 start, XMFLOAT3 end)
 		float checkX = start.x + stepX * currentDist;
 		float checkZ = start.z + stepZ * currentDist;
 
-		if (Field_IsWall(checkX, checkZ))
-		{
-			return true;
-		}
+		if (Field_IsWall(checkX, checkZ)) return true;
 
 		currentDist += 0.5f;
 	}
-
 	return false;
 }
 
 float Field_GetFloorY(float x, float y, float z)
 {
-	// 床があるか簡易判定
 	int gx = WorldToGridX(x);
 	int gz = WorldToGridZ(z);
 
 	if (gx >= 0 && gx < MAP_W && gz >= 0 && gz < MAP_H)
 	{
-		// Minecraft Y=0 (Game Y=-1.0) にブロックがあれば床高さ0.0fとみなす
 		if (Floor1[0][gz][gx] != 0) return 0.0f;
 	}
 	return -999.0f;
 }
 
-// =========================================================
-// 経路探索 (A*)
-// =========================================================
+// ----------------------------------------------------------------
+// 経路探索
+// ----------------------------------------------------------------
 
 struct Node {
 	int x, z;
@@ -418,7 +465,7 @@ std::vector<XMFLOAT3> Field_FindPath(XMFLOAT3 start, XMFLOAT3 end)
 		return path;
 	}
 
-	// ゴールが壁なら補正 (Floor1 を参照)
+	// ゴールが壁なら補正
 	if (ConvertMapID(Floor1[1][endZ][endX]) == FIELD_BOX)
 	{
 		int dx[] = { 0, 0, 1, -1 };

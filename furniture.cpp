@@ -41,8 +41,8 @@ void Furniture_Initialize(void)
 
 	// 3: 樹 -> STOP (回転・停止)
 	g_Furniture[4] = new Furniture(
-		{ -6.0f, 0.0f, -2.0f }, { 1.5f, 1.5f, 1.5f }, { 0.0f, 90.0f, 0.0f },
-		"asset\\model\\car_blue.fbx",
+		{ -6.0f, 0.0f, -2.0f }, { 0.5f, 0.5f, 0.5f }, { 0.0f, 90.0f, 0.0f },
+		"asset\\model\\aaaa.fbx",
 		ACTION_STOP // 足止め
 	);
 

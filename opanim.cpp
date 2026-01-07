@@ -9,8 +9,7 @@
 #include "direct3d.h"
 #include "texture.h"
 #include "scene.h"
-#include  "sound.h"
-#include "TextSprite.h"//test
+#include "sound.h"
 #include <DirectXMath.h>
 #include <cmath>
 #include <d3d11.h>
@@ -106,11 +105,13 @@ static bool g_fadeStarted = false;
 static bool g_waitStarted = false;
 static float g_waitTimer = 0.0f;
 
-//font and sprite
-static TextSprite* g_pTestText = nullptr;
-static FontData* g_pTestFont = nullptr;
 //sound
 static SoundData* g_pBGM = nullptr;
+// --- 幽霊フリップ解除後の待機と右方向移動制御 ---
+static bool g_yureiWaitingAfterFlip = false;
+static float g_yureiWaitTimer = 0.0f;
+static const float g_yureiWaitDuration = 1.0f;	// フリップ解除後の待機時間
+static const float g_yureiLeftMoveSpeed = -120.0f;	// 右方向移動速度
 
 //ランダム関数
 static float Rand01()
@@ -203,12 +204,7 @@ void OpAnim_Initialize(ID3D11Device* pDevice, ID3D11DeviceContext* pContext)
 	if (g_pBGM) {
 		PlaySound(g_pBGM, true);
 	}
-
-	// TextSprite初期化
-	TextSprite_Initialize();
-	// フォント読み込み（KaiseiDecol-Medium.ttf、32ピクセル）
-	g_pTestFont = TextSprite_LoadFont("asset/font/KaiseiDecol-Medium.ttf", 64.0f, 512);
-
+  
 	// 屋敷初期化
 	g_yakataPos.x = SCREEN_CENTER_X - 400.0f;
 	g_yakataPos.y = SCREEN_CENTER_Y + 120.0f;
@@ -256,19 +252,19 @@ void OpAnim_Finalize(void)
 	// g_SolidTex は共有で作成しているため、ここで解放しておく
 	if (g_SolidTex) { g_SolidTex->Release(); g_SolidTex = nullptr; }
 
-	if (g_pTestText)
-	{
-		delete g_pTestText;
-		g_pTestText = nullptr;
-	}
 	// BGM解放
 	if (g_pBGM) {
 		StopSound(g_pBGM);
 		UnloadSound(g_pBGM);
 		g_pBGM = nullptr;
+	
+
+	if (g_pOpLight)
+	{
+		delete g_pOpLight;
+		g_pOpLight = nullptr;
 	}
 
-	TextSprite_Finalize();
 
 	g_pDevice = nullptr;
 	g_pContext = nullptr;
@@ -566,10 +562,5 @@ void OpAnimDraw(void)
 
 		// ブレンドを戻す
 		SetBlendState(BLENDSTATE_ALFA);
-	}
-	// テキスト描画
-	if (g_pTestText)
-	{
-		g_pTestText->Draw();
 	}
 }

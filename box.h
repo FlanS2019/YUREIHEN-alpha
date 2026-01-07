@@ -3,8 +3,6 @@
 
 #define BOX_NUM_VERTEX (24)
 
-void CreateBox(ID3D11Device* pDevice, ID3D11DeviceContext* pContext,
-	ID3D11Buffer** ppVertexBuffer, ID3D11Buffer** ppIndexBuffer);
 
 class Box : public Transform3D, public BoxCollider
 {
@@ -15,3 +13,8 @@ public:
 	{
 	}
 };
+
+void CreateBox(ID3D11Device* pDevice, ID3D11DeviceContext* pContext,
+	ID3D11Buffer** ppVertexBuffer, ID3D11Buffer** ppIndexBuffer);
+
+void CreateSimpleBox(ID3D11Device* pDevice, ID3D11Buffer** ppVB, ID3D11Buffer** ppIB);
