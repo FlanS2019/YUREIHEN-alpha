@@ -57,7 +57,7 @@ jobs:
       with:
         files: DX21_YUREIHEN_v${{ steps.version.outputs.number }}.zip
         generate_release_notes: true
-        tag_name: Release
+        tag_name: v${{ steps.version.outputs.number }}
         name: v${{ steps.version.outputs.number }}
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
