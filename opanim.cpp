@@ -107,11 +107,6 @@ static float g_waitTimer = 0.0f;
 
 //sound
 static SoundData* g_pBGM = nullptr;
-// --- 幽霊フリップ解除後の待機と右方向移動制御 ---
-static bool g_yureiWaitingAfterFlip = false;
-static float g_yureiWaitTimer = 0.0f;
-static const float g_yureiWaitDuration = 1.0f;	// フリップ解除後の待機時間
-static const float g_yureiLeftMoveSpeed = -120.0f;	// 右方向移動速度
 
 //ランダム関数
 static float Rand01()
@@ -257,19 +252,19 @@ void OpAnim_Finalize(void)
 		StopSound(g_pBGM);
 		UnloadSound(g_pBGM);
 		g_pBGM = nullptr;
-	
-
-	if (g_pOpLight)
-	{
-		delete g_pOpLight;
-		g_pOpLight = nullptr;
 	}
+
+	//if (g_pOpLight)
+	//{
+	//	delete g_pOpLight;
+	//	g_pOpLight = nullptr;
+	//}
 
 
 	g_pDevice = nullptr;
 	g_pContext = nullptr;
 
-	SetFPS(40);
+	SetFPS(60);
 }
 
 void OpAnim_Update()
