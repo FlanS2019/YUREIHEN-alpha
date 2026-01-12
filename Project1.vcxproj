@@ -164,6 +164,7 @@
     <ClCompile Include="ghost.cpp" />
     <ClCompile Include="keyboard.cpp" />
     <ClCompile Include="LoseAnim.cpp" />
+    <ClCompile Include="LoseAnimED.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="debugdraw.cpp" />
     <ClCompile Include="minimap.cpp" />
@@ -201,6 +202,7 @@
     <ClInclude Include="ghost.h" />
     <ClInclude Include="keyboard.h" />
     <ClInclude Include="LoseAnim.h" />
+    <ClInclude Include="LoseAnimED.h" />
     <ClInclude Include="main.h" />
     <ClInclude Include="minimap.h" />
     <ClInclude Include="model.h" />
