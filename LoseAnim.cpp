@@ -19,6 +19,8 @@ Sprite* g_LoseBgSprite = nullptr;		// 背景（Losehaikei）
 Sprite* g_LoseGhostSprite = nullptr;	// ゴーストエフェクト（LoseGhost）
 Sprite* g_LoseInkSprite = nullptr;		// インク画像（Loseink）
 Sprite* g_LoseAnimeLogoSprite = nullptr;		// インク画像（LoseAnimeLogo）
+Sprite* g_LoseVinetSprite = nullptr;	// 新規：ビネットオーバーレイ（LoseVinet）※追加
+
 static DWORD g_LoseStartTime = 0;
 static const float GHOST_APPEAR_TIME = 0.8f;	// ゴースト表示開始時間（秒）
 static const float GHOST_FADE_DURATION = 0.6f; // ゴーストのフェードインにかける時間（秒）
@@ -48,6 +50,17 @@ void Animation_Lose_Initialize(ID3D11Device* pDevice, ID3D11DeviceContext* pCont
 		{ 1.0f, 1.0f, 1.0f, 1.0f },				// 色
 		BLENDSTATE_ALFA,							// BlendState
 		L"asset\\yureihen\\LoseAnim\\Losehaikei.png"		// テクスチャパス
+	);
+
+	// ビネットオーバーレイ（LoseVinet）を生成
+	// 画面サイズに合わせ、少し透過させてオーバーレイにする
+	g_LoseVinetSprite = new Sprite(
+		{ SCREEN_WIDTH/2, SCREEN_HEIGHT/2},	// 位置（画面中央）
+		{ 1280, 1080 },			// サイズ（画面サイズに合わせる）
+		0.0f,										// 回転
+		{ 1.0f, 1.0f, 1.0f, 0.85f },				// 色（アルファを少し下げる）
+		BLENDSTATE_ALFA,							// BlendState
+		L"asset\\yureihen\\LoseAnim\\LoseVinet.PNG"	// テクスチャパス
 	);
 
 	// ゴーストスプライト（初期は透明）
@@ -213,6 +226,12 @@ void Animation_Lose_Update(void)
 	{
 		StartFade(SCENE_GAME);
 	}
+
+	// ENTERキーでゲームへ戻る
+	if (Keyboard_IsKeyDownTrigger(KK_E))
+	{
+		StartFade(SCENE_ANM_LOSE_ED);
+	}
 }
 
 void Animation_Lose_Draw(void)
@@ -221,6 +240,9 @@ void Animation_Lose_Draw(void)
 	if (g_LoseAnimeLogoSprite) g_LoseAnimeLogoSprite->Draw();	// アニメロゴ（降下）
 	if (g_LoseInkSprite) g_LoseInkSprite->Draw();	// インク（NULL チェック）
 	if (g_LoseGhostSprite) g_LoseGhostSprite->Draw();	// ゴースト（前面）
+
+	// ビネットは最前面に描画（オーバーレイ）
+	if (g_LoseVinetSprite) g_LoseVinetSprite->Draw();
 }
 
 void Animation_Lose_Finalize(void)
@@ -229,6 +251,7 @@ void Animation_Lose_Finalize(void)
 	delete g_LoseGhostSprite; g_LoseGhostSprite = nullptr;
 	delete g_LoseAnimeLogoSprite; g_LoseAnimeLogoSprite = nullptr;
 	delete g_LoseInkSprite; g_LoseInkSprite = nullptr;
+	delete g_LoseVinetSprite; g_LoseVinetSprite = nullptr; // ビネット解放（追加）
 	// BGM解放
 	if (g_pBGM) {
 		StopSound(g_pBGM);
