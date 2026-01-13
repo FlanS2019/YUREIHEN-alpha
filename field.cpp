@@ -261,6 +261,25 @@ void Field_Draw(void)
 	{
 		if (mapData.isHidden) continue;
 
+		// --- ビューフラスタムカリング ---
+		// ブロックの座標をクリップ空間に変換し、視界内にあるか判定する
+		XMVECTOR vPos = XMVectorSet(mapData.pos.x, mapData.pos.y, mapData.pos.z, 1.0f);
+		XMVECTOR vClipPos = XMVector4Transform(vPos, VP);
+		XMFLOAT4 cp;
+		XMStoreFloat4(&cp, vClipPos);
+
+		// ブロックのサイズ（1x1x1）を考慮したマージン
+		float margin = 1.5f; 
+
+		// クリップ空間での境界チェック（wとの比較によるカリング）
+		if (cp.w < -margin) continue; // カメラの背面
+		if (cp.z < -margin || cp.z > cp.w + margin || 
+			cp.x < -cp.w - margin || cp.x > cp.w + margin || 
+			cp.y < -cp.w - margin || cp.y > cp.w + margin)
+		{
+			continue; // 画面外
+		}
+
 		int id = mapData.blockID;
 
 		// 階段の場合
