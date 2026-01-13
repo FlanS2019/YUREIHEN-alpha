@@ -11,7 +11,7 @@
 #include <cmath> 
 
 // Minecraftのマップデータをインクルード
-#include "Floor1.h" 
+#include "Floor1.h"
 
 // グローバル変数
 static ID3D11Device* g_pDevice = NULL;
@@ -108,6 +108,20 @@ void LoadMapData(int floor)
 				FIELD_TYPE type = ConvertMapID(mcID);
 				if (type == FIELD_NONE) continue;
 
+				bool isVisible = false;
+
+				// 上下左右前後をチェック (配列外参照に注意)
+				// どこか一箇所でも「空」なら、そのブロックは見える可能性がある
+				if (y + 1 >= MAP_HEIGHT || Floor1[y + 1][z][x] == 0) isVisible = true; // 上
+				else if (y - 1 < 0 || Floor1[y - 1][z][x] == 0) isVisible = true;      // 下
+				else if (z + 1 >= MAP_H || Floor1[y][z + 1][x] == 0) isVisible = true; // 手前
+				else if (z - 1 < 0 || Floor1[y][z - 1][x] == 0) isVisible = true;      // 奥
+				else if (x + 1 >= MAP_W || Floor1[y][z][x + 1] == 0) isVisible = true; // 右
+				else if (x - 1 < 0 || Floor1[y][z][x - 1] == 0) isVisible = true;      // 左
+
+				// どこからも見えないならリストに追加しない（描画しない）
+				if (!isVisible) continue;
+
 				MAPDATA data;
 
 				// 座標計算 (Minecraft Y=1 -> Game Y=0.0)
@@ -130,6 +144,9 @@ void LoadMapData(int floor)
 			}
 		}
 	}
+	std::sort(g_MapList.begin(), g_MapList.end(), [](const MAPDATA& a, const MAPDATA& b) {
+		return a.blockID < b.blockID;
+		});
 }
 
 void Field_Initialize(ID3D11Device* pDevice, ID3D11DeviceContext* pContext)
@@ -250,6 +267,7 @@ void Field_Update(void)
 
 void Field_Draw(void)
 {
+	int lastID = -999;
 	Shader_Begin();
 
 	XMMATRIX View = GetCamera()->GetView();
@@ -264,8 +282,18 @@ void Field_Draw(void)
 	{
 		if (mapData.isHidden) continue;
 
+		//カメラから遠すぎる場合は描画しない
+		/*XMFLOAT3 cameraPos = GetCamera()->GetPos();
+		float dx = mapData.pos.x - cameraPos.x;
+		float dz = mapData.pos.z - cameraPos.z;
+
+		if (dx * dx + dz * dz > 1600.0f) continue;
+		*/
+
 		int id = mapData.blockID;
 
+		if (id != lastID)
+		{
 		// 階段の場合
 		if (mapData.no == FIELD_STAIRS_UP || mapData.no == FIELD_STAIRS_DOWN)
 		{
@@ -290,6 +318,9 @@ void Field_Draw(void)
 				g_pContext->IASetIndexBuffer(g_SimpleIndexBuffer, DXGI_FORMAT_R32_UINT, 0);
 				g_pContext->PSSetShaderResources(0, 1, &g_BlockTextures[id]);
 			}
+		}
+
+		lastID = id;
 		}
 
 		XMMATRIX ScalingMatrix = XMMatrixScaling(1.0f, 1.0f, 1.0f);
