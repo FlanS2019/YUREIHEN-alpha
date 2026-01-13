@@ -8,7 +8,7 @@
      
 
 static Sprite* g_SpriteDot = nullptr;
-
+static Sprite* g_SpritePlayerIcon = nullptr; // プレイヤーアイコン
 // ドット描画関数
 static void DrawDot(float worldX, float worldZ, float r, float g, float b)
 {
@@ -49,6 +49,15 @@ void Minimap_Initialize(void)
 		BLENDSTATE_ALFA,              // ブレンド
 		L"asset/texture/fade.png"          // 画像
 	);
+
+	g_SpritePlayerIcon = new Sprite(
+		XMFLOAT2(MINIMAP_POS_X, MINIMAP_POS_Y), // 位置は固定
+		XMFLOAT2(20.0f, 20.0f),                 // ★サイズ（少し大きめに設定）
+		0.0f,
+		XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f),       // 色（白＝画像そのまま）
+		BLENDSTATE_ALFA,
+		L"asset/texture/icon_ghost.png"        // ★プレイヤー用画像
+	);
 }
 
 void Minimap_Finalize(void)
@@ -56,6 +65,11 @@ void Minimap_Finalize(void)
 	if (g_SpriteDot) {
 		delete g_SpriteDot;
 		g_SpriteDot = nullptr;
+	}
+
+	if (g_SpritePlayerIcon) {
+		delete g_SpritePlayerIcon;
+		g_SpritePlayerIcon = nullptr;
 	}
 }
 
@@ -106,8 +120,8 @@ void Minimap_Draw(void)
 	}
 
 	// 自分
-	g_SpriteDot->SetColor(XMFLOAT4(0.0f, 1.0f, 0.0f, 1.0f));
-	g_SpriteDot->SetPos(XMFLOAT2(MINIMAP_POS_X, MINIMAP_POS_Y));
-	g_SpriteDot->SetSize(XMFLOAT2(BLOCK_SIZE * 1.5f, BLOCK_SIZE * 1.5f));
-	g_SpriteDot->Draw();
+	g_SpritePlayerIcon->SetColor(XMFLOAT4(0.0f, 1.0f, 0.0f, 1.0f));
+	g_SpritePlayerIcon->SetPos(XMFLOAT2(MINIMAP_POS_X, MINIMAP_POS_Y));
+	g_SpritePlayerIcon->SetSize(XMFLOAT2(BLOCK_SIZE * 1.5f, BLOCK_SIZE * 1.5f));
+	g_SpritePlayerIcon->Draw();
 }
