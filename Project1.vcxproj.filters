@@ -31,13 +31,13 @@
     <ClCompile Include="scene.cpp" />
     <ClCompile Include="sound.cpp" />
     <ClCompile Include="sprite.cpp" />
-    <ClCompile Include="TextSprite.cpp" />
     <ClCompile Include="texture.cpp" />
     <ClCompile Include="title.cpp" />
     <ClCompile Include="UI.cpp" />
     <ClCompile Include="UI_scarecombo.cpp" />
     <ClCompile Include="WinAnim.cpp" />
     <ClCompile Include="minimap.cpp" />
+    <ClCompile Include="font.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="animation.h" />
@@ -55,7 +55,6 @@
     <ClInclude Include="furniture.h" />
     <ClInclude Include="ghost.h" />
     <ClInclude Include="keyboard.h" />
-    <ClInclude Include="levelmap.h" />
     <ClInclude Include="LoseAnim.h" />
     <ClInclude Include="main.h" />
     <ClInclude Include="model.h" />
@@ -70,7 +69,6 @@
     <ClInclude Include="sprite.h" />
     <ClInclude Include="sprite3d.h" />
     <ClInclude Include="stb_truetype.h" />
-    <ClInclude Include="TextSprite.h" />
     <ClInclude Include="texture.h" />
     <ClInclude Include="title.h" />
     <ClInclude Include="UI.h" />
@@ -78,6 +76,7 @@
     <ClInclude Include="WinAnim.h" />
     <ClInclude Include="Floor1.h" />
     <ClInclude Include="minimap.h" />
+    <ClInclude Include="font.h" />
   </ItemGroup>
   <ItemGroup>
     <Library Include="DirectXTex_Debug.lib" />
@@ -88,5 +87,7 @@
     <None Include="DirectXTex.inl" />
     <None Include="fbxexport.md" />
     <None Include=".github\workflows\release.yml" />
+    <None Include="MODEL_CPP_IMPROVEMENTS.md" />
+    <None Include="MODEL_RENDER_CHECKLIST.md" />
   </ItemGroup>
 </Project>
