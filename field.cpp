@@ -73,6 +73,9 @@ FIELD_TYPE ConvertMapID(int minecraftID)
 	case 9: case 10: case 11: case 12: // 上付き階段
 		return FIELD_STAIRS_DOWN;
 
+
+	case 50: case 51: case 52: //家具
+		return FIELD_NONE;
 		// --- その他 (-1など) ---
 	default:
 		// IDが正の数ならとりあえず箱として表示

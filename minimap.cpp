@@ -46,17 +46,17 @@ void Minimap_Initialize(void)
 		XMFLOAT2(BLOCK_SIZE, BLOCK_SIZE),   // サイズ
 		0.0f,                               // 回転
 		XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f),   // 色 (白)
-		BLENDSTATE_ALFA,              // ブレンド
-		L"asset/texture/fade.png"          // 画像
+		BLENDSTATE_ALFA,					// ブレンド
+		L"asset/texture/fade.png"           // 画像
 	);
 
 	g_SpritePlayerIcon = new Sprite(
 		XMFLOAT2(MINIMAP_POS_X, MINIMAP_POS_Y), // 位置は固定
-		XMFLOAT2(20.0f, 20.0f),                 // ★サイズ（少し大きめに設定）
-		0.0f,
+		XMFLOAT2(20.0f, 20.0f),                 // サイズ（少し大きめに設定）
+		0.0f,									// 回転
 		XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f),       // 色（白＝画像そのまま）
-		BLENDSTATE_ALFA,
-		L"asset/texture/icon_ghost.png"        // ★プレイヤー用画像
+		BLENDSTATE_ALFA,						// ブレンド
+		L"asset/texture/icon_ghost.png"         // プレイヤー用画像
 	);
 }
 
