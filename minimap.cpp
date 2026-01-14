@@ -13,7 +13,7 @@ static Sprite* g_SpritePlayerIcon = nullptr; // プレイヤーアイコン
 static void DrawDot(float worldX, float worldZ, float r, float g, float b)
 {
 	Ghost* player = GetGhost();
-	if (!player) return;
+	if (!player || !g_SpriteDot) return;
 	XMFLOAT3 playerPos = player->GetPos();
 
 	float diffX = worldX - playerPos.x;

@@ -23,7 +23,7 @@ void DebugDraw_Initialize(void)
 
 void DebugDraw_Update(void)
 {
-	if (!isUse) return;
+	if (!isUse || !g_AnimModelDraw) return;
 	
 	// アニメーション更新（毎フレーム呼び出し）
 	const float dt = 1.0f / 60.0f;  // 60FPS想定
@@ -112,7 +112,7 @@ void DebugDraw_Update(void)
 
 void DebugDraw_Draw(void)
 {
-	if (!isUse) return;
+	if (!isUse || !g_AnimModelDraw) return;
 	
 	g_AnimModelDraw->Draw();  // アニメーション対応モデルを描画
 }
@@ -121,5 +121,9 @@ void DebugDraw_Finalize(void)
 {
 	if (!isUse) return;
 	
-	delete g_AnimModelDraw;
+	if (g_AnimModelDraw)
+	{
+		delete g_AnimModelDraw;
+		g_AnimModelDraw = NULL;
+	}
 }

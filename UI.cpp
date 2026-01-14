@@ -273,17 +273,11 @@ void UI_Update(void)
 		if (g_GuideClick)
 			g_GuideClick->SetColor(XMFLOAT4(1.0f, 1.0f, 1.0f, 0.0f));
 	}
-
-	if (Keyboard_IsKeyDown(KK_P))
-	{
-		SetScene(SCENE_ANM_WIN);// Debug用に敗北アニメーションへ直接飛ぶ
-		return;
-
-	}
 }
 
 //----------------------------
 // UI描画
+
 //----------------------------
 void UI_Draw(void)
 {
