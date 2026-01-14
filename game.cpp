@@ -20,6 +20,7 @@ using namespace DirectX;
 #include "UI.h"
 #include "ghost.h"
 #include "furniture.h"
+#include "fade.h"
 #include "busters.h"
 #include "debugdraw.h"
 #include "sound.h"
@@ -28,6 +29,8 @@ using namespace DirectX;
 Light* MainLight;
 Light* g_pUILight = nullptr;
 SoundData* g_pBGM = nullptr;
+
+static int g_NextFloorID = -1;
 
 void Game_Initialize(ID3D11Device* pDevice, ID3D11DeviceContext* pContext)
 {
@@ -70,6 +73,39 @@ void Game_Initialize(ID3D11Device* pDevice, ID3D11DeviceContext* pContext)
 
 void Game_Update(void)
 {
+
+	// ---------------------------------------------------
+		// 1. フェード処理の監視
+		// ---------------------------------------------------
+	FADESTAT fadeState = GetFadeState();
+
+	// フェードアウトが完了して「真っ暗(FADE_MAX)」になった瞬間
+	if (fadeState == FADE_MAX)
+	{
+		// ここでマップを切り替える！
+		if (g_NextFloorID != -1)
+		{
+			// マップ読み込み
+			LoadMapData(g_NextFloorID);
+
+			// プレイヤー位置の調整（例：スタート位置へ）
+			GetGhost()->SetPos(XMFLOAT3(0, 0, 0));
+
+			// IDリセット
+			g_NextFloorID = -1;
+
+			// 手動でフェードインを開始させる
+			Fade_StartIn();
+		}
+		return; // マップロード中は他の更新をしない
+	}
+
+	// フェード中（IN/OUT）はゲーム操作をさせない
+	if (fadeState != FADE_NONE)
+	{
+		return;
+	}
+
 	Ghost_Update();
 	Camera_Update();
 	Shader_SetCameraPos(GetCamera()->GetPos());

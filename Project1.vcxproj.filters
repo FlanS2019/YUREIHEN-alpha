@@ -14,7 +14,6 @@
     <ClCompile Include="debug_ostream.cpp" />
     <ClCompile Include="direct3d.cpp" />
     <ClCompile Include="fade.cpp" />
-    <ClCompile Include="field.cpp" />
     <ClCompile Include="field.h" />
     <ClCompile Include="furniture.cpp" />
     <ClCompile Include="ghost.cpp" />
@@ -39,6 +38,7 @@
     <ClCompile Include="minimap.cpp" />
     <ClCompile Include="font.cpp" />
     <ClCompile Include="LoseAnimED.cpp" />
+    <ClCompile Include="field.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="animation.h" />

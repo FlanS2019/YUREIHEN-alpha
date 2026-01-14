@@ -61,6 +61,7 @@ void Furniture_Initialize(void);
 void Furniture_Update(void);
 void Furniture_Draw(void);
 void Furniture_Finalize(void);
+void CreateFurniture(XMFLOAT3 pos, XMFLOAT3 scale, XMFLOAT3 rot, const char* modelPath, FURNITURE_ACTION action);
 Furniture* GetFurniture(int index);
 bool FurnitureScareStart(int index);
 bool FurnitureScareEnded(int index);
