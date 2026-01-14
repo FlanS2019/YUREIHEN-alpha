@@ -68,7 +68,10 @@ void AnimSprite3D::InitializeBones()
 
 	hal::dout << "AnimSprite3D: Initialized " << m_BoneCount << " bones" << std::endl;
 
-	for (int i = 0; i < BoneMatrices::MAX_BONES; i++)
+	// 実際のトラック数に制限してパフォーマンス向上
+		int maxTrack = (int)m_BlendState.targetClip.tracks.size();
+		if (maxTrack > BoneMatrices::MAX_BONES) maxTrack = BoneMatrices::MAX_BONES;
+		for (int i = 0; i < maxTrack; i++)
 	{
 		m_BoneMatrices.matrices[i] = XMMatrixIdentity();
 	}
@@ -239,7 +242,7 @@ void AnimSprite3D::UpdateBoneMatrices()
 	// ブレンド中の場合は特別処理
 	if (m_BlendState.isBlending)
 	{
-		double blendT = m_BlendState.blendElapsed / m_BlendState.blendDuration;
+		double blendT = (m_BlendState.blendDuration > 0.0) ? (m_BlendState.blendElapsed / m_BlendState.blendDuration) : 1.0;
 		if (blendT > 1.0) blendT = 1.0;
 		
 		// 前のアニメーション状態から骨行列を計算
@@ -254,37 +257,39 @@ void AnimSprite3D::UpdateBoneMatrices()
 		
 		// 2つの行列をブレンド（各成分を線形補間）
 		float blendF = (float)blendT;
-		for (int i = 0; i < BoneMatrices::MAX_BONES; i++)
+		// 実際のボーン数分だけブレンドを行う（最適化）
+		// 実際のトラック数に制限してパフォーマンス向上
+		int maxTrack = (int)m_BlendState.targetClip.tracks.size();
+		if (maxTrack > BoneMatrices::MAX_BONES) maxTrack = BoneMatrices::MAX_BONES;
+		for (int i = 0; i < maxTrack; i++)
 		{
-			// 行列の各成分を線形補間
+			// 両方がアイデンティティならスキップ（さらに最適化の余地ありだが、まずは安全に）
 			XMMATRIX from = m_BoneMatrices.matrices[i];
 			XMMATRIX to = targetMatrices.matrices[i];
 			
 			// 行列を浮動小数点配列に変換
-			float fromM[16], toM[16];
-			XMStoreFloat4x4((XMFLOAT4X4*)fromM, from);
-			XMStoreFloat4x4((XMFLOAT4X4*)toM, to);
+			XMFLOAT4X4 fromM, toM;
+			XMStoreFloat4x4(&fromM, from);
+			XMStoreFloat4x4(&toM, to);
 			
 			// 各成分を線形補間
-			float blendM[16];
+			XMFLOAT4X4 blendM;
+			float* pf = (float*)&fromM;
+			float* pt = (float*)&toM;
+			float* pb = (float*)&blendM;
 			for (int j = 0; j < 16; j++)
 			{
-				blendM[j] = fromM[j] * (1.0f - blendF) + toM[j] * blendF;
+				pb[j] = pf[j] * (1.0f - blendF) + pt[j] * blendF;
 			}
 			
 			// ブレンド結果を行列に戻す
-			m_BoneMatrices.matrices[i] = XMLoadFloat4x4((const XMFLOAT4X4*)blendM);
+			m_BoneMatrices.matrices[i] = XMLoadFloat4x4(&blendM);
 		}
 		return;
 	}
 
 	if (!m_AnimState.clip || m_AnimState.clip->tracks.empty())
 	{
-		// アニメーションがない場合はアイデンティティ行列で初期化
-		for (int i = 0; i < BoneMatrices::MAX_BONES; i++)
-		{
-			m_BoneMatrices.matrices[i] = XMMatrixIdentity();
-		}
 		return;
 	}
 
@@ -297,7 +302,7 @@ void AnimSprite3D::UpdateBoneMatrices()
 
 	// トラックのサイズ分だけ行列を更新
 	int trackSize = (int)clip.tracks.size();
-for (int i = 0; i < trackSize && i < BoneMatrices::MAX_BONES; i++)
+for (int i = 0; i < trackSize && i < (int)BoneMatrices::MAX_BONES; i++)
 	{
 		const BoneKeyframes& keyframes = clip.tracks[i];
 
@@ -305,17 +310,14 @@ for (int i = 0; i < trackSize && i < BoneMatrices::MAX_BONES; i++)
 		XMFLOAT4 rot = InterpolateQuat(keyframes.rot, time);
 		XMFLOAT3 scale = InterpolateVec3(keyframes.scale, time);
 
+		// スケールが空の場合、デフォルトで1.0にする
+		if (keyframes.scale.empty()) scale = XMFLOAT3(1.0f, 1.0f, 1.0f);
+
 		XMMATRIX scaleMat = XMMatrixScaling(scale.x, scale.y, scale.z);
 		XMMATRIX rotMat = QuatToMatrix(rot);
 		XMMATRIX transMat = XMMatrixTranslation(trans.x, trans.y, trans.z);
 
 		m_BoneMatrices.matrices[i] = scaleMat * rotMat * transMat;
-	}
-
-	// 未使用のボーン行列はアイデンティティで初期化
-	for (int i = trackSize; i < BoneMatrices::MAX_BONES; i++)
-	{
-		m_BoneMatrices.matrices[i] = XMMatrixIdentity();
 	}
 }
 
@@ -329,11 +331,11 @@ void AnimSprite3D::Draw(void)
 		// デバッグ：アニメーション状態を確認
 		static int drawCount = 0;
 		if (++drawCount % 300 == 0)  // 5秒ごと（60FPS*5）
-		{
+// 		{
 			hal::dout << "Draw: play=" << m_AnimState.play 
 					  << " time=" << m_AnimState.time
 					  << " boneCount=" << m_BoneCount << std::endl;
-		}
+// 		}
 
 		// アニメーション対応描画関数を使用
 		ModelAnimationDraw(
@@ -449,24 +451,15 @@ int AnimSprite3D::FindBoneIndex(const char* boneName)
         }
     }
     
-    // ボーンがない場合、ノード階層から検索
-    // ノード名をインデックスとして使用（簡易的な方法）
-    if (m_Model && m_Model->AiScene && m_Model->AiScene->mRootNode)
+    // ボーンがない場合、モデルのNodeToAnimIndexを使用
+    if (m_Model && !m_Model->NodeToAnimIndex.empty())
     {
-        // ルートノードから検索して、ノード階層でのインデックスを返す
-        // 簡略化: チャネル名が見つかった場合は常に同じインデックスを返す
-        static std::map<std::string, int> nodeIndexMap;
-        
-        std::string nodeNameStr(boneName);
-        if (nodeIndexMap.find(nodeNameStr) == nodeIndexMap.end())
+        auto it = m_Model->NodeToAnimIndex.find(boneName);
+        if (it != m_Model->NodeToAnimIndex.end())
         {
-            // 初めてこのノード名が出現した場合、新しいインデックスを割り当て
-            int newIndex = static_cast<int>(nodeIndexMap.size());
-            nodeIndexMap[nodeNameStr] = newIndex;
-            hal::dout << "FindBoneIndex: New node '" << boneName << "' assigned index " << newIndex << std::endl;
+            return it->second;
         }
-        
-        return nodeIndexMap[nodeNameStr];
+        return -1;
     }
     
     return -1;
@@ -584,7 +577,10 @@ void AnimSprite3D::UpdateBoneMatricesForState(const AnimationState& state, BoneM
 	if (!state.clip || state.clip->tracks.empty())
 	{
 		// アニメーションがない場合はアイデンティティ行列で初期化
-		for (int i = 0; i < BoneMatrices::MAX_BONES; i++)
+		// 実際のトラック数に制限してパフォーマンス向上
+		int maxTrack = (int)m_BlendState.targetClip.tracks.size();
+		if (maxTrack > BoneMatrices::MAX_BONES) maxTrack = BoneMatrices::MAX_BONES;
+		for (int i = 0; i < maxTrack; i++)
 		{
 			outMatrices.matrices[i] = XMMatrixIdentity();
 		}

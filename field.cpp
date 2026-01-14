@@ -162,15 +162,11 @@ void Field_Initialize(ID3D11Device* pDevice, ID3D11DeviceContext* pContext)
 
 void Field_Update(void)
 {
-	static std::vector<std::vector<bool>> shouldHide(MAP_H, std::vector<bool>(MAP_W, false));
-
-	for (int z = 0; z < MAP_H; z++) {
-		for (int x = 0; x < MAP_W; x++) {
-			shouldHide[z][x] = false;
-		}
-	}
+	static uint8_t shouldHide[MAP_LENGTH][MAP_WIDTH];
+	memset(shouldHide, 0, sizeof(shouldHide));
 
 	Ghost* ghost = GetGhost();
+
 	if (!ghost) return;
 
 	XMFLOAT3 cameraPos = GetCamera()->GetPos();
@@ -180,16 +176,25 @@ void Field_Update(void)
 
 	float dx = playerPos.x - cameraPos.x;
 	float dz = playerPos.z - cameraPos.z;
-	float dist = sqrtf(dx * dx + dz * dz);
+	float distSq = dx * dx + dz * dz;
 
-	if (dist < 0.5f) return;
+	// 距離が近すぎる場合はスキップ
+	if (distSq < 0.25f) return;
 
-	float stepX = dx / dist;
-	float stepZ = dz / dist;
+	// 極端に遠い場合は処理を制限（無限ループ防止）
+	const float MAX_DIST = 30.0f; // 50から30に短縮
+	float dist = sqrtf(distSq);
+	if (dist > MAX_DIST) dist = MAX_DIST;
 
-	float currentDist = 0.0f;
+	float invDist = 1.0f / dist;
+	float stepX = dx * invDist;
+	float stepZ = dz * invDist;
 
-	while (currentDist < dist - 0.5f)
+	// ステップを1.0fに変更（0.5fから）して処理回数を半減
+	const float STEP_SIZE = 1.0f;
+	float endDist = dist - 0.5f;
+
+	for (float currentDist = 0.0f; currentDist < endDist; currentDist += STEP_SIZE)
 	{
 		float checkX = cameraPos.x + stepX * currentDist;
 		float checkZ = cameraPos.z + stepZ * currentDist;
@@ -203,7 +208,8 @@ void Field_Update(void)
 
 			if (ConvertMapID(mcID) == FIELD_BOX)
 			{
-				int range = 2;
+				// range を1に縮小（2から）
+				const int range = 1;
 				for (int oz = -range; oz <= range; oz++)
 				{
 					for (int ox = -range; ox <= range; ox++)
@@ -213,13 +219,12 @@ void Field_Update(void)
 
 						if (targetX >= 0 && targetX < MAP_W && targetZ >= 0 && targetZ < MAP_H)
 						{
-							shouldHide[targetZ][targetX] = true;
+							shouldHide[targetZ][targetX] = 1;
 						}
 					}
 				}
 			}
 		}
-		currentDist += 0.1f;
 	}
 
 	for (auto& mapData : g_MapList)
@@ -229,14 +234,7 @@ void Field_Update(void)
 
 		if (mapGridX >= 0 && mapGridX < MAP_W && mapGridZ >= 0 && mapGridZ < MAP_H)
 		{
-			if (mapData.pos.y >= 0.0f && shouldHide[mapGridZ][mapGridX])
-			{
-				mapData.isHidden = true;
-			}
-			else
-			{
-				mapData.isHidden = false;
-			}
+			mapData.isHidden = (mapData.pos.y >= 0.0f && shouldHide[mapGridZ][mapGridX]);
 		}
 	}
 }
@@ -246,23 +244,23 @@ void Field_Draw(void)
 	int lastID = -999;
 	Shader_Begin();
 
-	XMMATRIX View = GetCamera()->GetView();
-	XMMATRIX Projection = GetCamera()->GetProjection();
+	Camera* pCamera = GetCamera();
+	XMMATRIX View = pCamera->GetView();
+	XMMATRIX Projection = pCamera->GetProjection();
 	XMMATRIX VP = View * Projection;
 
 	XMFLOAT3 cameraPos = GetCamera()->GetPos();
-	XMFLOAT3 cameraAtPos = GetCamera()->GetAtPos();
+	XMFLOAT3 cameraAtPos = pCamera->GetAtPos();
 	
-	XMFLOAT3 cameraLook = XMFLOAT3(
-		cameraAtPos.x - cameraPos.x,
-		cameraAtPos.y - cameraPos.y,
-		cameraAtPos.z - cameraPos.z
-	);
-	float lookLen = sqrtf(cameraLook.x * cameraLook.x + cameraLook.y * cameraLook.y + cameraLook.z * cameraLook.z);
-	if (lookLen > 0.01f) {
-		cameraLook.x /= lookLen;
-		cameraLook.y /= lookLen;
-		cameraLook.z /= lookLen;
+	float lookX = cameraAtPos.x - cameraPos.x;
+	float lookY = cameraAtPos.y - cameraPos.y;
+	float lookZ = cameraAtPos.z - cameraPos.z;
+	float lookLenSq = lookX*lookX + lookY*lookY + lookZ*lookZ;
+	if (lookLenSq > 0.0001f) {
+		float invLen = 1.0f / sqrtf(lookLenSq);
+		lookX *= invLen;
+		lookY *= invLen;
+		lookZ *= invLen;
 	}
 
 	UINT stride = sizeof(Vertex3D);
@@ -278,10 +276,13 @@ void Field_Draw(void)
 		float dz = mapData.pos.z - cameraPos.z;
 		float distSq = dx * dx + dy * dy + dz * dz;
 		
-		if (distSq > 1600.0f) continue;
+		// 描画距離を制限 (500.0f -> 400.0f に短縮して負荷軽減)
+		if (distSq > 400.0f) continue;
 
-		float dotProduct = dx * cameraLook.x + dy * cameraLook.y + dz * cameraLook.z;
-		if (dotProduct < -5.0f) continue;
+		// カメラ裏カリング (閾値を調整)
+		float dotProduct = dx * lookX + dy * lookY + dz * lookZ;
+		if (dotProduct < -3.0f) continue;
+
 
 		int id = mapData.blockID;
 
@@ -588,3 +589,4 @@ std::vector<XMFLOAT3> Field_FindPath(XMFLOAT3 start, XMFLOAT3 end)
 
 	return path;
 }
+

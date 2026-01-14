@@ -75,9 +75,15 @@ void RenderNode(MODEL* model, aiNode* node, XMMATRIX parentTransform, const XMFL
 		
 		Shader_SetMaterialColor(finalColor);
 
+		// ワールド行列の設定（ノード変換 + モデルワールド変換を組み合わせ）
+		// RenderNode では親のModelDrawでWVPが設定されているが、ノードごとの変形を考慮
+		// ただし既存の ModelDraw が WVP を設定しているため、ここでは単純化
+		// 本来は RenderNodeAnimation と同様に WVP を再計算すべきだが、互換性のために最小限の変更に留める
+
 		// テクスチャをシェーダーに設定(プリキャッシュされた値を使用)
 		ID3D11ShaderResourceView* textureToSet = model->MeshMaterials[meshIndex].textureView;
 		Direct3D_GetDeviceContext()->PSSetShaderResources(0, 1, &textureToSet);
+
 
 		// 頂点バッファ設定
 		UINT stride = sizeof(Vertex3D);
@@ -104,45 +110,24 @@ void RenderNode(MODEL* model, aiNode* node, XMMATRIX parentTransform, const XMFL
 }
 
 // アニメーション対応のノード描画関数（ノード変換適用版）
-void RenderNodeAnimation(MODEL* model, aiNode* node, XMMATRIX parentTransform, const BoneMatrices& boneMatrices, const XMFLOAT4& color, bool useColorReplace = false, XMMATRIX worldTransform = XMMatrixIdentity())
+void RenderNodeAnimation(MODEL* model, aiNode* node, XMMATRIX parentTransform, const BoneMatrices& boneMatrices, const XMFLOAT4& color, bool useColorReplace, XMMATRIX worldTransform, XMMATRIX viewProjection)
 {
 	// このノードのローカル変換行列と親の変換を組み合わせ
 	XMMATRIX currentTransform = AiMatrixToXMMatrix(node->mTransformation) * parentTransform;
 
+
 	// ノード名がアニメーション対象の場合、ボーン行列を適用
-	// FindBoneIndexで割り当てられたインデックスとノード名から対応を取る
-	int nodeAnimIndex = -1;
-	
-	// ノード名とボーン行列インデックスのマッピング（簡略化）
-	// ExtractAnimationFromAssimpで動的に割り当てられたインデックスを使用
-	static std::map<std::string, int> nodeToMatrixIndex;
-	std::string nodeName(node->mName.data);
-	
-	if (nodeToMatrixIndex.find(nodeName) == nodeToMatrixIndex.end())
+	if (!model->NodeToAnimIndex.empty())
 	{
-		// 最初のアニメーション情報からマッピングを作成
-		if (model && model->AiScene && model->AiScene->mNumAnimations > 0)
+		auto it = model->NodeToAnimIndex.find(node->mName.data);
+		if (it != model->NodeToAnimIndex.end())
 		{
-			aiAnimation* anim = model->AiScene->mAnimations[0];
-			for (unsigned int c = 0; c < anim->mNumChannels; c++)
+			int nodeAnimIndex = it->second;
+			if (nodeAnimIndex >= 0 && nodeAnimIndex < (int)BoneMatrices::MAX_BONES)
 			{
-				std::string channelName(anim->mChannels[c]->mNodeName.data);
-				if (channelName == nodeName)
-				{
-					nodeToMatrixIndex[nodeName] = c;
-					break;
-				}
+				// ボーン行列を適用（ノード階層変換の代わりにアニメーション行列を使用）
+				currentTransform = boneMatrices.matrices[nodeAnimIndex] * parentTransform;
 			}
-		}
-	}
-	
-	if (nodeToMatrixIndex.find(nodeName) != nodeToMatrixIndex.end())
-	{
-		nodeAnimIndex = nodeToMatrixIndex[nodeName];
-		if (nodeAnimIndex >= 0 && nodeAnimIndex < BoneMatrices::MAX_BONES)
-		{
-			// ボーン行列を適用（ノード階層変換の代わりにアニメーション行列を使用）
-			currentTransform = boneMatrices.matrices[nodeAnimIndex] * parentTransform;
 		}
 	}
 
@@ -200,15 +185,9 @@ void RenderNodeAnimation(MODEL* model, aiNode* node, XMMATRIX parentTransform, c
 		XMMATRIX meshWorldMatrix = currentTransform * worldTransform;
 		Shader_SetWorldMatrix(meshWorldMatrix);
 
-		// WVP行列の計算と設定
-		Camera* pCamera = GetCamera();
-		if (pCamera)
-		{
-			XMMATRIX View = pCamera->GetView();
-			XMMATRIX Projection = pCamera->GetProjection();
-			XMMATRIX WVP = meshWorldMatrix * View * Projection;
-			Shader_SetMatrix(WVP);
-		}
+		// WVP行列の計算と設定 (プリ計算された viewProjection を使用)
+		XMMATRIX WVP = meshWorldMatrix * viewProjection;
+		Shader_SetMatrix(WVP);
 
 		// インデックス数チェック：0の場合はスキップ
 		unsigned int indexCount = model->MeshIndexCounts[meshIndex];
@@ -222,9 +201,10 @@ void RenderNodeAnimation(MODEL* model, aiNode* node, XMMATRIX parentTransform, c
 	// 子ノードを再帰実行
 	for (unsigned int i = 0; i < node->mNumChildren; i++)
 	{
-		RenderNodeAnimation(model, node->mChildren[i], currentTransform, boneMatrices, color, useColorReplace, worldTransform);
+		RenderNodeAnimation(model, node->mChildren[i], currentTransform, boneMatrices, color, useColorReplace, worldTransform, viewProjection);
 	}
 }
+
 
 MODEL* ModelLoad(const char* FileName)
 {
@@ -316,8 +296,8 @@ MODEL* ModelLoad(const char* FileName)
 			}
 
 			// Blinn/光沢度パラメータも取得可能（参考）
-			float shininess = 32.0f;  // デフォルト光沢度
-			material->Get(AI_MATKEY_SHININESS, shininess);
+//			float shininess = 32.0f;  // デフォルト光沢度
+//			material->Get(AI_MATKEY_SHININESS, shininess);
 			// ※ 将来的にシェーダーコンスタントバッファに追加可能
 		}
 
@@ -351,7 +331,8 @@ MODEL* ModelLoad(const char* FileName)
 				else
 				{
 					// 法線がない場合はデフォルト（上向き）
-					vertex[v].normal = XMFLOAT3(0.0f, 1.0f, 0.0f);
+//					vertex[v].normal = XMFLOAT3(0.0f, 1.0f, 0.0f);
+					vertex[v].normal = XMFLOAT3(0.57735f, 0.57735f, 0.57735f);  // 法線のデフォルト値（単位ベクトル）
 				}
 			}
 
@@ -593,6 +574,16 @@ MODEL* ModelLoad(const char* FileName)
 		}
 	}
 
+	// アニメーションチャンネルのマッピングを作成（RenderNodeAnimationで使用）
+	if (model->AiScene->mNumAnimations > 0)
+	{
+		aiAnimation* anim = model->AiScene->mAnimations[0];
+		for (unsigned int c = 0; c < anim->mNumChannels; c++)
+		{
+			model->NodeToAnimIndex[anim->mChannels[c]->mNodeName.data] = c;
+		}
+	}
+
 	hal::dout << std::endl;
 	hal::dout << "========================================" << std::endl;
 	hal::dout << "<< Model Loading Complete: " << FileName << std::endl;
@@ -695,7 +686,14 @@ void ModelAnimationDraw(MODEL* model, XMFLOAT3 pos, XMFLOAT3 rot, XMFLOAT3 scale
 {
 	if (!model) return;
 
+	// カメラ情報の取得（一度だけ行う）
+	Camera* pCamera = GetCamera();
+	if (!pCamera) return;
+
+	XMMATRIX viewProjection = pCamera->GetView() * pCamera->GetProjection();
+
 	// モデルの変換行列（位置、回転、スケール）
+
 	XMMATRIX TranslationMatrix = XMMatrixTranslation(pos.x, pos.y, pos.z);
 	XMMATRIX RotationMatrix = XMMatrixRotationRollPitchYaw(
 		XMConvertToRadians(rot.x),
@@ -721,8 +719,9 @@ void ModelAnimationDraw(MODEL* model, XMFLOAT3 pos, XMFLOAT3 rot, XMFLOAT3 scale
 	}
 	
 	XMMATRIX identity = XMMatrixIdentity();
-	RenderNodeAnimation(model, model->AiScene->mRootNode, identity, boneMatrices, finalColor, useColorReplace, worldMatrix);
+	RenderNodeAnimation(model, model->AiScene->mRootNode, identity, boneMatrices, finalColor, useColorReplace, worldMatrix, viewProjection);
 }
+
 
 XMFLOAT3 ModelGetSize(MODEL* model)
 {
