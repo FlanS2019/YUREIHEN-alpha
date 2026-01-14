@@ -3,6 +3,7 @@
 #include "animation.h"
 #include "WinAnim.h"
 #include "LoseAnim.h"
+#include "LoseAnimED.h"
 #include "direct3d.h"
 #include "keyboard.h"
 #include "texture.h"
@@ -23,7 +24,7 @@ void Init(void)
 		break;
 	case SCENE_RESULT:
 		Result_Initialize(Direct3D_GetDevice(), Direct3D_GetDeviceContext());
-		break;
+		break;	
 	case SCENE_ANM_LOGO:
 		Animation_Logo_Initialize(Direct3D_GetDevice(), Direct3D_GetDeviceContext());
 		break;
@@ -35,6 +36,9 @@ void Init(void)
 		break;
 	case SCENE_ANM_LOSE:
 		Animation_Lose_Initialize(Direct3D_GetDevice(), Direct3D_GetDeviceContext());
+		break;
+	case SCENE_ANM_LOSE_ED:
+		Animation_LoseED_Initialize(Direct3D_GetDevice(), Direct3D_GetDeviceContext());
 		break;
 	default:
 		break;
@@ -66,6 +70,9 @@ void Update(void)
 	case SCENE_ANM_LOSE:
 		Animation_Lose_Update();
 		break;
+	case SCENE_ANM_LOSE_ED:
+		Animation_LoseED_Update();
+		break;
 	default:
 		break;
 	}
@@ -96,6 +103,9 @@ void Draw(void)
 	case SCENE_ANM_LOSE:
 		Animation_Lose_Draw();
 		break;
+	case SCENE_ANM_LOSE_ED:
+		Animation_LoseED_Draw();
+		break;
 	default:
 		break;
 	}
@@ -125,6 +135,9 @@ void Finalize(void)
 		break;
 	case SCENE_ANM_LOSE:
 		Animation_Lose_Finalize();
+		break;
+	case SCENE_ANM_LOSE_ED:
+		Animation_LoseED_Finalize();
 		break;
 	default:
 		break;
