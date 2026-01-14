@@ -1,7 +1,7 @@
 ﻿#pragma once
 
-// Generated: 2025-12-25 18:58:32
-// Source: C:\Users\ths40275\Downloads\Floor1.schem
+// Generated: 2026-01-13 13:31:30
+// Source: C:\Users\realryo1\Downloads\Floor1.schem
 // Block IDs:
 //   -1: ['ダークオークのトラップドア（仮）', 'オークの看板（仮）', '魂の松明(仮)', '黒のキャンドル（仮）', '絵画（仮）', '黒のカーペット（仮）', '白のカーペット（仮）']
 //   0: 空気
@@ -25,7 +25,7 @@
 
 #define MAP_LENGTH 41
 #define MAP_WIDTH 53
-#define MAP_HEIGHT 7
+#define MAP_HEIGHT 8
 
 static int Floor1[MAP_HEIGHT][MAP_LENGTH][MAP_WIDTH] = {
     { // Y=0
