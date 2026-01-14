@@ -63,6 +63,7 @@ FIELD_TYPE ConvertMapID(int minecraftID)
 	case 15: // オークフェンス
 	case 16: // ダイアモンド
 	case 17: // カーペット
+	case 18: // ガラス
 	case 39: // コピー用ブロック
 		return FIELD_BOX;
 
@@ -156,14 +157,15 @@ void Field_Initialize(ID3D11Device* pDevice, ID3D11DeviceContext* pContext)
 
 	for (int i = 0; i < MAX_BLOCK_TYPES; i++) g_BlockTextures[i] = nullptr;
 
-	g_BlockTextures[1] = LoadTexture(L"asset\\texture\\yuka.png");  // ID 1
+	g_BlockTextures[1] = LoadTexture(L"asset\\texture\\yuka.png");		 // ID 1
 	g_BlockTextures[2] = LoadTexture(L"asset\\texture\\kabesita.png");   // ID 2
-	g_BlockTextures[3] = LoadTexture(L"asset\\texture\\tunagime.png");// ID 3
-	g_BlockTextures[4] = LoadTexture(L"asset\\texture\\kabeue.png");   // ID 4
-	g_BlockTextures[13] = LoadTexture(L"asset\\texture\\wood.png");           // ID 13
-	g_BlockTextures[14] = LoadTexture(L"asset\\texture\\wood.png");          // ID 14
-	g_BlockTextures[16] = LoadTexture(L"asset\\texture\\green.png");  // ID 16
-	g_BlockTextures[17] = LoadTexture(L"asset\\texture\\tairu.png"); // ID 17
+	g_BlockTextures[3] = LoadTexture(L"asset\\texture\\tunagime.png");	 // ID 3
+	g_BlockTextures[4] = LoadTexture(L"asset\\texture\\kabeue.png");	 // ID 4
+	g_BlockTextures[13] = LoadTexture(L"asset\\texture\\wood.png");      // ID 13
+	g_BlockTextures[14] = LoadTexture(L"asset\\texture\\wood.png");      // ID 14
+	g_BlockTextures[16] = LoadTexture(L"asset\\texture\\green.png");	 // ID 16
+	g_BlockTextures[17] = LoadTexture(L"asset\\texture\\tairu.png");	 // ID 17
+	g_BlockTextures[18] = LoadTexture(L"asset\\texture\\garasu.png");	 // ID 18
 
 	// デフォルト画像（読み込まれていないID用）
 	if (g_BlockTextures[0] == nullptr) g_BlockTextures[0] = LoadTexture(L"asset\\texture\\grass.png");
