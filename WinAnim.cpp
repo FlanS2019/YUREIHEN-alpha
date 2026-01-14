@@ -21,8 +21,8 @@ Sprite* g_WinSprite = nullptr;
 void Animation_Win_Initialize(ID3D11Device* pDevice, ID3D11DeviceContext* pContext)
 {
 	g_WinSprite = new Sprite(
-		{ SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2 },	// 位置
-		{ SCREEN_WIDTH, SCREEN_HEIGHT },			// サイズ
+		{ SCREEN_WIDTH/2, SCREEN_HEIGHT/2 },	// 位置
+		{ 1028,720 },			// サイズ
 		0.0f,										// 回転（度）
 		{ 1.0f, 1.0f, 1.0f, 1.0f },				// 色
 		BLENDSTATE_ALFA,							// BlendState
