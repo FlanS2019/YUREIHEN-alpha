@@ -113,9 +113,10 @@ void Furniture_Initialize(void)
 void Furniture::Update(void)
 {
 	// 1. Ghostとの距離計算
-	if (GetGhost())
+	Ghost* pGhost = GetGhost();
+	if (pGhost)
 	{
-		XMFLOAT3 ghostPos = GetGhost()->GetPos();
+		XMFLOAT3 ghostPos = pGhost->GetPos();
 		XMVECTOR ghostVec = XMLoadFloat3(&ghostPos);
 		XMVECTOR furnitureVec = XMLoadFloat3(&m_Position);
 		XMVECTOR distVec = XMVectorSubtract(furnitureVec, ghostVec);
