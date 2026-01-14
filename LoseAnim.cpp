@@ -69,8 +69,8 @@ void Animation_Lose_Initialize(ID3D11Device* pDevice, ID3D11DeviceContext* pCont
 	float ghostDisplaySize = ghostNativePixelSize * ghostScaleFactor;
 
 	g_LoseGhostSprite = new Sprite(
-		{ SCREEN_WIDTH * 0.63f, SCREEN_HEIGHT * 0.45f },	// 位置（光の中央）
-		{ ghostDisplaySize, ghostDisplaySize },				// サイズ 
+		{ SCREEN_WIDTH * 0.47f, SCREEN_HEIGHT * 0.45f },	// 位置（光の中央）
+		{ 1028, 1028 },				// サイズ 
 		0.0f,											// 回転（度）
 		{ 1.0f, 1.0f, 1.0f, 0.0f },					// 色（初期は完全透明）
 		BLENDSTATE_ALFA,								// BlendState
