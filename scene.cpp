@@ -24,7 +24,7 @@ void Init(void)
 		break;
 	case SCENE_RESULT:
 		Result_Initialize(Direct3D_GetDevice(), Direct3D_GetDeviceContext());
-		break;
+		break;	
 	case SCENE_ANM_LOGO:
 		Animation_Logo_Initialize(Direct3D_GetDevice(), Direct3D_GetDeviceContext());
 		break;
