@@ -158,7 +158,7 @@
     <ClCompile Include="direct3d.cpp" />
     <ClCompile Include="fade.cpp" />
     <ClCompile Include="field.cpp" />
-    <ClCompile Include="field.h" />
+    <ClInclude Include="field.h" />
     <ClCompile Include="font.cpp" />
     <ClCompile Include="furniture.cpp" />
     <ClCompile Include="ghost.cpp" />
