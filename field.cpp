@@ -5,6 +5,7 @@
 #include "box.h"
 #include "define.h"
 #include "ghost.h"
+#include <DirectXMath.h>
 #include <vector>
 #include <queue>
 #include <map>
@@ -12,6 +13,9 @@
 
 #include "Floor1.h"
 
+using namespace DirectX;
+
+// グローバル変数
 static ID3D11Device* g_pDevice = NULL;
 static ID3D11DeviceContext* g_pContext = NULL;
 static ID3D11Buffer* g_VertexBuffer = NULL;
@@ -54,6 +58,7 @@ FIELD_TYPE ConvertMapID(int minecraftID)
 	case 14: // ダークオークフェンス
 	case 15: // オークフェンス
 	case 16: // ダイアモンド
+	case 17: // カーペット
 	case 18: // 窓ガラス
 	case 39: // コピー用ブロック
 		return FIELD_BOX;
@@ -137,14 +142,15 @@ void Field_Initialize(ID3D11Device* pDevice, ID3D11DeviceContext* pContext)
 
 	for (int i = 0; i < MAX_BLOCK_TYPES; i++) g_BlockTextures[i] = nullptr;
 
-	g_BlockTextures[1] = LoadTexture(L"asset\\texture\\yuka.png");
-	g_BlockTextures[2] = LoadTexture(L"asset\\texture\\kabesita.png");
-	g_BlockTextures[3] = LoadTexture(L"asset\\texture\\tunagime.png");
-	g_BlockTextures[4] = LoadTexture(L"asset\\texture\\kabeue.png");
-	g_BlockTextures[13] = LoadTexture(L"asset\\texture\\wood.png");
-	g_BlockTextures[14] = LoadTexture(L"asset\\texture\\wood.png");
-	g_BlockTextures[16] = LoadTexture(L"asset\\texture\\green.png");
-	g_BlockTextures[17] = LoadTexture(L"asset\\texture\\tairu.png");
+	g_BlockTextures[1] = LoadTexture(L"asset\\texture\\yuka.png");		 // ID 1
+	g_BlockTextures[2] = LoadTexture(L"asset\\texture\\kabesita.png");   // ID 2
+	g_BlockTextures[3] = LoadTexture(L"asset\\texture\\tunagime.png");	 // ID 3
+	g_BlockTextures[4] = LoadTexture(L"asset\\texture\\kabeue.png");	 // ID 4
+	g_BlockTextures[13] = LoadTexture(L"asset\\texture\\wood.png");      // ID 13
+	g_BlockTextures[14] = LoadTexture(L"asset\\texture\\wood.png");      // ID 14
+	g_BlockTextures[16] = LoadTexture(L"asset\\texture\\green.png");	 // ID 16
+	g_BlockTextures[17] = LoadTexture(L"asset\\texture\\tairu.png");	 // ID 17
+	g_BlockTextures[18] = LoadTexture(L"asset\\texture\\garasu.png");	 // ID 18
 
 	if (g_BlockTextures[0] == nullptr) g_BlockTextures[0] = LoadTexture(L"asset\\texture\\grass.png");
 
@@ -204,12 +210,13 @@ void Field_Update(void)
 
 		if (gridX >= 0 && gridX < MAP_W && gridZ >= 0 && gridZ < MAP_H)
 		{
+			// Y=1 (壁レイヤー) をチェック
 			int mcID = Floor1[1][gridZ][gridX];
 
 			if (ConvertMapID(mcID) == FIELD_BOX)
 			{
-				// range を1に縮小（2から）
-				const int range = 1;
+
+				int range = 2;
 				for (int oz = -range; oz <= range; oz++)
 				{
 					for (int ox = -range; ox <= range; ox++)
@@ -225,8 +232,10 @@ void Field_Update(void)
 				}
 			}
 		}
+		currentDist += 0.1f; // 少しずつ進める
 	}
 
+	// フラグに基づいてブロックの表示/非表示を更新
 	for (auto& mapData : g_MapList)
 	{
 		int mapGridX = WorldToGridX(mapData.pos.x);

@@ -34,6 +34,7 @@ void Field_Finalize(void);
 void Field_Draw(void);
 void Field_Update(void);
 
+void LoadMapData(int floor);
 // 判定用
 bool Field_IsFloor(float x, float z);
 FIELD_TYPE Field_GetBlockType(float x, float z);
