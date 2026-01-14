@@ -5,6 +5,7 @@
 #include "box.h"
 #include "define.h"
 #include "ghost.h"
+#include <DirectXMath.h>
 #include <vector>
 #include <queue>
 #include <map>
@@ -12,6 +13,8 @@
 
 // Minecraftのマップデータをインクルード
 #include "Floor1.h"
+
+using namespace DirectX;
 
 // グローバル変数
 static ID3D11Device* g_pDevice = NULL;
@@ -185,6 +188,7 @@ void Field_Initialize(ID3D11Device* pDevice, ID3D11DeviceContext* pContext)
 
 void Field_Update(void)
 {
+	// マップ全体の非表示フラグ配列
 	static std::vector<std::vector<bool>> shouldHide(MAP_H, std::vector<bool>(MAP_W, false));
 
 	// 配列のクリア
@@ -224,11 +228,12 @@ void Field_Update(void)
 
 		if (gridX >= 0 && gridX < MAP_W && gridZ >= 0 && gridZ < MAP_H)
 		{
-			// Y=1 (壁) をチェック
+			// Y=1 (壁レイヤー) をチェック
 			int mcID = Floor1[1][gridZ][gridX];
 
 			if (ConvertMapID(mcID) == FIELD_BOX)
 			{
+
 				int range = 2;
 				for (int oz = -range; oz <= range; oz++)
 				{
@@ -245,9 +250,10 @@ void Field_Update(void)
 				}
 			}
 		}
-		currentDist += 0.1f;
+		currentDist += 0.1f; // 少しずつ進める
 	}
 
+	// フラグに基づいてブロックの表示/非表示を更新
 	for (auto& mapData : g_MapList)
 	{
 		int mapGridX = WorldToGridX(mapData.pos.x);
@@ -255,6 +261,7 @@ void Field_Update(void)
 
 		if (mapGridX >= 0 && mapGridX < MAP_W && mapGridZ >= 0 && mapGridZ < MAP_H)
 		{
+			// 床(Y<0)は消さないが、壁(Y>=0)で非表示フラグが立っていたら消す
 			if (mapData.pos.y >= 0.0f && shouldHide[mapGridZ][mapGridX])
 			{
 				mapData.isHidden = true;
