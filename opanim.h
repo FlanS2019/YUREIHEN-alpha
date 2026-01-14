@@ -1,7 +1,6 @@
 ﻿#pragma once
 #include <d3d11.h>
 
-
 void OpAnim_Initialize(ID3D11Device* pDevice, ID3D11DeviceContext* pContext);
 void OpAnim_Finalize(void);
 void OpAnim_Update();
