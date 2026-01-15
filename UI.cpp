@@ -191,7 +191,12 @@ void UI_Update(void)
 	}
 
 	// --- 敗北条件 ---
-	if (g_Clock->Update() || g_ScareGauge->GetValue() <= 0.0f)
+#if STOP_TIMER_BUSTER
+	bool timeEnded = false;
+#else
+	bool timeEnded = g_Clock->Update();
+#endif
+	if (timeEnded || g_ScareGauge->GetValue() <= 0.0f)
 	{
 		hal::dout << "敗北条件を満たしました" << std::endl;
 		StartFade(SCENE_ANM_LOSE);
