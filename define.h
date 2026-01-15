@@ -42,7 +42,6 @@
 
 //=== Minimap 関連定数 ===
 
-#define MINIMAP_POS_X   (100.0f) 
-#define MINIMAP_POS_Y   (500.0f) 
+#define MINIMAP_POS_OFFSET   (100.0f) 
 #define BLOCK_SIZE      (10.0f)  
-#define VIEW_RANGE      (8) 
+#define VIEW_RANGE      (13) 
