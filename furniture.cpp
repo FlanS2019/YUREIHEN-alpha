@@ -46,7 +46,7 @@ void Furniture_Initialize(void)
 				// キッチン
 				CreateFurniture(
 					{ wx, 0.0f, wz },          // 場所
-					{ 2.0f, 2.0f, 2.0f },      // サイズ
+					{ 1.0f, 1.0f, 1.0f },      // サイズ
 					{ 0.0f, 0.0f, 0.0f },      // 回転(固定)
 					"asset\\model\\kitchen.fbx",  // モデル
 					ACTION_LURE                 // アクション
