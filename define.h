@@ -7,8 +7,8 @@
 #define MAP_FLOORS (3)
 
 //=== Camera 関連定数 ===
-#define PITCH_LIMIT_LOOK_UP    (20.0f)   // 上を見る限界（カメラが下がる限界）: 床埋まり防止
-#define PITCH_LIMIT_LOOK_DOWN  (-20.0f)  // 下を見る限界（カメラが上がる限界）: 天井埋まり防止
+#define PITCH_LIMIT_LOOK_UP    (25.0f)   // 上を見る限界（カメラが下がる限界）: 床埋まり防止
+#define PITCH_LIMIT_LOOK_DOWN  (-60.0f)  // 下を見る限界（カメラが上がる限界）: 天井埋まり防止
 
 #define MOUSE_SENSITIVITY (0.15f)
 #define CAMERA_DISTANCE (6.0f)  // カメラ距離

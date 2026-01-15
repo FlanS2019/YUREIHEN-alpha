@@ -368,11 +368,12 @@ void Field_Draw(void)
 		XMFLOAT3 clipPos;
 		XMStoreFloat3(&clipPos, vClipPos);
 
-		float margin = 0.2f;
+		float marginX = 0.2f;
+		float marginY = 0.8f;
 
 		// X, Y が -1～1 の範囲外なら描画しない
-		if (clipPos.x < -1.0f - margin || clipPos.x > 1.0f + margin ||
-			clipPos.y < -1.0f - margin || clipPos.y > 1.0f + margin)
+		if (clipPos.x < -1.0f - marginX || clipPos.x > 1.0f + marginX ||
+			clipPos.y < -1.0f - marginY || clipPos.y > 1.0f + marginY)
 		{
 			continue;
 		}

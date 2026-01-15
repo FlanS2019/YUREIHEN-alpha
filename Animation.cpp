@@ -7,6 +7,7 @@
 #include "component.h"
 #include "shader.h"
 #include "direct3d.h"
+#include "main.h"
 #include <timeapi.h>
 #pragma comment(lib, "winmm.lib")
 
@@ -143,6 +144,7 @@ void Animation_Logo_Finalize(void)
 
 void Animation_Op_Initialize(ID3D11Device* pDevice, ID3D11DeviceContext* pContext)
 {
+	SetFPS(40);
 	OpAnim_Initialize(pDevice, pContext);
 }
 
@@ -166,6 +168,5 @@ void Animation_Op_Draw(void)
 void Animation_Op_Finalize(void)
 {
 	OpAnim_Finalize();
+	SetFPS(FPS);
 }
-
-
