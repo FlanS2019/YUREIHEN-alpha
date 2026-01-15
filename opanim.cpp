@@ -65,8 +65,8 @@ static struct {
 } g_Inazuma = { 0.0f, 0.2f, false, 0.0f, 0xC0FFEEu };
 
 // アニメーション定数
-static const float BASUTA_MOVE_START_TIME = 1.5f;
-static const float BASUTA_MOVE_SPEED = 140.0f;
+static const float BASUTA_MOVE_START_TIME = 2.0f;
+static const float BASUTA_MOVE_SPEED = 110.0f;
 static const float BASUTA_FADE_DURATION = 2.0f;
 static const float BASUTA_WOBBLE_AMPLITUDE = 8.0f;
 static const float BASUTA_WOBBLE_FREQUENCY = 3.5f;
@@ -74,7 +74,7 @@ static const float BASUTA_WOBBLE_FREQUENCY = 3.5f;
 static const float YUREI_APPEAR_TIME = 2.0f;
 static const float YUREI_FADE_DURATION = 1.5f;
 static const float YUREI_REACT_DISTANCE = 600.0f;
-static const float YUREI_FLIP_DURATION = 0.5f;
+static const float YUREI_FLIP_DURATION = 0.3f;
 static const float YUREI_LEFT_MOVE_SPEED = -120.0f;
 static const float YUREI_FADE_OUT_TIME = 5.0f;
 static const float YUREI_FADE_OUT_DURATION = 0.5f;
@@ -89,6 +89,8 @@ static const float INAZUMA_BASE_ALPHA = 0.5f;
 
 static const float FADE_OUT_TIME = 8.0f;
 static const float YUREI_DETECT_TIME = 3.5f;
+// アニメーション定数セクションに追加
+static const float BIKKURI_APPEAR_DELAY = 0.3f;	// びっくり表示遅延（秒）
 
 // ========================
 // ユーティリティ関数
@@ -339,12 +341,6 @@ static void UpdateYurei(float elapsedSeconds)
 	{
 		g_Yurei.timer += g_OpAnimDeltaTime;
 
-		// 反応後は左移動
-		if (!g_Yurei.flipped)
-		{
-			g_Yurei.pos.x += YUREI_LEFT_MOVE_SPEED * g_OpAnimDeltaTime;
-		}
-
 		// フェードアウト
 		if (g_Yurei.timer > YUREI_FADE_OUT_TIME)
 		{
@@ -380,7 +376,9 @@ static void UpdateYurei(float elapsedSeconds)
 	if (g_OpBikkuriSprite) {
 		XMFLOAT2 bikkuriPos = { g_Yurei.currentPos.x, g_Yurei.currentPos.y - 100.0f };
 		g_OpBikkuriSprite->SetPos(bikkuriPos);
-		g_OpBikkuriSprite->SetColor({ 1.0f, 1.0f, 1.0f, g_Yurei.reacting ? g_Yurei.alpha : 0.0f });
+		// 反応開始から一定時間後に表示
+		float bikkuriAlpha = (g_Yurei.reacting && g_Yurei.timer > BIKKURI_APPEAR_DELAY) ? g_Yurei.alpha : 0.0f;
+		g_OpBikkuriSprite->SetColor({ 1.0f, 1.0f, 1.0f, bikkuriAlpha });
 	}
 }
 
