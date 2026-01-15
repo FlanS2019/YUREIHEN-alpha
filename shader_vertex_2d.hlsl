@@ -37,7 +37,6 @@ struct VS_INPUT
     float4 normal : NORMAL0;
     float4 color : COLOR0;
     float2 texcoord : TEXCOORD0;
-	
 };
 
 //出力用頂点構造体

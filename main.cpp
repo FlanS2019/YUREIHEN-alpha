@@ -8,6 +8,7 @@
 #define WIN32_LEAN_AND_MEAN	//32bitアプリには不要な情報を無視
 #include <windows.h>
 #include <algorithm>
+#include <chrono>
 #include "scene.h"
 #include "direct3d.h"
 #include "shader.h"
@@ -18,6 +19,8 @@
 #include "sprite.h"
 #include "fade.h"
 #include "sound.h"
+#include "ghost.h"
+#include <iostream>
 
 //==================================
 //グローバル変数
@@ -25,6 +28,8 @@
 
 //#ifndef _DEBUG
 int g_CountFPS;
+long long g_UpdateTime = 0;
+long long g_DrawTime = 0;
 wchar_t g_DebugStr[2048];
 //#endif
 static int g_TargetFPS = FPS;  // 目標FPS（デフォルトは FPS マクロの値）
@@ -51,6 +56,7 @@ int APIENTRY WinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance,
 	//フレームレート計測用変数
 	DWORD dwExecLastTime;
 	DWORD dwFPSLastTime;
+	DWORD dwTitleUpdateTime;
 	DWORD dwCurrentTime;
 	DWORD dwFrameCount;
 
@@ -115,13 +121,13 @@ int APIENTRY WinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance,
 
 	//フレームレート計測初期化
 	timeBeginPeriod(1);	//タイマーの制度を設定　
-	dwExecLastTime = dwFPSLastTime = timeGetTime();
+	dwExecLastTime = dwFPSLastTime = dwTitleUpdateTime = timeGetTime();
 	dwCurrentTime = dwFrameCount = 0;
 
 	do
 	{
 		//終了メッセージが来るまでループ （Windowsからのメッセージはそのまま使えない）
-		//while (GetMessage(&msg, NULL, 0, 0)) ゲーム向きではないらしい
+		//while (GetMessage(&msg, NULL, 0, 0))　ゲ－ム向きではないらしい
 		if (PeekMessage(&msg, nullptr, 0, 0, PM_REMOVE))	//余計なことをしないので早い
 		{
 			TranslateMessage(&msg);
@@ -162,23 +168,47 @@ int APIENTRY WinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance,
 					}
 				}
 
-				//#ifndef _DEBUG
-				//ウィンドウキャプションへ現在のFPSを表示
-				swprintf(g_DebugStr, sizeof(g_DebugStr)/sizeof(wchar_t), L"DX21");
-				swprintf(&g_DebugStr[wcslen(g_DebugStr)], sizeof(g_DebugStr)/sizeof(wchar_t) - wcslen(g_DebugStr), L"FPS：%d", g_CountFPS);
-				SetWindowText(hWnd, g_DebugStr);
-				//#endif
-				//更新
+				// 更新時間の計測
+				auto startUpdate = std::chrono::high_resolution_clock::now();
 				Fade_Update();
 				Update();
+				auto endUpdate = std::chrono::high_resolution_clock::now();
+				g_UpdateTime = std::chrono::duration_cast<std::chrono::microseconds>(endUpdate - startUpdate).count();
 
-				//描画
+				// 描画時間の計測
+				auto startDraw = std::chrono::high_resolution_clock::now();
 				Direct3D_Clear();//バッファのクリア
 
 				Draw();
 				Fade_Draw();
 
 				Direct3D_Present();//バッファの表示
+				auto endDraw = std::chrono::high_resolution_clock::now();
+				g_DrawTime = std::chrono::duration_cast<std::chrono::microseconds>(endDraw - startDraw).count();
+
+				long long totalTime = g_UpdateTime + g_DrawTime;
+
+				// 16666usを超えた場合にGhostの位置を詳細にデバッグ出力
+				if (totalTime > 16666)
+				{
+					if (Ghost* pGhost = GetGhost())
+					{
+						DirectX::XMFLOAT3 pos = pGhost->GetPos();
+						hal::dout << "Performance Drop! Total: " << totalTime 
+								  << "us (Upd: " << g_UpdateTime << "us, Drw: " << g_DrawTime 
+								  << "us) | Ghost Pos: X=" << pos.x << ", Y=" << pos.y << ", Z=" << pos.z << std::endl;
+					}
+				}
+
+				//#ifndef _DEBUG
+				//ウィンドウキャプションへ情報を表示（0.2秒に1回更新）
+				if ((dwCurrentTime - dwTitleUpdateTime) >= 200)
+				{
+					dwTitleUpdateTime = dwCurrentTime;
+					swprintf(g_DebugStr, sizeof(g_DebugStr) / sizeof(wchar_t), L"FPS: %d | Total: %lldus | Upd: %lldus | Drw: %lldus", g_CountFPS, g_UpdateTime + g_DrawTime, g_UpdateTime, g_DrawTime);
+					SetWindowText(hWnd, g_DebugStr);
+				}
+				//#endif
 
 				keycopy();
 

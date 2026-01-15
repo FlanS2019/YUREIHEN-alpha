@@ -14,7 +14,7 @@
 #define SCREEN_HEIGHT (720.0f)
 #define WIN32_LEAN_AND_MEAN	//32bitアプリには不要な情報を無視
 #define FPS (60)
-#define STOP_TIMER_BUSTER (false) //trueならタイマーとバスターズのupdateを停止させる
+#define STOP_TIMER_BUSTER (true) //trueならタイマーとバスターズのupdateを停止させる
 
 using namespace DirectX;
 

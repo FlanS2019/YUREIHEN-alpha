@@ -21,8 +21,9 @@ static ID3D11DeviceContext* g_pContext = NULL;
 static ID3D11Buffer* g_VertexBuffer = NULL;
 static ID3D11Buffer* g_IndexBuffer = NULL;
 
-static ID3D11Buffer* g_SimpleVertexBuffer = NULL;
-static ID3D11Buffer* g_SimpleIndexBuffer = NULL;
+// インスタンス描画用バッファ
+#define MAX_INSTANCES (5000)
+static ID3D11Buffer* g_InstanceBuffer = NULL;
 
 #define MAX_BLOCK_TYPES 100 
 static ID3D11ShaderResourceView* g_BlockTextures[MAX_BLOCK_TYPES];
@@ -163,7 +164,13 @@ void Field_Initialize(ID3D11Device* pDevice, ID3D11DeviceContext* pContext)
 		CreateBox(pDevice, pContext, &g_VertexBuffer, &g_IndexBuffer);
 	}
 
-	CreateSimpleBox(pDevice, &g_SimpleVertexBuffer, &g_SimpleIndexBuffer);
+	// インスタンスバッファの作成
+	D3D11_BUFFER_DESC idesc{};
+	idesc.ByteWidth = sizeof(XMFLOAT4X4) * MAX_INSTANCES;
+	idesc.Usage = D3D11_USAGE_DYNAMIC;
+	idesc.BindFlags = D3D11_BIND_VERTEX_BUFFER;
+	idesc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
+	pDevice->CreateBuffer(&idesc, NULL, &g_InstanceBuffer);
 }
 
 void Field_Update(void)
@@ -200,8 +207,13 @@ void Field_Update(void)
 	const float STEP_SIZE = 1.0f;
 	float endDist = dist - 0.5f;
 
-	for (float currentDist = 0.0f; currentDist < endDist; currentDist += STEP_SIZE)
+	// レイを飛ばす回数を制限
+	int rayCount = 0;
+	const int MAX_RAYS = 50;
+
+	for (float currentDist = 0.0f; currentDist < endDist && rayCount < MAX_RAYS; currentDist += STEP_SIZE)
 	{
+		rayCount++;
 		float checkX = cameraPos.x + stepX * currentDist;
 		float checkZ = cameraPos.z + stepZ * currentDist;
 
@@ -248,33 +260,45 @@ void Field_Update(void)
 	}
 }
 
+// 定数バッファのキャッシュ用
+static DirectX::XMFLOAT4X4 g_CachedWVP;
+static DirectX::XMFLOAT4X4 g_CachedWorld;
+
 void Field_Draw(void)
 {
-	int lastID = -999;
-	Shader_Begin();
+	Shader_BeginInstance();
+
+	// 描画トポロジーをインデックスデータに合わせて三角形リストに設定
+	g_pContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 
 	Camera* pCamera = GetCamera();
 	XMMATRIX View = pCamera->GetView();
 	XMMATRIX Projection = pCamera->GetProjection();
 	XMMATRIX VP = View * Projection;
 
-	XMFLOAT3 cameraPos = GetCamera()->GetPos();
+	// インスタンス描画用に ViewProjection 行列をセット
+	Shader_SetMatrix(VP);
+
+	XMFLOAT3 cameraPos = pCamera->GetPos();
 	XMFLOAT3 cameraAtPos = pCamera->GetAtPos();
 	
-	float lookX = cameraAtPos.x - cameraPos.x;
-	float lookY = cameraAtPos.y - cameraPos.y;
-	float lookZ = cameraAtPos.z - cameraPos.z;
-	float lookLenSq = lookX*lookX + lookY*lookY + lookZ*lookZ;
-	if (lookLenSq > 0.0001f) {
-		float invLen = 1.0f / sqrtf(lookLenSq);
-		lookX *= invLen;
-		lookY *= invLen;
-		lookZ *= invLen;
-	}
+	XMVECTOR lookVec = XMVector3Normalize(XMVectorSubtract(XMLoadFloat3(&cameraAtPos), XMLoadFloat3(&cameraPos)));
+	XMFLOAT3 look;
+	XMStoreFloat3(&look, lookVec);
 
-	UINT stride = sizeof(Vertex3D);
-	UINT offset = 0;
-	g_pContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+	// 回転計算（一度だけ）
+	float radX = XMConvertToRadians(rotateBox.x);
+	float radY = XMConvertToRadians(rotateBox.y);
+	float radZ = XMConvertToRadians(rotateBox.z);
+	bool hasBaseRot = (rotateBox.x != 0.0f || rotateBox.y != 0.0f || rotateBox.z != 0.0f);
+	XMMATRIX baseRotMtx = hasBaseRot ? XMMatrixRotationRollPitchYaw(radX, radY, radZ) : XMMatrixIdentity();
+
+	// テクスチャごとにグループ化して描画
+	struct InstanceGroup {
+		ID3D11ShaderResourceView* pSRV;
+		std::vector<XMFLOAT4X4> matrices;
+	};
+	std::map<ID3D11ShaderResourceView*, InstanceGroup> groups;
 
 	for (const auto& mapData : g_MapList)
 	{
@@ -283,72 +307,67 @@ void Field_Draw(void)
 		float dx = mapData.pos.x - cameraPos.x;
 		float dy = mapData.pos.y - cameraPos.y;
 		float dz = mapData.pos.z - cameraPos.z;
-		float distSq = dx * dx + dy * dy + dz * dz;
 		
-		// 描画距離を制限 (500.0f -> 400.0f に短縮して負荷軽減)
-		if (distSq > 400.0f) continue;
+		float distSq = dx * dx + dy * dy + dz * dz;
+		if (distSq > 1600.0f) continue; // 40mまで
 
-		// カメラ裏カリング (閾値を調整)
-		float dotProduct = dx * lookX + dy * lookY + dz * lookZ;
-		if (dotProduct < -3.0f) continue;
-
+		float dot = dx * look.x + dy * look.y + dz * look.z;
+		if (dot < -1.0f) continue;
 
 		int id = mapData.blockID;
+		ID3D11ShaderResourceView* pTexture = nullptr;
 
-		if (id != lastID)
-		{
-		// 階段の場合
-		if (mapData.no == FIELD_STAIRS_UP || mapData.no == FIELD_STAIRS_DOWN)
-		{
-			g_pContext->IASetVertexBuffers(0, 1, &g_VertexBuffer, &stride, &offset);
+		if (mapData.no == FIELD_STAIRS_UP || mapData.no == FIELD_STAIRS_DOWN) {
+			pTexture = g_TextureStairs;
+		} else {
+			if (id <= 0 || id >= MAX_BLOCK_TYPES || g_BlockTextures[id] == nullptr) {
+				pTexture = g_BlockTextures[0];
+			} else {
+				pTexture = g_BlockTextures[id];
+			}
+		}
+
+		auto& group = groups[pTexture];
+		if (group.matrices.empty()) {
+			group.pSRV = pTexture;
+		}
+
+		XMMATRIX world = XMMatrixTranslation(mapData.pos.x, mapData.pos.y, mapData.pos.z);
+		if (hasBaseRot || mapData.rotY != 0.0f) {
+			XMMATRIX rotation = mapData.rotY != 0.0f ? 
+				(baseRotMtx * XMMatrixRotationY(XMConvertToRadians(mapData.rotY))) : baseRotMtx;
+			world = rotation * world;
+		}
+
+		XMFLOAT4X4 m;
+		XMStoreFloat4x4(&m, XMMatrixTranspose(world));
+		group.matrices.push_back(m);
+	}
+
+	UINT strides[2] = { sizeof(Vertex3D), sizeof(XMFLOAT4X4) };
+	UINT offsets[2] = { 0, 0 };
+
+	for (auto& pair : groups) {
+		auto& group = pair.second;
+		if (group.matrices.empty()) continue;
+
+		size_t count = group.matrices.size();
+		for (size_t i = 0; i < count; i += MAX_INSTANCES) {
+			size_t batchSize = (count - i) > MAX_INSTANCES ? MAX_INSTANCES : (count - i);
+
+			D3D11_MAPPED_SUBRESOURCE msr;
+			if (SUCCEEDED(g_pContext->Map(g_InstanceBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &msr))) {
+				memcpy(msr.pData, &group.matrices[i], sizeof(XMFLOAT4X4) * batchSize);
+				g_pContext->Unmap(g_InstanceBuffer, 0);
+			}
+
+			ID3D11Buffer* vbs[2] = { g_VertexBuffer, g_InstanceBuffer };
+			g_pContext->IASetVertexBuffers(0, 2, vbs, strides, offsets);
 			g_pContext->IASetIndexBuffer(g_IndexBuffer, DXGI_FORMAT_R32_UINT, 0);
-			g_pContext->PSSetShaderResources(0, 1, &g_TextureStairs);
+			g_pContext->PSSetShaderResources(0, 1, &group.pSRV);
+
+			g_pContext->DrawIndexedInstanced(36, (UINT)batchSize, 0, 0, 0);
 		}
-		else
-		{
-			// 箱（壁・床）
-
-			// テクスチャがロードされていない、または範囲外、またはID=0(デフォルト)の場合
-			if (id <= 0 || id >= MAX_BLOCK_TYPES || g_BlockTextures[id] == nullptr)
-			{
-				g_pContext->IASetVertexBuffers(0, 1, &g_VertexBuffer, &stride, &offset);
-				g_pContext->IASetIndexBuffer(g_IndexBuffer, DXGI_FORMAT_R32_UINT, 0);
-				g_pContext->PSSetShaderResources(0, 1, &g_BlockTextures[0]);
-			}
-			else
-			{
-				g_pContext->IASetVertexBuffers(0, 1, &g_SimpleVertexBuffer, &stride, &offset);
-				g_pContext->IASetIndexBuffer(g_SimpleIndexBuffer, DXGI_FORMAT_R32_UINT, 0);
-				g_pContext->PSSetShaderResources(0, 1, &g_BlockTextures[id]);
-			}
-		}
-
-		lastID = id;
-		}
-
-		if (rotateBox.x == 0.0f && rotateBox.y == 0.0f && rotateBox.z == 0.0f && mapData.rotY == 0.0f)
-		{
-			XMMATRIX TranslationMatrix = XMMatrixTranslation(mapData.pos.x, mapData.pos.y, mapData.pos.z);
-			XMMATRIX WVP = TranslationMatrix * VP;
-			Shader_SetWorldMatrix(TranslationMatrix);
-			Shader_SetMatrix(WVP);
-		}
-		else
-		{
-			XMMATRIX TranslationMatrix = XMMatrixTranslation(mapData.pos.x, mapData.pos.y, mapData.pos.z);
-			XMMATRIX RotationMatrix = XMMatrixRotationRollPitchYaw(
-				XMConvertToRadians(rotateBox.x),
-				XMConvertToRadians(rotateBox.y + mapData.rotY),
-				XMConvertToRadians(rotateBox.z));
-
-			XMMATRIX Model = RotationMatrix * TranslationMatrix;
-			XMMATRIX WVP = Model * VP;
-
-			Shader_SetWorldMatrix(Model);
-			Shader_SetMatrix(WVP);
-		}
-
-		g_pContext->DrawIndexed(36, 0, 0);
 	}
 }
 
@@ -357,8 +376,7 @@ void Field_Finalize(void)
 	SAFE_RELEASE(g_VertexBuffer);
 	SAFE_RELEASE(g_IndexBuffer);
 
-	SAFE_RELEASE(g_SimpleVertexBuffer);
-	SAFE_RELEASE(g_SimpleIndexBuffer);
+	SAFE_RELEASE(g_InstanceBuffer);
 
 	for (int i = 0; i < MAX_BLOCK_TYPES; i++)
 	{
@@ -528,8 +546,16 @@ std::vector<XMFLOAT3> Field_FindPath(XMFLOAT3 start, XMFLOAT3 end)
 	}
 
 	std::priority_queue<Node, std::vector<Node>, std::greater<Node>> openList;
-	std::vector<std::vector<bool>> closedList(MAP_H, std::vector<bool>(MAP_W, false));
-	std::vector<std::vector<Node>> nodes(MAP_H, std::vector<Node>(MAP_W));
+	// static を使用して再確保によるコストを削減
+	static std::vector<std::vector<bool>> closedList;
+	static std::vector<std::vector<Node>> nodes;
+	
+	if (closedList.size() != (size_t)MAP_H) closedList.assign(MAP_H, std::vector<bool>(MAP_W, false));
+	if (nodes.size() != (size_t)MAP_H) nodes.resize(MAP_H, std::vector<Node>(MAP_W));
+
+	for (int i = 0; i < MAP_H; ++i) {
+		std::fill(closedList[i].begin(), closedList[i].end(), false);
+	}
 
 	Node startNode = { startX, startZ, 0.0f, 0.0f, -1, -1 };
 	openList.push(startNode);

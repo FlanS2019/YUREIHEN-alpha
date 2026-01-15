@@ -12,25 +12,25 @@ static Vertex3D Box_vdata[BOX_NUM_VERTEX] =
 		XMFLOAT3(-0.5f,0.5f,-0.5f),//頂点座標
 		XMFLOAT3(0,0,-1),//normal
 		XMFLOAT4(1.0f,1.0f,1.0f,1.0f),//(R,G,B,A)
-		XMFLOAT2(0.0f,0.25f)//テクスチャ座標
+		XMFLOAT2(0.0f,0.0f)//テクスチャ座標
 	},
 	{//１　右上
 		XMFLOAT3(0.5f,0.5f,-0.5f),//頂点座標
 		XMFLOAT3(0,0,-1),//normal
 		XMFLOAT4(1.0f,1.0f,1.0f,1.0f),//(R,G,B,A)
-		XMFLOAT2(1.0f,0.25f)//テクスチャ座標
+		XMFLOAT2(1.0f,0.0f)//テクスチャ座標
 	},
 	{//２　左下
 		XMFLOAT3(-0.5f,-0.5f,-0.5f),//頂点座標
 		XMFLOAT3(0,0,-1),//normal
 		XMFLOAT4(1.0f,1.0f,1.0f,1.0f),//(R,G,B,A)
-		XMFLOAT2(0.0f,0.5f)//テクスチャ座標
+		XMFLOAT2(0.0f,1.0f)//テクスチャ座標
 	},
 	{//５　右下
 		XMFLOAT3(0.5f,-0.5f,-0.5f),//頂点座標
 		XMFLOAT3(0,0,-1),//normal
 		XMFLOAT4(1.0f,1.0f,1.0f,1.0f),//(R,G,B,A)
-		XMFLOAT2(1.0f,0.5f)//テクスチャ座標
+		XMFLOAT2(1.0f,1.0f)//テクスチャ座標
 	},
 	//----------------------------------------------------
 	//----------------------右側面------------------------
@@ -38,25 +38,25 @@ static Vertex3D Box_vdata[BOX_NUM_VERTEX] =
 		XMFLOAT3(0.5f,0.5f,-0.5f),//頂点座標
 		XMFLOAT3(1,0,0),//normal
 		XMFLOAT4(1.0f,1.0f,1.0f,1.0f),//(R,G,B,A)
-		XMFLOAT2(0.0f,0.25f)//テクスチャ座標
+		XMFLOAT2(0.0f,0.0f)//テクスチャ座標
 	},
 	{//７　右上
 		XMFLOAT3(0.5f,0.5f,0.5f),//頂点座標
 		XMFLOAT3(1,0,0),//normal
 		XMFLOAT4(1.0f,1.0f,1.0f,1.0f),//(R,G,B,A)
-		XMFLOAT2(1.0f,0.25f)//テクスチャ座標
+		XMFLOAT2(1.0f,0.0f)//テクスチャ座標
 	},
 	{//８　左下
 		XMFLOAT3(0.5f,-0.5f,-0.5f),//頂点座標
 		XMFLOAT3(1,0,0),//normal
 		XMFLOAT4(1.0f,1.0f,1.0f,1.0f),//(R,G,B,A)
-		XMFLOAT2(0.0f,0.5f)//テクスチャ座標
+		XMFLOAT2(0.0f,1.0f)//テクスチャ座標
 	},
 	{//１１　右下
 		XMFLOAT3(0.5f,-0.5f,0.5f),//頂点座標
 		XMFLOAT3(1,0,0),//normal
 		XMFLOAT4(1.0f,1.0f,1.0f,1.0f),//(R,G,B,A)
-		XMFLOAT2(1.0f,0.5f)//テクスチャ座標
+		XMFLOAT2(1.0f,1.0f)//テクスチャ座標
 	},
 	//----------------------------------------------------
 	//------------------------底面------------------------
@@ -64,25 +64,25 @@ static Vertex3D Box_vdata[BOX_NUM_VERTEX] =
 		XMFLOAT3(-0.5f,-0.5f,-0.5f),//頂点座標
 		XMFLOAT3(0,-1,0),//normal
 		XMFLOAT4(1.0f,1.0f,1.0f,1.0f),//(R,G,B,A)
-		XMFLOAT2(0.0f,0.5f)//テクスチャ座標
+		XMFLOAT2(0.0f,0.0f)//テクスチャ座標
 	},
 	{//13　右上
 		XMFLOAT3(0.5f,-0.5f,-0.5f),//頂点座標
 		XMFLOAT3(0,-1,0),//normal
 		XMFLOAT4(1.0f,1.0f,1.0f,1.0f),//(R,G,B,A)
-		XMFLOAT2(1.0f,0.5f)//テクスチャ座標
+		XMFLOAT2(1.0f,0.0f)//テクスチャ座標
 	},
 	{//14　左下
 		XMFLOAT3(-0.5f,-0.5f,0.5f),//頂点座標
 		XMFLOAT3(0,-1,0),//normal
 		XMFLOAT4(1.0f,1.0f,1.0f,1.0f),//(R,G,B,A)
-		XMFLOAT2(0.0f,0.75f)//テクスチャ座標
+		XMFLOAT2(0.0f,1.0f)//テクスチャ座標
 	},
 	{//17　右下
 		XMFLOAT3(0.5f,-0.5f,0.5f),//頂点座標
 		XMFLOAT3(0,-1,0),//normal
 		XMFLOAT4(1.0f,1.0f,1.0f,1.0f),//(R,G,B,A)
-		XMFLOAT2(1.0f,0.75f)//テクスチャ座標
+		XMFLOAT2(1.0f,1.0f)//テクスチャ座標
 	},
 	//----------------------------------------------------
 	//------------------------対面------------------------
@@ -90,25 +90,25 @@ static Vertex3D Box_vdata[BOX_NUM_VERTEX] =
 		XMFLOAT3(0.5f,0.5f,0.5f),//頂点座標
 		XMFLOAT3(0,0,1),//normal
 		XMFLOAT4(1.0f,1.0f,1.0f,1.0f),//(R,G,B,A)
-		XMFLOAT2(0.0f,0.25f)//テクスチャ座標
+		XMFLOAT2(0.0f,0.0f)//テクスチャ座標
 	},
 	{//１　右上
 		XMFLOAT3(-0.5f,0.5f,0.5f),//頂点座標
 		XMFLOAT3(0,0,1),//normal
 		XMFLOAT4(1.0f,1.0f,1.0f,1.0f),//(R,G,B,A)
-		XMFLOAT2(1.0f,0.25f)//テクスチャ座標
+		XMFLOAT2(1.0f,0.0f)//テクスチャ座標
 	},
 	{//２　左下
 		XMFLOAT3(0.5f,-0.5f,0.5f),//頂点座標
 		XMFLOAT3(0,0,1),//normal
 		XMFLOAT4(1.0f,1.0f,1.0f,1.0f),//(R,G,B,A)
-		XMFLOAT2(0.0f,0.5f)//テクスチャ座標
+		XMFLOAT2(0.0f,1.0f)//テクスチャ座標
 	},
 	{//５　右下
 		XMFLOAT3(-0.5f,-0.5f,0.5f),//頂点座標
 		XMFLOAT3(0,0,1),//normal
 		XMFLOAT4(1.0f,1.0f,1.0f,1.0f),//(R,G,B,A)
-		XMFLOAT2(1.0f,0.5f)//テクスチャ座標
+		XMFLOAT2(1.0f,1.0f)//テクスチャ座標
 	},
 	//----------------------------------------------------
 	//----------------------左側面------------------------
@@ -116,25 +116,25 @@ static Vertex3D Box_vdata[BOX_NUM_VERTEX] =
 		XMFLOAT3(-0.5f,0.5f,0.5f),//頂点座標
 		XMFLOAT3(-1,0,0),//normal
 		XMFLOAT4(1.0f,1.0f,1.0f,1.0f),//(R,G,B,A)
-		XMFLOAT2(0.0f,0.25f)//テクスチャ座標
+		XMFLOAT2(0.0f,0.0f)//テクスチャ座標
 	},
 	{//７　右上
 		XMFLOAT3(-0.5f,0.5f,-0.5f),//頂点座標
 		XMFLOAT3(-1,0,0),//normal
 		XMFLOAT4(1.0f,1.0f,1.0f,1.0f),//(R,G,B,A)
-		XMFLOAT2(1.0f,0.25f)//テクスチャ座標
+		XMFLOAT2(1.0f,0.0f)//テクスチャ座標
 	},
 	{//８　左下
 		XMFLOAT3(-0.5f,-0.5f,0.5f),//頂点座標
 		XMFLOAT3(-1,0,0),//normal
 		XMFLOAT4(1.0f,1.0f,1.0f,1.0f),//(R,G,B,A)
-		XMFLOAT2(0.0f,0.5f)//テクスチャ座標
+		XMFLOAT2(0.0f,1.0f)//テクスチャ座標
 	},
 	{//１１　右下
 		XMFLOAT3(-0.5f,-0.5f,-0.5f),//頂点座標
 		XMFLOAT3(-1,0,0),//normal
 		XMFLOAT4(1.0f,1.0f,1.0f,1.0f),//(R,G,B,A)
-		XMFLOAT2(1.0f,0.5f)//テクスチャ座標
+		XMFLOAT2(1.0f,1.0f)//テクスチャ座標
 	},
 	//----------------------------------------------------
 	//------------------------天面------------------------
@@ -154,13 +154,13 @@ static Vertex3D Box_vdata[BOX_NUM_VERTEX] =
 		XMFLOAT3(0.5f,0.5f,0.5f),//頂点座標
 		XMFLOAT3(0,1,0),//normal
 		XMFLOAT4(1.0f,1.0f,1.0f,1.0f),//(R,G,B,A)
-		XMFLOAT2(0.0f,0.25f)//テクスチャ座標
+		XMFLOAT2(0.0f,1.0f)//テクスチャ座標
 	},
 	{//17　右下
 		XMFLOAT3(-0.5f,0.5f,0.5f),//頂点座標
 		XMFLOAT3(0,1,0),//normal
 		XMFLOAT4(1.0f,1.0f,1.0f,1.0f),//(R,G,B,A)
-		XMFLOAT2(1.0f,0.25f)//テクスチャ座標
+		XMFLOAT2(1.0f,1.0f)//テクスチャ座標
 	},
 	//----------------------------------------------------
 };
