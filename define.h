@@ -15,7 +15,7 @@
 #define CAMERA_OFFSET_Y (1.5f)  // 注視点のオフセット
 
 //=== Furniture 関連定数 ===
-#define FURNITURE_NUM (100)
+#define FURNITURE_NUM (500)
 #define FURNITURE_DETECTION_RANGE (5.0f) // Ghost検出範囲
 
 //=== Busters 関連定数 ===
