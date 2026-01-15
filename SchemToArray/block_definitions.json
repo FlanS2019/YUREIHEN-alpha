@@ -138,8 +138,8 @@
 		},
 		{
 			"name": "light_gray_wool",
-			"names_ja": "カーペット",
-			"default_id": 56
+			"names_ja": "カーペット(IDは本来56。仮置き)",
+			"default_id": 17
 		},
 		{
 			"name": "campfire",
