@@ -44,6 +44,8 @@ bool Field_IsWall(float x, float y, float z);
 bool Field_IsOuterWall(float x, float z);
 float Field_GetFloorY(float x, float y, float z);
 
+float Field_CalculateRotationFromMarker(float x, float z);
+
 bool Field_CheckWallBetween(XMFLOAT3 start, XMFLOAT3 end);
 
 std::vector<XMFLOAT3> Field_FindPath(XMFLOAT3 start, XMFLOAT3 end);

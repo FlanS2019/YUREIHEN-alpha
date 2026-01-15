@@ -25,7 +25,7 @@ void Camera_Initialize(void)
 		XMFLOAT3(0.0f, 0.0f, -5.0f),            // pos (初期位置)
 		XMFLOAT3(0.0f, 0.0f, 0.0f),             // at (注視点)
 		XMFLOAT3(0.0f, 1.0f, 0.0f),             // up (上方向)
-		30.0f,                                  // fov : 視野角(標準は45度)
+		45.0f,                                  // fov : 視野角(標準は45度)
 		(float)SCREEN_WIDTH / SCREEN_HEIGHT,    // aspect : アスペクト比
 		1.0f,                                   // near : 手前の限界
 		50.0f                                   // far : 奥の限界

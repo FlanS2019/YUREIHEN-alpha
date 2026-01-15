@@ -76,11 +76,11 @@
     <ClInclude Include="UI.h" />
     <ClInclude Include="UI_scarecombo.h" />
     <ClInclude Include="WinAnim.h" />
-    <ClInclude Include="Floor1.h" />
     <ClInclude Include="minimap.h" />
     <ClInclude Include="font.h" />
     <ClInclude Include="field.h" />
     <ClInclude Include="LoseAnimED.h" />
+    <ClInclude Include="Floor1.h" />
   </ItemGroup>
   <ItemGroup>
     <Library Include="DirectXTex_Debug.lib" />

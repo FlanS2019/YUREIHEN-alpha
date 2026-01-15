@@ -5,6 +5,7 @@
 #include "keyboard.h"
 #include "define.h"
 #include "Floor1.h"
+#include "field.h"
 #include <cmath>   // sinf用
 
 Furniture* g_Furniture[FURNITURE_NUM]{};
@@ -29,6 +30,8 @@ void Furniture_Initialize(void)
 			float wx = (float)x - MAP_WIDTH / 2.0f;
 			float wz = MAP_LENGTH / 2.0f - (float)z;
 
+
+			float rotY = Field_CalculateRotationFromMarker(wx, wz);
 			switch (id)
 			{
 			case 50:
@@ -37,7 +40,7 @@ void Furniture_Initialize(void)
 				CreateFurniture(
 					{ wx, 0.0f, wz },          // 場所
 					{ 1.0f, 1.0f, 1.0f },      // サイズ
-					{ 0.0f, 0.0f, 0.0f },      // 回転(固定)
+					{ 0.0f, rotY, 0.0f },      // 回転(固定)
 					"asset\\model\\rockingchair.fbx", // モデル
 					ACTION_SCARE                // アクション
 				);
@@ -47,7 +50,7 @@ void Furniture_Initialize(void)
 				CreateFurniture(
 					{ wx, 0.0f, wz },          // 場所
 					{ 1.0f, 1.0f, 1.0f },      // サイズ
-					{ 0.0f, 0.0f, 0.0f },      // 回転(固定)
+					{ 0.0f, rotY, 0.0f },      // 回転(固定)
 					"asset\\model\\kitchen.fbx",  // モデル
 					ACTION_LURE                 // アクション
 				);
@@ -57,7 +60,7 @@ void Furniture_Initialize(void)
 				CreateFurniture(
 					{ wx, 0.0f, wz },          // 場所
 					{ 1.0f, 1.0f, 1.0f },      // サイズ
-					{ 0.0f, 0.0f, 0.0f },      // 回転(固定)
+					{ 0.0f, rotY, 0.0f },      // 回転(固定)
 					"asset\\model\\phonograph.fbx",  // モデル
 					ACTION_STOP                 // アクション
 				);
@@ -67,7 +70,7 @@ void Furniture_Initialize(void)
 				CreateFurniture(
 					{ wx, 0.0f, wz },          // 場所
 					{ 1.0f, 1.0f, 1.0f },      // サイズ
-					{ 0.0f, 0.0f, 0.0f },      // 回転(固定)
+					{ 0.0f, rotY, 0.0f },      // 回転(固定)
 					"asset\\model\\bathtub.fbx",  // モデル
 					ACTION_STOP                 // アクション
 				);
@@ -77,7 +80,7 @@ void Furniture_Initialize(void)
 				CreateFurniture(
 					{ wx, 0.0f, wz },          // 場所
 					{ 1.0f, 1.0f, 1.0f },      // サイズ
-					{ 0.0f, 0.0f, 0.0f },      // 回転(固定)
+					{ 0.0f, rotY, 0.0f },      // 回転(固定)
 					"asset\\model\\danro.fbx",  // モデル
 					ACTION_STOP                 // アクション
 				);
@@ -87,7 +90,7 @@ void Furniture_Initialize(void)
 				CreateFurniture(
 					{ wx, 0.0f, wz },          // 場所
 					{ 1.0f, 1.0f, 1.0f },      // サイズ
-					{ 0.0f, 0.0f, 0.0f },      // 回転(固定)
+					{ 0.0f, rotY, 0.0f },      // 回転(固定)
 					"asset\\model\\mirror.fbx",  // モデル
 					ACTION_STOP                 // アクション
 				);
@@ -97,7 +100,7 @@ void Furniture_Initialize(void)
 				CreateFurniture(
 					{ wx, 0.0f, wz },          // 場所
 					{ 1.0f, 1.0f, 1.0f },      // サイズ
-					{ 0.0f, 0.0f, 0.0f },      // 回転(固定)
+					{ 0.0f, rotY, 0.0f },      // 回転(固定)
 					"asset\\model\\sofa.fbx",  // モデル
 					ACTION_STOP                 // アクション
 				);
@@ -107,17 +110,17 @@ void Furniture_Initialize(void)
 				CreateFurniture(
 					{ wx, 0.0f, wz },          // 場所
 					{ 1.0f, 1.0f, 1.0f },      // サイズ
-					{ 0.0f, 0.0f, 0.0f },      // 回転(固定)
+					{ 0.0f, rotY, 0.0f },      // 回転(固定)
 					"asset\\model\\low_bookshelf.fbx",  // モデル
 					ACTION_STOP                 // アクション
 				);
 				break;
-			case 58:
+			case 40:
 				// 高い本棚
 				CreateFurniture(
 					{ wx, 0.0f, wz },          // 場所
 					{ 1.0f, 1.0f, 1.0f },      // サイズ
-					{ 0.0f, 0.0f, 0.0f },      // 回転(固定)
+					{ 0.0f, rotY, 0.0f },      // 回転(固定)
 					"asset\\model\\tall_bookshelf.fbx",  // モデル
 					ACTION_STOP                 // アクション
 				);
