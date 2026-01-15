@@ -10,7 +10,7 @@
 #include "title.h"
 #include "result.h"
 
-SCENE scene = SCENE_TITLE;
+SCENE scene = SCENE_ANM_LOGO;
 
 void Init(void)
 {
