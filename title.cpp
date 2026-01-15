@@ -8,6 +8,8 @@
 #include "shader.h"
 #include "direct3d.h"
 #include "font.h"
+#include "sound.h"
+#include <cmath>
 
 // ①Spriteのインスタンス、ポインタ用意
 static SplitSprite* g_pTitleSprite = nullptr;
@@ -15,6 +17,53 @@ static Light* g_pTitleLight = nullptr;
 static FontRenderer* g_pTitleFont = nullptr;
 static FontRenderer* g_pTitleFont2 = nullptr;
 static Sprite* g_pSizeComparisonSprite = nullptr;
+static Sprite* g_pinazuma = nullptr;
+static SoundData* g_pBGM = nullptr;
+
+// 稲妻関連（opanim.cppから移植）
+static Sprite* g_pInazumaSprite = nullptr;
+
+static struct {
+	float timer;
+	float nextTrigger;
+	bool active;
+	float flashAlpha;
+	unsigned int seed;
+} g_Inazuma = { 0.0f, 0.2f, false, 0.0f, 0xC0FFEEu };
+
+static const float INAZUMA_FLASH_DURATION_MIN = 0.08f;
+static const float INAZUMA_FLASH_DURATION_MAX = 0.2f;
+static const float INAZUMA_INTERVAL_MIN = 0.5f;
+static const float INAZUMA_INTERVAL_MAX = 3.5f;
+static const float INAZUMA_BASE_ALPHA = 0.5f;
+
+// ========================
+// ユーティリティ関数
+// ========================
+
+// 線形合同法による乱数生成 [0.0, 1.0)
+static float Rand01()
+{
+	g_Inazuma.seed = g_Inazuma.seed * 1664525u + 1013904223u;
+	return (float)(g_Inazuma.seed & 0x00FFFFFFu) / (float)0x01000000u;
+}
+
+// イージング関数（ease-out cubic）
+static float EaseOutCubic(float t)
+{
+	if (t <= 0.0f) return 0.0f;
+	if (t >= 1.0f) return 1.0f;
+	float inv = 1.0f - t;
+	return 1.0f - inv * inv * inv;
+}
+
+// 値をクランプ
+static float Clamp(float value, float min, float max)
+{
+	if (value < min) return min;
+	if (value > max) return max;
+	return value;
+}
 
 void Title_Initialize(ID3D11Device* pDevice, ID3D11DeviceContext* pContext)
 {
@@ -54,8 +103,31 @@ void Title_Initialize(ID3D11Device* pDevice, ID3D11DeviceContext* pContext)
 		0.0f,													//回転
 		{ 1.0f, 1.0f, 1.0f, 1.0f },								//RGBA
 		BLENDSTATE_ALFA,										//テキスト
-		L"asset\\texture\\guide.png"						
+		L"asset\\texture\\guide.png"
 	);
+
+	g_pinazuma = new Sprite(
+		{ SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2 },			//位置（画面中央）
+		{ 1280,720 },						//フォントサイズ（ピクセル）
+		0.0f,													//回転
+		{ 1.0f, 1.0f, 1.0f, 1.0f },								//RGBA
+		BLENDSTATE_ALFA,										//テキスト
+		L"asset\\yureihen\\inazuma2.png"
+	);
+
+	// 稲妻スプライト初期化
+	g_pInazumaSprite = new Sprite(
+		{ SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2 },	// 位置（画面中央）
+		{ 1280.0f, 720.0f },						// サイズ
+		0.0f,										// 回転（度）
+		{ 0.95f, 0.95f, 1.0f, INAZUMA_BASE_ALPHA },	// 色
+		BLENDSTATE_ADD,								// BlendState（加算合成）
+		L"asset\\yureihen\\inazuma2.png"		// テクスチャパス
+	);
+
+	// 稲妻初期化
+	g_Inazuma.nextTrigger = 0.5f + Rand01() * 1.5f;
+	g_Inazuma.active = false;
 
 	// タイトル画面用ライト（無効 + 白環境光）
 	g_pTitleLight = new Light(
@@ -64,10 +136,45 @@ void Title_Initialize(ID3D11Device* pDevice, ID3D11DeviceContext* pContext)
 		XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f),
 		XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f)
 	);
+	// BGM再生
+	g_pBGM = LoadMP3("asset/sound/bgm/HauntedHalloween.mp3");
+	if (g_pBGM) {
+		PlaySound(g_pBGM, true);
+	}
 }
 
 void Title_Update(void)
 {
+	// 稲妻更新
+	g_Inazuma.nextTrigger -= (1.0f / 60.0f);	// 60FPS想定
+	if (g_Inazuma.nextTrigger <= 0.0f && !g_Inazuma.active)
+	{
+		g_Inazuma.active = true;
+		g_Inazuma.flashAlpha = 0.7f + Rand01() * 0.3f;
+		g_Inazuma.timer = 0.0f;
+	}
+
+	if (g_Inazuma.active)
+	{
+		g_Inazuma.timer += (1.0f / 60.0f);
+		float duration = INAZUMA_FLASH_DURATION_MIN + Rand01() * (INAZUMA_FLASH_DURATION_MAX - INAZUMA_FLASH_DURATION_MIN);
+		float fade = 1.0f - EaseOutCubic(g_Inazuma.timer / duration);
+		g_Inazuma.flashAlpha *= fade;
+
+		if (g_Inazuma.timer >= duration)
+		{
+			g_Inazuma.active = false;
+			g_Inazuma.flashAlpha = 0.0f;
+			g_Inazuma.nextTrigger = INAZUMA_INTERVAL_MIN + Rand01() * (INAZUMA_INTERVAL_MAX - INAZUMA_INTERVAL_MIN);
+		}
+	}
+
+	// 稲妻アルファ更新
+	float inazumaAlpha = INAZUMA_BASE_ALPHA + g_Inazuma.flashAlpha * 0.9f;
+	if (g_pInazumaSprite) {
+		g_pInazumaSprite->SetColor({ 0.95f, 0.95f, 1.0f, Clamp(inazumaAlpha, 0.0f, 1.5f) });
+	}
+
 	// Debug: Wキーで勝利アニメーションへ直接遷移（タイトル上でのデバッグ用）
 	if (Keyboard_IsKeyDown(KK_W))
 	{
@@ -94,6 +201,8 @@ void Title_Draw(void)
 	//g_pSizeComparisonSprite->Draw();
 	g_pTitleFont->Draw();
 	//g_pTitleFont2->Draw();
+	g_pinazuma->Draw();
+	if (g_pInazumaSprite) g_pInazumaSprite->Draw();	// 稲妻描画
 }
 
 void Title_Finalize(void)
@@ -112,4 +221,16 @@ void Title_Finalize(void)
 
 	delete g_pTitleLight;
 	g_pTitleLight = nullptr;
+	delete g_pinazuma;
+	g_pinazuma = nullptr;
+
+	delete g_pInazumaSprite;
+	g_pInazumaSprite = nullptr;
+
+	// BGM解放
+	if (g_pBGM) {
+		StopSound(g_pBGM);
+		UnloadSound(g_pBGM);
+		g_pBGM = nullptr;
+	}
 }
