@@ -1,0 +1,167 @@
+﻿{
+  "blocks": [
+    {
+      "name": "spruce_stairs",
+      "names_ja": "トウヒの階段",
+      "default_id": 5,
+      "conditions": [
+        {
+          "properties": {
+            "half": "bottom",
+            "facing": "east"
+          },
+          "id": 5,
+          "names_ja": "トウヒの階段[下付き・東向き]"
+        },
+        {
+          "properties": {
+            "half": "bottom",
+            "facing": "west"
+          },
+          "id": 6,
+          "names_ja": "トウヒの階段[下付き・西向き]"
+        },
+        {
+          "properties": {
+            "half": "bottom",
+            "facing": "south"
+          },
+          "id": 7,
+          "names_ja": "トウヒの階段[下付き・南向き]"
+        },
+        {
+          "properties": {
+            "half": "bottom",
+            "facing": "north"
+          },
+          "id": 8,
+          "names_ja": "トウヒの階段[下付き・北向き]"
+        },
+        {
+          "properties": {
+            "half": "top",
+            "facing": "east"
+          },
+          "id": 9,
+          "names_ja": "トウヒの階段[上付き・東向き]"
+        },
+        {
+          "properties": {
+            "half": "top",
+            "facing": "west"
+          },
+          "id": 10,
+          "names_ja": "トウヒの階段[上付き・西向き]"
+        },
+        {
+          "properties": {
+            "half": "top",
+            "facing": "south"
+          },
+          "id": 11,
+          "names_ja": "トウヒの階段[上付き・南向き]"
+        },
+        {
+          "properties": {
+            "half": "top",
+            "facing": "north"
+          },
+          "id": 12,
+          "names_ja": "トウヒの階段[上付き・北向き]"
+        }
+      ]
+    },
+    {
+      "name": "spruce_planks",
+      "names_ja": "トウヒの板材",
+      "default_id": 1
+    },
+    {
+      "name": "dark_oak_log",
+      "names_ja": "ダークオークの原木",
+      "default_id": 2
+    },
+    {
+      "name": "dark_oak_planks",
+      "names_ja": "ダークオークの板材",
+      "default_id": 3
+    },
+    {
+      "name": "birch_planks",
+      "names_ja": "シラカバの板材",
+      "default_id": 4
+    },
+    {
+      "name": "dark_oak_door",
+      "names_ja": "ダークオークのドア",
+      "default_id": 0
+    },
+    {
+      "name": "dark_oak_fence",
+      "names_ja": "ダークオークのフェンス",
+      "default_id": 0
+    },
+    {
+      "name": "glass_pane",
+      "names_ja": "窓ガラス",
+      "default_id": 18
+    },
+    {
+      "name": "white_concrete",
+      "names_ja": "キャビネット",
+      "default_id": 19
+    },
+    {
+      "name": "light_gray_concrete",
+      "names_ja": "本棚",
+      "default_id": 40
+    },
+    {
+      "name": "brown_wool",
+      "names_ja": "椅子",
+      "default_id": 50
+    },
+    {
+      "name": "quartz_brock",
+      "names_ja": "キッチン",
+      "default_id": 51
+    },
+    {
+      "name": "jukebox",
+      "names_ja": "蓄音機",
+      "default_id": 52
+    },
+    {
+      "name": "blue_wool",
+      "names_ja": "バスタブ",
+      "default_id": 53
+    },
+    {
+      "name": "campfire",
+      "names_ja": "暖炉",
+      "default_id": 54
+    },
+    {
+      "name": "white_banner",
+      "names_ja": "鏡",
+      "default_id": 55
+    },
+    {
+      "name": "end_stone_brick_wall",
+      "names_ja": "看板",
+      "default_id": 98
+    },
+    {
+      "name": "barrier",
+      "names_ja": "新しいブロックはこれを複製して追加する",
+      "default_id": 39
+    },
+    {
+      "name": "air",
+      "names_ja": "空気",
+      "default_id": 0
+    }
+  ],
+  "default_id": 0,
+  "default_names_ja": "不明"
+}
