@@ -20,17 +20,26 @@ static XMFLOAT3 g_targetPos = { 0.0f, 0.0f, 0.0f };  // 注視対象位置
 
 void Camera_Initialize(void)
 {
-    CameraObject = new Camera();
-    
-    // マウスを相対モードに設定
-    Mouse_SetMode(MOUSE_POSITION_MODE_RELATIVE);
-    
-    // カーソルを非表示
-    ShowCursor(FALSE);
-    
-    g_pitch = 0.0f;
-    g_yaw = 0.0f;
-    g_targetPos = { 0.0f, 0.0f, 0.0f };
+
+	CameraObject = new Camera(
+		XMFLOAT3(0.0f, 0.0f, -5.0f),            // pos (初期位置)
+		XMFLOAT3(0.0f, 0.0f, 0.0f),             // at (注視点)
+		XMFLOAT3(0.0f, 1.0f, 0.0f),             // up (上方向)
+		30.0f,                                  // fov : 視野角(標準は45度)
+		(float)SCREEN_WIDTH / SCREEN_HEIGHT,    // aspect : アスペクト比
+		1.0f,                                   // near : 手前の限界
+		50.0f                                   // far : 奥の限界
+	);
+
+	// マウスを相対モードに設定
+	Mouse_SetMode(MOUSE_POSITION_MODE_RELATIVE);
+
+	// カーソルを非表示
+	ShowCursor(FALSE);
+
+	g_pitch = 0.0f;
+	g_yaw = 0.0f;
+	g_targetPos = { 0.0f, 0.0f, 0.0f };
 }
 
 void Camera_Finalize(void)
@@ -99,8 +108,8 @@ void Camera_Update(void)
 
 	// 注視対象 から相対的なカメラ位置
 	float camX = -sinf(yawRad) * cosf(pitchRad) * CAMERA_DISTANCE;
-	// ★補足: ここでさらに +1.5f しているので、合計でターゲット座標+3.0fの高さが基準になっています
-	float camY = -sinf(pitchRad) * CAMERA_DISTANCE + 1.5f;
+
+	float camY = -sinf(pitchRad) * CAMERA_DISTANCE + 0.1f;
 	float camZ = -cosf(yawRad) * cosf(pitchRad) * CAMERA_DISTANCE;
 
 	XMVECTOR cameraPos = XMVectorAdd(targetVec, XMVectorSet(camX, camY, camZ, 0.0f));

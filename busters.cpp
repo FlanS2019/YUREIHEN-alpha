@@ -35,7 +35,6 @@ Busters::Busters(const XMFLOAT3& pos, const XMFLOAT3& scale, const XMFLOAT3& rot
 	m_DistanceToGhost(0.0f),
 	m_Icon(nullptr)
 {
-	srand((unsigned int)GetTickCount64());
 	m_Icon = new Billboard();
 
 	m_Icon->Initialize({ 0.0f, 0.0f, 0.0f }, { 0.7f, 0.7f }, { 0.0f, 0.0f, 0.0f }, true);
@@ -248,28 +247,27 @@ void Busters::MoveTo(XMFLOAT3 targetPos)
 	float deg = XMConvertToDegrees(angle);
 	SetRotY(deg + 180.0f);
 
-	float r = 0.4f;
-	float nextX = m_Position.x + dx * m_MoveSpeed;
-	bool hitX = false;
-	if (Field_IsWall(nextX + r, m_Position.y, m_Position.z + r) ||
-		Field_IsWall(nextX + r, m_Position.y, m_Position.z - r) ||
-		Field_IsWall(nextX - r, m_Position.y, m_Position.z + r) ||
-		Field_IsWall(nextX - r, m_Position.y, m_Position.z - r))
-	{
-		hitX = true;
-	}
-	if (!hitX) m_Position.x = nextX;
+	auto checkWallCollision = [&](float nx, float nz) -> bool {
+		float r = 0.4f; // 当たり判定半径
+		return (Field_IsWall(nx + r, m_Position.y, nz + r) ||
+			Field_IsWall(nx + r, m_Position.y, nz - r) ||
+			Field_IsWall(nx - r, m_Position.y, nz + r) ||
+			Field_IsWall(nx - r, m_Position.y, nz - r));
+		};
 
-	float nextZ = m_Position.z + dz * m_MoveSpeed;
-	bool hitZ = false;
-	if (Field_IsWall(m_Position.x + r, m_Position.y, nextZ + r) ||
-		Field_IsWall(m_Position.x + r, m_Position.y, nextZ - r) ||
-		Field_IsWall(m_Position.x - r, m_Position.y, nextZ + r) ||
-		Field_IsWall(m_Position.x - r, m_Position.y, nextZ - r))
+	// --- X軸移動 ---
+	float nextX = m_Position.x + dx * m_MoveSpeed;
+	if (!checkWallCollision(nextX, m_Position.z)) // 関数を呼ぶだけ！
 	{
-		hitZ = true;
+		m_Position.x = nextX;
 	}
-	if (!hitZ) m_Position.z = nextZ;
+
+	// --- Z軸移動 ---
+	float nextZ = m_Position.z + dz * m_MoveSpeed;
+	if (!checkWallCollision(m_Position.x, nextZ)) // 同じ関数を再利用！
+	{
+		m_Position.z = nextZ;
+	}
 }
 
 void Busters::OnScared(void)

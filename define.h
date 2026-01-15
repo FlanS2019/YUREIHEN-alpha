@@ -8,7 +8,7 @@
 
 //=== Camera 関連定数 ===
 #define PITCH_LIMIT_LOOK_UP    (20.0f)   // 上を見る限界（カメラが下がる限界）: 床埋まり防止
-#define PITCH_LIMIT_LOOK_DOWN  (-5.0f)  // 下を見る限界（カメラが上がる限界）: 天井埋まり防止
+#define PITCH_LIMIT_LOOK_DOWN  (-20.0f)  // 下を見る限界（カメラが上がる限界）: 天井埋まり防止
 
 #define MOUSE_SENSITIVITY (0.15f)
 #define CAMERA_DISTANCE (6.0f)  // カメラ距離
@@ -38,7 +38,7 @@
 #define GHOST_MAX_SPEED (0.10f)
 #define FLOOR_COOLDOWN_TIME (2.0f) // 階層移動のクールダウン時間（秒）
 
-#define GHOST_POS_Y (1.0f)
+#define GHOST_POS_Y (2.0f)
 
 //=== Minimap 関連定数 ===
 

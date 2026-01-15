@@ -124,6 +124,8 @@ void LoadMapData(int floor)
 				data.rotY = 0.0f;
 				data.blockID = mcID;
 
+				data.currentScale = 1.0f;
+
 				// 階段の向き調整（必要であればIDを見て回転させる）
 				// 例: if(mcID == 5) data.rotY = 90.0f; など
 
@@ -131,6 +133,7 @@ void LoadMapData(int floor)
 			}
 		}
 	}
+
 	std::sort(g_MapList.begin(), g_MapList.end(), [](const MAPDATA& a, const MAPDATA& b) {
 		return a.blockID < b.blockID;
 	});
@@ -175,16 +178,17 @@ void Field_Initialize(ID3D11Device* pDevice, ID3D11DeviceContext* pContext)
 
 void Field_Update(void)
 {
+	// 1. まず「今、隠すべき場所」を計算
 	static uint8_t shouldHide[MAP_LENGTH][MAP_WIDTH];
 	memset(shouldHide, 0, sizeof(shouldHide));
 
 	Ghost* ghost = GetGhost();
-
 	if (!ghost) return;
 
 	XMFLOAT3 cameraPos = GetCamera()->GetPos();
 	XMFLOAT3 playerPos = ghost->GetPos();
 
+	// プレイヤーの頭の高さ(Y+1.0f)を目標にする
 	playerPos.y += 1.0f;
 
 	float dx = playerPos.x - cameraPos.x;
@@ -194,8 +198,8 @@ void Field_Update(void)
 	// 距離が近すぎる場合はスキップ
 	if (distSq < 0.25f) return;
 
-	// 極端に遠い場合は処理を制限（無限ループ防止）
-	const float MAX_DIST = 30.0f; // 50から30に短縮
+	// 極端に遠い場合は処理を制限
+	const float MAX_DIST = 30.0f;
 	float dist = sqrtf(distSq);
 	if (dist > MAX_DIST) dist = MAX_DIST;
 
@@ -203,7 +207,6 @@ void Field_Update(void)
 	float stepX = dx * invDist;
 	float stepZ = dz * invDist;
 
-	// ステップを1.0fに変更（0.5fから）して処理回数を半減
 	const float STEP_SIZE = 1.0f;
 	float endDist = dist - 0.5f;
 
@@ -227,7 +230,7 @@ void Field_Update(void)
 
 			if (ConvertMapID(mcID) == FIELD_BOX)
 			{
-
+				// 遮蔽物を見つけたら、その周囲も含めて「隠すフラグ」を立てる
 				int range = 2;
 				for (int oz = -range; oz <= range; oz++)
 				{
@@ -244,22 +247,49 @@ void Field_Update(void)
 				}
 			}
 		}
-		currentDist += 0.1f; // 少しずつ進める
 	}
 
-	// フラグに基づいてブロックの表示/非表示を更新
+	// 2. フラグに基づいてアニメーション（拡大縮小）を更新
+	float animSpeed = 0.2f; // アニメーション速度
+
 	for (auto& mapData : g_MapList)
 	{
 		int mapGridX = WorldToGridX(mapData.pos.x);
 		int mapGridZ = WorldToGridZ(mapData.pos.z);
 
+		bool targetHide = false;
+
+		// 範囲内かつ、壁(Y>=0)の場合のみ判定
 		if (mapGridX >= 0 && mapGridX < MAP_W && mapGridZ >= 0 && mapGridZ < MAP_H)
 		{
-			mapData.isHidden = (mapData.pos.y >= 0.0f && shouldHide[mapGridZ][mapGridX]);
+			if (mapData.pos.y >= 0.0f && shouldHide[mapGridZ][mapGridX])
+			{
+				targetHide = true;
+			}
 		}
+
+		//// アニメーション処理
+		//if (targetHide)
+		//{
+		//	// 隠す場合：サイズを減らす
+		//	mapData.currentScale -= animSpeed;
+		//	if (mapData.currentScale < 0.0f) mapData.currentScale = 0.0f;
+		//}
+		//else
+		//{
+		//	// 表示する場合：サイズを戻す
+		//	mapData.currentScale += animSpeed;
+		//	if (mapData.currentScale > 1.0f) mapData.currentScale = 1.0f;
+		//}
+
+		//// 完全に0になったら描画自体をスキップさせる（軽量化）
+		//mapData.isHidden = (mapData.currentScale <= 0.001f);
+
+		mapData.isHidden = targetHide;
+		mapData.currentScale = 1.0f; // 念のためサイズは戻しておく
+
 	}
 }
-
 // 定数バッファのキャッシュ用
 static DirectX::XMFLOAT4X4 g_CachedWVP;
 static DirectX::XMFLOAT4X4 g_CachedWorld;
@@ -267,8 +297,6 @@ static DirectX::XMFLOAT4X4 g_CachedWorld;
 void Field_Draw(void)
 {
 	Shader_BeginInstance();
-
-	// 描画トポロジーをインデックスデータに合わせて三角形リストに設定
 	g_pContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 
 	Camera* pCamera = GetCamera();
@@ -276,26 +304,24 @@ void Field_Draw(void)
 	XMMATRIX Projection = pCamera->GetProjection();
 	XMMATRIX VP = View * Projection;
 
-	// インスタンス描画用に ViewProjection 行列をセット
 	Shader_SetMatrix(VP);
 
 	XMFLOAT3 cameraPos = pCamera->GetPos();
-	XMFLOAT3 cameraAtPos = pCamera->GetAtPos();
-	
-	XMVECTOR lookVec = XMVector3Normalize(XMVectorSubtract(XMLoadFloat3(&cameraAtPos), XMLoadFloat3(&cameraPos)));
-	XMFLOAT3 look;
-	XMStoreFloat3(&look, lookVec);
 
-	// 回転計算（一度だけ）
+	D3D11_VIEWPORT vp;
+	UINT numVP = 1;
+	g_pContext->RSGetViewports(&numVP, &vp);
+
+	// 回転計算（そのまま）
 	float radX = XMConvertToRadians(rotateBox.x);
 	float radY = XMConvertToRadians(rotateBox.y);
 	float radZ = XMConvertToRadians(rotateBox.z);
 	bool hasBaseRot = (rotateBox.x != 0.0f || rotateBox.y != 0.0f || rotateBox.z != 0.0f);
 	XMMATRIX baseRotMtx = hasBaseRot ? XMMatrixRotationRollPitchYaw(radX, radY, radZ) : XMMatrixIdentity();
 
-	// テクスチャごとにグループ化して描画
+	// グループ化用マップ
 	struct InstanceGroup {
-		ID3D11ShaderResourceView* pSRV;
+		ID3D11ShaderResourceView* pSRV = nullptr;
 		std::vector<XMFLOAT4X4> matrices;
 	};
 	std::map<ID3D11ShaderResourceView*, InstanceGroup> groups;
@@ -307,22 +333,43 @@ void Field_Draw(void)
 		float dx = mapData.pos.x - cameraPos.x;
 		float dy = mapData.pos.y - cameraPos.y;
 		float dz = mapData.pos.z - cameraPos.z;
-		
-		float distSq = dx * dx + dy * dy + dz * dz;
-		if (distSq > 1600.0f) continue; // 40mまで
+		if (dx * dx + dy * dy + dz * dz > 2500.0f) continue;
 
-		float dot = dx * look.x + dy * look.y + dz * look.z;
-		if (dot < -1.0f) continue;
+		XMVECTOR vPos = XMLoadFloat3(&mapData.pos);
+		XMVECTOR vScreenPos = XMVector3Project(
+			vPos,
+			vp.TopLeftX, vp.TopLeftY, vp.Width, vp.Height,
+			vp.MinDepth, vp.MaxDepth,
+			Projection, View, XMMatrixIdentity()
+		);
+
+		XMFLOAT3 screenPos;
+		XMStoreFloat3(&screenPos, vScreenPos);
+
+		float margin = 50.0f;
+
+		// 画面の上下左右からはみ出していたら描画しない
+		if (screenPos.x < -margin || screenPos.x > vp.Width + margin ||
+			screenPos.y < -margin || screenPos.y > vp.Height + margin)
+		{
+			continue;
+		}
+
+		// カメラの手前すぎる、または奥すぎる場合もスキップ
+		if (screenPos.z < 0.0f || screenPos.z > 1.0f) continue;
+
 
 		int id = mapData.blockID;
 		ID3D11ShaderResourceView* pTexture = nullptr;
 
 		if (mapData.no == FIELD_STAIRS_UP || mapData.no == FIELD_STAIRS_DOWN) {
 			pTexture = g_TextureStairs;
-		} else {
+		}
+		else {
 			if (id <= 0 || id >= MAX_BLOCK_TYPES || g_BlockTextures[id] == nullptr) {
 				pTexture = g_BlockTextures[0];
-			} else {
+			}
+			else {
 				pTexture = g_BlockTextures[id];
 			}
 		}
@@ -333,8 +380,22 @@ void Field_Draw(void)
 		}
 
 		XMMATRIX world = XMMatrixTranslation(mapData.pos.x, mapData.pos.y, mapData.pos.z);
+		
+		//if (mapData.currentScale < 1.0f)
+		//{
+		//	// 中心に向かって縮小させる
+		//	XMMATRIX scaling = XMMatrixScaling(mapData.currentScale, mapData.currentScale, mapData.currentScale);
+		//	world = scaling * world; // 拡大縮小 × 移動
+		//}
+
 		if (hasBaseRot || mapData.rotY != 0.0f) {
-			XMMATRIX rotation = mapData.rotY != 0.0f ? 
+			XMMATRIX rotation = mapData.rotY != 0.0f ?
+				(baseRotMtx * XMMatrixRotationY(XMConvertToRadians(mapData.rotY))) : baseRotMtx;
+			world = rotation * world;
+		}
+		
+		if (hasBaseRot || mapData.rotY != 0.0f) {
+			XMMATRIX rotation = mapData.rotY != 0.0f ?
 				(baseRotMtx * XMMatrixRotationY(XMConvertToRadians(mapData.rotY))) : baseRotMtx;
 			world = rotation * world;
 		}
@@ -370,7 +431,6 @@ void Field_Draw(void)
 		}
 	}
 }
-
 void Field_Finalize(void)
 {
 	SAFE_RELEASE(g_VertexBuffer);

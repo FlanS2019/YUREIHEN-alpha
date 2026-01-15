@@ -21,12 +21,14 @@ enum FIELD_TYPE
 class MAPDATA
 {
 public:
-	XMFLOAT3 pos;
-	FIELD_TYPE no;
-	float rotY;
-	bool isHidden;
+	XMFLOAT3 pos = { 0.0f, 0.0f, 0.0f };
+	FIELD_TYPE no = FIELD_NONE;
+	float rotY = 0.0f;
+	bool isHidden = false;
 
-	int blockID;
+	int blockID = 0;
+
+	float currentScale = 1.0f;
 };
 
 void Field_Initialize(ID3D11Device* pDevice, ID3D11DeviceContext* pContext);
