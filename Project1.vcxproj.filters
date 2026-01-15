@@ -14,7 +14,7 @@
     <ClCompile Include="debug_ostream.cpp" />
     <ClCompile Include="direct3d.cpp" />
     <ClCompile Include="fade.cpp" />
-    <ClCompile Include="field.h" />
+    <ClCompile Include="field.cpp" />
     <ClCompile Include="furniture.cpp" />
     <ClCompile Include="ghost.cpp" />
     <ClCompile Include="keyboard.cpp" />
@@ -78,6 +78,7 @@
     <ClInclude Include="Floor1.h" />
     <ClInclude Include="minimap.h" />
     <ClInclude Include="font.h" />
+    <ClInclude Include="field.h" />
     <ClInclude Include="LoseAnimED.h" />
   </ItemGroup>
   <ItemGroup>

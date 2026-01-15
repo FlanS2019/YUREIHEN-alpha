@@ -71,12 +71,10 @@ void Busters::Update(void)
 		case BUSTERS_CHASE:     // 追跡中（！）
 			m_Icon->SetIcon(BILLBOARD_ICON::ALERT);
 			break;
-		}
 
-		// びっくりして気絶している場合などの上書き
-		if (m_WaitTimer > 60) 
-		{
+		case BUSTERS_STUN:      // ★追加: 気絶中ならSTUNアイコン
 			m_Icon->SetIcon(BILLBOARD_ICON::STUN);
+			break;
 		}
 
 		// 位置合わせ（頭上）
@@ -135,7 +133,7 @@ void Busters::Update(void)
 		else if (m_TargetFurnitureIndex != -1)
 		{
 			m_TargetFurnitureIndex = -1;
-			m_WaitTimer = 60;
+			m_WaitTimer = 300;		//家具の調査時間(60f=1秒)
 		}
 
 		m_MoveSpeed = 0.03f;
@@ -280,6 +278,8 @@ void Busters::OnScared(void)
 	m_TargetFurnitureIndex = -1;
 	m_WaitTimer = 120;
 	this->SetColor(0.0f, 0.0f, 1.0f, 1.0f); // 青
+
+	m_State = BUSTERS_STUN;
 }
 
 void Busters::OnLured(XMFLOAT3 targetPos)
@@ -294,6 +294,8 @@ void Busters::OnStopped(void)
 {
 	m_WaitTimer = 300;
 	this->SetColor(0.5f, 0.0f, 0.5f, 1.0f); // 紫
+
+	m_State = BUSTERS_STUN;
 }
 
 void Busters::SetIsGhostDiscover(bool discover)
@@ -347,7 +349,6 @@ Busters* GetBusters(void)
 	if (currentFloor >= 0 && currentFloor < MAP_FLOORS) return g_BustersList[currentFloor];
 	return NULL;
 }
-
 void BustersScare(void)
 {
 	Busters* target = GetBusters();
