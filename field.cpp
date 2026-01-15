@@ -70,7 +70,9 @@ FIELD_TYPE ConvertMapID(int minecraftID)
 
 	case 9: case 10: case 11: case 12: // 上付き階段
 		return FIELD_STAIRS_DOWN;
-	case 98: case 40: case 50: case 51: case 52:case 53:case 54:case 55:case 56:case 58:case 57: //家具
+	case 98: 
+	case 50: case 51: case 52:case 53:case 54:case 55:case 56:case 57:case 58:case 59: //家具
+	case 60: case 61: case 62:case 63:case 64:case 65:case 66:case 67:case 68:case 69: //家具
 		return FIELD_NONE;
 	default:
 		if (minecraftID > 0) return FIELD_BOX;
@@ -663,27 +665,28 @@ std::vector<XMFLOAT3> Field_FindPath(XMFLOAT3 start, XMFLOAT3 end)
 	return path;
 }
 
-float Field_CalculateRotationFromMarker(float x, float z)
+float Field_CalculateRotationFromMarker(float x, float y, float z)
 {
 	int gx = WorldToGridX(x);
 	int gz = WorldToGridZ(z);
+	int gy = (int)round(y + 1.0f);
 	int markerID = 98; // 目印のID
 
 	// 配列外参照防止
-	if (gx < 1 || gx >= MAP_W - 1 || gz < 1 || gz >= MAP_H - 1) return 0.0f;
+	if (gx < 1 || gx >= MAP_W - 1 || gz < 1 || gz >= MAP_H - 1 || gy < 0 || gy >= MAP_HEIGHT) return 0.0f;
 
 
 	// Z-1 が「奥（北）」、Z+1 が「手前（南）」
-	if (Floor1[1][gz - 1][gx] == markerID) return 180.0f; // 奥を向く
+	if (Floor1[gy][gz - 1][gx] == markerID) return 180.0f; // 奥を向く
 
 	// 南 (Z+)
-	if (Floor1[1][gz + 1][gx] == markerID) return 0.0f;   // 手前を向く
+	if (Floor1[gy][gz + 1][gx] == markerID) return 0.0f;   // 手前を向く
 
 	// 東 (X+)
-	if (Floor1[1][gz][gx + 1] == markerID) return 270.0f;  // 右を向く
+	if (Floor1[gy][gz][gx + 1] == markerID) return 270.0f;  // 右を向く
 
 	// 西 (X-)
-	if (Floor1[1][gz][gx - 1] == markerID) return 90.0f; // 左を向く
+	if (Floor1[gy][gz][gx - 1] == markerID) return 90.0f; // 左を向く
 
 	return 0.0f; // マーカーがなければデフォルト
 }
