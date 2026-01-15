@@ -92,6 +92,36 @@ void Furniture_Initialize(void)
 					ACTION_STOP                 // アクション
 				);
 				break;
+			case 56:
+				// ソファー
+				CreateFurniture(
+					{ wx, 0.0f, wz },          // 場所
+					{ 1.0f, 1.0f, 1.0f },      // サイズ
+					{ 0.0f, 0.0f, 0.0f },      // 回転(固定)
+					"asset\\model\\sofa.fbx",  // モデル
+					ACTION_STOP                 // アクション
+				);
+				break;
+			case 57:
+				// 低い本棚
+				CreateFurniture(
+					{ wx, 0.0f, wz },          // 場所
+					{ 1.0f, 1.0f, 1.0f },      // サイズ
+					{ 0.0f, 0.0f, 0.0f },      // 回転(固定)
+					"asset\\model\\low_bookshelf.fbx",  // モデル
+					ACTION_STOP                 // アクション
+				);
+				break;
+			case 58:
+				// 高い本棚
+				CreateFurniture(
+					{ wx, 0.0f, wz },          // 場所
+					{ 1.0f, 1.0f, 1.0f },      // サイズ
+					{ 0.0f, 0.0f, 0.0f },      // 回転(固定)
+					"asset\\model\\tall_bookshelf.fbx",  // モデル
+					ACTION_STOP                 // アクション
+				);
+				break;
 			}
 		}
 	}

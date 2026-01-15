@@ -15,7 +15,7 @@
 #define CAMERA_OFFSET_Y (1.5f)  // 注視点のオフセット
 
 //=== Furniture 関連定数 ===
-#define FURNITURE_NUM (6)
+#define FURNITURE_NUM (100)
 #define FURNITURE_DETECTION_RANGE (5.0f) // Ghost検出範囲
 
 //=== Busters 関連定数 ===
@@ -38,11 +38,10 @@
 #define GHOST_MAX_SPEED (0.10f)
 #define FLOOR_COOLDOWN_TIME (2.0f) // 階層移動のクールダウン時間（秒）
 
-#define GHOST_POS_Y (2.0f)
+#define GHOST_POS_Y (0.5f)
 
 //=== Minimap 関連定数 ===
 
-#define MINIMAP_POS_X   (100.0f) 
-#define MINIMAP_POS_Y   (500.0f) 
+#define MINIMAP_POS_OFFSET   (100.0f) 
 #define BLOCK_SIZE      (10.0f)  
-#define VIEW_RANGE      (8) 
+#define VIEW_RANGE      (13) 
