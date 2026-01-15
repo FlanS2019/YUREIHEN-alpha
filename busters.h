@@ -17,7 +17,8 @@ enum BUSTERS_STATE
 	BUSTERS_SEARCH,    // 家具を探して移動（探索）
 	BUSTERS_SUSPICION, // 怪しんで近づく（警戒）
 	BUSTERS_CHASE,      // 幽霊を見つけて追跡（確定）
-	BUSTERS_STUN		//気絶中
+	BUSTERS_STUN,		//気絶中
+	BUSTERS_LURED		// 誘引中
 };
 
 class Busters : public Sprite3D, public Jump
@@ -27,6 +28,7 @@ private:
 
 	int m_TargetFurnitureIndex;
 	int m_WaitTimer;
+	int m_DetectionGraceTimer;
 
 	std::vector<XMFLOAT3> m_PathList;
 

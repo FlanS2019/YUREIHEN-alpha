@@ -20,6 +20,9 @@
 
 //=== Busters 関連定数 ===
 #define BUSTERS_PATROL_SPEED (0.001f)    // パトロール速度
+#define BUSTERS_MOVE_SPEED_SEARCH    (0.03f) // 探索速度
+#define BUSTERS_MOVE_SPEED_SUSPICION (0.04f) // 警戒速度
+#define BUSTERS_MOVE_SPEED_CHASE     (0.05f) // 追跡速度
 
 #define MAP_MIN_X (-20.0f)
 #define MAP_MAX_X (20.0f)
@@ -42,6 +45,6 @@
 
 //=== Minimap 関連定数 ===
 
-#define MINIMAP_POS_OFFSET   (100.0f) 
+#define MINIMAP_POS_OFFSET   (150.0f) 
 #define BLOCK_SIZE      (10.0f)  
 #define VIEW_RANGE      (13) 

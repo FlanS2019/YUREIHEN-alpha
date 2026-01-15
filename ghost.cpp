@@ -67,9 +67,10 @@ void Ghost_Update(void)
 		g_Ghost->FurnitureSearch();
 		g_Ghost->FloorMove();
 
-		if (Keyboard_IsKeyDownTrigger(KK_E))
+		if (Keyboard_IsKeyDownTrigger(KK_SPACE))
 		{
 			g_Ghost->SetState(GS_TRANSFORM);
+			g_Ghost->m_HasIncreasedMultiplier = false; // 憑依しなおした時にフラグをリセット
 		}
 
 		break;
@@ -111,10 +112,11 @@ void Ghost_Update(void)
 		g_Ghost->SetIsDraw(false);		// 描画無効化
 		g_Ghost->Transforming();	    // 変身中処理
 
-		// 家具のジャンプが終わったらTransFormに戻る
+		// 家具のジャンプが終わったら移動状態に戻る
 		if (FurnitureScareEnded(g_Ghost->GetInRangeNum()))
 		{
-			g_Ghost->SetState(GS_TRANSFORM);
+			g_Ghost->ResetPos();
+			g_Ghost->SetState(GS_MOVING);
 		}
 		break;
 	default:
@@ -243,7 +245,13 @@ void Ghost::ScareStart(void)
 		if (distance <= SCARE_RANGE)
 		{
 			BustersScare(); // 驚く
-			ScareComboUP();
+			
+			if (!m_HasIncreasedMultiplier)
+			{
+				ScareComboUP();
+				m_HasIncreasedMultiplier = true;
+			}
+
 			AddScareGauge(1.0f * UI_ScareCombo_GetNumber());
 
 			Busters_CheckGaugeEvent();
@@ -255,8 +263,15 @@ void Ghost::ScareStart(void)
 		{
 			// 敵に家具の位置を教える
 			BustersLured(ghostPos);
-			// コンボは増えないが、おびき寄せ成功として少しゲージが増えてもいいかも
-			AddScareGauge(0.1f);
+
+			if (!m_HasIncreasedMultiplier)
+			{
+				ScareComboUP();
+				m_HasIncreasedMultiplier = true;
+			}
+
+			// おびき寄せ成功として少しゲージが増える
+			AddScareGauge(0.1f * UI_ScareCombo_GetNumber());
 		}
 		break;
 
@@ -264,7 +279,13 @@ void Ghost::ScareStart(void)
 		if (distance <= SCARE_RANGE)
 		{
 			BustersStopped(); // 足止め
-			ScareComboUP();
+
+			if (!m_HasIncreasedMultiplier)
+			{
+				ScareComboUP();
+				m_HasIncreasedMultiplier = true;
+			}
+
 			AddScareGauge(0.1f * UI_ScareCombo_GetNumber());
 		}
 		break;
@@ -280,7 +301,13 @@ void Ghost::FurnitureSearch(void)
 		Furniture* pFurniture = GetFurniture(i);
 		if (pFurniture)
 		{
+			// クールタイム中の家具は候補から外す（色はUpdateで管理される）
+			if (pFurniture->IsCoolingDown()) continue;
+
 			pFurniture->ResetColor();
+
+			// ACTION_NONE の家具はスキップ
+			if (pFurniture->GetActionType() == ACTION_NONE) continue;
 
 			if (pFurniture->GetDistanceToGhost() <= FURNITURE_DETECTION_RANGE &&
 				pFurniture->GetDistanceToGhost() < tempDistance)
@@ -446,6 +473,7 @@ void Ghost::ResetPos(void)
 	m_Position = { m_Position.x, GHOST_POS_Y, m_Position.z };
 	m_InRangeFurnitureNum = -1;
 	m_IsTransformed = false;
+	m_HasIncreasedMultiplier = false; // 憑依解除時にもリセット
 }
 
 Ghost* GetGhost(void)
