@@ -85,7 +85,7 @@ void Furniture_Initialize(void)
 						{ 1.0f, 1.0f, 1.0f },      // サイズ
 						{ 0.0f, rotY, 0.0f },      // 回転
 						"asset\\model\\rockingchair.fbx", // モデル
-						ACTION_SCARE                // アクション
+						ACTION_LURE                // アクション
 					);
 					break;
 				case 55:
@@ -95,7 +95,7 @@ void Furniture_Initialize(void)
 						{ 1.0f, 1.0f, 1.0f },      // サイズ
 						{ 0.0f, rotY, 0.0f },      // 回転
 						"asset\\model\\phonograph.fbx", // モデル
-						ACTION_SCARE                // アクション
+						ACTION_STOP               // アクション
 					);
 					break;
 				case 56:
@@ -105,7 +105,7 @@ void Furniture_Initialize(void)
 						{ 1.0f, 1.0f, 1.0f },      // サイズ
 						{ 0.0f, rotY, 0.0f },      // 回転
 						"asset\\model\\cube.fbx", // モデル
-						ACTION_SCARE                // アクション
+						ACTION_STOP                // アクション
 					);
 					break;
 				case 57:
@@ -115,7 +115,7 @@ void Furniture_Initialize(void)
 						{ 1.0f, 1.0f, 1.0f },      // サイズ
 						{ 0.0f, rotY, 0.0f },      // 回転
 						"asset\\model\\danro.fbx", // モデル
-						ACTION_SCARE                // アクション
+						ACTION_LURE                // アクション
 					);
 					break;
 				case 58:
@@ -125,7 +125,7 @@ void Furniture_Initialize(void)
 						{ 1.0f, 1.0f, 1.0f },      // サイズ
 						{ 0.0f, rotY, 0.0f },      // 回転
 						"asset\\model\\bathtub.fbx", // モデル
-						ACTION_SCARE                // アクション
+						ACTION_LURE                // アクション
 					);
 					break;
 				case 59:
@@ -145,7 +145,7 @@ void Furniture_Initialize(void)
 						{ 1.0f, 1.0f, 1.0f },      // サイズ
 						{ 0.0f, rotY, 0.0f },      // 回転
 						"asset\\model\\cube.fbx", // モデル
-						ACTION_SCARE                // アクション
+						ACTION_LURE                // アクション
 					);
 					break;
 				case 61:
@@ -155,7 +155,7 @@ void Furniture_Initialize(void)
 						{ 1.0f, 1.0f, 1.0f },      // サイズ
 						{ 0.0f, rotY, 0.0f },      // 回転
 						"asset\\model\\cube.fbx", // モデル
-						ACTION_SCARE                // アクション
+						ACTION_STOP               // アクション
 					);
 					break;
 				case 62:
@@ -215,7 +215,7 @@ void Furniture_Initialize(void)
 						{ 1.0f, 1.0f, 1.0f },      // サイズ
 						{ 0.0f, rotY, 0.0f },      // 回転
 						"asset\\model\\cube.fbx", // モデル
-						ACTION_SCARE                // アクション
+						ACTION_LURE               // アクション
 					);
 					break;
 				case 68:
@@ -225,7 +225,7 @@ void Furniture_Initialize(void)
 						{ 1.0f, 1.0f, 1.0f },      // サイズ
 						{ 0.0f, rotY, 0.0f },      // 回転
 						"asset\\model\\cube.fbx", // モデル
-						ACTION_SCARE                // アクション
+						ACTION_NONE                // アクション
 					);
 					break;
 				case 69:
@@ -235,7 +235,7 @@ void Furniture_Initialize(void)
 						{ 1.0f, 1.0f, 1.0f },      // サイズ
 						{ 0.0f, rotY, 0.0f },      // 回転
 						"asset\\model\\cube.fbx", // モデル
-						ACTION_SCARE                // アクション
+						ACTION_NONE                // アクション
 					);
 					break;
 				}
@@ -260,6 +260,21 @@ void Furniture_Initialize(void)
 
 void Furniture::Update(void)
 {
+	// 0. クールタイムの更新
+	if (m_CooldownTimer > 0.0f)
+	{
+		m_CooldownTimer -= 1.0f / 60.0f;
+		if (m_CooldownTimer <= 0.0f)
+		{
+			m_CooldownTimer = 0.0f;
+			ResetColor(); // クールタイム終了で色を戻す
+		}
+		else
+		{
+			SetColor(0.0f, 0.0f, 1.0f, 1.0f); // クールタイム中は青色
+		}
+	}
+
 	// 1. Ghostとの距離計算
 	Ghost* pGhost = GetGhost();
 	if (pGhost)
@@ -322,7 +337,7 @@ void Furniture::Update(void)
 
 void Furniture::StartAction(void)
 {
-	if (GetIsActing()) return; // 二重実行を抑止
+	if (GetIsActing() || IsCoolingDown()) return; // 二重実行およびクールタイム中の実行を抑止
 
 	if (m_ActionType == ACTION_SCARE)
 	{
@@ -333,6 +348,8 @@ void Furniture::StartAction(void)
 		m_IsActing = true; // 行う、アクション開始フラグON
 		m_ActionTimer = 0.0f;
 	}
+
+	m_CooldownTimer = 10.0f; // 10秒間のクールタイムを設定
 }
 
 void CreateFurniture(XMFLOAT3 pos, XMFLOAT3 scale, XMFLOAT3 rot, const char* modelPath, FURNITURE_ACTION action)
