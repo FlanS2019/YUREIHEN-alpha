@@ -124,6 +124,8 @@ void LoadMapData(int floor)
 				data.rotY = 0.0f;
 				data.blockID = mcID;
 
+				data.currentScale = 1.0f;
+
 				// 階段の向き調整（必要であればIDを見て回転させる）
 				// 例: if(mcID == 5) data.rotY = 90.0f; など
 
@@ -131,6 +133,7 @@ void LoadMapData(int floor)
 			}
 		}
 	}
+
 	std::sort(g_MapList.begin(), g_MapList.end(), [](const MAPDATA& a, const MAPDATA& b) {
 		return a.blockID < b.blockID;
 	});
@@ -175,16 +178,17 @@ void Field_Initialize(ID3D11Device* pDevice, ID3D11DeviceContext* pContext)
 
 void Field_Update(void)
 {
+	// 1. まず「今、隠すべき場所」を計算
 	static uint8_t shouldHide[MAP_LENGTH][MAP_WIDTH];
 	memset(shouldHide, 0, sizeof(shouldHide));
 
 	Ghost* ghost = GetGhost();
-
 	if (!ghost) return;
 
 	XMFLOAT3 cameraPos = GetCamera()->GetPos();
 	XMFLOAT3 playerPos = ghost->GetPos();
 
+	// プレイヤーの頭の高さ(Y+1.0f)を目標にする
 	playerPos.y += 1.0f;
 
 	float dx = playerPos.x - cameraPos.x;
@@ -194,8 +198,8 @@ void Field_Update(void)
 	// 距離が近すぎる場合はスキップ
 	if (distSq < 0.25f) return;
 
-	// 極端に遠い場合は処理を制限（無限ループ防止）
-	const float MAX_DIST = 30.0f; // 50から30に短縮
+	// 極端に遠い場合は処理を制限
+	const float MAX_DIST = 30.0f;
 	float dist = sqrtf(distSq);
 	if (dist > MAX_DIST) dist = MAX_DIST;
 
@@ -203,7 +207,6 @@ void Field_Update(void)
 	float stepX = dx * invDist;
 	float stepZ = dz * invDist;
 
-	// ステップを1.0fに変更（0.5fから）して処理回数を半減
 	const float STEP_SIZE = 1.0f;
 	float endDist = dist - 0.5f;
 
@@ -227,7 +230,7 @@ void Field_Update(void)
 
 			if (ConvertMapID(mcID) == FIELD_BOX)
 			{
-
+				// 遮蔽物を見つけたら、その周囲も含めて「隠すフラグ」を立てる
 				int range = 2;
 				for (int oz = -range; oz <= range; oz++)
 				{
@@ -244,22 +247,48 @@ void Field_Update(void)
 				}
 			}
 		}
-		currentDist += 0.1f; // 少しずつ進める
 	}
 
-	// フラグに基づいてブロックの表示/非表示を更新
+	float animSpeed = 0.2f; // アニメーション速度
+
 	for (auto& mapData : g_MapList)
 	{
 		int mapGridX = WorldToGridX(mapData.pos.x);
 		int mapGridZ = WorldToGridZ(mapData.pos.z);
 
+		bool targetHide = false;
+
+		// 範囲内かつ、壁(Y>=0)の場合のみ判定
 		if (mapGridX >= 0 && mapGridX < MAP_W && mapGridZ >= 0 && mapGridZ < MAP_H)
 		{
-			mapData.isHidden = (mapData.pos.y >= 0.0f && shouldHide[mapGridZ][mapGridX]);
+			if (mapData.pos.y >= 0.0f && shouldHide[mapGridZ][mapGridX])
+			{
+				targetHide = true;
+			}
 		}
+
+		//// アニメーション処理
+		//if (targetHide)
+		//{
+		//	// 隠す場合：サイズを減らす
+		//	mapData.currentScale -= animSpeed;
+		//	if (mapData.currentScale < 0.0f) mapData.currentScale = 0.0f;
+		//}
+		//else
+		//{
+		//	// 表示する場合：サイズを戻す
+		//	mapData.currentScale += animSpeed;
+		//	if (mapData.currentScale > 1.0f) mapData.currentScale = 1.0f;
+		//}
+
+		//// 完全に0になったら描画自体をスキップさせる（軽量化）
+		//mapData.isHidden = (mapData.currentScale <= 0.001f);
+
+		mapData.isHidden = targetHide;
+		mapData.currentScale = 1.0f; // 念のためサイズは戻しておく
+
 	}
 }
-
 // 定数バッファのキャッシュ用
 static DirectX::XMFLOAT4X4 g_CachedWVP;
 static DirectX::XMFLOAT4X4 g_CachedWorld;
@@ -267,8 +296,6 @@ static DirectX::XMFLOAT4X4 g_CachedWorld;
 void Field_Draw(void)
 {
 	Shader_BeginInstance();
-
-	// 描画トポロジーをインデックスデータに合わせて三角形リストに設定
 	g_pContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 
 	Camera* pCamera = GetCamera();
@@ -276,102 +303,113 @@ void Field_Draw(void)
 	XMMATRIX Projection = pCamera->GetProjection();
 	XMMATRIX VP = View * Projection;
 
-	// インスタンス描画用に ViewProjection 行列をセット
 	Shader_SetMatrix(VP);
 
 	XMFLOAT3 cameraPos = pCamera->GetPos();
-	XMFLOAT3 cameraAtPos = pCamera->GetAtPos();
-	
-	XMVECTOR lookVec = XMVector3Normalize(XMVectorSubtract(XMLoadFloat3(&cameraAtPos), XMLoadFloat3(&cameraPos)));
-	XMFLOAT3 look;
-	XMStoreFloat3(&look, lookVec);
 
-	// 回転計算（一度だけ）
+	// カリング用ビューポート取得
+	D3D11_VIEWPORT vp;
+	UINT numVP = 1;
+	g_pContext->RSGetViewports(&numVP, &vp);
+
+	// 回転計算
 	float radX = XMConvertToRadians(rotateBox.x);
 	float radY = XMConvertToRadians(rotateBox.y);
 	float radZ = XMConvertToRadians(rotateBox.z);
 	bool hasBaseRot = (rotateBox.x != 0.0f || rotateBox.y != 0.0f || rotateBox.z != 0.0f);
 	XMMATRIX baseRotMtx = hasBaseRot ? XMMatrixRotationRollPitchYaw(radX, radY, radZ) : XMMatrixIdentity();
 
-	// テクスチャごとにグループ化して描画
-	struct InstanceGroup {
-		ID3D11ShaderResourceView* pSRV;
-		std::vector<XMFLOAT4X4> matrices;
-	};
-	std::map<ID3D11ShaderResourceView*, InstanceGroup> groups;
+	// std::map を廃止し、static vector を使い回す
+	static std::vector<XMFLOAT4X4> batchList;
+	batchList.clear();
+	if (batchList.capacity() < MAX_INSTANCES) batchList.reserve(MAX_INSTANCES);
 
+	ID3D11ShaderResourceView* currentSRV = nullptr;
+
+	// ラムダ式: 現在溜まっているバッチを描画する
+	auto FlushBatch = [&](void) {
+		if (batchList.empty() || currentSRV == nullptr) return;
+
+		D3D11_MAPPED_SUBRESOURCE msr;
+		if (SUCCEEDED(g_pContext->Map(g_InstanceBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &msr))) {
+			memcpy(msr.pData, batchList.data(), sizeof(XMFLOAT4X4) * batchList.size());
+			g_pContext->Unmap(g_InstanceBuffer, 0);
+		}
+
+		UINT strides[2] = { sizeof(Vertex3D), sizeof(XMFLOAT4X4) };
+		UINT offsets[2] = { 0, 0 };
+		ID3D11Buffer* vbs[2] = { g_VertexBuffer, g_InstanceBuffer };
+
+		g_pContext->IASetVertexBuffers(0, 2, vbs, strides, offsets);
+		g_pContext->IASetIndexBuffer(g_IndexBuffer, DXGI_FORMAT_R32_UINT, 0);
+		g_pContext->PSSetShaderResources(0, 1, &currentSRV);
+
+		g_pContext->DrawIndexedInstanced(36, (UINT)batchList.size(), 0, 0, 0);
+
+		batchList.clear();
+		};
+
+	// g_MapList は LoadMapData で ID順にソート済みなので、前から順に処理すればよい
 	for (const auto& mapData : g_MapList)
 	{
 		if (mapData.isHidden) continue;
 
+		// --- カリング処理 (前回追加分) ---
 		float dx = mapData.pos.x - cameraPos.x;
 		float dy = mapData.pos.y - cameraPos.y;
 		float dz = mapData.pos.z - cameraPos.z;
-		
-		float distSq = dx * dx + dy * dy + dz * dz;
-		if (distSq > 1600.0f) continue; // 40mまで
+		if (dx * dx + dy * dy + dz * dz > 2500.0f) continue;
 
-		float dot = dx * look.x + dy * look.y + dz * look.z;
-		if (dot < -1.0f) continue;
+		XMVECTOR vPos = XMLoadFloat3(&mapData.pos);
+		XMVECTOR vClipPos = XMVector3TransformCoord(vPos, VP); // クリップ座標系(-1.0 ～ 1.0)に変換
 
-		int id = mapData.blockID;
-		ID3D11ShaderResourceView* pTexture = nullptr;
+		XMFLOAT3 clipPos;
+		XMStoreFloat3(&clipPos, vClipPos);
 
+		float margin = 0.2f;
+
+		// X, Y が -1～1 の範囲外なら描画しない
+		if (clipPos.x < -1.0f - margin || clipPos.x > 1.0f + margin ||
+			clipPos.y < -1.0f - margin || clipPos.y > 1.0f + margin)
+		{
+			continue;
+		}
+
+		// Z (深度) が 0～1 の範囲外なら描画しない
+		if (clipPos.z < 0.0f || clipPos.z > 1.0f) continue;
+
+		// テクスチャの決定
+		ID3D11ShaderResourceView* nextSRV = nullptr;
 		if (mapData.no == FIELD_STAIRS_UP || mapData.no == FIELD_STAIRS_DOWN) {
-			pTexture = g_TextureStairs;
-		} else {
-			if (id <= 0 || id >= MAX_BLOCK_TYPES || g_BlockTextures[id] == nullptr) {
-				pTexture = g_BlockTextures[0];
-			} else {
-				pTexture = g_BlockTextures[id];
-			}
+			nextSRV = g_TextureStairs;
+		}
+		else {
+			int id = mapData.blockID;
+			if (id <= 0 || id >= MAX_BLOCK_TYPES || g_BlockTextures[id] == nullptr) nextSRV = g_BlockTextures[0];
+			else nextSRV = g_BlockTextures[id];
 		}
 
-		auto& group = groups[pTexture];
-		if (group.matrices.empty()) {
-			group.pSRV = pTexture;
+		if (nextSRV != currentSRV || batchList.size() >= MAX_INSTANCES)
+		{
+			FlushBatch();
+			currentSRV = nextSRV;
 		}
 
+		// 行列計算
 		XMMATRIX world = XMMatrixTranslation(mapData.pos.x, mapData.pos.y, mapData.pos.z);
 		if (hasBaseRot || mapData.rotY != 0.0f) {
-			XMMATRIX rotation = mapData.rotY != 0.0f ? 
-				(baseRotMtx * XMMatrixRotationY(XMConvertToRadians(mapData.rotY))) : baseRotMtx;
+			XMMATRIX rotation = mapData.rotY != 0.0f ? (baseRotMtx * XMMatrixRotationY(XMConvertToRadians(mapData.rotY))) : baseRotMtx;
 			world = rotation * world;
 		}
 
 		XMFLOAT4X4 m;
 		XMStoreFloat4x4(&m, XMMatrixTranspose(world));
-		group.matrices.push_back(m);
+		batchList.push_back(m);
 	}
 
-	UINT strides[2] = { sizeof(Vertex3D), sizeof(XMFLOAT4X4) };
-	UINT offsets[2] = { 0, 0 };
-
-	for (auto& pair : groups) {
-		auto& group = pair.second;
-		if (group.matrices.empty()) continue;
-
-		size_t count = group.matrices.size();
-		for (size_t i = 0; i < count; i += MAX_INSTANCES) {
-			size_t batchSize = (count - i) > MAX_INSTANCES ? MAX_INSTANCES : (count - i);
-
-			D3D11_MAPPED_SUBRESOURCE msr;
-			if (SUCCEEDED(g_pContext->Map(g_InstanceBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &msr))) {
-				memcpy(msr.pData, &group.matrices[i], sizeof(XMFLOAT4X4) * batchSize);
-				g_pContext->Unmap(g_InstanceBuffer, 0);
-			}
-
-			ID3D11Buffer* vbs[2] = { g_VertexBuffer, g_InstanceBuffer };
-			g_pContext->IASetVertexBuffers(0, 2, vbs, strides, offsets);
-			g_pContext->IASetIndexBuffer(g_IndexBuffer, DXGI_FORMAT_R32_UINT, 0);
-			g_pContext->PSSetShaderResources(0, 1, &group.pSRV);
-
-			g_pContext->DrawIndexedInstanced(36, (UINT)batchSize, 0, 0, 0);
-		}
-	}
-}
-
-void Field_Finalize(void)
+	// 残りの分を描画
+	FlushBatch();
+}void Field_Finalize(void)
 {
 	SAFE_RELEASE(g_VertexBuffer);
 	SAFE_RELEASE(g_IndexBuffer);

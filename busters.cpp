@@ -35,7 +35,6 @@ Busters::Busters(const XMFLOAT3& pos, const XMFLOAT3& scale, const XMFLOAT3& rot
 	m_DistanceToGhost(0.0f),
 	m_Icon(nullptr)
 {
-	srand((unsigned int)GetTickCount64());
 	m_Icon = new Billboard();
 
 	m_Icon->Initialize({ 0.0f, 0.0f, 0.0f }, { 0.7f, 0.7f }, { 0.0f, 0.0f, 0.0f }, true);
@@ -72,7 +71,7 @@ void Busters::Update(void)
 			m_Icon->SetIcon(BILLBOARD_ICON::ALERT);
 			break;
 
-		case BUSTERS_STUN:      // ★追加: 気絶中ならSTUNアイコン
+		case BUSTERS_STUN:      // 気絶中ならSTUNアイコン
 			m_Icon->SetIcon(BILLBOARD_ICON::STUN);
 			break;
 		}
@@ -98,69 +97,52 @@ void Busters::Update(void)
 
 	switch (m_State)
 	{
-	case BUSTERS_SEARCH: // 探索
-		if (m_TargetFurnitureIndex == -1)
-		{
-			m_TargetFurnitureIndex = rand() % FURNITURE_NUM;
-			Furniture* targetFurniture = GetFurniture(m_TargetFurnitureIndex);
-			if (targetFurniture)
+		case BUSTERS_SEARCH: // 探索
+			if (m_TargetFurnitureIndex == -1)
 			{
-				m_PathList = Field_FindPath(m_Position, targetFurniture->GetPos());
-				if (m_PathList.empty())
+				m_TargetFurnitureIndex = rand() % FURNITURE_NUM;
+				Furniture* targetFurniture = GetFurniture(m_TargetFurnitureIndex);
+				if (targetFurniture)
+				{
+					m_PathList = Field_FindPath(m_Position, targetFurniture->GetPos());
+
+					// 経路が見つからなかった場合
+					if (m_PathList.empty())
+					{
+						m_TargetFurnitureIndex = -1;
+						// 即座に再検索せず、少し待機させる
+						m_WaitTimer = 300; 
+					}
+				}
+				else
 				{
 					m_TargetFurnitureIndex = -1;
-					m_WaitTimer = 60; // 経路が見つからない場合は1秒間検索を控える
 				}
 			}
-			else
-			{
-				m_TargetFurnitureIndex = -1;
-			}
-		}
+			break;
 
-		if (!m_PathList.empty())
-		{
-			XMFLOAT3 targetNode = m_PathList.back();
-			targetNode.y = m_Position.y;
-			nextStepPos = targetNode;
-			XMVECTOR myPosV = XMLoadFloat3(&m_Position);
-			XMVECTOR targetV = XMLoadFloat3(&targetNode);
-			if (XMVectorGetX(XMVector3Length(XMVectorSubtract(targetV, myPosV))) < 0.5f)
-			{
-				m_PathList.pop_back();
-			}
-		}
-		else if (m_TargetFurnitureIndex != -1)
-		{
+		case BUSTERS_SUSPICION: // 警戒
+			m_PathList.clear();
 			m_TargetFurnitureIndex = -1;
-			m_WaitTimer = 300;		//家具の調査時間(60f=1秒)
-		}
+			if (GetGhost())
+			{
+				nextStepPos = GetGhost()->GetPos();
+				nextStepPos.y = m_Position.y;
+			}
+			m_MoveSpeed = 0.06f;
+			break;
 
-		m_MoveSpeed = 0.03f;
-		break;
-
-	case BUSTERS_SUSPICION: // 警戒
-		m_PathList.clear();
-		m_TargetFurnitureIndex = -1;
-		if (GetGhost())
-		{
-			nextStepPos = GetGhost()->GetPos();
-			nextStepPos.y = m_Position.y;
+		case BUSTERS_CHASE: // 追跡
+			if (GetGhost())
+			{
+				nextStepPos = GetGhost()->GetPos();
+				nextStepPos.y = m_Position.y;
+			}
+			m_PathList.clear();
+			m_TargetFurnitureIndex = -1;
+			m_MoveSpeed = 0.09f;
+			break;
 		}
-		m_MoveSpeed = 0.06f;
-		break;
-
-	case BUSTERS_CHASE: // 追跡
-		if (GetGhost())
-		{
-			nextStepPos = GetGhost()->GetPos();
-			nextStepPos.y = m_Position.y;
-		}
-		m_PathList.clear();
-		m_TargetFurnitureIndex = -1;
-		m_MoveSpeed = 0.09f;
-		break;
-	}
 	
 	MoveTo(nextStepPos);
 }
@@ -248,28 +230,27 @@ void Busters::MoveTo(XMFLOAT3 targetPos)
 	float deg = XMConvertToDegrees(angle);
 	SetRotY(deg + 180.0f);
 
-	float r = 0.4f;
-	float nextX = m_Position.x + dx * m_MoveSpeed;
-	bool hitX = false;
-	if (Field_IsWall(nextX + r, m_Position.y, m_Position.z + r) ||
-		Field_IsWall(nextX + r, m_Position.y, m_Position.z - r) ||
-		Field_IsWall(nextX - r, m_Position.y, m_Position.z + r) ||
-		Field_IsWall(nextX - r, m_Position.y, m_Position.z - r))
-	{
-		hitX = true;
-	}
-	if (!hitX) m_Position.x = nextX;
+	auto checkWallCollision = [&](float nx, float nz) -> bool {
+		float r = 0.4f; // 当たり判定半径
+		return (Field_IsWall(nx + r, m_Position.y, nz + r) ||
+			Field_IsWall(nx + r, m_Position.y, nz - r) ||
+			Field_IsWall(nx - r, m_Position.y, nz + r) ||
+			Field_IsWall(nx - r, m_Position.y, nz - r));
+		};
 
-	float nextZ = m_Position.z + dz * m_MoveSpeed;
-	bool hitZ = false;
-	if (Field_IsWall(m_Position.x + r, m_Position.y, nextZ + r) ||
-		Field_IsWall(m_Position.x + r, m_Position.y, nextZ - r) ||
-		Field_IsWall(m_Position.x - r, m_Position.y, nextZ + r) ||
-		Field_IsWall(m_Position.x - r, m_Position.y, nextZ - r))
+	// --- X軸移動 ---
+	float nextX = m_Position.x + dx * m_MoveSpeed;
+	if (!checkWallCollision(nextX, m_Position.z)) // 関数を呼ぶだけ！
 	{
-		hitZ = true;
+		m_Position.x = nextX;
 	}
-	if (!hitZ) m_Position.z = nextZ;
+
+	// --- Z軸移動 ---
+	float nextZ = m_Position.z + dz * m_MoveSpeed;
+	if (!checkWallCollision(m_Position.x, nextZ)) // 同じ関数を再利用！
+	{
+		m_Position.z = nextZ;
+	}
 }
 
 void Busters::OnScared(void)
