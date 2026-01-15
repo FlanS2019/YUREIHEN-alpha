@@ -69,7 +69,7 @@ FIELD_TYPE ConvertMapID(int minecraftID)
 
 	case 9: case 10: case 11: case 12: // 上付き階段
 		return FIELD_STAIRS_DOWN;
-	case 50: case 51: case 52: //家具
+	case 50: case 51: case 52:case 53:case 54:case 55: //家具
 		return FIELD_NONE;
 	default:
 		if (minecraftID > 0) return FIELD_BOX;
