@@ -55,7 +55,11 @@ struct MODEL
 
 	// 白テクスチャ（テクスチャ無しメッシュ用）
 	ID3D11ShaderResourceView* WhiteTexture;
+
+	// ノード名からアニメーションチャンネルインデックスへのマッピング
+	std::unordered_map<std::string, int> NodeToAnimIndex;
 };
+
 
 // Assimpの行列をDirectXMath形式に変換（外部で利用可能）
 XMMATRIX AiMatrixToXMMatrix(const aiMatrix4x4& mat);

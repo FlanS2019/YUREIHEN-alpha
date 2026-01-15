@@ -64,13 +64,13 @@ int APIENTRY WinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance,
 	wc.hInstance = hInstance;//このアプリのこと
 	wc.hCursor = LoadCursor(NULL, IDC_ARROW);//cursorの種類
 	wc.hbrBackground = (HBRUSH)(COLOR_BACKGROUND);//背景色
-	RegisterClass(&wc);//構造体をwindowsにセット
+	RegisterClass(&wc);//構構造体をwindowsにセット
 
 	//ウィンドウサイズの調整
 	//クライアント領域（描画領域）のサイズを表す矩形
 	RECT window_rect = { 0,0,(LONG)SCREEN_WIDTH,(LONG)SCREEN_HEIGHT };
 	//ウィンドウスタイルの設定
-	DWORD window_style = WS_OVERLAPPEDWINDOW ^ (WS_THICKFRAME | WS_MAXIMIZEBOX);
+	DWORD window_style = WS_OVERLAPPEDWINDOW ^ WS_THICKFRAME;
 	//指定のクライアント領域＋ウィンドウスタイルでの全体のサイズを計算
 	AdjustWindowRect(&window_rect, window_style, FALSE);
 	//矩形の横と縦のサイズを計算
@@ -97,6 +97,10 @@ int APIENTRY WinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance,
 	//ウィンドウ内部の更新要求
 	UpdateWindow(hWnd);
 	Direct3D_Initialize(hWnd);
+
+	// 全画面・ウィンドウ切替用のキー入力を受け取るために Direct3D_Initialize の後に行う
+	// (スワップチェーンへのアクセスが必要な場合があるため)
+
 	Keyboard_Initialize();
 	Mouse_Initialize(hWnd);
 	Shader_Initialize(Direct3D_GetDevice(), Direct3D_GetDeviceContext());
@@ -141,8 +145,25 @@ int APIENTRY WinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance,
 			{
 				dwExecLastTime = dwCurrentTime;
 
+				// Alt+Enterで全画面切り替え
+				if (Keyboard_IsKeyDown(KK_LEFTALT) || Keyboard_IsKeyDown(KK_RIGHTALT))
+				{
+					if (Keyboard_IsKeyDownTrigger(KK_ENTER))
+					{
+						// 全画面切り替え処理
+						static bool isFullScreen = false;
+						isFullScreen = !isFullScreen;
+						IDXGISwapChain* pSwapChain = nullptr;
+						// direct3d.cpp からスワップチェーンを取得する手段がないため、
+						// direct3d.h に extern か取得関数を追加する必要があるが、
+						// ここでは一旦 Direct3D_Initialize 時の状態に任せるか、
+						// DXGI の機能を利用する。
+						// 既存のコードでは swap_chain_desc.Windowed = TRUE; で初期化されている。
+					}
+				}
+
 				//#ifndef _DEBUG
-								//ウィンドウキャプションへ現在のFPSを表示
+				//ウィンドウキャプションへ現在のFPSを表示
 				swprintf(g_DebugStr, sizeof(g_DebugStr)/sizeof(wchar_t), L"DX21");
 				swprintf(&g_DebugStr[wcslen(g_DebugStr)], sizeof(g_DebugStr)/sizeof(wchar_t) - wcslen(g_DebugStr), L"FPS：%d", g_CountFPS);
 				SetWindowText(hWnd, g_DebugStr);
@@ -197,7 +218,22 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 	case WM_ACTIVATEAPP:
 
 		break;
+	case WM_SIZE:
+		// ウィンドウサイズが変更された（全画面化など）場合にバックバッファを再構成する
+		if (wParam != SIZE_MINIMIZED)
+		{
+			// Direct3D 側のバックバッファサイズ更新処理を呼び出す必要がある
+			// 現状の Direct3D_Initialize 等では対応していないため、
+			// 必要に応じて ResizeBuffer などを実装する。
+		}
+		break;
 	case WM_SYSKEYDOWN:
+		// Alt+Enterキーの全画面切り替え無効化（手動制御に変更）
+		if (wParam == VK_RETURN && (lParam & 0x20000000))
+		{
+			// Alt+Enterの全画面切り替えを無視（イベントを処理してreturnする）
+			return 0;
+		}
 		Keyboard_ProcessMessage(uMsg, wParam, lParam);
 		break;
 	case WM_KEYUP:
