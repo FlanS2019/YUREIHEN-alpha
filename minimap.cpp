@@ -101,7 +101,7 @@ void Minimap_Draw(void)
 			// 壁があるかチェック (Y=1:壁の層)
 			// Floor1.h の定義に従うなら、0以外かつ99以外などを壁とする
 			int id = Floor1[1][z][x];
-			if (id != 0 && id != 99)
+			if (id != 0 && id != 98 && id != 99)
 			{
 				float wx = (float)x - MAP_WIDTH / 2.0f;
 				float wz = MAP_LENGTH / 2.0f - (float)z;
