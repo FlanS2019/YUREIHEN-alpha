@@ -164,6 +164,7 @@
     <ClCompile Include="ghost.cpp" />
     <ClCompile Include="keyboard.cpp" />
     <ClCompile Include="LoseAnim.cpp" />
+    <ClCompile Include="LoseAnimED.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="debugdraw.cpp" />
     <ClCompile Include="minimap.cpp" />
@@ -201,6 +202,7 @@
     <ClInclude Include="ghost.h" />
     <ClInclude Include="keyboard.h" />
     <ClInclude Include="LoseAnim.h" />
+    <ClInclude Include="LoseAnimED.h" />
     <ClInclude Include="main.h" />
     <ClInclude Include="minimap.h" />
     <ClInclude Include="model.h" />
@@ -222,6 +224,20 @@
     <ClInclude Include="WinAnim.h" />
   </ItemGroup>
   <ItemGroup>
+    <FxCompile Include="shader_field_instance.hlsl">
+      <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">5.0</ShaderModel>
+      <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">5.0</ShaderModel>
+      <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">5.0</ShaderModel>
+      <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Release|x64'">5.0</ShaderModel>
+      <ObjectFileOutput Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">%(Filename).cso</ObjectFileOutput>
+      <ObjectFileOutput Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">%(Filename).cso</ObjectFileOutput>
+      <ObjectFileOutput Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">%(Filename).cso</ObjectFileOutput>
+      <ObjectFileOutput Condition="'$(Configuration)|$(Platform)'=='Release|x64'">%(Filename).cso</ObjectFileOutput>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Vertex</ShaderType>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Vertex</ShaderType>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Vertex</ShaderType>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Vertex</ShaderType>
+    </FxCompile>
     <FxCompile Include="shader_pixel_2d.hlsl">
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Pixel</ShaderType>
       <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">5.0</ShaderModel>

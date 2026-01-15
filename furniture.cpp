@@ -31,79 +31,80 @@ void Furniture_Initialize(void)
 
 			switch (id)
 			{
+			case 50:
 
-				case 50: 
-
-					// 椅子を生成 (手動配置と同じ関数を使う)
-					CreateFurniture(
-						{ wx, 0.0f, wz },          // 場所
-						{ 1.0f, 1.0f, 1.0f },      // サイズ
-						{ 0.0f, 0.0f, 0.0f },      // 回転(固定)
-						"asset\\model\\rockingchair.fbx", // モデル
-						ACTION_SCARE                // アクション
-					);
+				// 椅子を生成 (手動配置と同じ関数を使う)
+				CreateFurniture(
+					{ wx, 0.0f, wz },          // 場所
+					{ 1.0f, 1.0f, 1.0f },      // サイズ
+					{ 0.0f, 0.0f, 0.0f },      // 回転(固定)
+					"asset\\model\\rockingchair.fbx", // モデル
+					ACTION_SCARE                // アクション
+				);
 				break;
-
-				case 51: 
-					// 木を生成 (手動配置と同じ関数を使う)
-					CreateFurniture(
-						{ wx, 0.0f, wz },          // 場所
-						{ 2.0f, 2.0f, 2.0f },      // サイズ
-						{ 0.0f, 0.0f, 0.0f },      // 回転(固定)
-						"asset\\model\\tree.fbx",  // モデル
-						ACTION_LURE                 // アクション
-					);
+			case 51:
+				// キッチン
+				CreateFurniture(
+					{ wx, 0.0f, wz },          // 場所
+					{ 2.0f, 2.0f, 2.0f },      // サイズ
+					{ 0.0f, 0.0f, 0.0f },      // 回転(固定)
+					"asset\\model\\kitchen.fbx",  // モデル
+					ACTION_LURE                 // アクション
+				);
 				break;
-
-				case 52: 
-					// 樹を生成 (手動配置と同じ関数を使う)
-					CreateFurniture(
-						{ wx, 0.0f, wz },          // 場所
-						{ 1.0f, 1.0f, 1.0f },      // サイズ
-						{ 0.0f, 0.0f, 0.0f },      // 回転(固定)
-						"asset\\model\\aaaa.fbx",  // モデル
-						ACTION_STOP                 // アクション
-					);
+			case 52:
+				// 蓄音機
+				CreateFurniture(
+					{ wx, 0.0f, wz },          // 場所
+					{ 1.0f, 1.0f, 1.0f },      // サイズ
+					{ 0.0f, 0.0f, 0.0f },      // 回転(固定)
+					"asset\\model\\phonograph.fbx",  // モデル
+					ACTION_STOP                 // アクション
+				);
+				break;
+			case 53:
+				// バスタブ
+				CreateFurniture(
+					{ wx, 0.0f, wz },          // 場所
+					{ 1.0f, 1.0f, 1.0f },      // サイズ
+					{ 0.0f, 0.0f, 0.0f },      // 回転(固定)
+					"asset\\model\\bathtub.fbx",  // モデル
+					ACTION_STOP                 // アクション
+				);
+				break;
+			case 54:
+				// 暖炉
+				CreateFurniture(
+					{ wx, 0.0f, wz },          // 場所
+					{ 1.0f, 1.0f, 1.0f },      // サイズ
+					{ 0.0f, 0.0f, 0.0f },      // 回転(固定)
+					"asset\\model\\danro.fbx",  // モデル
+					ACTION_STOP                 // アクション
+				);
+				break;
+			case 55:
+				// 鏡
+				CreateFurniture(
+					{ wx, 0.0f, wz },          // 場所
+					{ 1.0f, 1.0f, 1.0f },      // サイズ
+					{ 0.0f, 0.0f, 0.0f },      // 回転(固定)
+					"asset\\model\\mirror.fbx",  // モデル
+					ACTION_STOP                 // アクション
+				);
+				break;
 			}
 		}
 	}
 
 	// =========================================================
-	// 手動配置
+	// 手動配置（基本使わない）
 	// =========================================================
 
-	// 1: ロッキングチェア
-	CreateFurniture(
-		{ -5.0f, 0.0f, -5.0f }, { 1.0f, 1.0f, 1.0f }, { 0.0f, 45.0f, 0.0f },
-		"asset\\model\\rockingchair.fbx", ACTION_SCARE
-	);
-
-	CreateFurniture(
-		{ 5.0f, 0.0f, -5.0f }, { 1.0f, 1.0f, 1.0f }, { 0.0f, -45.0f, 0.0f },
-		"asset\\model\\rockingchair.fbx", ACTION_SCARE
-	);
-
-	// 2: 木
-	CreateFurniture(
-		{ -6.0f, 0.0f, 6.0f }, { 1.5f, 1.5f, 1.5f }, { 0.0f, 0.0f, 0.0f },
-		"asset\\model\\tree.fbx", ACTION_LURE
-	);
-
-	CreateFurniture(
-		{ 6.0f, 0.0f, 6.0f }, { 1.5f, 1.5f, 1.5f }, { 0.0f, 45.0f, 0.0f },
-		"asset\\model\\tree.fbx", ACTION_LURE
-	);
-
-	// 3: 樹（停止アクション）
-	CreateFurniture(
-		{ -6.0f, 0.0f, -2.0f }, { 0.5f, 0.5f, 0.5f }, { 0.0f, 90.0f, 0.0f },
-		"asset\\model\\aaaa.fbx", ACTION_STOP
-	);
-
-	CreateFurniture(
-		{ 6.0f, 0.0f, -2.0f }, { 1.5f, 1.5f, 1.5f }, { 0.0f, 135.0f, 0.0f },
-		"asset\\model\\tree.fbx", ACTION_STOP
-	);
+	//// 1: ロッキングチェア
+	//CreateFurniture(
+	//	{ -5.0f, 0.0f, -5.0f }, { 1.0f, 1.0f, 1.0f }, { 0.0f, 45.0f, 0.0f },
+	//	"asset\\model\\rockingchair.fbx", ACTION_SCARE
+	//);
 }
 
 // =========================================================

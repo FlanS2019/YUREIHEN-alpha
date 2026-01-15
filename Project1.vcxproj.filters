@@ -37,6 +37,8 @@
     <ClCompile Include="WinAnim.cpp" />
     <ClCompile Include="minimap.cpp" />
     <ClCompile Include="font.cpp" />
+    <ClCompile Include="LoseAnimED.cpp" />
+    <ClCompile Include="field.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="animation.h" />
@@ -77,6 +79,7 @@
     <ClInclude Include="minimap.h" />
     <ClInclude Include="font.h" />
     <ClInclude Include="field.h" />
+    <ClInclude Include="LoseAnimED.h" />
   </ItemGroup>
   <ItemGroup>
     <Library Include="DirectXTex_Debug.lib" />

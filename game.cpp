@@ -112,7 +112,9 @@ void Game_Update(void)
 	Field_Update();
 	UI_Update();
 	Furniture_Update();
+#if !STOP_TIMER_BUSTER
 	Busters_Update();
+#endif
 	DebugDraw_Update();
 }
 

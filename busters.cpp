@@ -106,7 +106,11 @@ void Busters::Update(void)
 			if (targetFurniture)
 			{
 				m_PathList = Field_FindPath(m_Position, targetFurniture->GetPos());
-				if (m_PathList.empty()) m_TargetFurnitureIndex = -1;
+				if (m_PathList.empty())
+				{
+					m_TargetFurnitureIndex = -1;
+					m_WaitTimer = 60; // 経路が見つからない場合は1秒間検索を控える
+				}
 			}
 			else
 			{

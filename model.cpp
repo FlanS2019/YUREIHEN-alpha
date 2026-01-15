@@ -12,8 +12,11 @@
 #include <algorithm>
 #include <map>
 #include <cstring> // memcpy
+#include <windows.h> // GetFileAttributesA
 
 using namespace DirectX;
+
+static std::unordered_map<std::string, MODEL*> g_ModelCache;
 
 // Assimpの行列をDirectXMath形式に変換
 XMMATRIX AiMatrixToXMMatrix(const aiMatrix4x4& mat)
@@ -208,9 +211,27 @@ void RenderNodeAnimation(MODEL* model, aiNode* node, XMMATRIX parentTransform, c
 
 MODEL* ModelLoad(const char* FileName)
 {
+	if (g_ModelCache.count(FileName) > 0)
+	{
+		g_ModelCache[FileName]->RefCount++;
+		return g_ModelCache[FileName];
+	}
+
 	MODEL* model = new MODEL;
+	model->FilePath = FileName;
+	model->RefCount = 1;
 
 	const std::string modelPath(FileName);
+
+	// ファイルの存在チェックを追加
+	DWORD dwAttrib = GetFileAttributesA(FileName);
+	if (dwAttrib == INVALID_FILE_ATTRIBUTES || (dwAttrib & FILE_ATTRIBUTE_DIRECTORY))
+	{
+		std::string msg = "「" + std::string(FileName) + "」は存在しません";
+		MessageBoxA(NULL, msg.c_str(), "Model Load Error", MB_OK | MB_ICONERROR);
+		delete model;
+		return nullptr;
+	}
 
 	// ===== モデルファイルの読み込み開始 =====
 	hal::dout << std::endl;
@@ -246,7 +267,7 @@ MODEL* ModelLoad(const char* FileName)
 		MessageBoxA(NULL, msg.c_str(), "Model Load Error", MB_OK | MB_ICONERROR);
 
 		// 強制終了せずに安全に終わる（またはここで止める）
-		delete model;
+//		delete model;
 		return nullptr;
 	}
 
@@ -430,7 +451,8 @@ MODEL* ModelLoad(const char* FileName)
 				const aiFace* face = &mesh->mFaces[f];
 
 				// 三角形チェック（より柔軟に対応）
-				if (face->mNumIndices >= 3 && indexOffset + 3 <= indexCount)
+//				if (face->mNumIndices >= 3 && indexOffset + 3 <= indexCount)
+				if (face->mNumIndices > 0 && indexOffset < indexCount)
 				{
 					index[indexOffset + 0] = face->mIndices[0];
 					index[indexOffset + 1] = face->mIndices[1];
@@ -597,12 +619,22 @@ MODEL* ModelLoad(const char* FileName)
 	hal::dout << "========================================" << std::endl;
 	hal::dout << std::endl;
 
+	g_ModelCache[FileName] = model;
+
 	return model;
 }
 
 void ModelRelease(MODEL* model)
 {
 	if (!model) return;
+
+	model->RefCount--;
+	if (model->RefCount > 0) return;
+
+	if (!model->FilePath.empty())
+	{
+		g_ModelCache.erase(model->FilePath);
+	}
 
 	for (unsigned int m = 0; m < model->AiScene->mNumMeshes; m++)
 	{
