@@ -1,4 +1,4 @@
-﻿name: Build and Release DX11 Game
+﻿name: Build and Release HEW Game
 
 on:
   workflow_dispatch:
@@ -45,17 +45,21 @@ jobs:
         
         Copy-Item -Path "x64/Release/*.exe" -Destination "release" -Force
         Copy-Item -Path "x64/Release/*.cso" -Destination "release" -Force
+        # プロジェクトルートに出力されたcsoファイルも収集
+        if (Test-Path "*.cso") {
+            Copy-Item -Path "*.cso" -Destination "release" -Force
+        }
         Copy-Item -Path "x64/Release/*.dll" -Destination "release" -Force
         Copy-Item -Path "assimp-vc143-mt.dll" -Destination "release" -Force
         Copy-Item -Path "assimp" -Destination "release" -Recurse -Force
         Copy-Item -Path "asset" -Destination "release" -Recurse -Force
         
-        Compress-Archive -Path "release/*" -DestinationPath "DX21_YUREIHEN_v${{ steps.version.outputs.number }}.zip" -Force
+        Compress-Archive -Path "release/*" -DestinationPath "HEW_YUREIHEN_v${{ steps.version.outputs.number }}.zip" -Force
 
     - name: Create Release
       uses: softprops/action-gh-release@v2
       with:
-        files: DX21_YUREIHEN_v${{ steps.version.outputs.number }}.zip
+        files: HEW_YUREIHEN_v${{ steps.version.outputs.number }}.zip
         generate_release_notes: true
         tag_name: v${{ steps.version.outputs.number }}
         name: v${{ steps.version.outputs.number }}
