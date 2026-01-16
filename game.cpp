@@ -28,7 +28,7 @@ using namespace DirectX;
 
 Light* MainLight;
 Light* g_pUILight = nullptr;
-SoundData* g_pBGM = nullptr;
+static SoundData* g_pBGM = nullptr;
 
 static int g_NextFloorID = -1;
 

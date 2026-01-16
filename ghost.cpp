@@ -418,6 +418,8 @@ void Ghost::Move(void)
 
 void Ghost::FloorMove(void)
 {
+	return;// 階段移動無効化
+	
 	if (m_FloorCooldown > 0.0f)
 	{
 		m_FloorCooldown -= 1.0f / 60.0f;

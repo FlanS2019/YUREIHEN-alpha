@@ -296,14 +296,14 @@ void UI_Draw(void)
 	g_ScareGauge->Draw();
 
 	// クリックガイド
-	if (g_GuideClick) g_GuideClick->Draw();
+	//if (g_GuideClick) g_GuideClick->Draw();
 
-	// 階層移動ガイド
-	if (g_ShowGuideFloor)
-	{
-		if (g_GuideFloorNum) g_GuideFloorNum->Draw();
-		if (g_GuideFloorF) g_GuideFloorF->Draw();
-	}
+	//// 階層移動ガイド
+	//if (g_ShowGuideFloor)
+	//{
+	//	if (g_GuideFloorNum) g_GuideFloorNum->Draw();
+	//	if (g_GuideFloorF) g_GuideFloorF->Draw();
+	//}
 }
 
 //----------------------------
