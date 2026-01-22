@@ -8,6 +8,7 @@
 #include "shader.h"
 #include "direct3d.h"
 #include "font.h"
+#include "sound.h"
 
 // ①Spriteのインスタンス、ポインタ用意
 static SplitSprite* g_pTitleSprite = nullptr;
@@ -15,6 +16,8 @@ static Light* g_pTitleLight = nullptr;
 static FontRenderer* g_pTitleFont = nullptr;
 static FontRenderer* g_pTitleFont2 = nullptr;
 static Sprite* g_pSizeComparisonSprite = nullptr;
+static SoundData* g_pBGM = nullptr;
+
 
 void Title_Initialize(ID3D11Device* pDevice, ID3D11DeviceContext* pContext)
 {
@@ -64,20 +67,27 @@ void Title_Initialize(ID3D11Device* pDevice, ID3D11DeviceContext* pContext)
 		XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f),
 		XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f)
 	);
+
+	// BGM読み込み・再生
+	g_pBGM = LoadMP3("asset/sound/bgm/BGM1op.mp3");
+	if (g_pBGM) {
+		PlaySound(g_pBGM, true);
+	}
+
 }
 
 void Title_Update(void)
 {
 	// Debug: Wキーで勝利アニメーションへ直接遷移（タイトル上でのデバッグ用）
-	if (Keyboard_IsKeyDown(KK_W))
-	{
-		SetScene(SCENE_ANM_WIN);// Debug用に勝利アニメーションへ直接飛ぶ
-		return;
-	}
-	if (Keyboard_IsKeyDown(KK_L))
-	{
-		SetScene(SCENE_ANM_LOSE);// Debug用にロゴアニメーションへ直接飛ぶ
-	}
+	//if (Keyboard_IsKeyDown(KK_W))
+	//{
+	//	SetScene(SCENE_ANM_WIN);// Debug用に勝利アニメーションへ直接飛ぶ
+	//	return;
+	//}
+	//if (Keyboard_IsKeyDown(KK_L))
+	//{
+	//	SetScene(SCENE_ANM_LOSE);// Debug用にロゴアニメーションへ直接飛ぶ
+	//}
 	// ③適当な処理　アニメーションなどもここで
 	if (Keyboard_IsKeyDownTrigger(KK_ENTER))
 	{
@@ -98,6 +108,15 @@ void Title_Draw(void)
 
 void Title_Finalize(void)
 {
+
+	// BGM解放
+	if (g_pBGM) {
+		StopSound(g_pBGM);
+		UnloadSound(g_pBGM);
+		g_pBGM = nullptr;
+	}
+
+
 	delete g_pTitleSprite;
 	g_pTitleSprite = nullptr;
 

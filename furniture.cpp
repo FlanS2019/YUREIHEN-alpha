@@ -19,112 +19,226 @@ void Furniture_Initialize(void)
 	// 1. カウントをリセット
 	g_FurnitureCount = 0;
 
-	for (int z = 0; z < MAP_LENGTH; z++)
+	for (int y = 0; y < MAP_HEIGHT; y++)
 	{
-		for (int x = 0; x < MAP_WIDTH; x++)
+		for (int z = 0; z < MAP_LENGTH; z++)
 		{
-
-			int id = Floor1[1][z][x];
-
-			// ワールド座標に変換
-			float wx = (float)x - MAP_WIDTH / 2.0f;
-			float wz = MAP_LENGTH / 2.0f - (float)z;
-
-
-			float rotY = Field_CalculateRotationFromMarker(wx, wz);
-			switch (id)
+			for (int x = 0; x < MAP_WIDTH; x++)
 			{
-			case 50:
 
-				// 椅子を生成 (手動配置と同じ関数を使う)
-				CreateFurniture(
-					{ wx, 0.0f, wz },          // 場所
-					{ 1.0f, 1.0f, 1.0f },      // サイズ
-					{ 0.0f, rotY, 0.0f },      // 回転(固定)
-					"asset\\model\\rockingchair.fbx", // モデル
-					ACTION_SCARE                // アクション
-				);
-				break;
-			case 51:
-				// キッチン
-				CreateFurniture(
-					{ wx, 0.0f, wz },          // 場所
-					{ 1.0f, 1.0f, 1.0f },      // サイズ
-					{ 0.0f, rotY, 0.0f },      // 回転(固定)
-					"asset\\model\\kitchen.fbx",  // モデル
-					ACTION_LURE                 // アクション
-				);
-				break;
-			case 52:
-				// 蓄音機
-				CreateFurniture(
-					{ wx, 0.0f, wz },          // 場所
-					{ 1.0f, 1.0f, 1.0f },      // サイズ
-					{ 0.0f, rotY, 0.0f },      // 回転(固定)
-					"asset\\model\\phonograph.fbx",  // モデル
-					ACTION_STOP                 // アクション
-				);
-				break;
-			case 53:
-				// バスタブ
-				CreateFurniture(
-					{ wx, 0.0f, wz },          // 場所
-					{ 1.0f, 1.0f, 1.0f },      // サイズ
-					{ 0.0f, rotY, 0.0f },      // 回転(固定)
-					"asset\\model\\bathtub.fbx",  // モデル
-					ACTION_STOP                 // アクション
-				);
-				break;
-			case 54:
-				// 暖炉
-				CreateFurniture(
-					{ wx, 0.0f, wz },          // 場所
-					{ 1.0f, 1.0f, 1.0f },      // サイズ
-					{ 0.0f, rotY, 0.0f },      // 回転(固定)
-					"asset\\model\\danro.fbx",  // モデル
-					ACTION_STOP                 // アクション
-				);
-				break;
-			case 55:
-				// 鏡
-				CreateFurniture(
-					{ wx, 0.0f, wz },          // 場所
-					{ 1.0f, 1.0f, 1.0f },      // サイズ
-					{ 0.0f, rotY, 0.0f },      // 回転(固定)
-					"asset\\model\\mirror.fbx",  // モデル
-					ACTION_STOP                 // アクション
-				);
-				break;
-			case 56:
-				// ソファー
-				CreateFurniture(
-					{ wx, 0.0f, wz },          // 場所
-					{ 1.0f, 1.0f, 1.0f },      // サイズ
-					{ 0.0f, rotY, 0.0f },      // 回転(固定)
-					"asset\\model\\sofa.fbx",  // モデル
-					ACTION_STOP                 // アクション
-				);
-				break;
-			case 57:
-				// 低い本棚
-				CreateFurniture(
-					{ wx, 0.0f, wz },          // 場所
-					{ 1.0f, 1.0f, 1.0f },      // サイズ
-					{ 0.0f, rotY, 0.0f },      // 回転(固定)
-					"asset\\model\\low_bookshelf.fbx",  // モデル
-					ACTION_STOP                 // アクション
-				);
-				break;
-			case 40:
-				// 高い本棚
-				CreateFurniture(
-					{ wx, 0.0f, wz },          // 場所
-					{ 1.0f, 1.0f, 1.0f },      // サイズ
-					{ 0.0f, rotY, 0.0f },      // 回転(固定)
-					"asset\\model\\tall_bookshelf.fbx",  // モデル
-					ACTION_STOP                 // アクション
-				);
-				break;
+				int id = Floor1[y][z][x];
+
+				// ワールド座標に変換
+				float wx = (float)x - MAP_WIDTH / 2.0f;
+				float wz = MAP_LENGTH / 2.0f - (float)z;
+				float wy = (float)y - 1.0f;
+
+				float rotY = Field_CalculateRotationFromMarker(wx, wy, wz);
+
+				switch (id)
+				{
+				case 50:
+
+					// キャビネット
+					CreateFurniture(
+						{ wx, wy, wz },          // 場所
+						{ 1.0f, 1.0f, 1.0f },      // サイズ
+						{ 0.0f, rotY, 0.0f },      // 回転
+						"asset\\model\\cube.fbx", // モデル
+						ACTION_SCARE                // アクション
+					);
+					break;
+				case 51:
+					// 高い本棚
+					CreateFurniture(
+						{ wx, wy, wz },          // 場所
+						{ 1.0f, 1.0f, 1.0f },      // サイズ
+						{ 0.0f, rotY, 0.0f },      // 回転
+						"asset\\model\\tall_bookshelf.fbx", // モデル
+						ACTION_SCARE                // アクション
+					);
+					break;
+				case 52:
+					// ソファー
+					CreateFurniture(
+						{ wx, wy, wz },          // 場所
+						{ 1.0f, 1.0f, 1.0f },      // サイズ
+						{ 0.0f, rotY, 0.0f },      // 回転
+						"asset\\model\\sofa.fbx", // モデル
+						ACTION_SCARE                // アクション
+					);
+					break;
+				case 53:
+					// シャンデリア
+					CreateFurniture(
+						{ wx, wy, wz },          // 場所
+						{ 1.0f, 1.0f, 1.0f },      // サイズ
+						{ 0.0f, rotY, 0.0f },      // 回転
+						"asset\\model\\cube.fbx", // モデル
+						ACTION_SCARE                // アクション
+					);
+					break;
+				case 54:
+					// ロッキングチェア
+					CreateFurniture(
+						{ wx, wy, wz },          // 場所
+						{ 1.0f, 1.0f, 1.0f },      // サイズ
+						{ 0.0f, rotY, 0.0f },      // 回転
+						"asset\\model\\rockingchair.fbx", // モデル
+						ACTION_LURE                // アクション
+					);
+					break;
+				case 55:
+					// 蓄音機
+					CreateFurniture(
+						{ wx, wy, wz },          // 場所
+						{ 1.0f, 1.0f, 1.0f },      // サイズ
+						{ 0.0f, rotY, 0.0f },      // 回転
+						"asset\\model\\phonograph.fbx", // モデル
+						ACTION_STOP               // アクション
+					);
+					break;
+				case 56:
+					// カーペット
+					CreateFurniture(
+						{ wx, wy, wz },          // 場所
+						{ 1.0f, 1.0f, 1.0f },      // サイズ
+						{ 0.0f, rotY, 0.0f },      // 回転
+						"asset\\model\\cube.fbx", // モデル
+						ACTION_STOP                // アクション
+					);
+					break;
+				case 57:
+					// 暖炉
+					CreateFurniture(
+						{ wx, wy, wz },          // 場所
+						{ 1.0f, 1.0f, 1.0f },      // サイズ
+						{ 0.0f, rotY, 0.0f },      // 回転
+						"asset\\model\\danro.fbx", // モデル
+						ACTION_LURE                // アクション
+					);
+					break;
+				case 58:
+					// バスタブ
+					CreateFurniture(
+						{ wx, wy, wz },          // 場所
+						{ 1.0f, 1.0f, 1.0f },      // サイズ
+						{ 0.0f, rotY, 0.0f },      // 回転
+						"asset\\model\\bathtub.fbx", // モデル
+						ACTION_LURE                // アクション
+					);
+					break;
+				case 59:
+					// キッチン
+					CreateFurniture(
+						{ wx, wy, wz },          // 場所
+						{ 1.0f, 1.0f, 1.0f },      // サイズ
+						{ 0.0f, rotY, 0.0f },      // 回転
+						"asset\\model\\kitchen.fbx", // モデル
+						ACTION_SCARE                // アクション
+					);
+					break;
+				case 60:
+					// 便器
+					CreateFurniture(
+						{ wx, wy, wz },          // 場所
+						{ 1.0f, 1.0f, 1.0f },      // サイズ
+						{ 0.0f, rotY, 0.0f },      // 回転
+						"asset\\model\\cube.fbx", // モデル
+						ACTION_LURE                // アクション
+					);
+					break;
+				case 61:
+					// ベッド
+					CreateFurniture(
+						{ wx, wy, wz },          // 場所
+						{ 1.0f, 1.0f, 1.0f },      // サイズ
+						{ 0.0f, rotY, 0.0f },      // 回転
+						"asset\\model\\cube.fbx", // モデル
+						ACTION_STOP               // アクション
+					);
+					break;
+				case 62:
+					// ピアノ
+					CreateFurniture(
+						{ wx, wy, wz },          // 場所
+						{ 1.0f, 1.0f, 1.0f },      // サイズ
+						{ 0.0f, rotY, 0.0f },      // 回転
+						"asset\\model\\cube.fbx", // モデル
+						ACTION_SCARE                // アクション
+					);
+					break;
+				case 63:
+					// シンク
+					CreateFurniture(
+						{ wx, wy, wz },          // 場所
+						{ 1.0f, 1.0f, 1.0f },      // サイズ
+						{ 0.0f, rotY, 0.0f },      // 回転
+						"asset\\model\\cube.fbx", // モデル
+						ACTION_SCARE                // アクション
+					);
+					break;
+				case 64:
+					// 鏡
+					CreateFurniture(
+						{ wx, wy, wz },          // 場所
+						{ 1.0f, 1.0f, 1.0f },      // サイズ
+						{ 0.0f, rotY, 0.0f },      // 回転
+						"asset\\model\\mirror.fbx", // モデル
+						ACTION_SCARE                // アクション
+					);
+					break;
+				case 65:
+					// ハンティングトロフィー
+					CreateFurniture(
+						{ wx, wy, wz },          // 場所
+						{ 1.0f, 1.0f, 1.0f },      // サイズ
+						{ 0.0f, rotY, 0.0f },      // 回転
+						"asset\\model\\cube.fbx", // モデル
+						ACTION_SCARE                // アクション
+					);
+					break;
+				case 66:
+					// 偽扉
+					CreateFurniture(
+						{ wx, wy, wz },          // 場所
+						{ 1.0f, 1.0f, 1.0f },      // サイズ
+						{ 0.0f, rotY, 0.0f },      // 回転
+						"asset\\model\\cube.fbx", // モデル
+						ACTION_SCARE                // アクション
+					);
+					break;
+				case 67:
+					// 振り子時計
+					CreateFurniture(
+						{ wx, wy, wz },          // 場所
+						{ 1.0f, 1.0f, 1.0f },      // サイズ
+						{ 0.0f, rotY, 0.0f },      // 回転
+						"asset\\model\\cube.fbx", // モデル
+						ACTION_LURE               // アクション
+					);
+					break;
+				case 68:
+					// 椅子
+					CreateFurniture(
+						{ wx, wy, wz },          // 場所
+						{ 1.0f, 1.0f, 1.0f },      // サイズ
+						{ 0.0f, rotY, 0.0f },      // 回転
+						"asset\\model\\cube.fbx", // モデル
+						ACTION_NONE                // アクション
+					);
+					break;
+				case 69:
+					// ダイニングテーブル
+					CreateFurniture(
+						{ wx, wy, wz },          // 場所
+						{ 1.0f, 1.0f, 1.0f },      // サイズ
+						{ 0.0f, rotY, 0.0f },      // 回転
+						"asset\\model\\cube.fbx", // モデル
+						ACTION_NONE                // アクション
+					);
+					break;
+				}
 			}
 		}
 	}
@@ -146,6 +260,21 @@ void Furniture_Initialize(void)
 
 void Furniture::Update(void)
 {
+	// 0. クールタイムの更新
+	if (m_CooldownTimer > 0.0f)
+	{
+		m_CooldownTimer -= 1.0f / 60.0f;
+		if (m_CooldownTimer <= 0.0f)
+		{
+			m_CooldownTimer = 0.0f;
+			ResetColor(); // クールタイム終了で色を戻す
+		}
+		else
+		{
+			SetColor(0.0f, 0.0f, 1.0f, 1.0f); // クールタイム中は青色
+		}
+	}
+
 	// 1. Ghostとの距離計算
 	Ghost* pGhost = GetGhost();
 	if (pGhost)
@@ -208,7 +337,7 @@ void Furniture::Update(void)
 
 void Furniture::StartAction(void)
 {
-	if (GetIsActing()) return; // 二重実行を抑止
+	if (GetIsActing() || IsCoolingDown()) return; // 二重実行およびクールタイム中の実行を抑止
 
 	if (m_ActionType == ACTION_SCARE)
 	{
@@ -219,6 +348,8 @@ void Furniture::StartAction(void)
 		m_IsActing = true; // 行う、アクション開始フラグON
 		m_ActionTimer = 0.0f;
 	}
+
+	m_CooldownTimer = 10.0f; // 10秒間のクールタイムを設定
 }
 
 void CreateFurniture(XMFLOAT3 pos, XMFLOAT3 scale, XMFLOAT3 rot, const char* modelPath, FURNITURE_ACTION action)
@@ -229,8 +360,8 @@ void CreateFurniture(XMFLOAT3 pos, XMFLOAT3 scale, XMFLOAT3 rot, const char* mod
 	// 配列の「次の空いている場所」に家具を作る
 	g_Furniture[g_FurnitureCount] = new Furniture(pos, scale, rot, modelPath, action);
 
-	// 地面の高さをセット（共通設定をここに移動）
-	g_Furniture[g_FurnitureCount]->SetGroundLevel(0.0f);
+	// 地面の高さをセット
+	g_Furniture[g_FurnitureCount]->SetGroundLevel(pos.y);
 
 	// カウントを進める
 	g_FurnitureCount++;

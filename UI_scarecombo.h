@@ -15,4 +15,7 @@ void UI_ScareCombo_Finalize(void);
 // 恐怖コンボを加算
 void ScareComboUP(void);
 
+// 恐怖コンボをリセット
+void UI_ScareCombo_Reset(void);
+
 int UI_ScareCombo_GetNumber(void);

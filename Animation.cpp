@@ -7,6 +7,7 @@
 #include "component.h"
 #include "shader.h"
 #include "direct3d.h"
+#include "main.h"
 #include <timeapi.h>
 #pragma comment(lib, "winmm.lib")
 
@@ -32,7 +33,7 @@ Light* g_pLogoLight = nullptr;
 LogoState State = LS_SCENEIN;
 FADESTAT StateChanged = FADE_IN;
 static DWORD g_LogoStartTime = 0;	// ロゴ開始時刻
-static const float LOGO_AUTO_FADE_TIME = 0.7f;	// 自動フェード開始時間（1秒）
+static const float LOGO_AUTO_FADE_TIME = 1.0f;	// 自動フェード開始時間（1秒）
 
 void Animation_Logo_Initialize(ID3D11Device* pDevice, ID3D11DeviceContext* pContext)
 {
@@ -94,24 +95,25 @@ void Animation_Logo_Update(void)
 	//スペースを押されるか時間でロゴ変化・シーン遷移
 	if (Keyboard_IsKeyDownTrigger(KK_ENTER) || elapsedSeconds >= LOGO_AUTO_FADE_TIME)
 	{
-		//ダークロゴに
+		// 1枚目表示中なら、次のロゴへ向けてフェードアウト
 		if (State == LS_INFADEEND)
 		{
 			StartFade();
 		}
-		//ダークロゴならタイトル画面へ
-		else
+		// 2枚目表示が完了していたら、タイトル画面へ遷移
+		else if (State >= LS_DARKCHANGEEND && GetFadeState() == FADE_NONE)
 		{
-			//タイトル画面へ移行する処理をここに追加
 			StartFade(SCENE_TITLE);
 		}
 	}
 
-	//ユーザー操作によってフェードが始まったかつ終了していたなら
+	// フェードアウトが完了してテクスチャ切り替えタイミングなら
 	if (State == LS_DARKCHANGETEX)
 	{
 		g_LogoSprite->SetTextureNumber(1);
 		g_BG->SetColor({ 0.0f, 0.0f, 0.0f, 1.0f });
+		// 2枚目のロゴを表示するためにフェードインを開始
+		Fade_StartIn();
 	}
 }
 
@@ -142,6 +144,7 @@ void Animation_Logo_Finalize(void)
 
 void Animation_Op_Initialize(ID3D11Device* pDevice, ID3D11DeviceContext* pContext)
 {
+	SetFPS(40);
 	OpAnim_Initialize(pDevice, pContext);
 }
 
@@ -165,6 +168,5 @@ void Animation_Op_Draw(void)
 void Animation_Op_Finalize(void)
 {
 	OpAnim_Finalize();
+	SetFPS(FPS);
 }
-
-

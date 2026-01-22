@@ -6,7 +6,7 @@
 #include "anim_sprite3d.h"
 
 AnimSprite3D* g_AnimModelDraw = NULL;  // アニメーション対応モデル
-static bool isUse = true;  // 処理の有効/無効を制御
+static bool isUse = false;  // 処理の有効/無効を制御
 
 void DebugDraw_Initialize(void)
 {

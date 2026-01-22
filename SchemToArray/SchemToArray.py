@@ -45,7 +45,7 @@ import numpy as np
 
 def load_block_definitions(filename):
     """ブロック定義をJSONファイルから読み込む"""
-    encodings = ['shift-jis', 'utf-8', 'cp1252']
+    encodings = ['utf-8-sig', 'shift-jis', 'utf-8', 'cp1252']
     for encoding in encodings:
         try:
             with open(filename, 'r', encoding=encoding) as f:

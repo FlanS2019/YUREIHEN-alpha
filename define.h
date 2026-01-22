@@ -7,19 +7,22 @@
 #define MAP_FLOORS (3)
 
 //=== Camera 関連定数 ===
-#define PITCH_LIMIT_LOOK_UP    (20.0f)   // 上を見る限界（カメラが下がる限界）: 床埋まり防止
-#define PITCH_LIMIT_LOOK_DOWN  (-20.0f)  // 下を見る限界（カメラが上がる限界）: 天井埋まり防止
+#define PITCH_LIMIT_LOOK_UP    (25.0f)   // 上を見る限界（カメラが下がる限界）: 床埋まり防止
+#define PITCH_LIMIT_LOOK_DOWN  (-60.0f)  // 下を見る限界（カメラが上がる限界）: 天井埋まり防止
 
 #define MOUSE_SENSITIVITY (0.15f)
 #define CAMERA_DISTANCE (6.0f)  // カメラ距離
 #define CAMERA_OFFSET_Y (1.5f)  // 注視点のオフセット
 
 //=== Furniture 関連定数 ===
-#define FURNITURE_NUM (100)
+#define FURNITURE_NUM (500)
 #define FURNITURE_DETECTION_RANGE (5.0f) // Ghost検出範囲
 
 //=== Busters 関連定数 ===
 #define BUSTERS_PATROL_SPEED (0.001f)    // パトロール速度
+#define BUSTERS_MOVE_SPEED_SEARCH    (0.03f) // 探索速度
+#define BUSTERS_MOVE_SPEED_SUSPICION (0.04f) // 警戒速度
+#define BUSTERS_MOVE_SPEED_CHASE     (0.05f) // 追跡速度
 
 #define MAP_MIN_X (-20.0f)
 #define MAP_MAX_X (20.0f)
@@ -42,6 +45,6 @@
 
 //=== Minimap 関連定数 ===
 
-#define MINIMAP_POS_OFFSET   (100.0f) 
+#define MINIMAP_POS_OFFSET   (150.0f) 
 #define BLOCK_SIZE      (10.0f)  
 #define VIEW_RANGE      (13) 
