@@ -102,23 +102,25 @@ void Minimap_Draw(void)
 	// 背景描画
 	g_MiniMapBG->Draw();
 
-	// マップ（壁）描画
+	// 壁を最小限だけ描画（フレームレート向上のため）
 	XMFLOAT3 playerPos = ghost->GetPos();
 	int px = (int)round(playerPos.x + MAP_WIDTH / 2.0f);
 	int pz = (int)round(MAP_LENGTH / 2.0f - playerPos.z);
 
-	// 現在の階層を取得
-	int currentFloor = Field_GetCurrentFloor();
+	// フルレンジで壁を描画
+	int reducedRange = VIEW_RANGE;
 
-	for (int z = pz - VIEW_RANGE; z <= pz + VIEW_RANGE; z++)
+	for (int z = pz - reducedRange; z <= pz + reducedRange; z++)
 	{
-		for (int x = px - VIEW_RANGE; x <= px + VIEW_RANGE; x++)
+		for (int x = px - reducedRange; x <= px + reducedRange; x++)
 		{
 			// ヘルパー関数を使って、現在の階のブロックIDを取得
 			// Y=1 (壁レイヤー) を参照
 			int id = GetMapBlockID(currentFloor, 1, z, x);
 
-			// 0(空気)以外、かつ特定ブロック以外なら壁として表示
+			// 壁があるかチェック (Y=1:壁の層)
+			int id = Floor1[1][z][x];
+			int id = Floor1[1][z][x];
 			if (id != 0 && id != 98 && id != 99)
 			{
 				float wx = (float)x - MAP_WIDTH / 2.0f;
