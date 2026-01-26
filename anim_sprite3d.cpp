@@ -329,13 +329,13 @@ void AnimSprite3D::Draw(void)
 		bool shouldApplyColorReplace = !m_UseOriginalColor;
 
 		// デバッグ：アニメーション状態を確認
-		static int drawCount = 0;
-		if (++drawCount % 300 == 0)  // 5秒ごと（60FPS*5）
-// 		{
-			hal::dout << "Draw: play=" << m_AnimState.play 
-					  << " time=" << m_AnimState.time
-					  << " boneCount=" << m_BoneCount << std::endl;
-// 		}
+		//static int drawCount = 0;
+		//if (++drawCount % 300 == 0)  // 5秒ごと（60FPS*5）
+ 	//	{
+		//	hal::dout << "Draw: play=" << m_AnimState.play 
+		//			  << " time=" << m_AnimState.time
+		//			  << " boneCount=" << m_BoneCount << std::endl;
+ 	//	}
 
 		// アニメーション対応描画関数を使用
 		ModelAnimationDraw(

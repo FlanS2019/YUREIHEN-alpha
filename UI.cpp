@@ -191,7 +191,12 @@ void UI_Update(void)
 	}
 
 	// --- 敗北条件 ---
-	if (g_Clock->Update() || g_ScareGauge->GetValue() <= 0.0f)
+#if STOP_TIMER_BUSTER
+	bool timeEnded = false;
+#else
+	bool timeEnded = g_Clock->Update();
+#endif
+	if (timeEnded || g_ScareGauge->GetValue() <= 0.0f)
 	{
 		hal::dout << "敗北条件を満たしました" << std::endl;
 		StartFade(SCENE_ANM_LOSE);
@@ -291,14 +296,14 @@ void UI_Draw(void)
 	g_ScareGauge->Draw();
 
 	// クリックガイド
-	if (g_GuideClick) g_GuideClick->Draw();
+	//if (g_GuideClick) g_GuideClick->Draw();
 
-	// 階層移動ガイド
-	if (g_ShowGuideFloor)
-	{
-		if (g_GuideFloorNum) g_GuideFloorNum->Draw();
-		if (g_GuideFloorF) g_GuideFloorF->Draw();
-	}
+	//// 階層移動ガイド
+	//if (g_ShowGuideFloor)
+	//{
+	//	if (g_GuideFloorNum) g_GuideFloorNum->Draw();
+	//	if (g_GuideFloorF) g_GuideFloorF->Draw();
+	//}
 }
 
 //----------------------------

@@ -13,9 +13,10 @@ using namespace DirectX;
 // �A�N�V�����̎��
 enum FURNITURE_ACTION
 {
-	ACTION_SCARE,	// �����̋������i�W�����v�j
-	ACTION_LURE,	// ���т��񂹁i�U���j
-	ACTION_STOP,	// ���~�߁i��]�j
+	ACTION_SCARE,	//驚かせ
+	ACTION_LURE,	//引き寄せ
+	ACTION_STOP,	//妨害
+	ACTION_NONE,	//なにもなし
 };
 
 // Furniture クラス - 色を変更でき、ジャンプ機能を持つ
@@ -29,6 +30,7 @@ protected:
 	FURNITURE_ACTION m_ActionType;
 	bool m_IsActing;
 	float m_ActionTimer;
+	float m_CooldownTimer; // クールタイムタイマー
 	XMFLOAT3 m_BasePos; // �U���A�j���[�V�����p
 
 public:
@@ -40,6 +42,7 @@ public:
 		m_ActionType(actionType),
 		m_IsActing(false),
 		m_ActionTimer(0.0f),
+		m_CooldownTimer(0.0f),
 		m_BasePos(pos)
 	{
 	}
@@ -55,6 +58,7 @@ public:
 	float GetDistanceToGhost(void) const { return m_DistanceToGhost; }
 	FURNITURE_ACTION GetActionType(void) const { return m_ActionType; }
 	bool GetIsActing(void) const { return m_IsActing || GetIsJumping(); }
+	bool IsCoolingDown(void) const { return m_CooldownTimer > 0.0f; }
 };
 
 void Furniture_Initialize(void);

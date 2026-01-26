@@ -13,7 +13,6 @@
 
 // ①Spriteのインスタンス、ポインタ用意
 static SplitSprite* g_pTitleSprite = nullptr;
-static Light* g_pTitleLight = nullptr;
 static FontRenderer* g_pTitleFont = nullptr;
 static FontRenderer* g_pTitleFont2 = nullptr;
 static Sprite* g_pSizeComparisonSprite = nullptr;
@@ -193,15 +192,15 @@ void Title_Update(void)
 	}
 
 	// Debug: Wキーで勝利アニメーションへ直接遷移（タイトル上でのデバッグ用）
-	if (Keyboard_IsKeyDown(KK_W))
-	{
-		SetScene(SCENE_ANM_WIN);// Debug用に勝利アニメーションへ直接飛ぶ
-		return;
-	}
-	if (Keyboard_IsKeyDown(KK_L))
-	{
-		SetScene(SCENE_ANM_LOSE);// Debug用にロゴアニメーションへ直接飛ぶ
-	}
+	//if (Keyboard_IsKeyDown(KK_W))
+	//{
+	//	SetScene(SCENE_ANM_WIN);// Debug用に勝利アニメーションへ直接飛ぶ
+	//	return;
+	//}
+	//if (Keyboard_IsKeyDown(KK_L))
+	//{
+	//	SetScene(SCENE_ANM_LOSE);// Debug用にロゴアニメーションへ直接飛ぶ
+	//}
 	// ③適当な処理　アニメーションなどもここで
 	if (Keyboard_IsKeyDownTrigger(KK_ENTER))
 	{
@@ -232,6 +231,15 @@ void Title_Draw(void)
 
 void Title_Finalize(void)
 {
+
+	// BGM解放
+	if (g_pBGM) {
+		StopSound(g_pBGM);
+		UnloadSound(g_pBGM);
+		g_pBGM = nullptr;
+	}
+
+
 	delete g_pTitleSprite;
 	g_pTitleSprite = nullptr;
 

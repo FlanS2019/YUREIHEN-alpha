@@ -12,7 +12,7 @@ using namespace DirectX;
 #define CLOCK_POS_Y (120.0f)
 #define CLOCK_SIZE (300.0f)
 #define CLOCK_MIN (0.0f)
-#define CLOCK_MAX (60.0f)
+#define CLOCK_MAX (120.0f)
 
 class Timer : public SplitSprite
 {

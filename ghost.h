@@ -27,6 +27,7 @@ public:
 	bool m_IsTransformed;		// 変身しているか
 	bool m_IsDetectedByBuster;	// bustarに発見されたか
 	bool m_IsDraw;				// 描画フラグ
+	bool m_HasIncreasedMultiplier; // 倍率を加算したか
 
 	Sprite3D* m_pRangeCircle;
 
@@ -41,6 +42,7 @@ public:
 		m_FloorCooldown(),
 		m_State(GS_MOVING),
 		m_IsDraw(true),
+		m_HasIncreasedMultiplier(false),
 
 		m_pRangeCircle(nullptr)
 	{

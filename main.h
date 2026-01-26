@@ -13,9 +13,16 @@
 #define SCREEN_WIDTH (1280.0f)
 #define SCREEN_HEIGHT (720.0f)
 #define WIN32_LEAN_AND_MEAN	//32bitアプリには不要な情報を無視
-#define FPS (60)	
+#define FPS (60)
 
 using namespace DirectX;
+
+//==================================
+//デバッグ用設定
+//==================================
+#define STOP_TIMER_BUSTER (true) //trueならタイマーとバスターズのupdateを停止させる
+#define DIRECT_START (false) //trueならgameシーンから直接開始する
+#define DEBUG_DRAW (true) //trueならdebugdraw機能を有効にする
 
 //==================================
 //プロトタイプ宣言

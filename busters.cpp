@@ -12,8 +12,10 @@
 #include "field.h"
 #include "furniture.h"
 #include <stdlib.h>
+#include <algorithm>
 
 #include "UI.h"
+#include "UI_scarecombo.h"
 #include "scene.h"
 
 
@@ -30,12 +32,12 @@ Busters::Busters(const XMFLOAT3& pos, const XMFLOAT3& scale, const XMFLOAT3& rot
 	m_State(BUSTERS_SEARCH),
 	m_TargetFurnitureIndex(-1),
 	m_WaitTimer(0),
+	m_DetectionGraceTimer(0),
 	m_Velocity(0.0f, 0.0f, 0.0f),
-	m_MoveSpeed(0.03f),
+	m_MoveSpeed(BUSTERS_MOVE_SPEED_SEARCH),
 	m_DistanceToGhost(0.0f),
 	m_Icon(nullptr)
 {
-	srand((unsigned int)GetTickCount64());
 	m_Icon = new Billboard();
 
 	m_Icon->Initialize({ 0.0f, 0.0f, 0.0f }, { 0.7f, 0.7f }, { 0.0f, 0.0f, 0.0f }, true);
@@ -54,6 +56,11 @@ void Busters::Update(void)
 {
 	JumpUpdate(*(Transform3D*)this);
 
+	if (m_DetectionGraceTimer > 0)
+	{
+		m_DetectionGraceTimer--;
+	}
+
 	// アイコンの状態更新
 	if (m_Icon)
 	{
@@ -65,18 +72,17 @@ void Busters::Update(void)
 			break;
 
 		case BUSTERS_SUSPICION: // 警戒中（？）
+		case BUSTERS_LURED:		// 誘引中もハテナ
 			m_Icon->SetIcon(BILLBOARD_ICON::QUESTION);
 			break;
 
 		case BUSTERS_CHASE:     // 追跡中（！）
 			m_Icon->SetIcon(BILLBOARD_ICON::ALERT);
 			break;
-		}
 
-		// びっくりして気絶している場合などの上書き
-		if (m_WaitTimer > 60) 
-		{
+		case BUSTERS_STUN:      // 気絶中ならSTUNアイコン
 			m_Icon->SetIcon(BILLBOARD_ICON::STUN);
+			break;
 		}
 
 		// 位置合わせ（頭上）
@@ -100,64 +106,128 @@ void Busters::Update(void)
 
 	switch (m_State)
 	{
-	case BUSTERS_SEARCH: // 探索
-		if (m_TargetFurnitureIndex == -1)
-		{
-			m_TargetFurnitureIndex = rand() % FURNITURE_NUM;
-			Furniture* targetFurniture = GetFurniture(m_TargetFurnitureIndex);
-			if (targetFurniture)
+		case BUSTERS_SEARCH: // 探索
+			if (m_TargetFurnitureIndex == -1)
 			{
-				m_PathList = Field_FindPath(m_Position, targetFurniture->GetPos());
-				if (m_PathList.empty()) m_TargetFurnitureIndex = -1;
+				m_TargetFurnitureIndex = rand() % FURNITURE_NUM;
+				Furniture* targetFurniture = GetFurniture(m_TargetFurnitureIndex);
+				if (targetFurniture)
+				{
+					m_PathList = Field_FindPath(m_Position, targetFurniture->GetPos());
+
+					// 経路が見つかった場合は反転（ゴール->スタートで返ってくるため）
+					if (!m_PathList.empty())
+					{
+						std::reverse(m_PathList.begin(), m_PathList.end());
+						m_PathList.erase(m_PathList.begin()); // 現在地のタイルをスキップ
+					}
+					
+					if (m_PathList.empty() && targetFurniture)
+					{
+						// 同一タイル内の場合はそのまま目的地とする
+						m_PathList.push_back(targetFurniture->GetPos());
+					}
+
+					// それでも空なら失敗
+					if (m_PathList.empty())
+					{
+						m_TargetFurnitureIndex = -1;
+						m_WaitTimer = 300; 
+					}
+				}
+				else
+				{
+					m_TargetFurnitureIndex = -1;
+				}
 			}
-			else
+			m_MoveSpeed = BUSTERS_MOVE_SPEED_SEARCH;
+			break;
+
+		case BUSTERS_LURED: // 誘引
+			m_MoveSpeed = BUSTERS_MOVE_SPEED_SUSPICION;
+			break;
+
+		case BUSTERS_SUSPICION: // 警戒
+			if (GetGhost())
 			{
-				m_TargetFurnitureIndex = -1;
-			}
-		}
+				// 壁がない場合は直線的に進む
+				if (!Field_CheckWallBetween(m_Position, GetGhost()->GetPos()))
+				{
+					m_PathList.clear();
+					nextStepPos = GetGhost()->GetPos();
+				}
+				else
+				{
+					// 経路が空、またはターゲットに到達したら再計算
+					if (m_PathList.empty())
+					{
+						m_PathList = Field_FindPath(m_Position, GetGhost()->GetPos());
+						if (!m_PathList.empty()) {
+							std::reverse(m_PathList.begin(), m_PathList.end());
+							m_PathList.erase(m_PathList.begin()); // 現在地のタイルをスキップ
+						}
+					}
+				}
 
-		if (!m_PathList.empty())
-		{
-			XMFLOAT3 targetNode = m_PathList.back();
-			targetNode.y = m_Position.y;
-			nextStepPos = targetNode;
-			XMVECTOR myPosV = XMLoadFloat3(&m_Position);
-			XMVECTOR targetV = XMLoadFloat3(&targetNode);
-			if (XMVectorGetX(XMVector3Length(XMVectorSubtract(targetV, myPosV))) < 0.5f)
+				if (m_PathList.empty())
+				{
+					nextStepPos = GetGhost()->GetPos();
+				}
+			}
+			m_MoveSpeed = BUSTERS_MOVE_SPEED_SUSPICION;
+			break;
+
+		case BUSTERS_CHASE: // 追跡
+			if (GetGhost())
 			{
-				m_PathList.pop_back();
+				// 壁がない場合は直線的に追跡する
+				if (!Field_CheckWallBetween(m_Position, GetGhost()->GetPos()))
+				{
+					m_PathList.clear();
+					nextStepPos = GetGhost()->GetPos();
+				}
+				else
+				{
+					// 追跡中は最短経路を常に更新
+					m_PathList = Field_FindPath(m_Position, GetGhost()->GetPos());
+					if (!m_PathList.empty()) {
+						std::reverse(m_PathList.begin(), m_PathList.end());
+						m_PathList.erase(m_PathList.begin()); // 現在地のタイルをスキップ
+					}
+				}
+
+				if (m_PathList.empty())
+				{
+					nextStepPos = GetGhost()->GetPos();
+				}
+			}
+			m_MoveSpeed = BUSTERS_MOVE_SPEED_CHASE;
+			break;
+		}
+
+	// 経路が存在する場合、次の目的地へ向かう
+	if (!m_PathList.empty())
+	{
+		nextStepPos = m_PathList[0];
+
+		float dx = nextStepPos.x - m_Position.x;
+		float dz = nextStepPos.z - m_Position.z;
+		float distSq = dx * dx + dz * dz;
+
+		// 目的地に近づいたら次のノードへ
+		if (distSq < 0.2f * 0.2f)
+		{
+			m_PathList.erase(m_PathList.begin());
+			if (m_PathList.empty())
+			{
+				if (m_State == BUSTERS_SEARCH || m_State == BUSTERS_LURED)
+				{
+					m_State = BUSTERS_SEARCH;
+					m_TargetFurnitureIndex = -1;
+					m_WaitTimer = 120; // 到着後の待機
+				}
 			}
 		}
-		else if (m_TargetFurnitureIndex != -1)
-		{
-			m_TargetFurnitureIndex = -1;
-			m_WaitTimer = 60;
-		}
-
-		m_MoveSpeed = 0.03f;
-		break;
-
-	case BUSTERS_SUSPICION: // 警戒
-		m_PathList.clear();
-		m_TargetFurnitureIndex = -1;
-		if (GetGhost())
-		{
-			nextStepPos = GetGhost()->GetPos();
-			nextStepPos.y = m_Position.y;
-		}
-		m_MoveSpeed = 0.06f;
-		break;
-
-	case BUSTERS_CHASE: // 追跡
-		if (GetGhost())
-		{
-			nextStepPos = GetGhost()->GetPos();
-			nextStepPos.y = m_Position.y;
-		}
-		m_PathList.clear();
-		m_TargetFurnitureIndex = -1;
-		m_MoveSpeed = 0.09f;
-		break;
 	}
 	
 	MoveTo(nextStepPos);
@@ -168,26 +238,23 @@ void Busters::CheckState(void)
 	Ghost* ghost = GetGhost();
 	if (!ghost) return;
 	if (m_WaitTimer > 0) return;
+	if (m_DetectionGraceTimer > 0) return;
 
 	XMFLOAT3 ghostPos = ghost->GetPos();
 	XMVECTOR ghostVec = XMLoadFloat3(&ghostPos);
 	XMVECTOR myVec = XMLoadFloat3(&m_Position);
 	m_DistanceToGhost = XMVectorGetX(XMVector3Length(XMVectorSubtract(ghostVec, myVec)));
 
-	// 変身中
+	// 変身中（憑依中）
 	if (ghost->GetState() == GS_TRANSFORM || ghost->GetState() == GS_SCARE)
 	{
-		if (m_State == BUSTERS_SUSPICION && m_DistanceToGhost < 2.0f)
-		{
-			m_State = BUSTERS_SEARCH;
-			this->ResetColor();
-			m_WaitTimer = 60;
-		}
-		else if (m_State != BUSTERS_SEARCH && m_State != BUSTERS_SUSPICION)
+		if (m_State != BUSTERS_SEARCH && m_State != BUSTERS_LURED)
 		{
 			m_State = BUSTERS_SEARCH;
 			this->ResetColor();
 			ghost->SetIsDetectedByBuster(false);
+			m_TargetFurnitureIndex = -1;
+			m_PathList.clear();
 			m_WaitTimer = 60;
 		}
 		return;
@@ -202,6 +269,18 @@ void Busters::CheckState(void)
 			m_State = BUSTERS_CHASE;
 			this->SetColor(1.0f, 0.0f, 0.0f, 1.0f); // 赤
 			ghost->SetIsDetectedByBuster(true);
+
+			// 発見されたらコンボリセット
+			UI_ScareCombo_Reset();
+		}
+
+		// 距離が近づくにつれ恐怖ゲージを減らす（赤発見時のみ）
+		if (m_DistanceToGhost < BUSTERS_PATROL_RANGH)
+		{
+			// 距離 0 で最大減少、範囲境界で減少 0 になるように計算
+			// 0.05f は調整用定数。毎フレーム呼ばれるため小さめに設定
+			float reduceAmount = (1.0f - (m_DistanceToGhost / BUSTERS_PATROL_RANGH)) * -0.1f;
+			AddScareGauge(reduceAmount);
 		}
 	}
 	else if (!hasWall && m_DistanceToGhost < BUSTERS_SUSPICION_RANGE)
@@ -233,7 +312,8 @@ void Busters::MoveTo(XMFLOAT3 targetPos)
 	float dx = targetPos.x - m_Position.x;
 	float dz = targetPos.z - m_Position.z;
 
-	if (fabsf(dx) < 0.1f && fabsf(dz) < 0.1f) return;
+	// 到着判定を移動速度に合わせて調整
+	if (fabsf(dx) < m_MoveSpeed && fabsf(dz) < m_MoveSpeed) return;
 
 	float len = sqrtf(dx * dx + dz * dz);
 	if (len > 0)
@@ -246,28 +326,27 @@ void Busters::MoveTo(XMFLOAT3 targetPos)
 	float deg = XMConvertToDegrees(angle);
 	SetRotY(deg + 180.0f);
 
-	float r = 0.4f;
-	float nextX = m_Position.x + dx * m_MoveSpeed;
-	bool hitX = false;
-	if (Field_IsWall(nextX + r, m_Position.y, m_Position.z + r) ||
-		Field_IsWall(nextX + r, m_Position.y, m_Position.z - r) ||
-		Field_IsWall(nextX - r, m_Position.y, m_Position.z + r) ||
-		Field_IsWall(nextX - r, m_Position.y, m_Position.z - r))
-	{
-		hitX = true;
-	}
-	if (!hitX) m_Position.x = nextX;
+	auto checkWallCollision = [&](float nx, float nz) -> bool {
+		float r = 0.4f; // 当たり判定半径
+		return (Field_IsWall(nx + r, m_Position.y, nz + r) ||
+			Field_IsWall(nx + r, m_Position.y, nz - r) ||
+			Field_IsWall(nx - r, m_Position.y, nz + r) ||
+			Field_IsWall(nx - r, m_Position.y, nz - r));
+		};
 
-	float nextZ = m_Position.z + dz * m_MoveSpeed;
-	bool hitZ = false;
-	if (Field_IsWall(m_Position.x + r, m_Position.y, nextZ + r) ||
-		Field_IsWall(m_Position.x + r, m_Position.y, nextZ - r) ||
-		Field_IsWall(m_Position.x - r, m_Position.y, nextZ + r) ||
-		Field_IsWall(m_Position.x - r, m_Position.y, nextZ - r))
+	// --- X軸移動 ---
+	float nextX = m_Position.x + dx * m_MoveSpeed;
+	if (!checkWallCollision(nextX, m_Position.z)) // 関数を呼ぶだけ！
 	{
-		hitZ = true;
+		m_Position.x = nextX;
 	}
-	if (!hitZ) m_Position.z = nextZ;
+
+	// --- Z軸移動 ---
+	float nextZ = m_Position.z + dz * m_MoveSpeed;
+	if (!checkWallCollision(m_Position.x, nextZ)) // 同じ関数を再利用！
+	{
+		m_Position.z = nextZ;
+	}
 }
 
 void Busters::OnScared(void)
@@ -276,20 +355,36 @@ void Busters::OnScared(void)
 	m_TargetFurnitureIndex = -1;
 	m_WaitTimer = 120;
 	this->SetColor(0.0f, 0.0f, 1.0f, 1.0f); // 青
+
+	m_State = BUSTERS_STUN;
 }
 
 void Busters::OnLured(XMFLOAT3 targetPos)
 {
-	m_State = BUSTERS_SUSPICION;
+	m_State = BUSTERS_LURED;
 	this->SetColor(0.0f, 1.0f, 1.0f, 1.0f); // シアン
-	m_WaitTimer = 60;
-	m_PathList.clear();
+	m_WaitTimer = 0;
+	m_DetectionGraceTimer = 120; // 2秒間（60FPS想定）発見されないようにする
+	m_PathList = Field_FindPath(m_Position, targetPos);
+
+	if (!m_PathList.empty())
+	{
+		std::reverse(m_PathList.begin(), m_PathList.end());
+		m_PathList.erase(m_PathList.begin());
+	}
+	
+	if (m_PathList.empty())
+	{
+		m_PathList.push_back(targetPos);
+	}
 }
 
 void Busters::OnStopped(void)
 {
 	m_WaitTimer = 300;
 	this->SetColor(0.5f, 0.0f, 0.5f, 1.0f); // 紫
+
+	m_State = BUSTERS_STUN;
 }
 
 void Busters::SetIsGhostDiscover(bool discover)
@@ -343,7 +438,6 @@ Busters* GetBusters(void)
 	if (currentFloor >= 0 && currentFloor < MAP_FLOORS) return g_BustersList[currentFloor];
 	return NULL;
 }
-
 void BustersScare(void)
 {
 	Busters* target = GetBusters();

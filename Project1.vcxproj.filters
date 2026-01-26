@@ -3,6 +3,7 @@
   <ItemGroup>
     <FxCompile Include="shader_pixel_2d.hlsl" />
     <FxCompile Include="shader_vertex_2d.hlsl" />
+    <FxCompile Include="shader_field_instance.hlsl" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="animation.cpp" />
@@ -14,7 +15,7 @@
     <ClCompile Include="debug_ostream.cpp" />
     <ClCompile Include="direct3d.cpp" />
     <ClCompile Include="fade.cpp" />
-    <ClCompile Include="field.h" />
+    <ClCompile Include="field.cpp" />
     <ClCompile Include="furniture.cpp" />
     <ClCompile Include="ghost.cpp" />
     <ClCompile Include="keyboard.cpp" />
@@ -39,6 +40,7 @@
     <ClCompile Include="font.cpp" />
     <ClCompile Include="LoseAnimED.cpp" />
     <ClCompile Include="field.cpp" />
+    <ClCompile Include="light.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="animation.h" />
@@ -78,7 +80,9 @@
     <ClInclude Include="Floor1.h" />
     <ClInclude Include="minimap.h" />
     <ClInclude Include="font.h" />
+    <ClInclude Include="field.h" />
     <ClInclude Include="LoseAnimED.h" />
+    <ClInclude Include="light.h" />
   </ItemGroup>
   <ItemGroup>
     <Library Include="DirectXTex_Debug.lib" />
@@ -91,5 +95,6 @@
     <None Include=".github\workflows\release.yml" />
     <None Include="MODEL_CPP_IMPROVEMENTS.md" />
     <None Include="MODEL_RENDER_CHECKLIST.md" />
+    <None Include="SchemToArray\block_definitions.json" />
   </ItemGroup>
 </Project>

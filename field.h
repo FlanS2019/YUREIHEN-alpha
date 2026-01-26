@@ -21,12 +21,14 @@ enum FIELD_TYPE
 class MAPDATA
 {
 public:
-	XMFLOAT3 pos;
-	FIELD_TYPE no;
-	float rotY;
-	bool isHidden;
+	XMFLOAT3 pos = { 0.0f, 0.0f, 0.0f };
+	FIELD_TYPE no = FIELD_NONE;
+	float rotY = 0.0f;
+	bool isHidden = false;
 
-	int blockID;
+	int blockID = 0;
+
+	float currentScale = 1.0f;
 };
 
 void Field_Initialize(ID3D11Device* pDevice, ID3D11DeviceContext* pContext);
@@ -36,12 +38,13 @@ void Field_Update(void);
 
 void LoadMapData(int floor);
 // 判定用
-bool Field_IsFloor(float x, float z);
 FIELD_TYPE Field_GetBlockType(float x, float z);
 bool Field_IsWall(float x, float z);
 bool Field_IsWall(float x, float y, float z);
 bool Field_IsOuterWall(float x, float z);
 float Field_GetFloorY(float x, float y, float z);
+
+float Field_CalculateRotationFromMarker(float x, float y, float z);
 
 bool Field_CheckWallBetween(XMFLOAT3 start, XMFLOAT3 end);
 

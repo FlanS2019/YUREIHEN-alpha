@@ -25,5 +25,6 @@ void Shader_SetMaterialColor(const DirectX::XMFLOAT4& color);
 void Shader_SetCameraPos(const DirectX::XMFLOAT3& pos);
 
 void Shader_Begin();
+void Shader_BeginInstance(); // インスタンス描画専用
 
 #endif // SHADER_H

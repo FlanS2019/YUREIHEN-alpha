@@ -122,6 +122,14 @@ void ScareComboUP(void)
 	}
 }
 
+void UI_ScareCombo_Reset(void)
+{
+	if (g_ScareCombo)
+	{
+		g_ScareCombo->SetNumber(1);
+	}
+}
+
 int UI_ScareCombo_GetNumber(void)
 {
 	return g_ScareCombo->GetNumber();
