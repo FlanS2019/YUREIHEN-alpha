@@ -198,6 +198,8 @@
     <ClInclude Include="box.h" />
     <ClInclude Include="fade.h" />
     <ClInclude Include="Floor1.h" />
+    <ClInclude Include="Floor2.h" />
+    <ClInclude Include="Floor3.h" />
     <ClInclude Include="font.h" />
     <ClInclude Include="furniture.h" />
     <ClInclude Include="ghost.h" />

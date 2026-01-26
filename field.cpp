@@ -5,13 +5,17 @@
 #include "box.h"
 #include "define.h"
 #include "ghost.h"
+#include "furniture.h"
 #include <DirectXMath.h>
 #include <vector>
 #include <queue>
 #include <map>
 #include <cmath> 
+#include <algorithm> // sort用に必要
 
 #include "Floor1.h"
+#include "Floor2.h"
+#include "Floor3.h"
 
 using namespace DirectX;
 
@@ -44,6 +48,21 @@ static int WorldToGridZ(float z) { return (int)round(MAP_H / 2.0f - z); }
 static float GridToWorldX(int gx) { return (float)gx - MAP_W / 2.0f; }
 static float GridToWorldZ(int gz) { return MAP_H / 2.0f - (float)gz; }
 
+// 階層と座標を指定してブロックIDを取得するヘルパー関数
+static int GetMapBlockID(int floor, int y, int z, int x)
+{
+	// 配列外参照チェック
+	if (y < 0 || y >= MAP_HEIGHT || z < 0 || z >= MAP_H || x < 0 || x >= MAP_W) return 0;
+
+	switch (floor)
+	{
+	case 0: return Floor1[y][z][x]; // 1階
+	case 1: return Floor2[y][z][x]; // 2階
+	case 2: return Floor3[y][z][x]; // 3階
+	default: return 0;
+	}
+}
+
 FIELD_TYPE ConvertMapID(int minecraftID)
 {
 	switch (minecraftID)
@@ -70,7 +89,7 @@ FIELD_TYPE ConvertMapID(int minecraftID)
 
 	case 9: case 10: case 11: case 12: // 上付き階段
 		return FIELD_STAIRS_DOWN;
-	case 98: 
+	case 98:
 	case 50: case 51: case 52:case 53:case 54:case 55:case 56:case 57:case 58:case 59: //家具
 	case 60: case 61: case 62:case 63:case 64:case 65:case 66:case 67:case 68:case 69: //家具
 		return FIELD_NONE;
@@ -96,7 +115,7 @@ void LoadMapData(int floor)
 		{
 			for (int x = 0; x < MAP_W; x++)
 			{
-				int mcID = Floor1[y][z][x];
+				int mcID = GetMapBlockID(floor, y, z, x);
 				if (mcID == 0) continue;
 
 				FIELD_TYPE type = ConvertMapID(mcID);
@@ -104,12 +123,12 @@ void LoadMapData(int floor)
 
 				bool isVisible = false;
 
-				if (y + 1 >= MAP_HEIGHT || Floor1[y + 1][z][x] == 0) isVisible = true;
-				else if (y - 1 < 0 || Floor1[y - 1][z][x] == 0) isVisible = true;
-				else if (z + 1 >= MAP_H || Floor1[y][z + 1][x] == 0) isVisible = true;
-				else if (z - 1 < 0 || Floor1[y][z - 1][x] == 0) isVisible = true;
-				else if (x + 1 >= MAP_W || Floor1[y][z][x + 1] == 0) isVisible = true;
-				else if (x - 1 < 0 || Floor1[y][z][x - 1] == 0) isVisible = true;
+				if (GetMapBlockID(floor, y + 1, z, x) == 0) isVisible = true;
+				else if (GetMapBlockID(floor, y - 1, z, x) == 0) isVisible = true;
+				else if (GetMapBlockID(floor, y, z + 1, x) == 0) isVisible = true;
+				else if (GetMapBlockID(floor, y, z - 1, x) == 0) isVisible = true;
+				else if (GetMapBlockID(floor, y, z, x + 1) == 0) isVisible = true;
+				else if (GetMapBlockID(floor, y, z, x - 1) == 0) isVisible = true;
 
 				if (!isVisible) continue;
 
@@ -128,9 +147,6 @@ void LoadMapData(int floor)
 
 				data.currentScale = 1.0f;
 
-				// 階段の向き調整（必要であればIDを見て回転させる）
-				// 例: if(mcID == 5) data.rotY = 90.0f; など
-
 				g_MapList.push_back(data);
 			}
 		}
@@ -138,7 +154,7 @@ void LoadMapData(int floor)
 
 	std::sort(g_MapList.begin(), g_MapList.end(), [](const MAPDATA& a, const MAPDATA& b) {
 		return a.blockID < b.blockID;
-	});
+		});
 }
 
 void Field_Initialize(ID3D11Device* pDevice, ID3D11DeviceContext* pContext)
@@ -180,7 +196,7 @@ void Field_Initialize(ID3D11Device* pDevice, ID3D11DeviceContext* pContext)
 
 void Field_Update(void)
 {
-	// 1. まず「今、隠すべき場所」を計算
+	// まず「今、隠すべき場所」を計算
 	static uint8_t shouldHide[MAP_LENGTH][MAP_WIDTH];
 	memset(shouldHide, 0, sizeof(shouldHide));
 
@@ -228,7 +244,7 @@ void Field_Update(void)
 		if (gridX >= 0 && gridX < MAP_W && gridZ >= 0 && gridZ < MAP_H)
 		{
 			// Y=1 (壁レイヤー) をチェック
-			int mcID = Floor1[1][gridZ][gridX];
+			int mcID = GetMapBlockID(g_CurrentFloor, 1, gridZ, gridX);
 
 			if (ConvertMapID(mcID) == FIELD_BOX)
 			{
@@ -269,31 +285,10 @@ void Field_Update(void)
 			}
 		}
 
-		//// アニメーション処理
-		//if (targetHide)
-		//{
-		//	// 隠す場合：サイズを減らす
-		//	mapData.currentScale -= animSpeed;
-		//	if (mapData.currentScale < 0.0f) mapData.currentScale = 0.0f;
-		//}
-		//else
-		//{
-		//	// 表示する場合：サイズを戻す
-		//	mapData.currentScale += animSpeed;
-		//	if (mapData.currentScale > 1.0f) mapData.currentScale = 1.0f;
-		//}
-
-		//// 完全に0になったら描画自体をスキップさせる（軽量化）
-		//mapData.isHidden = (mapData.currentScale <= 0.001f);
-
 		mapData.isHidden = targetHide;
 		mapData.currentScale = 1.0f; // 念のためサイズは戻しておく
-
 	}
 }
-// 定数バッファのキャッシュ用
-static DirectX::XMFLOAT4X4 g_CachedWVP;
-static DirectX::XMFLOAT4X4 g_CachedWorld;
 
 void Field_Draw(void)
 {
@@ -309,26 +304,22 @@ void Field_Draw(void)
 
 	XMFLOAT3 cameraPos = pCamera->GetPos();
 
-	// カリング用ビューポート取得
 	D3D11_VIEWPORT vp;
 	UINT numVP = 1;
 	g_pContext->RSGetViewports(&numVP, &vp);
 
-	// 回転計算
 	float radX = XMConvertToRadians(rotateBox.x);
 	float radY = XMConvertToRadians(rotateBox.y);
 	float radZ = XMConvertToRadians(rotateBox.z);
 	bool hasBaseRot = (rotateBox.x != 0.0f || rotateBox.y != 0.0f || rotateBox.z != 0.0f);
 	XMMATRIX baseRotMtx = hasBaseRot ? XMMatrixRotationRollPitchYaw(radX, radY, radZ) : XMMatrixIdentity();
 
-	// std::map を廃止し、static vector を使い回す
 	static std::vector<XMFLOAT4X4> batchList;
 	batchList.clear();
 	if (batchList.capacity() < MAX_INSTANCES) batchList.reserve(MAX_INSTANCES);
 
 	ID3D11ShaderResourceView* currentSRV = nullptr;
 
-	// ラムダ式: 現在溜まっているバッチを描画する
 	auto FlushBatch = [&](void) {
 		if (batchList.empty() || currentSRV == nullptr) return;
 
@@ -351,19 +342,17 @@ void Field_Draw(void)
 		batchList.clear();
 		};
 
-	// g_MapList は LoadMapData で ID順にソート済みなので、前から順に処理すればよい
 	for (const auto& mapData : g_MapList)
 	{
 		if (mapData.isHidden) continue;
 
-		// --- カリング処理 (前回追加分) ---
 		float dx = mapData.pos.x - cameraPos.x;
 		float dy = mapData.pos.y - cameraPos.y;
 		float dz = mapData.pos.z - cameraPos.z;
 		if (dx * dx + dy * dy + dz * dz > 2500.0f) continue;
 
 		XMVECTOR vPos = XMLoadFloat3(&mapData.pos);
-		XMVECTOR vClipPos = XMVector3TransformCoord(vPos, VP); // クリップ座標系(-1.0 ～ 1.0)に変換
+		XMVECTOR vClipPos = XMVector3TransformCoord(vPos, VP);
 
 		XMFLOAT3 clipPos;
 		XMStoreFloat3(&clipPos, vClipPos);
@@ -371,17 +360,14 @@ void Field_Draw(void)
 		float marginX = 0.2f;
 		float marginY = 0.8f;
 
-		// X, Y が -1～1 の範囲外なら描画しない
 		if (clipPos.x < -1.0f - marginX || clipPos.x > 1.0f + marginX ||
 			clipPos.y < -1.0f - marginY || clipPos.y > 1.0f + marginY)
 		{
 			continue;
 		}
 
-		// Z (深度) が 0～1 の範囲外なら描画しない
 		if (clipPos.z < 0.0f || clipPos.z > 1.0f) continue;
 
-		// テクスチャの決定
 		ID3D11ShaderResourceView* nextSRV = nullptr;
 		if (mapData.no == FIELD_STAIRS_UP || mapData.no == FIELD_STAIRS_DOWN) {
 			nextSRV = g_TextureStairs;
@@ -398,7 +384,6 @@ void Field_Draw(void)
 			currentSRV = nextSRV;
 		}
 
-		// 行列計算
 		XMMATRIX world = XMMatrixTranslation(mapData.pos.x, mapData.pos.y, mapData.pos.z);
 		if (hasBaseRot || mapData.rotY != 0.0f) {
 			XMMATRIX rotation = mapData.rotY != 0.0f ? (baseRotMtx * XMMatrixRotationY(XMConvertToRadians(mapData.rotY))) : baseRotMtx;
@@ -409,20 +394,15 @@ void Field_Draw(void)
 		XMStoreFloat4x4(&m, XMMatrixTranspose(world));
 		batchList.push_back(m);
 	}
-
-	// 残りの分を描画
 	FlushBatch();
-}void Field_Finalize(void)
+}
+
+void Field_Finalize(void)
 {
 	SAFE_RELEASE(g_VertexBuffer);
 	SAFE_RELEASE(g_IndexBuffer);
-
 	SAFE_RELEASE(g_InstanceBuffer);
-
-	for (int i = 0; i < MAX_BLOCK_TYPES; i++)
-	{
-		SAFE_RELEASE(g_BlockTextures[i]);
-	}
+	for (int i = 0; i < MAX_BLOCK_TYPES; i++) SAFE_RELEASE(g_BlockTextures[i]);
 	SAFE_RELEASE(g_TextureStairs);
 	g_MapList.clear();
 }
@@ -431,6 +411,8 @@ void Field_ChangeFloor(int floorIndex)
 {
 	g_CurrentFloor = floorIndex;
 	LoadMapData(g_CurrentFloor);
+
+	Furniture_Initialize();
 }
 
 int Field_GetCurrentFloor(void)
@@ -449,12 +431,12 @@ FIELD_TYPE Field_GetBlockType(float x, float z)
 
 	if (gx >= 0 && gx < MAP_W && gz >= 0 && gz < MAP_H)
 	{
-		int mcID = Floor1[1][gz][gx];
+		int mcID = GetMapBlockID(g_CurrentFloor, 1, gz, gx);
 		FIELD_TYPE type = ConvertMapID(mcID);
 
 		if (type == FIELD_NONE)
 		{
-			mcID = Floor1[2][gz][gx];
+			mcID = GetMapBlockID(g_CurrentFloor, 2, gz, gx);
 			type = ConvertMapID(mcID);
 		}
 		return type;
@@ -469,12 +451,10 @@ bool Field_IsWall(float x, float z)
 
 	if (gx >= 0 && gx < MAP_W && gz >= 0 && gz < MAP_H)
 	{
-		// Y=1 チェック
-		int mcID = Floor1[1][gz][gx];
+		int mcID = GetMapBlockID(g_CurrentFloor, 1, gz, gx);
 		if (ConvertMapID(mcID) == FIELD_BOX) return true;
 
-		// Y=2 チェック
-		int mcID2 = Floor1[2][gz][gx];
+		int mcID2 = GetMapBlockID(g_CurrentFloor, 2, gz, gx);
 		if (ConvertMapID(mcID2) == FIELD_BOX) return true;
 	}
 	return false;
@@ -484,10 +464,8 @@ bool Field_IsOuterWall(float x, float z)
 {
 	int gx = WorldToGridX(x);
 	int gz = WorldToGridZ(z);
-
 	if (gx < 0 || gx >= MAP_W || gz < 0 || gz >= MAP_H) return true;
 	if (gx == 0 || gx == MAP_W - 1 || gz == 0 || gz == MAP_H - 1) return true;
-
 	return false;
 }
 
@@ -499,7 +477,7 @@ bool Field_IsWall(float x, float y, float z)
 
 	if (gx >= 0 && gx < MAP_W && gz >= 0 && gz < MAP_H && gy >= 0 && gy < MAP_HEIGHT)
 	{
-		int mcID = Floor1[gy][gz][gx];
+		int mcID = GetMapBlockID(g_CurrentFloor, gy, gz, gx);
 		if (ConvertMapID(mcID) != FIELD_NONE) return true;
 	}
 	return false;
@@ -510,7 +488,6 @@ bool Field_CheckWallBetween(XMFLOAT3 start, XMFLOAT3 end)
 	float dx = end.x - start.x;
 	float dz = end.z - start.z;
 	float dist = sqrtf(dx * dx + dz * dz);
-
 	if (dist < 0.5f) return false;
 
 	float stepX = dx / dist;
@@ -521,9 +498,7 @@ bool Field_CheckWallBetween(XMFLOAT3 start, XMFLOAT3 end)
 	{
 		float checkX = start.x + stepX * currentDist;
 		float checkZ = start.z + stepZ * currentDist;
-
 		if (Field_IsWall(checkX, checkZ)) return true;
-
 		currentDist += 0.5f;
 	}
 	return false;
@@ -536,7 +511,8 @@ float Field_GetFloorY(float x, float y, float z)
 
 	if (gx >= 0 && gx < MAP_W && gz >= 0 && gz < MAP_H)
 	{
-		if (Floor1[0][gz][gx] != 0) return 0.0f;
+
+		if (GetMapBlockID(g_CurrentFloor, 0, gz, gx) != 0) return 0.0f;
 	}
 	return -999.0f;
 }
@@ -570,8 +546,8 @@ std::vector<XMFLOAT3> Field_FindPath(XMFLOAT3 start, XMFLOAT3 end)
 		return path;
 	}
 
-	// ゴールが壁なら補正
-	if (ConvertMapID(Floor1[1][endZ][endX]) == FIELD_BOX)
+
+	if (ConvertMapID(GetMapBlockID(g_CurrentFloor, 1, endZ, endX)) == FIELD_BOX)
 	{
 		int dx[] = { 0, 0, 1, -1 };
 		int dz[] = { 1, -1, 0, 0 };
@@ -579,7 +555,7 @@ std::vector<XMFLOAT3> Field_FindPath(XMFLOAT3 start, XMFLOAT3 end)
 			int nx = endX + dx[i];
 			int nz = endZ + dz[i];
 			if (nx >= 0 && nx < MAP_W && nz >= 0 && nz < MAP_H) {
-				if (ConvertMapID(Floor1[1][nz][nx]) != FIELD_BOX) {
+				if (ConvertMapID(GetMapBlockID(g_CurrentFloor, 1, nz, nx)) != FIELD_BOX) {
 					endX = nx; endZ = nz; break;
 				}
 			}
@@ -587,10 +563,9 @@ std::vector<XMFLOAT3> Field_FindPath(XMFLOAT3 start, XMFLOAT3 end)
 	}
 
 	std::priority_queue<Node, std::vector<Node>, std::greater<Node>> openList;
-	// static を使用して再確保によるコストを削減
 	static std::vector<std::vector<bool>> closedList;
 	static std::vector<std::vector<Node>> nodes;
-	
+
 	if (closedList.size() != (size_t)MAP_H) closedList.assign(MAP_H, std::vector<bool>(MAP_W, false));
 	if (nodes.size() != (size_t)MAP_H) nodes.resize(MAP_H, std::vector<Node>(MAP_W));
 
@@ -627,8 +602,8 @@ std::vector<XMFLOAT3> Field_FindPath(XMFLOAT3 start, XMFLOAT3 end)
 
 			if (nextX < 0 || nextX >= MAP_W || nextZ < 0 || nextZ >= MAP_H) continue;
 
-			// 壁判定 (Floor1[1][z][x])
-			if (ConvertMapID(Floor1[1][nextZ][nextX]) == FIELD_BOX) continue;
+			// 壁判定
+			if (ConvertMapID(GetMapBlockID(g_CurrentFloor, 1, nextZ, nextX)) == FIELD_BOX) continue;
 
 			if (closedList[nextZ][nextX]) continue;
 
@@ -676,18 +651,14 @@ float Field_CalculateRotationFromMarker(float x, float y, float z)
 	// 配列外参照防止
 	if (gx < 1 || gx >= MAP_W - 1 || gz < 1 || gz >= MAP_H - 1 || gy < 0 || gy >= MAP_HEIGHT) return 0.0f;
 
+	// GetMapBlockID を使用して現在の階層のデータを参照する
+	if (GetMapBlockID(g_CurrentFloor, gy, gz - 1, gx) == markerID) return 180.0f; // 奥
 
-	// Z-1 が「奥（北）」、Z+1 が「手前（南）」
-	if (Floor1[gy][gz - 1][gx] == markerID) return 180.0f; // 奥を向く
+	if (GetMapBlockID(g_CurrentFloor, gy, gz + 1, gx) == markerID) return 0.0f;   // 手前
 
-	// 南 (Z+)
-	if (Floor1[gy][gz + 1][gx] == markerID) return 0.0f;   // 手前を向く
+	if (GetMapBlockID(g_CurrentFloor, gy, gz, gx + 1) == markerID) return 270.0f; // 右
 
-	// 東 (X+)
-	if (Floor1[gy][gz][gx + 1] == markerID) return 270.0f;  // 右を向く
+	if (GetMapBlockID(g_CurrentFloor, gy, gz, gx - 1) == markerID) return 90.0f;  // 左
 
-	// 西 (X-)
-	if (Floor1[gy][gz][gx - 1] == markerID) return 90.0f; // 左を向く
-
-	return 0.0f; // マーカーがなければデフォルト
+	return 0.0f;
 }
