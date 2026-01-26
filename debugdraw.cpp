@@ -1,16 +1,22 @@
-﻿#include "debugdraw.h"
+﻿#include "main.h"
+#include "debugdraw.h"
 #include "Camera.h"
 #include "shader.h"
 #include "keyboard.h"
 #include "sprite3d.h"
 #include "anim_sprite3d.h"
+#include "light.h"
 
 AnimSprite3D* g_AnimModelDraw = NULL;  // アニメーション対応モデル
 static bool isUse = DEBUG_DRAW;  // 処理の有効/無効を制御
+static SpotLight* g_SpotLight = nullptr;  // スポットライト用オブジェクト
 
 void DebugDraw_Initialize(void)
 {
 	if (!isUse) return;
+	
+	// スポットライト初期化
+	g_SpotLight = new SpotLight(2.0f);  // 高さオフセット 2.0f
 	
 	// アニメーション対応モデル（cyancube.fbx）
 	g_AnimModelDraw = new AnimSprite3D(
@@ -76,6 +82,12 @@ void DebugDraw_Update(void)
 	currentPos.z += moveDirection.z;
 	g_AnimModelDraw->SetPos(currentPos);
 
+	// スポットライトをモデルに追従させる
+	if (g_SpotLight)
+	{
+		g_SpotLight->UpdatePosition(currentPos);
+	}
+
 	// 移動方向に応じてモデルをy軸回転させる
 	if (isMoving)
 	{
@@ -126,4 +138,50 @@ void DebugDraw_Finalize(void)
 		delete g_AnimModelDraw;
 		g_AnimModelDraw = NULL;
 	}
+	
+	if (g_SpotLight)
+	{
+		delete g_SpotLight;
+		g_SpotLight = nullptr;
+	}
+}
+
+void DebugDraw_SetSpotLightColor(float r, float g, float b)
+{
+	if (g_SpotLight)
+	{
+		g_SpotLight->SetColor(r, g, b, 1.0f);
+	}
+}
+
+void DebugDraw_SetSpotLightHeight(float height)
+{
+	if (g_SpotLight)
+	{
+		g_SpotLight->SetHeightOffset(height);
+		
+		// 直ちに適用したい場合は、モデル位置を取得して更新
+		if (g_AnimModelDraw)
+		{
+			XMFLOAT3 modelPos = g_AnimModelDraw->GetPos();
+			g_SpotLight->UpdatePosition(modelPos);
+		}
+	}
+}
+
+void DebugDraw_EnableSpotLight(bool enable)
+{
+	if (g_SpotLight)
+	{
+		g_SpotLight->SetEnable(enable ? TRUE : FALSE);
+	}
+}
+
+Light* DebugDraw_GetSpotLight(void)
+{
+	if (g_SpotLight)
+	{
+		return g_SpotLight->GetLight();
+	}
+	return nullptr;
 }

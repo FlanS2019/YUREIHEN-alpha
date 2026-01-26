@@ -3,11 +3,13 @@
 #include "shader.h"
 #include "main.h"
 #include "texture.h"
+#include "light.h"
 #include <cmath>
 
 //グローバル変数
 static constexpr int NUM_VERTEX = 6; // 使用できる最大頂点数
 static ID3D11Buffer* g_pVertexBuffer = nullptr; // 頂点バッファ
+static Light* g_p2DLight = nullptr; // 2D描画用ライト（常に明るい）
 // 注意！初期化で外部から設定されるもの。Release不要。
 static ID3D11Device* g_pDevice = nullptr;
 static ID3D11DeviceContext* g_pContext = nullptr;
@@ -26,6 +28,14 @@ void Sprite_Initialize()
 	bd.BindFlags = D3D11_BIND_VERTEX_BUFFER;
 	bd.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
 	g_pDevice->CreateBuffer(&bd, NULL, &g_pVertexBuffer);
+
+	// 2D描画用ライト作成（常に白で明るい）
+	g_p2DLight = new Light(
+		TRUE,
+		XMFLOAT4(0.0f, -1.0f, 0.0f, 0.0f),
+		XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f),
+		XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f)
+	);
 }
 
 //----------------------------
@@ -36,6 +46,11 @@ void Sprite_Finalize()
 	if (g_pVertexBuffer) {
 		g_pVertexBuffer->Release();
 		g_pVertexBuffer = nullptr;
+	}
+
+	if (g_p2DLight) {
+		delete g_p2DLight;
+		g_p2DLight = nullptr;
 	}
 }
 
@@ -52,6 +67,11 @@ void Sprite_Single_Draw(XMFLOAT2 pos, XMFLOAT2 size,float rot, XMFLOAT4 color, B
 
 	// 2D描画用にマテリアル色を白に設定（テクスチャ　＊　白　＝　テクスチャ）
 	Shader_SetMaterialColor({ 1.0f, 1.0f, 1.0f, 1.0f });
+
+	// 2D描画用ライトを設定（常に明るい）
+	if (g_p2DLight) {
+		Shader_SetLight(g_p2DLight);
+	}
 
 	g_pDevice = Direct3D_GetDevice();
 	g_pContext = Direct3D_GetDeviceContext();
@@ -136,6 +156,11 @@ void Sprite_Split_Draw(XMFLOAT2 pos, XMFLOAT2 size, float rot, XMFLOAT4 color, B
 	// 2D描画用にマテリアル色を白に設定（テクスチャ × 白 = テクスチャ）
 	Shader_SetMaterialColor({ 1.0f, 1.0f, 1.0f, 1.0f });
 
+	// 2D描画用ライトを設定（常に明るい）
+	if (g_p2DLight) {
+		Shader_SetLight(g_p2DLight);
+	}
+
 	g_pDevice = Direct3D_GetDevice();
 	g_pContext = Direct3D_GetDeviceContext();
 
@@ -199,64 +224,3 @@ void Sprite_Split_Draw(XMFLOAT2 pos, XMFLOAT2 size, float rot, XMFLOAT4 color, B
 	g_pContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
 	g_pContext->Draw(4, 0);
 }
-
-//----------------------------
-//シンプルな四角形描画 (以前のユーティリティ、必要なら回転対応を追加して再有効化)
-//----------------------------
-//void Sprite_Draw(XMFLOAT2 pos, XMFLOAT2 size, XMFLOAT4 color, BLENDSTATE bstate, ID3D11ShaderResourceView* g_Texture)
-//{
-//	// シェーダーを描画パイプラインに設定
-//	Shader_Begin();
-//
-//	// 頂点シェーダーに変換行列を設定
-//	Shader_SetMatrix(XMMatrixOrthographicOffCenterLH(0.0f, SCREEN_WIDTH, SCREEN_HEIGHT, 0.0f, 0.0f, 1.0f));
-//
-//
-//	g_pDevice = Direct3D_GetDevice();
-//	g_pContext = Direct3D_GetDeviceContext();
-//
-//	//張るテクスチャの指定
-//	Direct3D_GetDeviceContext()->PSSetShaderResources(0, 1, &g_Texture);
-//	SetBlendState(bstate); //ブレンドを設定
-//
-//	//頂点バッファのロック
-//	D3D11_MAPPED_SUBRESOURCE msr;
-//	g_pContext->Map(g_pVertexBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &msr);
-//
-//	//頂点バッファへの仮想ポインタを取得
-//	Vertex* v = (Vertex*)msr.pData;
-//
-//	v[0].position = { pos.x - (size.x / 2),pos.y - (size.y / 2), 0.0f };
-//	v[0].normal = { 0.0f, 0.0f, 0.0f };
-//	v[0].color = color;
-//	v[0].texCoord = { 0.0f,0.0f };
-//
-//	v[1].position = { pos.x + (size.x / 2),pos.y - (size.y / 2), 0.0f };
-//	v[1].normal = { 0.0f, 0.0f, 0.0f };
-//	v[1].color = color;
-//	v[1].texCoord = { 1.0f,0.0f };
-//
-//	v[2].position = { pos.x - (size.x / 2),pos.y + (size.y / 2), 0.0f };
-//	v[2].normal = { 0.0f, 0.0f, 0.0f };
-//	v[2].color = color;
-//	v[2].texCoord = { 0.0f,1.0f };
-//
-//	v[3].position = { pos.x + (size.x / 2),pos.y + (size.y / 2), 0.0f };
-//	v[3].normal = { 0.0f, 0.0f, 0.0f };
-//	v[3].color = color;
-//	v[3].texCoord = { 1.0f,1.0f };
-//
-//	//頂点バッファのロック解除
-//	g_pContext->Unmap(g_pVertexBuffer, 0);
-//
-//	//指定の位置に指定のサイズ、色の四角形を描画する
-//	UINT stride = sizeof(Vertex);
-//	UINT offset = 0;
-//	g_pContext->IASetVertexBuffers(0, 1, &g_pVertexBuffer, &stride, &offset);
-//
-//	//ポリゴン描画方式の指定
-//	g_pContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
-//
-//	// ポリゴン描画命令発行
-//	g_pContext->Draw(4, 0);
-//}

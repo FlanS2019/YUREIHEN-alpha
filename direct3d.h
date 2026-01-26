@@ -13,6 +13,10 @@
 #include <d3d11.h>
 #include <mmsystem.h>
 #include "DirectXTex.h"
+#include "light.h"
+
+using namespace DirectX;
+
 
 #if _DEBUG
 #pragma comment(lib, "DirectXTex_Debug.lib")
@@ -69,34 +73,12 @@ void SetBlendState(BLENDSTATE blend);
 ////////////////////////////////////////////////////
 
 
-using namespace DirectX;
 struct Vertex3D
 {
 	XMFLOAT3 position; // 頂点座標  //XMFLOAT3へ変更
 	XMFLOAT3 normal;
 	XMFLOAT4 color;		//頂点カラー（R,G,B,A）
 	XMFLOAT2 texCoord;	//テクスチャ座標
-};
-
-class Light
-{
-protected:
-	BOOL enable;	//ライトの有効無効
-	BOOL dummy[3];
-	XMFLOAT4 direction;	//ライトの向き（正規化する必要がある）
-	XMFLOAT4 diffuse;	//光の色
-	XMFLOAT4 ambient;	//環境光
-public:
-	Light(BOOL e, XMFLOAT4 direction, XMFLOAT4 diffuse, XMFLOAT4 ambient)
-		: enable(e),dummy(), diffuse(diffuse), ambient(ambient) {
-		static float len = sqrtf(direction.x * direction.x + direction.y * direction.y + direction.z * direction.z);
-		direction.x /= len;
-		direction.y /= len;
-		direction.z /= len;
-		this->direction = direction;
-	}
-
-	void SetEnable(BOOL enable) { this->enable = enable; }
 };
 
 #endif // DIRECT3D_H
