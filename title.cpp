@@ -134,13 +134,6 @@ void Title_Initialize(ID3D11Device* pDevice, ID3D11DeviceContext* pContext)
 	g_Inazuma.nextTrigger = 0.5f + Rand01() * 1.5f;
 	g_Inazuma.active = false;
 
-	// タイトル画面用ライト（無効 + 白環境光）
-	g_pTitleLight = new Light(
-		FALSE,
-		XMFLOAT4(0.0f, -1.0f, 0.0f, 0.0f),
-		XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f),
-		XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f)
-	);
 	// BGM再生
 	g_pBGM = LoadMP3("asset/sound/bgm/HauntedHalloween.mp3");
 	if (g_pBGM) {
@@ -210,15 +203,11 @@ void Title_Update(void)
 
 void Title_Draw(void)
 {
-	// ライト設定（Title画面用）
-	Shader_SetLight(g_pTitleLight);
-
 	// タイトルロゴ瞬きアルファ値の計算
 	float blinkProgress = g_LogoBlink.blinkTimer / g_LogoBlink.blinkCycle;
 	float logoAlpha = (blinkProgress < 0.15f) ? (1.0f - blinkProgress / 0.15f) : 1.0f;
 
 	// タイトルロゴスプライトへのアルファ値適用（親クラスのSetColor互換メソッドが存在する場合）
-	// ここではg_pTitleSpriteに直接描画前にアルファを適用
 	// 参考：g_pinazumaと同様にSetColor経由でアルファ値を設定
 
 	g_pTitleSprite->Draw();
@@ -252,8 +241,6 @@ void Title_Finalize(void)
 	delete g_pTitleFont2;
 	g_pTitleFont2 = nullptr;
 
-	delete g_pTitleLight;
-	g_pTitleLight = nullptr;
 	delete g_pinazuma;
 	g_pinazuma = nullptr;
 
