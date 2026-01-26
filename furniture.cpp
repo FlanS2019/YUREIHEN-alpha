@@ -5,19 +5,40 @@
 #include "keyboard.h"
 #include "define.h"
 #include "Floor1.h"
+#include "Floor2.h"
+#include "Floor3.h"
 #include "field.h"
 #include <cmath>   // sinf用
 
 Furniture* g_Furniture[FURNITURE_NUM]{};
 
 static int g_FurnitureCount = 0;
+
+int GetFurnitureBlockID(int floor, int y, int z, int x)
+{
+	// 範囲チェック
+	if (y < 0 || y >= MAP_HEIGHT || z < 0 || z >= MAP_LENGTH || x < 0 || x >= MAP_WIDTH) return 0;
+
+	switch (floor)
+	{
+	case 0: return Floor1[y][z][x];
+	case 1: return Floor2[y][z][x];
+	case 2: return Floor3[y][z][x];
+	default: return 0;
+	}
+}
+
 // =========================================================
 // 家具の配置 (Initialize)
 // =========================================================
 void Furniture_Initialize(void)
 {
+	Furniture_Finalize();
+
 	// 1. カウントをリセット
 	g_FurnitureCount = 0;
+
+	int currentFloor = Field_GetCurrentFloor();
 
 	for (int y = 0; y < MAP_HEIGHT; y++)
 	{
@@ -26,7 +47,7 @@ void Furniture_Initialize(void)
 			for (int x = 0; x < MAP_WIDTH; x++)
 			{
 
-				int id = Floor1[y][z][x];
+				int id = GetFurnitureBlockID(currentFloor, 1, z, x);
 
 				// ワールド座標に変換
 				float wx = (float)x - MAP_WIDTH / 2.0f;

@@ -13,14 +13,13 @@
 #include "furniture.h"
 #include <stdlib.h>
 #include <algorithm>
+#include <vector>
 
 #include "UI.h"
 #include "UI_scarecombo.h"
 #include "scene.h"
 
-
-
-static Busters* g_BustersList[MAP_FLOORS];
+static std::vector<Busters*> g_BustersList[MAP_FLOORS];
 
 // =================================================================
 // Busters クラスメンバ関数の実装
@@ -88,8 +87,8 @@ void Busters::Update(void)
 		// 位置合わせ（頭上）
 		XMFLOAT3 iconPos = m_Position;
 
-		iconPos.y += 3.25f; 
-		
+		iconPos.y += 3.25f;
+
 		m_Icon->SetPos(iconPos);
 		m_Icon->Update();
 	}
@@ -106,104 +105,104 @@ void Busters::Update(void)
 
 	switch (m_State)
 	{
-		case BUSTERS_SEARCH: // 探索
-			if (m_TargetFurnitureIndex == -1)
+	case BUSTERS_SEARCH: // 探索
+		if (m_TargetFurnitureIndex == -1)
+		{
+			m_TargetFurnitureIndex = rand() % FURNITURE_NUM;
+			Furniture* targetFurniture = GetFurniture(m_TargetFurnitureIndex);
+			if (targetFurniture)
 			{
-				m_TargetFurnitureIndex = rand() % FURNITURE_NUM;
-				Furniture* targetFurniture = GetFurniture(m_TargetFurnitureIndex);
-				if (targetFurniture)
-				{
-					m_PathList = Field_FindPath(m_Position, targetFurniture->GetPos());
+				m_PathList = Field_FindPath(m_Position, targetFurniture->GetPos());
 
-					// 経路が見つかった場合は反転（ゴール->スタートで返ってくるため）
-					if (!m_PathList.empty())
-					{
-						std::reverse(m_PathList.begin(), m_PathList.end());
-						m_PathList.erase(m_PathList.begin()); // 現在地のタイルをスキップ
-					}
-					
-					if (m_PathList.empty() && targetFurniture)
-					{
-						// 同一タイル内の場合はそのまま目的地とする
-						m_PathList.push_back(targetFurniture->GetPos());
-					}
-
-					// それでも空なら失敗
-					if (m_PathList.empty())
-					{
-						m_TargetFurnitureIndex = -1;
-						m_WaitTimer = 300; 
-					}
-				}
-				else
+				// 経路が見つかった場合は反転（ゴール->スタートで返ってくるため）
+				if (!m_PathList.empty())
 				{
-					m_TargetFurnitureIndex = -1;
-				}
-			}
-			m_MoveSpeed = BUSTERS_MOVE_SPEED_SEARCH;
-			break;
-
-		case BUSTERS_LURED: // 誘引
-			m_MoveSpeed = BUSTERS_MOVE_SPEED_SUSPICION;
-			break;
-
-		case BUSTERS_SUSPICION: // 警戒
-			if (GetGhost())
-			{
-				// 壁がない場合は直線的に進む
-				if (!Field_CheckWallBetween(m_Position, GetGhost()->GetPos()))
-				{
-					m_PathList.clear();
-					nextStepPos = GetGhost()->GetPos();
-				}
-				else
-				{
-					// 経路が空、またはターゲットに到達したら再計算
-					if (m_PathList.empty())
-					{
-						m_PathList = Field_FindPath(m_Position, GetGhost()->GetPos());
-						if (!m_PathList.empty()) {
-							std::reverse(m_PathList.begin(), m_PathList.end());
-							m_PathList.erase(m_PathList.begin()); // 現在地のタイルをスキップ
-						}
-					}
+					std::reverse(m_PathList.begin(), m_PathList.end());
+					m_PathList.erase(m_PathList.begin()); // 現在地のタイルをスキップ
 				}
 
+				if (m_PathList.empty() && targetFurniture)
+				{
+					// 同一タイル内の場合はそのまま目的地とする
+					m_PathList.push_back(targetFurniture->GetPos());
+				}
+
+				// それでも空なら失敗
 				if (m_PathList.empty())
 				{
-					nextStepPos = GetGhost()->GetPos();
+					m_TargetFurnitureIndex = -1;
+					m_WaitTimer = 300;
 				}
 			}
-			m_MoveSpeed = BUSTERS_MOVE_SPEED_SUSPICION;
-			break;
-
-		case BUSTERS_CHASE: // 追跡
-			if (GetGhost())
+			else
 			{
-				// 壁がない場合は直線的に追跡する
-				if (!Field_CheckWallBetween(m_Position, GetGhost()->GetPos()))
+				m_TargetFurnitureIndex = -1;
+			}
+		}
+		m_MoveSpeed = BUSTERS_MOVE_SPEED_SEARCH;
+		break;
+
+	case BUSTERS_LURED: // 誘引
+		m_MoveSpeed = BUSTERS_MOVE_SPEED_SUSPICION;
+		break;
+
+	case BUSTERS_SUSPICION: // 警戒
+		if (GetGhost())
+		{
+			// 壁がない場合は直線的に進む
+			if (!Field_CheckWallBetween(m_Position, GetGhost()->GetPos()))
+			{
+				m_PathList.clear();
+				nextStepPos = GetGhost()->GetPos();
+			}
+			else
+			{
+				// 経路が空、またはターゲットに到達したら再計算
+				if (m_PathList.empty())
 				{
-					m_PathList.clear();
-					nextStepPos = GetGhost()->GetPos();
-				}
-				else
-				{
-					// 追跡中は最短経路を常に更新
 					m_PathList = Field_FindPath(m_Position, GetGhost()->GetPos());
 					if (!m_PathList.empty()) {
 						std::reverse(m_PathList.begin(), m_PathList.end());
 						m_PathList.erase(m_PathList.begin()); // 現在地のタイルをスキップ
 					}
 				}
+			}
 
-				if (m_PathList.empty())
-				{
-					nextStepPos = GetGhost()->GetPos();
+			if (m_PathList.empty())
+			{
+				nextStepPos = GetGhost()->GetPos();
+			}
+		}
+		m_MoveSpeed = BUSTERS_MOVE_SPEED_SUSPICION;
+		break;
+
+	case BUSTERS_CHASE: // 追跡
+		if (GetGhost())
+		{
+			// 壁がない場合は直線的に追跡する
+			if (!Field_CheckWallBetween(m_Position, GetGhost()->GetPos()))
+			{
+				m_PathList.clear();
+				nextStepPos = GetGhost()->GetPos();
+			}
+			else
+			{
+				// 追跡中は最短経路を常に更新
+				m_PathList = Field_FindPath(m_Position, GetGhost()->GetPos());
+				if (!m_PathList.empty()) {
+					std::reverse(m_PathList.begin(), m_PathList.end());
+					m_PathList.erase(m_PathList.begin()); // 現在地のタイルをスキップ
 				}
 			}
-			m_MoveSpeed = BUSTERS_MOVE_SPEED_CHASE;
-			break;
+
+			if (m_PathList.empty())
+			{
+				nextStepPos = GetGhost()->GetPos();
+			}
 		}
+		m_MoveSpeed = BUSTERS_MOVE_SPEED_CHASE;
+		break;
+	}
 
 	// 経路が存在する場合、次の目的地へ向かう
 	if (!m_PathList.empty())
@@ -229,7 +228,7 @@ void Busters::Update(void)
 			}
 		}
 	}
-	
+
 	MoveTo(nextStepPos);
 }
 
@@ -277,8 +276,6 @@ void Busters::CheckState(void)
 		// 距離が近づくにつれ恐怖ゲージを減らす（赤発見時のみ）
 		if (m_DistanceToGhost < BUSTERS_PATROL_RANGH)
 		{
-			// 距離 0 で最大減少、範囲境界で減少 0 になるように計算
-			// 0.05f は調整用定数。毎フレーム呼ばれるため小さめに設定
 			float reduceAmount = (1.0f - (m_DistanceToGhost / BUSTERS_PATROL_RANGH)) * -0.1f;
 			AddScareGauge(reduceAmount);
 		}
@@ -336,7 +333,7 @@ void Busters::MoveTo(XMFLOAT3 targetPos)
 
 	// --- X軸移動 ---
 	float nextX = m_Position.x + dx * m_MoveSpeed;
-	if (!checkWallCollision(nextX, m_Position.z)) // 関数を呼ぶだけ！
+	if (!checkWallCollision(nextX, m_Position.z)) 
 	{
 		m_Position.x = nextX;
 	}
@@ -372,7 +369,7 @@ void Busters::OnLured(XMFLOAT3 targetPos)
 		std::reverse(m_PathList.begin(), m_PathList.end());
 		m_PathList.erase(m_PathList.begin());
 	}
-	
+
 	if (m_PathList.empty())
 	{
 		m_PathList.push_back(targetPos);
@@ -400,60 +397,122 @@ void Busters::SetIsGhostDiscover(bool discover)
 
 void Busters_Initialize(void)
 {
-	g_BustersList[0] = new Busters({ 0.0f, PATROL_HEIGHT, 0.0f }, { 1.0f, 1.0f, 1.0f }, { 0.0f, 0.0f, 0.0f }, "asset\\model\\Busters_karikansei_3.fbx");
-	if (g_BustersList[0]) g_BustersList[0]->SetGroundLevel(PATROL_HEIGHT);
+	for (int i = 0; i < MAP_FLOORS; i++)
+	{
+		for (Busters* buster : g_BustersList[i]) {
+			delete buster;
+		}
+		g_BustersList[i].clear();
+	}
 
-	g_BustersList[1] = new Busters({ -10.0f, PATROL_HEIGHT, 10.0f }, { 1.0f, 1.0f, 1.0f }, { 0.0f, 0.0f, 0.0f }, "asset\\model\\Busters_karikansei_3.fbx");
-	if (g_BustersList[1]) g_BustersList[1]->SetGroundLevel(PATROL_HEIGHT);
 
-	g_BustersList[2] = new Busters({ 10.0f, PATROL_HEIGHT, -10.0f }, { 1.0f, 1.0f, 1.0f }, { 0.0f, 0.0f, 0.0f }, "asset\\model\\Busters_karikansei_3.fbx");
-	if (g_BustersList[2]) g_BustersList[2]->SetGroundLevel(PATROL_HEIGHT);
+	// 1階
+	{
+		Busters* b = new Busters({ 0.0f, PATROL_HEIGHT, 0.0f }, { 1.0f, 1.0f, 1.0f }, { 0.0f, 0.0f, 0.0f }, "asset\\model\\Busters_karikansei_3.fbx");
+		if (b) {
+			b->SetGroundLevel(PATROL_HEIGHT);
+			g_BustersList[0].push_back(b);
+		}
+	}
+
+	// 2階
+	{
+		Busters* b = new Busters({ -10.0f, PATROL_HEIGHT, 10.0f }, { 1.0f, 1.0f, 1.0f }, { 0.0f, 0.0f, 0.0f }, "asset\\model\\Busters_karikansei_3.fbx");
+		if (b) {
+			b->SetGroundLevel(PATROL_HEIGHT);
+			g_BustersList[1].push_back(b);
+		}
+	}
+
+	// 3階
+	{
+		Busters* b = new Busters({ 10.0f, PATROL_HEIGHT, -10.0f }, { 1.0f, 1.0f, 1.0f }, { 0.0f, 0.0f, 0.0f }, "asset\\model\\Busters_karikansei_3.fbx");
+		if (b) {
+			b->SetGroundLevel(PATROL_HEIGHT);
+			g_BustersList[2].push_back(b);
+		}
+	}
 }
 
 void Busters_Update(void)
 {
 	int currentFloor = Field_GetCurrentFloor();
-	if (currentFloor >= 0 && currentFloor < MAP_FLOORS && g_BustersList[currentFloor])
-		g_BustersList[currentFloor]->Update();
+	if (currentFloor >= 0 && currentFloor < MAP_FLOORS)
+	{
+		for (Busters* buster : g_BustersList[currentFloor])
+		{
+			buster->Update();
+		}
+	}
 }
 
 void Busters_Draw(void)
 {
 	int currentFloor = Field_GetCurrentFloor();
-	if (currentFloor >= 0 && currentFloor < MAP_FLOORS && g_BustersList[currentFloor])
-		g_BustersList[currentFloor]->Draw();
+	if (currentFloor >= 0 && currentFloor < MAP_FLOORS)
+	{
+		for (Busters* buster : g_BustersList[currentFloor])
+		{
+			buster->Draw();
+		}
+	}
 }
 
 void Busters_Finalize(void)
 {
 	for (int i = 0; i < MAP_FLOORS; i++)
 	{
-		if (g_BustersList[i]) { delete g_BustersList[i]; g_BustersList[i] = NULL; }
+		for (Busters* buster : g_BustersList[i])
+		{
+			delete buster;
+		}
+		g_BustersList[i].clear();
 	}
 }
 
 Busters* GetBusters(void)
 {
 	int currentFloor = Field_GetCurrentFloor();
-	if (currentFloor >= 0 && currentFloor < MAP_FLOORS) return g_BustersList[currentFloor];
+	if (currentFloor >= 0 && currentFloor < MAP_FLOORS)
+	{
+		if (!g_BustersList[currentFloor].empty()) {
+			return g_BustersList[currentFloor][0];
+		}
+	}
 	return NULL;
 }
+
 void BustersScare(void)
 {
-	Busters* target = GetBusters();
-	if (target) target->OnScared();
+	int currentFloor = Field_GetCurrentFloor();
+	if (currentFloor >= 0 && currentFloor < MAP_FLOORS)
+	{
+		for (Busters* buster : g_BustersList[currentFloor]) {
+			buster->OnScared();
+		}
+	}
 }
 
 void BustersLured(XMFLOAT3 pos)
 {
-	Busters* target = GetBusters();
-	if (target) target->OnLured(pos);
+	int currentFloor = Field_GetCurrentFloor();
+	if (currentFloor >= 0 && currentFloor < MAP_FLOORS)
+	{
+		for (Busters* buster : g_BustersList[currentFloor]) {
+			buster->OnLured(pos);
+		}
+	}
 }
 
 void BustersStopped(void)
 {
-	Busters* target = GetBusters();
-	if (target) target->OnStopped();
+	int currentFloor = Field_GetCurrentFloor();
+	if (currentFloor >= 0 && currentFloor < MAP_FLOORS)
+	{
+		for (Busters* buster : g_BustersList[currentFloor]) {
+			buster->OnStopped();
+		}
+	}
 }
 
 // =================================================================
@@ -471,21 +530,43 @@ void Busters_CheckGaugeEvent(void)
 		// 2階以上の場合 -> 下の階へ逃げる
 		// -------------------------------------------------
 
-		// 1. ゲージをリセット
+		// ゲージをリセット
 		UI_ResetScareGauge();
 
-		//0.0以下で敗北になるのでとりあえず1を足す
-		AddScareGauge(1.0f);
+		// 0.0以下で敗北になるのでとりあえず回復
+		AddScareGauge(BUSTERS_DEFOURT_GAUGE);
 
-		// 2. 下の階へ移動
-		Field_ChangeFloor(currentFloor - 1);
+		int nextFloor = currentFloor - 1;
 
-		//// 3. プレイヤー(Ghost)も追って移動
-		//if (GetGhost())
-		//{
-		//	GetGhost()->ResetPos();
-		//	GetGhost()->SetPos({ 0.0f, Ghost::GetGhostPosY(), 0.0f });
-		//}
+		// 階層に応じて増やす人数を決める
+		int addCount = 0;
+		if (nextFloor == 1) addCount = 1; // 2階へ行くとき： +1人
+		if (nextFloor == 0) addCount = 2; // 1階へ行くとき： +2人
+
+		for (int i = 0; i < addCount; i++)
+		{
+			if (nextFloor >= 0 && nextFloor < MAP_FLOORS)
+			{
+
+				float offsetX = (float)(rand() % 400 - 200) / 100.0f;
+				float offsetZ = (float)(rand() % 400 - 200) / 100.0f;
+
+				Busters* newBuster = new Busters(
+					{ offsetX, PATROL_HEIGHT, offsetZ },
+					{ 1.0f, 1.0f, 1.0f },
+					{ 0.0f, 0.0f, 0.0f },
+					"asset\\model\\Busters_karikansei_3.fbx"
+				);
+
+				if (newBuster) {
+					newBuster->SetGroundLevel(PATROL_HEIGHT);
+					g_BustersList[nextFloor].push_back(newBuster);
+				}
+			}
+		}
+
+		// 下の階へ移動
+		Field_ChangeFloor(nextFloor);
 	}
 	else
 	{
@@ -495,19 +576,18 @@ void Busters_CheckGaugeEvent(void)
 		StartFade(SCENE_ANM_WIN);
 	}
 }
-
 void Busters::Draw(void)
 {
-	// 1. バスターズ（ボーンあり）を描画
+	// バスターズ（ボーンあり）を描画
 
 	Sprite3D::Draw();
 
 	if (m_Icon)
 	{
-		// 2. ここで通常のシェーダー（ボーン無し）に戻す
+		// ここで通常のシェーダー（ボーン無し）に戻す
 		Shader_Begin();
 
-		// 3. ビルボード描画
+		// ビルボード描画
 		m_Icon->Draw();
 	}
 }
