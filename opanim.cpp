@@ -171,7 +171,7 @@ void OpAnim_Initialize(ID3D11Device* pDevice, ID3D11DeviceContext* pContext)
 		0.0f,										// 回転（度）
 		{ 1.0f, 1.0f, 1.0f, g_Basuta.alpha },	// 色
 		BLENDSTATE_ALFA,							// BlendState
-		L"asset\\yureihen\\Alpha_Tex\\basuta1.png"	// テクスチャパス
+		L"asset\\yureihen\\Busters_OP.png"	// テクスチャパス
 	);
 
 	// 幽霊スプライト（初期は透明）
