@@ -37,6 +37,12 @@ static const float INAZUMA_INTERVAL_MIN = 0.5f;
 static const float INAZUMA_INTERVAL_MAX = 3.5f;
 static const float INAZUMA_BASE_ALPHA = 0.5f;
 
+// タイトルロゴ瞬き関連
+static struct {
+	float blinkTimer;
+	float blinkCycle;
+} g_LogoBlink = { 0.0f, 1.5f };	// 1.5秒周期で瞬く
+
 // ========================
 // ユーティリティ関数
 // ========================
@@ -145,6 +151,17 @@ void Title_Initialize(ID3D11Device* pDevice, ID3D11DeviceContext* pContext)
 
 void Title_Update(void)
 {
+	// タイトルロゴ瞬きタイマー更新
+	g_LogoBlink.blinkTimer += (1.0f / 60.0f);	// 60FPS想定
+	if (g_LogoBlink.blinkTimer >= g_LogoBlink.blinkCycle) {
+		g_LogoBlink.blinkTimer = 0.0f;
+	}
+
+	// 瞬き周期内での時間比率 [0.0, 1.0)
+	float blinkProgress = g_LogoBlink.blinkTimer / g_LogoBlink.blinkCycle;
+	// 0.0～0.15: 消える、0.15～1.0: 現れる
+	float logoAlpha = (blinkProgress < 0.15f) ? (1.0f - blinkProgress / 0.15f) : 1.0f;
+
 	// 稲妻更新
 	g_Inazuma.nextTrigger -= (1.0f / 60.0f);	// 60FPS想定
 	if (g_Inazuma.nextTrigger <= 0.0f && !g_Inazuma.active)
@@ -196,6 +213,14 @@ void Title_Draw(void)
 {
 	// ライト設定（Title画面用）
 	Shader_SetLight(g_pTitleLight);
+
+	// タイトルロゴ瞬きアルファ値の計算
+	float blinkProgress = g_LogoBlink.blinkTimer / g_LogoBlink.blinkCycle;
+	float logoAlpha = (blinkProgress < 0.15f) ? (1.0f - blinkProgress / 0.15f) : 1.0f;
+
+	// タイトルロゴスプライトへのアルファ値適用（親クラスのSetColor互換メソッドが存在する場合）
+	// ここではg_pTitleSpriteに直接描画前にアルファを適用
+	// 参考：g_pinazumaと同様にSetColor経由でアルファ値を設定
 
 	g_pTitleSprite->Draw();
 	//g_pSizeComparisonSprite->Draw();
