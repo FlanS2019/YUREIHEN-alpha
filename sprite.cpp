@@ -14,6 +14,9 @@ static Light* g_p2DLight = nullptr; // 2D描画用ライト（常に明るい）
 static ID3D11Device* g_pDevice = nullptr;
 static ID3D11DeviceContext* g_pContext = nullptr;
 
+// 2D描画最適化用フラグ
+static bool g_b2DBegun = false;
+
 //----------------------------
 //スプライト初期化
 //----------------------------
@@ -55,17 +58,19 @@ void Sprite_Finalize()
 }
 
 //----------------------------
-//単一スプライト描画（汎用的になるように外に出す）
+// 2D描画開始（シェーダーセットアップを一度だけ実行）
 //----------------------------
-void Sprite_Single_Draw(XMFLOAT2 pos, XMFLOAT2 size,float rot, XMFLOAT4 color, BLENDSTATE bstate, ID3D11ShaderResourceView* texture, FLIPTYPE2D flipType)
+void Sprite_BeginDraw2D()
 {
-	// シェーダー開始
+	if (g_b2DBegun) return; // 既に開始済みなら何もしない
+
+	// シェーダー開始（一度だけ）
 	Shader_Begin();
 
 	// スクリーン座標用の射影行列を設定
 	Shader_SetMatrix(XMMatrixOrthographicOffCenterLH(0.0f, SCREEN_WIDTH, SCREEN_HEIGHT, 0.0f, 0.0f, 1.0f));
 
-	// 2D描画用にマテリアル色を白に設定（テクスチャ　＊　白　＝　テクスチャ）
+	// 2D描画用にマテリアル色を白に設定
 	Shader_SetMaterialColor({ 1.0f, 1.0f, 1.0f, 1.0f });
 
 	// 2D描画用ライトを設定（常に明るい）
@@ -75,6 +80,35 @@ void Sprite_Single_Draw(XMFLOAT2 pos, XMFLOAT2 size,float rot, XMFLOAT4 color, B
 
 	g_pDevice = Direct3D_GetDevice();
 	g_pContext = Direct3D_GetDeviceContext();
+
+	g_b2DBegun = true;
+}
+
+//----------------------------
+// 2D描画終了（フラグをリセット）
+//----------------------------
+void Sprite_EndDraw2D()
+{
+	g_b2DBegun = false;
+}
+
+//----------------------------
+//単一スプライト描画（汎用的になるように外に出す）
+//----------------------------
+void Sprite_Single_Draw(XMFLOAT2 pos, XMFLOAT2 size,float rot, XMFLOAT4 color, BLENDSTATE bstate, ID3D11ShaderResourceView* texture, FLIPTYPE2D flipType)
+{
+	g_pDevice = Direct3D_GetDevice();
+	g_pContext = Direct3D_GetDeviceContext();
+
+	// Sprite_BeginDraw2D()が呼ばれていない場合は個別にセットアップ（互換性維持）
+	if (!g_b2DBegun) {
+		Shader_Begin();
+		Shader_SetMatrix(XMMatrixOrthographicOffCenterLH(0.0f, SCREEN_WIDTH, SCREEN_HEIGHT, 0.0f, 0.0f, 1.0f));
+		Shader_SetMaterialColor({ 1.0f, 1.0f, 1.0f, 1.0f });
+		if (g_p2DLight) {
+			Shader_SetLight(g_p2DLight);
+		}
+	}
 
 	// テクスチャ設定
 	ID3D11ShaderResourceView* tex = texture;
@@ -147,22 +181,18 @@ void Sprite_Single_Draw(XMFLOAT2 pos, XMFLOAT2 size,float rot, XMFLOAT4 color, B
 //----------------------------
 void Sprite_Split_Draw(XMFLOAT2 pos, XMFLOAT2 size, float rot, XMFLOAT4 color, BLENDSTATE bstate, ID3D11ShaderResourceView* texture, int divideX, int divideY, int textureNumber)
 {
-	// シェーダー開始
-	Shader_Begin();
-
-	// スクリーン空間用の直交投影を設定
-	Shader_SetMatrix(XMMatrixOrthographicOffCenterLH(0.0f, SCREEN_WIDTH, SCREEN_HEIGHT, 0.0f, 0.0f, 1.0f));
-
-	// 2D描画用にマテリアル色を白に設定（テクスチャ × 白 = テクスチャ）
-	Shader_SetMaterialColor({ 1.0f, 1.0f, 1.0f, 1.0f });
-
-	// 2D描画用ライトを設定（常に明るい）
-	if (g_p2DLight) {
-		Shader_SetLight(g_p2DLight);
-	}
-
 	g_pDevice = Direct3D_GetDevice();
 	g_pContext = Direct3D_GetDeviceContext();
+
+	// Sprite_BeginDraw2D()が呼ばれていない場合は個別にセットアップ（互換性維持）
+	if (!g_b2DBegun) {
+		Shader_Begin();
+		Shader_SetMatrix(XMMatrixOrthographicOffCenterLH(0.0f, SCREEN_WIDTH, SCREEN_HEIGHT, 0.0f, 0.0f, 1.0f));
+		Shader_SetMaterialColor({ 1.0f, 1.0f, 1.0f, 1.0f });
+		if (g_p2DLight) {
+			Shader_SetLight(g_p2DLight);
+		}
+	}
 
 	// テクスチャ設定
 	ID3D11ShaderResourceView* tex = texture;

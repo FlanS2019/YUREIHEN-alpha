@@ -28,6 +28,8 @@ struct Vertex
 // プロトタイプ宣言
 void Sprite_Initialize(void);
 void Sprite_Finalize(void);
+void Sprite_BeginDraw2D(void);
+void Sprite_EndDraw2D(void);
 void Sprite_Single_Draw(XMFLOAT2 pos, XMFLOAT2 size, float rot, XMFLOAT4 color, BLENDSTATE bstate, ID3D11ShaderResourceView* texture, FLIPTYPE2D flipType = FLIPTYPE2D::FLIPTYPE2D_NONE);
 void Sprite_Split_Draw(XMFLOAT2 pos, XMFLOAT2 size, float rot, XMFLOAT4 color, BLENDSTATE bstate, ID3D11ShaderResourceView* texture, int divideX, int divideY, int textureNumber);
 

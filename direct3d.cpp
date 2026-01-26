@@ -178,14 +178,22 @@ void	SetDepthTest(bool flg)
 {
 	if (flg == true)
 	{
-		g_pDeviceContext->OMSetDepthStencilState(g_DepthStateEnable, NULL); //デフォルト　深度無効
+		g_pDeviceContext->OMSetDepthStencilState(g_DepthStateEnable, NULL);
 	}
 	else
 	{
-		g_pDeviceContext->OMSetDepthStencilState(g_DepthStateDisable, NULL); //デフォルト　深度無効
+		g_pDeviceContext->OMSetDepthStencilState(g_DepthStateDisable, NULL);
+		// 2D描画用に必要な状態をプリセット
+		// ビューポート設定をリセット（画面全体を対象にする）
+		D3D11_VIEWPORT viewport;
+		viewport.TopLeftX = 0.0f;
+		viewport.TopLeftY = 0.0f;
+		viewport.Width = static_cast<float>(Direct3D_GetBackBufferWidth());
+		viewport.Height = static_cast<float>(Direct3D_GetBackBufferHeight());
+		viewport.MinDepth = 0.0f;
+		viewport.MaxDepth = 1.0f;
+		g_pDeviceContext->RSSetViewports(1, &viewport);
 	}
-
-
 }
 
 void Direct3D_Finalize()
