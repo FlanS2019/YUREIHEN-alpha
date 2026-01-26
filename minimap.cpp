@@ -87,19 +87,21 @@ void Minimap_Draw(void)
 
 	g_MiniMapBG->Draw();
 
-	// 壁
+	// 壁を最小限だけ描画（フレームレート向上のため）
 	XMFLOAT3 playerPos = ghost->GetPos();
 	int px = (int)round(playerPos.x + MAP_WIDTH / 2.0f);
 	int pz = (int)round(MAP_LENGTH / 2.0f - playerPos.z);
 
-	for (int z = pz - VIEW_RANGE; z <= pz + VIEW_RANGE; z++)
+	// フルレンジで壁を描画
+	int reducedRange = VIEW_RANGE;
+
+	for (int z = pz - reducedRange; z <= pz + reducedRange; z++)
 	{
-		for (int x = px - VIEW_RANGE; x <= px + VIEW_RANGE; x++)
+		for (int x = px - reducedRange; x <= px + reducedRange; x++)
 		{
 			if (x < 0 || x >= MAP_WIDTH || z < 0 || z >= MAP_LENGTH) continue;
 
 			// 壁があるかチェック (Y=1:壁の層)
-			// Floor1.h の定義に従うなら、0以外かつ99以外などを壁とする
 			int id = Floor1[1][z][x];
 			if (id != 0 && id != 98 && id != 99)
 			{

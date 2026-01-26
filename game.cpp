@@ -26,6 +26,8 @@ using namespace DirectX;
 #include "sound.h"
 #include "minimap.h"
 #include "light.h"
+#include <windows.h>
+#include <chrono>
 
 Light* MainLight;
 AmbientLight* g_pAmbientLight = nullptr;
@@ -133,9 +135,11 @@ void Game_Draw(void)
 
 	SetDepthTest(false);
 	
-	//2D描画処理をここに記述
+	//2D描画処理
+	Sprite_BeginDraw2D();
 	UI_Draw();
 	Minimap_Draw();
+	Sprite_EndDraw2D();
 }
 
 void Game_Finalize(void)
