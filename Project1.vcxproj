@@ -163,6 +163,7 @@
     <ClCompile Include="furniture.cpp" />
     <ClCompile Include="ghost.cpp" />
     <ClCompile Include="keyboard.cpp" />
+    <ClCompile Include="light.cpp" />
     <ClCompile Include="LoseAnim.cpp" />
     <ClCompile Include="LoseAnimED.cpp" />
     <ClCompile Include="main.cpp" />
@@ -203,6 +204,7 @@
     <ClInclude Include="furniture.h" />
     <ClInclude Include="ghost.h" />
     <ClInclude Include="keyboard.h" />
+    <ClInclude Include="light.h" />
     <ClInclude Include="LoseAnim.h" />
     <ClInclude Include="LoseAnimED.h" />
     <ClInclude Include="main.h" />

@@ -12,7 +12,6 @@
 
 // ①Spriteのインスタンス、ポインタ用意
 static SplitSprite* g_pTitleSprite = nullptr;
-static Light* g_pTitleLight = nullptr;
 static FontRenderer* g_pTitleFont = nullptr;
 static FontRenderer* g_pTitleFont2 = nullptr;
 static Sprite* g_pSizeComparisonSprite = nullptr;
@@ -60,14 +59,6 @@ void Title_Initialize(ID3D11Device* pDevice, ID3D11DeviceContext* pContext)
 		L"asset\\texture\\guide.png"						
 	);
 
-	// タイトル画面用ライト（無効 + 白環境光）
-	g_pTitleLight = new Light(
-		FALSE,
-		XMFLOAT4(0.0f, -1.0f, 0.0f, 0.0f),
-		XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f),
-		XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f)
-	);
-
 	// BGM読み込み・再生
 	g_pBGM = LoadMP3("asset/sound/bgm/BGM1op.mp3");
 	if (g_pBGM) {
@@ -97,9 +88,6 @@ void Title_Update(void)
 
 void Title_Draw(void)
 {
-	// ライト設定（Title画面用）
-	Shader_SetLight(g_pTitleLight);
-
 	g_pTitleSprite->Draw();
 	//g_pSizeComparisonSprite->Draw();
 	g_pTitleFont->Draw();
@@ -128,7 +116,4 @@ void Title_Finalize(void)
 
 	delete g_pTitleFont2;
 	g_pTitleFont2 = nullptr;
-
-	delete g_pTitleLight;
-	g_pTitleLight = nullptr;
 }

@@ -29,7 +29,6 @@ enum LogoState
 
 SplitSprite* g_LogoSprite = nullptr;
 Sprite* g_BG = nullptr;
-Light* g_pLogoLight = nullptr;
 LogoState State = LS_SCENEIN;
 FADESTAT StateChanged = FADE_IN;
 static DWORD g_LogoStartTime = 0;	// ロゴ開始時刻
@@ -58,13 +57,6 @@ void Animation_Logo_Initialize(ID3D11Device* pDevice, ID3D11DeviceContext* pCont
 		L"asset\\texture\\fade.png"			// テクスチャパス
 	);
 
-	// ロゴ用ライト（環境光のみ）
-	g_pLogoLight = new Light(
-		FALSE,
-		XMFLOAT4(0.0f, -1.0f, 0.0f, 0.0f),
-		XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f),
-		XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f)
-	);
 }
 
 void Animation_Logo_Update(void)
@@ -119,9 +111,6 @@ void Animation_Logo_Update(void)
 
 void Animation_Logo_Draw(void)
 {
-	// ライト設定（ロゴ用）
-	Shader_SetLight(g_pLogoLight);
-
 	g_BG->Draw();
 	g_LogoSprite->Draw();
 }
@@ -130,12 +119,6 @@ void Animation_Logo_Finalize(void)
 {
 	delete g_LogoSprite;
 	delete g_BG;
-
-	if (g_pLogoLight)
-	{
-		delete g_pLogoLight;
-		g_pLogoLight = nullptr;
-	}
 }
 
 //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━

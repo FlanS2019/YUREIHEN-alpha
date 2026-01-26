@@ -40,6 +40,7 @@
     <ClCompile Include="font.cpp" />
     <ClCompile Include="LoseAnimED.cpp" />
     <ClCompile Include="field.cpp" />
+    <ClCompile Include="light.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="animation.h" />
@@ -80,6 +81,7 @@
     <ClInclude Include="font.h" />
     <ClInclude Include="field.h" />
     <ClInclude Include="LoseAnimED.h" />
+    <ClInclude Include="light.h" />
     <ClInclude Include="Floor1.h" />
     <ClInclude Include="Floor2.h" />
     <ClInclude Include="Floor3.h" />

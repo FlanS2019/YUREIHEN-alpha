@@ -1,6 +1,6 @@
 ﻿/*==============================================================================
 
-   日本語フォント描画システム実装 [font.cpp]
+   日本語フォont描画システム実装 [font.cpp]
 										  Author : Copilot
 										  Date   : 2025/01/10
 --------------------------------------------------------------------------------
@@ -12,12 +12,16 @@
 #include "direct3d.h"
 #include "shader.h"
 #include "main.h"
+#include "light.h"
 #include <cstdlib>
 #include <cstring>
 #include <d3d11.h>
 #include <d3dcompiler.h>
 
 #pragma comment(lib, "d3dcompiler.lib")
+
+// 2D描画用ライト（フォント描画用）
+static Light* g_pFontLight = nullptr;
 
 FontRenderer::FontRenderer(XMFLOAT2 pos, float fontSize, float rotation,
 	XMFLOAT4 color, const std::string& text)
@@ -30,6 +34,16 @@ FontRenderer::FontRenderer(XMFLOAT2 pos, float fontSize, float rotation,
 	m_pAtlasData(nullptr), m_pFontData(nullptr), m_pFontInfo(nullptr),
 	m_FontAscender(0), m_FontDescender(0)
 {
+	// フォント用ライト初期化（最初の1回のみ）
+	if (!g_pFontLight) {
+		g_pFontLight = new Light(
+			TRUE,
+			XMFLOAT4(0.0f, -1.0f, 0.0f, 0.0f),
+			XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f),
+			XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f)
+		);
+	}
+
 	// シェーダー作成
 	if (!CreateShaders()) {
 		return;
@@ -50,6 +64,7 @@ FontRenderer::~FontRenderer() {
 	if (m_pAtlasData) free(m_pAtlasData);
 	if (m_pFontData) free(m_pFontData);
 	if (m_pFontInfo) free(m_pFontInfo);
+	// ライトのクリーンアップはしない（複数のFontRendererが共有）
 }
 
 bool FontRenderer::CreateShaders() {
@@ -405,6 +420,11 @@ void FontRenderer::Draw() {
 
 	// マテリアル色を設定
 	Shader_SetMaterialColor(m_Color);
+
+	// 2D描画用ライト（既作成のグローバルライトを設定）
+	if (g_pFontLight) {
+		Shader_SetLight(g_pFontLight);
+	}
 
 	// テクスチャ設定
 	pContext->PSSetShaderResources(0, 1, &m_pSRV);

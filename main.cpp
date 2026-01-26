@@ -194,7 +194,7 @@ int APIENTRY WinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance,
 					if (Ghost* pGhost = GetGhost())
 					{
 						DirectX::XMFLOAT3 pos = pGhost->GetPos();
-						hal::dout << "Performance Drop! Total: " << totalTime 
+						hal::dout << "drop! Total: " << totalTime 
 								  << "us (Upd: " << g_UpdateTime << "us, Drw: " << g_DrawTime 
 								  << "us) | Ghost Pos: X=" << pos.x << ", Y=" << pos.y << ", Z=" << pos.z << std::endl;
 					}
