@@ -1,4 +1,5 @@
-﻿#include "field.h"
+﻿#include "define.h"
+#include "field.h"
 #include "texture.h"
 #include "Camera.h"
 #include "sprite.h"
@@ -178,7 +179,7 @@ void Field_Initialize(ID3D11Device* pDevice, ID3D11DeviceContext* pContext)
 
 	g_TextureStairs = LoadTexture(L"asset\\texture\\wood.png");
 
-	g_CurrentFloor = 2; // 3階スタート
+	g_CurrentFloor = START_FLOOR - 1; //定数は１階２階３階そのままなので-1する
 	LoadMapData(g_CurrentFloor);
 
 	if (!g_MapList.empty()) {

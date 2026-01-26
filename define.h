@@ -4,7 +4,9 @@
 // プロジェクト全体の定数定義ファイル
 //==============================================================================
 
+//=== フィールド関連定数 ===
 #define MAP_FLOORS (3)
+#define START_FLOOR (1)// 階の数字をそのまま入れる（使用時に-1）
 
 //=== Camera 関連定数 ===
 #define PITCH_LIMIT_LOOK_UP    (25.0f)   // 上を見る限界（カメラが下がる限界）: 床埋まり防止
@@ -45,7 +47,6 @@
 #define GHOST_POS_Y (0.5f)
 
 //=== Minimap 関連定数 ===
-
 #define MINIMAP_POS_OFFSET   (150.0f) 
 #define BLOCK_SIZE      (10.0f)  
 #define VIEW_RANGE      (13) 
