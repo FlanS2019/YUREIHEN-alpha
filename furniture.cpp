@@ -47,7 +47,7 @@ void Furniture_Initialize(void)
 			for (int x = 0; x < MAP_WIDTH; x++)
 			{
 
-				int id = GetFurnitureBlockID(currentFloor, 1, z, x);
+				int id = GetFurnitureBlockID(currentFloor, y, z, x);
 
 				// ワールド座標に変換
 				float wx = (float)x - MAP_WIDTH / 2.0f;

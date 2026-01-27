@@ -15,6 +15,10 @@
 #include <algorithm>
 #include <vector>
 
+#include "Floor1.h"
+#include "Floor2.h"
+#include "Floor3.h"
+
 #include "UI.h"
 #include "UI_scarecombo.h"
 #include "scene.h"
@@ -391,12 +395,63 @@ void Busters::SetIsGhostDiscover(bool discover)
 	else this->ResetColor();
 }
 
+XMFLOAT3 GetRandomBusterPos(int floor)
+{
+	int attempts = 0;
+	// 最大100回トライして、壁じゃない場所を探す
+	while (attempts < 100)
+	{
+		int gx = 0;
+		int gz = rand() % MAP_LENGTH; // Zは全域ランダム
+
+		if (floor == 2)
+		{
+			// 3階(Index 2)の場合: 真ん中(MAP_WIDTH/2)より左側(0に近い方)に制限
+			gx = rand() % (MAP_WIDTH / 2);
+		}
+		else
+		{
+			// それ以外: 全域ランダム
+			gx = rand() % MAP_WIDTH;
+		}
+
+		// 壁判定 (Y=1 のレイヤーを確認)
+		int blockID = 0;
+		switch (floor)
+		{
+		case 0: blockID = Floor1[1][gz][gx]; break;
+		case 1: blockID = Floor2[1][gz][gx]; break;
+		case 2: blockID = Floor3[1][gz][gx]; break;
+		}
+
+		// IDが0 (空気) ならスポーンOK
+		// ※家具などがある場所も避けたい場合は家具IDもチェックしてください
+		if (blockID == 0)
+		{
+			// グリッド座標 -> ワールド座標 変換
+			// field.cpp の計算式に合わせる: (x - W/2, z - H/2)
+			float wx = (float)gx - MAP_WIDTH / 2.0f;
+			float wz = MAP_LENGTH / 2.0f - (float)gz;
+
+			return { wx, PATROL_HEIGHT, wz };
+		}
+		attempts++;
+	}
+
+	// 見つからなかった場合の安全策 (原点)
+	return { 0.0f, PATROL_HEIGHT, 0.0f };
+}
+
 // =================================================================
 // グローバル関数
 // =================================================================
 
 void Busters_Initialize(void)
 {
+
+	srand((unsigned int)time(NULL));
+
+	// 既存リストのクリア
 	for (int i = 0; i < MAP_FLOORS; i++)
 	{
 		for (Busters* buster : g_BustersList[i]) {
@@ -405,28 +460,30 @@ void Busters_Initialize(void)
 		g_BustersList[i].clear();
 	}
 
-
-	// 1階
+	// 1階 (Floor 0)
 	{
-		Busters* b = new Busters({ 0.0f, PATROL_HEIGHT, 0.0f }, { 1.0f, 1.0f, 1.0f }, { 0.0f, 0.0f, 0.0f }, "asset\\model\\Busters_karikansei_3.fbx");
+		XMFLOAT3 pos = GetRandomBusterPos(0);
+		Busters* b = new Busters(pos, { 1.0f, 1.0f, 1.0f }, { 0.0f, 0.0f, 0.0f }, "asset\\model\\Busters_karikansei_3.fbx");
 		if (b) {
 			b->SetGroundLevel(PATROL_HEIGHT);
 			g_BustersList[0].push_back(b);
 		}
 	}
 
-	// 2階
+	// 2階 (Floor 1)
 	{
-		Busters* b = new Busters({ -10.0f, PATROL_HEIGHT, 10.0f }, { 1.0f, 1.0f, 1.0f }, { 0.0f, 0.0f, 0.0f }, "asset\\model\\Busters_karikansei_3.fbx");
+		XMFLOAT3 pos = GetRandomBusterPos(1);
+		Busters* b = new Busters(pos, { 1.0f, 1.0f, 1.0f }, { 0.0f, 0.0f, 0.0f }, "asset\\model\\Busters_karikansei_3.fbx");
 		if (b) {
 			b->SetGroundLevel(PATROL_HEIGHT);
 			g_BustersList[1].push_back(b);
 		}
 	}
 
-	// 3階
+	// 3階 (Floor 2)
 	{
-		Busters* b = new Busters({ 10.0f, PATROL_HEIGHT, -10.0f }, { 1.0f, 1.0f, 1.0f }, { 0.0f, 0.0f, 0.0f }, "asset\\model\\Busters_karikansei_3.fbx");
+		XMFLOAT3 pos = GetRandomBusterPos(2);
+		Busters* b = new Busters(pos, { 1.0f, 1.0f, 1.0f }, { 0.0f, 0.0f, 0.0f }, "asset\\model\\Busters_karikansei_3.fbx");
 		if (b) {
 			b->SetGroundLevel(PATROL_HEIGHT);
 			g_BustersList[2].push_back(b);
