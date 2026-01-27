@@ -109,6 +109,7 @@ void Minimap_Draw(void)
 
 	// フルレンジで壁を描画
 	int reducedRange = VIEW_RANGE;
+	int currentFloor = Field_GetCurrentFloor();
 
 	for (int z = pz - reducedRange; z <= pz + reducedRange; z++)
 	{
@@ -118,9 +119,6 @@ void Minimap_Draw(void)
 			// Y=1 (壁レイヤー) を参照
 			int id = GetMapBlockID(currentFloor, 1, z, x);
 
-			// 壁があるかチェック (Y=1:壁の層)
-			int id = Floor1[1][z][x];
-			int id = Floor1[1][z][x];
 			if (id != 0 && id != 98 && id != 99)
 			{
 				float wx = (float)x - MAP_WIDTH / 2.0f;
