@@ -580,6 +580,7 @@ std::vector<XMFLOAT3> Field_FindPath(XMFLOAT3 start, XMFLOAT3 end)
 	int dirX[] = { 0, 0, -1, 1 };
 	int dirZ[] = { -1, 1, 0, 0 };
 	bool found = false;
+	int maxCalculationSteps = 1000;
 
 	while (!openList.empty())
 	{
@@ -635,6 +636,8 @@ std::vector<XMFLOAT3> Field_FindPath(XMFLOAT3 start, XMFLOAT3 end)
 			cx = n.parentX;
 			cz = n.parentZ;
 			steps++;
+
+			if (steps > maxCalculationSteps) break;
 		}
 	}
 
