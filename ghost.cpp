@@ -311,7 +311,7 @@ void Ghost::ScareStart(void)
 	}
 }
 
-// ... (残りの関数 FurnitureSearch, Move, FloorMove, ResetPos, GetGhost は変更なし) ...
+
 void Ghost::FurnitureSearch(void)
 {
 	float tempDistance = 999999.0f;
@@ -432,7 +432,6 @@ void Ghost::Move(void)
 
 void Ghost::FloorMove(void)
 {
-	return;
 
 	if (m_FloorCooldown > 0.0f)
 	{

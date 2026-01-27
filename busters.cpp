@@ -274,7 +274,7 @@ void Busters::CheckState(void)
 			ghost->SetIsDetectedByBuster(true);
 
 			// 発見されたらコンボリセット
-			UI_ScareCombo_Reset();
+			//UI_ScareCombo_Reset();
 		}
 
 		// 距離が近づくにつれ恐怖ゲージを減らす（赤発見時のみ）
@@ -425,7 +425,6 @@ XMFLOAT3 GetRandomBusterPos(int floor)
 		}
 
 		// IDが0 (空気) ならスポーンOK
-		// ※家具などがある場所も避けたい場合は家具IDもチェックしてください
 		if (blockID == 0)
 		{
 			// グリッド座標 -> ワールド座標 変換
@@ -600,6 +599,18 @@ void Busters_CheckGaugeEvent(void)
 		if (nextFloor == 1) addCount = 1; // 2階へ行くとき： +1人
 		if (nextFloor == 0) addCount = 2; // 1階へ行くとき： +2人
 
+		for (Busters* buster : g_BustersList[currentFloor])
+		{
+			// 下の階のランダムな位置へ移動
+			XMFLOAT3 newPos = GetRandomBusterPos(nextFloor);
+			buster->SetPos(newPos);
+
+			// 下の階のリストに追加
+			g_BustersList[nextFloor].push_back(buster);
+		}
+		// 現在の階のバスターズを空に
+		g_BustersList[currentFloor].clear();
+
 		for (int i = 0; i < addCount; i++)
 		{
 			if (nextFloor >= 0 && nextFloor < MAP_FLOORS)
@@ -623,7 +634,7 @@ void Busters_CheckGaugeEvent(void)
 		}
 
 		// 下の階へ移動
-		Field_ChangeFloor(nextFloor);
+		//Field_ChangeFloor(nextFloor);
 	}
 	else
 	{
