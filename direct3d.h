@@ -18,7 +18,7 @@
 using namespace DirectX;
 
 
-#if _DEBUG
+#if defined(_DEBUG)
 #pragma comment(lib, "DirectXTex_Debug.lib")
 #else
 #pragma comment(lib, "DirectXTex_Release.lib")
