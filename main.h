@@ -21,7 +21,7 @@ using namespace DirectX;
 //デバッグ用設定
 //==================================
 #define STOP_TIMER_BUSTER (false) //trueならタイマーとバスターズのupdateを停止させる
-#define DIRECT_START (false) //trueならgameシーンから直接開始する
+#define DIRECT_START (true) //trueならgameシーンから直接開始する
 #define DEBUG_DRAW (false) //trueならdebugdraw機能を有効にする
 
 //==================================
