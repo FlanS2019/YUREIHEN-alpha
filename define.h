@@ -22,9 +22,9 @@
 
 //=== Busters 関連定数 ===
 #define BUSTERS_PATROL_SPEED (0.001f)    // パトロール速度
-#define BUSTERS_MOVE_SPEED_SEARCH    (0.05f) // 探索速度
-#define BUSTERS_MOVE_SPEED_SUSPICION (0.08f) // 警戒速度
-#define BUSTERS_MOVE_SPEED_CHASE     (0.010f) // 追跡速度
+#define BUSTERS_MOVE_SPEED_SEARCH    (0.04f) // 探索速度
+#define BUSTERS_MOVE_SPEED_SUSPICION (0.06f) // 警戒速度
+#define BUSTERS_MOVE_SPEED_CHASE     (0.08f) // 追跡速度
 
 #define MAP_MIN_X (-20.0f)
 #define MAP_MAX_X (20.0f)
@@ -37,10 +37,11 @@
 #define BUSTERS_DEFOURT_GAUGE (50.0f)
 #define WAIT_TIMER_DEFAULT (60)		     // 待機時間のデフォルト
 #define WAIT_TIMER_COOLDOWN (1800)		 // 待機のクールタイム
+#define KEEP_STATE_TIME (120)			 // 発見状態を維持する時間
 
 //=== Ghost 関連定数 ===
 #define SCARE_RANGE (7.5f)		// 恐怖範囲
-#define GHOST_MOVEMENT_SPEED (0.1f)
+#define GHOST_MOVEMENT_SPEED (0.01f)
 #define GHOST_ACCELERATION (0.010f)
 #define GHOST_DECELERATION (0.98f)
 #define GHOST_MAX_SPEED (0.10f)

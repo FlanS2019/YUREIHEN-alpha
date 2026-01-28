@@ -40,6 +40,7 @@ Busters::Busters(const XMFLOAT3& pos, const XMFLOAT3& scale, const XMFLOAT3& rot
 	m_MoveSpeed(BUSTERS_MOVE_SPEED_SEARCH),
 	m_DistanceToGhost(0.0f),
 	m_ReactionCooldown(0),
+	m_KeepStateTimer(0),
 	m_Icon(nullptr)
 {
 	m_Icon = new Billboard();
@@ -120,10 +121,8 @@ void Busters::Update(void)
 				float angle = atan2f(dx, dz);
 				float deg = XMConvertToDegrees(angle);
 
-				// 即座に向くならこれ
+
 				SetRotY(deg + 180.0f);
-
-
 			}
 		}
 
@@ -290,9 +289,27 @@ void Busters::CheckState(void)
 	}
 
 	bool hasWall = Field_CheckWallBetween(m_Position, ghostPos);
+	bool isDetected = false; //発見フラグ
 
-	if (!hasWall && m_DistanceToGhost < BUSTERS_PATROL_RANGH)
+	// ヒステリシス（境界でのチラつき防止）
+	float checkChaseRange = BUSTERS_PATROL_RANGH;
+	if (m_State == BUSTERS_CHASE)
 	{
+		checkChaseRange *= 1.2f; // 追跡中は範囲を20%広げる
+	}
+
+	float checkSuspicionRange = BUSTERS_SUSPICION_RANGE;
+	if (m_State == BUSTERS_SUSPICION)
+	{
+		checkSuspicionRange *= 1.2f; // 警戒中も範囲を20%広げる
+	}
+
+
+	if (!hasWall && m_DistanceToGhost < checkChaseRange)
+	{
+		isDetected = true; // 発見フラグ
+		m_KeepStateTimer = KEEP_STATE_TIME; //1秒間は見失わない
+
 		if (m_State != BUSTERS_CHASE)
 		{
 			m_State = BUSTERS_CHASE;
@@ -312,8 +329,8 @@ void Busters::CheckState(void)
 			}
 		}
 
-			// 発見されたらコンボリセット
-			//UI_ScareCombo_Reset();
+		// 発見されたらコンボリセット
+		//UI_ScareCombo_Reset();
 
 		// 距離が近づくにつれ恐怖ゲージを減らす（赤発見時のみ）
 		if (m_DistanceToGhost < BUSTERS_PATROL_RANGH)
@@ -322,8 +339,12 @@ void Busters::CheckState(void)
 			AddScareGauge(reduceAmount);
 		}
 	}
-	else if (!hasWall && m_DistanceToGhost < BUSTERS_SUSPICION_RANGE)
+
+	else if (!hasWall && m_DistanceToGhost < checkSuspicionRange)
 	{
+		isDetected = true; // 発見フラグ
+		m_KeepStateTimer = KEEP_STATE_TIME; //1秒間は見失わない
+
 		if (m_State != BUSTERS_SUSPICION)
 		{
 			m_State = BUSTERS_SUSPICION;
@@ -344,6 +365,13 @@ void Busters::CheckState(void)
 	}
 	else
 	{
+		// 見失った時の処理
+		if (m_KeepStateTimer > 0)
+		{
+			m_KeepStateTimer--;
+			return; // 前の状態（赤や黄）が維持される
+		}
+
 		if (m_State != BUSTERS_SEARCH)
 		{
 			m_State = BUSTERS_SEARCH;
@@ -386,7 +414,7 @@ void Busters::MoveTo(XMFLOAT3 targetPos)
 
 	// --- X軸移動 ---
 	float nextX = m_Position.x + dx * m_MoveSpeed;
-	if (!checkWallCollision(nextX, m_Position.z)) 
+	if (!checkWallCollision(nextX, m_Position.z))
 	{
 		m_Position.x = nextX;
 	}

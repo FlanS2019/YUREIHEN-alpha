@@ -29,7 +29,9 @@ private:
 	int m_TargetFurnitureIndex;
 	int m_WaitTimer;
 	int m_DetectionGraceTimer;
+	int m_KeepStateTimer;
 	int m_ReactionCooldown;
+
 
 	std::vector<XMFLOAT3> m_PathList;
 
