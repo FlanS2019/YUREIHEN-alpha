@@ -13,6 +13,7 @@ using namespace DirectX;
 #include "debug_ostream.h"
 #include <fstream>
 #include "shader.h"
+#include "light.h"
 
 
 static ID3D11VertexShader* g_pVertexShader = nullptr;//頂点シェーダー
@@ -74,7 +75,7 @@ bool Shader_Initialize(ID3D11Device* pDevice, ID3D11DeviceContext* pContext)
 	hr = g_pDevice->CreateVertexShader(vsbinary_pointer, filesize, nullptr, &g_pVertexShader);
 
 	if (FAILED(hr)) {
-		hal::dout << "Shader_Initialize() : 頂点シェーダーの作成に失敗しました" << std::endl;
+		hal::dout << "Shader_Initialize() : 項点シェーダーの作成に失敗しました" << std::endl;
 		delete[] vsbinary_pointer; // メモリリークしないようにバイナリデータのバッファを解放
 		return false;
 	}
@@ -129,6 +130,8 @@ bool Shader_Initialize(ID3D11Device* pDevice, ID3D11DeviceContext* pContext)
 	g_pDevice->CreateBuffer(&buffer_desc, nullptr, &g_pWorldConstantBuffer);
 	g_pContext->VSSetConstantBuffers(1, 1, &g_pWorldConstantBuffer);  // ワールド行列
 
+	// Light構造体のサイズを16バイト境界に修正
+	buffer_desc.ByteWidth = (sizeof(Light) + 15) & ~0xF;
 	g_pDevice->CreateBuffer(&buffer_desc, nullptr, &g_pLightConstantBuffer);
 	g_pContext->VSSetConstantBuffers(2, 1, &g_pLightConstantBuffer);  // ライト情報
 
@@ -211,8 +214,37 @@ void Shader_SetWorldMatrix(const DirectX::XMMATRIX& matrix)
 
 void Shader_SetLight(Light* light)
 {
-	// 定数バッファにlight構造体をセット
-	g_pContext->UpdateSubresource(g_pLightConstantBuffer, 0, nullptr, light, 0, 0);
+	if (!light) return;
+
+	// HLSL側の float4 ベース構造体定義に合わせた一時構造体
+	struct ShaderLightData
+	{
+		XMFLOAT4 type_enable_dummy;	// x=type, y=enable, z=dummy, w=dummy
+		XMFLOAT4 position;
+		XMFLOAT4 direction;
+		XMFLOAT4 diffuse;
+		XMFLOAT4 ambient;
+		XMFLOAT4 params;			// x=range, y=intensity, z=coneAngle, w=falloff
+	} data;
+
+	// データをfloat4パック形式にコピー
+	data.type_enable_dummy.x = (float)light->GetLightType();
+	data.type_enable_dummy.y = (float)light->GetEnable();
+	data.type_enable_dummy.z = 0.0f;
+	data.type_enable_dummy.w = 0.0f;
+	
+	data.position = light->GetPosition();
+	data.direction = light->GetDirection();
+	data.diffuse = light->GetDiffuse();
+	data.ambient = light->GetAmbient();
+	
+	data.params.x = light->GetRange();
+	data.params.y = light->GetIntensity();
+	data.params.z = light->GetConeAngle();
+	data.params.w = light->GetFalloff();
+
+	// 定数バッファにデータをセット
+	g_pContext->UpdateSubresource(g_pLightConstantBuffer, 0, nullptr, &data, 0, 0);
 }
 
 void Shader_SetMaterialColor(const DirectX::XMFLOAT4& color)

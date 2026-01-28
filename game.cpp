@@ -122,7 +122,19 @@ void Game_Update(void)
 void Game_Draw(void)
 {
 	MainLight->SetEnable(true);
-	Shader_SetLight(MainLight);
+	
+	// スポットライトを取得してシェーダーに設定（DebugDrawが有効な場合）
+	Light* spotLightPtr = DebugDraw_GetSpotLight();
+	if (spotLightPtr)
+	{
+		// スポットライトが有効なら使用
+		Shader_SetLight(spotLightPtr);
+	}
+	else
+	{
+		// スポットライト無効の場合は平行光源を使用
+		Shader_SetLight(MainLight);
+	}
 
 	//3D描画の前に深度テストを有効にする
 	SetDepthTest(true);

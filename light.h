@@ -14,8 +14,11 @@
 #ifndef LIGHT_H
 #define LIGHT_H
 
+#define NOMINMAX
 #include <Windows.h>
 #include <DirectXMath.h>
+#include <algorithm>
+#include <cstdint>
 
 using namespace DirectX;
 
@@ -26,12 +29,19 @@ using namespace DirectX;
 class Light
 {
 protected:
-	BOOL enable;	// ライトの有効無効
-	BOOL dummy[3];	// パディング
-	XMFLOAT4 position;		// ライト位置（ポイントライト・スポットライト用）
-	XMFLOAT4 direction;		// ライトの向き（正規化される）
-	XMFLOAT4 diffuse;		// 光の色
-	XMFLOAT4 ambient;		// 環境光
+	uint32_t type;				// 0=Directional, 1=Point, 2=Spot (4 bytes)
+	uint32_t enable;			// ライトの有効無効 (4 bytes)
+	uint32_t dummy[2];			// パディング (8 bytes) = 16 bytes total (1st register)
+	
+	XMFLOAT4 position;		// ライト位置（ポイントライト・スポットライト用） (16 bytes = 2nd register)
+	XMFLOAT4 direction;		// ライトの向き（正規化される） (16 bytes = 3rd register)
+	XMFLOAT4 diffuse;		// 光の色 (16 bytes = 4th register)
+	XMFLOAT4 ambient;		// 環境光 (16 bytes = 5th register)
+	
+	float range;			// [Point/Spot] 減衰距離 (4 bytes)
+	float intensity;		// [Point/Spot] 光の強さ (0.0-1.0) (4 bytes)
+	float coneAngle;		// [Spot] コーン角度（度数法） (4 bytes)
+	float falloff;			// [Spot] フォールオフ係数 (4 bytes) = 16 bytes total (6th register)
 	
 public:
 	// 平行光源コンストラクタ
@@ -40,9 +50,13 @@ public:
 	// ポイントライト/スポットライトコンストラクタ
 	Light(BOOL e, XMFLOAT4 position, XMFLOAT4 direction, XMFLOAT4 diffuse, XMFLOAT4 ambient);
 
+	// ライトタイプ設定
+	void SetLightType(uint32_t t) { this->type = t; }
+	uint32_t GetLightType() const { return type; }
+	
 	// 有効/無効設定
-	void SetEnable(BOOL enable) { this->enable = enable; }
-	BOOL GetEnable() const { return enable; }
+	void SetEnable(BOOL enable) { this->enable = (uint32_t)enable; }
+	uint32_t GetEnable() const { return enable; }
 	
 	// ポイントライト用メソッド
 	void SetPosition(XMFLOAT4 pos) { this->position = pos; }
@@ -63,6 +77,33 @@ public:
 	void SetAmbient(XMFLOAT4 ambient) { this->ambient = ambient; }
 	XMFLOAT4 GetAmbient() const { return ambient; }
 	
+	// Point/Spot Light用：距離減衰
+	void SetRange(float r) { 
+		this->range = (r > 0.1f) ? r : 0.1f;
+	}
+	float GetRange() const { return range; }
+	
+	// Point/Spot Light用：強度
+	void SetIntensity(float i) { 
+		float clamped = (i < 0.0f) ? 0.0f : (i > 1.0f) ? 1.0f : i;
+		this->intensity = clamped;
+	}
+	float GetIntensity() const { return intensity; }
+	
+	// Spot Light用：コーン角度（度数法）
+	void SetConeAngle(float angle) { 
+		float clamped = (angle < 1.0f) ? 1.0f : (angle > 180.0f) ? 180.0f : angle;
+		this->coneAngle = clamped;
+	}
+	float GetConeAngle() const { return coneAngle; }
+	
+	// Spot Light用：フォールオフ鋭さ
+	void SetFalloff(float f) { 
+		float clamped = (f < 0.1f) ? 0.1f : (f > 10.0f) ? 10.0f : f;
+		this->falloff = clamped;
+	}
+	float GetFalloff() const { return falloff; }
+
 private:
 	// ベクトルの正規化ヘルパー
 	static void NormalizeVector(XMFLOAT4& vec);
@@ -110,7 +151,7 @@ private:
 
 public:
 	// コンストラクタ
-	SpotLight(float heightOffset = 2.0f);
+	SpotLight(XMFLOAT3 initialPos, float intensity, XMFLOAT4 color);
 	
 	// デストラクタ
 	~SpotLight();
@@ -140,6 +181,22 @@ public:
 	
 	// 現在のライト位置を取得
 	XMFLOAT4 GetPosition() const;
+	
+	// 距離減衰設定
+	void SetRange(float r);
+	float GetRange() const;
+	
+	// 光の強度設定
+	void SetIntensity(float i);
+	float GetIntensity() const;
+	
+	// スポットコーン角度設定（度数法）
+	void SetConeAngle(float angle);
+	float GetConeAngle() const;
+	
+	// スポットライトフォールオフ設定
+	void SetFalloff(float f);
+	float GetFalloff() const;
 };
 
 #endif // LIGHT_H

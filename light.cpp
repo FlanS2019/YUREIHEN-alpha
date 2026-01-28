@@ -36,8 +36,11 @@ void Light::NormalizeVector(XMFLOAT4& vec)
 //   diffuse - ディフューズ色
 //   ambient - アンビエント色
 Light::Light(BOOL e, XMFLOAT4 direction, XMFLOAT4 diffuse, XMFLOAT4 ambient)
-	: enable(e), dummy(), position(XMFLOAT4(0, 0, 0, 1)), diffuse(diffuse), ambient(ambient), direction(direction)
+	: type(0), enable((uint32_t)e), position(XMFLOAT4(0, 0, 0, 1)), diffuse(diffuse), ambient(ambient), direction(direction),
+	  range(100.0f), intensity(1.0f), coneAngle(30.0f), falloff(1.0f)
 {
+	dummy[0] = 0;
+	dummy[1] = 0;
 	NormalizeVector(this->direction);
 }
 
@@ -50,8 +53,11 @@ Light::Light(BOOL e, XMFLOAT4 direction, XMFLOAT4 diffuse, XMFLOAT4 ambient)
 //   diffuse - ディフューズ色
 //   ambient - アンビエント色
 Light::Light(BOOL e, XMFLOAT4 position, XMFLOAT4 direction, XMFLOAT4 diffuse, XMFLOAT4 ambient)
-	: enable(e), dummy(), position(position), diffuse(diffuse), ambient(ambient), direction(direction)
+	: type(1), enable((uint32_t)e), position(position), diffuse(diffuse), ambient(ambient), direction(direction),
+	  range(50.0f), intensity(1.0f), coneAngle(30.0f), falloff(1.0f)
 {
+	dummy[0] = 0;
+	dummy[1] = 0;
 	NormalizeVector(this->direction);
 }
 
@@ -77,17 +83,27 @@ AmbientLight::AmbientLight(BOOL enable, XMFLOAT4 color)
 // ================================================================================
 
 // コンストラクタ
-SpotLight::SpotLight(float heightOffset)
-	: heightOffset(heightOffset), lastTrackedPos(XMFLOAT3(0.0f, 0.0f, 0.0f))
+SpotLight::SpotLight(XMFLOAT3 initialPos, float intensity, XMFLOAT4 color)
+	: heightOffset(initialPos.y), lastTrackedPos(initialPos)
 {
 	// ポイントライト型のライトを生成（位置と方向を持つ）
 	light = new Light(
 		TRUE,
-		XMFLOAT4(0.0f, 5.0f, 0.0f, 1.0f),		// 初期位置（上方）
-		XMFLOAT4(0.0f, -1.0f, 0.0f, 0.0f),		// 方向：下向き
-		XMFLOAT4(1.0f, 1.0f, 0.8f, 1.0f),		// ディフューズ色：黄白色
-		XMFLOAT4(0.2f, 0.2f, 0.2f, 1.0f)		// アンビエント：薄い灰色
-	);
+		XMFLOAT4(initialPos.x, initialPos.y, initialPos.z, 1.0f),	// 初期位置
+		XMFLOAT4(0.0f, -1.0f, 0.0f, 0.0f),						// 方向：下向き
+		color,													// ディフューズ色
+		XMFLOAT4(0.0f, 0.0f, 0.0f, 0.0f)						// アンビエント色：黒
+		);
+	
+	// SpotLight専用に初期化
+	if (light)
+	{
+		light->SetLightType(2);					// Spot Light タイプ
+		light->SetRange(25.0f);					// 減衰距離
+		light->SetIntensity(intensity);			// 光の強さ
+		light->SetConeAngle(45.0f);				// コーン角度
+		light->SetFalloff(1.5f);				// フォールオフ鋭さ
+	}
 }
 
 // デストラクタ
@@ -105,12 +121,22 @@ void SpotLight::UpdatePosition(XMFLOAT3 targetPos)
 {
 	if (!light) return;
 	
+	float lightY = targetPos.y + heightOffset;
+	
 	// 追従位置を高さオフセット分だけ上方に設定
 	light->SetPosition(
 		targetPos.x,
-		targetPos.y + heightOffset,
+		lightY,
 		targetPos.z
 	);
+	
+	XMFLOAT4 dir(
+		targetPos.x - light->GetPosition().x,
+		targetPos.y - lightY,
+		targetPos.z - light->GetPosition().z,
+		0.0f
+	);
+	light->SetDirection(dir);
 	
 	lastTrackedPos = targetPos;
 }
@@ -169,4 +195,60 @@ XMFLOAT4 SpotLight::GetDirection() const
 XMFLOAT4 SpotLight::GetPosition() const
 {
 	return light ? light->GetPosition() : XMFLOAT4(0.0f, 0.0f, 0.0f, 1.0f);
+}
+
+// 距離減衰設定
+void SpotLight::SetRange(float r)
+{
+	if (light)
+	{
+		light->SetRange(r);
+	}
+}
+
+float SpotLight::GetRange() const
+{
+	return light ? light->GetRange() : 50.0f;
+}
+
+// 光の強度設定
+void SpotLight::SetIntensity(float i)
+{
+	if (light)
+	{
+		light->SetIntensity(i);
+	}
+}
+
+float SpotLight::GetIntensity() const
+{
+	return light ? light->GetIntensity() : 1.0f;
+}
+
+// スポットコーン角度設定（度数法）
+void SpotLight::SetConeAngle(float angle)
+{
+	if (light)
+	{
+		light->SetConeAngle(angle);
+	}
+}
+
+float SpotLight::GetConeAngle() const
+{
+	return light ? light->GetConeAngle() : 30.0f;
+}
+
+// スポットライトフォールオフ設定
+void SpotLight::SetFalloff(float f)
+{
+	if (light)
+	{
+		light->SetFalloff(f);
+	}
+}
+
+float SpotLight::GetFalloff() const
+{
+	return light ? light->GetFalloff() : 1.0f;
 }

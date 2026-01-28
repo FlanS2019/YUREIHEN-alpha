@@ -18,11 +18,12 @@ cbuffer Buffer1 : register(b1)
 
 struct LIGHT
 {
-    bool enable;
-    bool3 dummy;
-    float4 Direction;
-    float4 Diffuse;
-    float4 Ambient;
+    float4 type_enable_dummy;
+    float4 position;
+    float4 direction;
+    float4 diffuse;
+    float4 ambient;
+    float4 params;
 };
 
 cbuffer Buffer2 : register(b2)

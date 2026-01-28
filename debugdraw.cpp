@@ -14,10 +14,14 @@ static SpotLight* g_SpotLight = nullptr;  // スポットライト用オブジ�
 void DebugDraw_Initialize(void)
 {
 	if (!isUse) return;
-	
+
 	// スポットライト初期化
-	g_SpotLight = new SpotLight(2.0f);  // 高さオフセット 2.0f
-	
+	g_SpotLight = new SpotLight(
+		{ 0.0f, 5.0f, 0.0f },			// 位置
+		0.1f,							// 強度
+		{ 0.8f, 0.8f, 0.8f, 1.0f }		// 色：薄灰色
+	);
+
 	// アニメーション対応モデル（cyancube.fbx）
 	g_AnimModelDraw = new AnimSprite3D(
 		{ 0.0f, 0.0f, 0.0f },			//位置
@@ -30,7 +34,7 @@ void DebugDraw_Initialize(void)
 void DebugDraw_Update(void)
 {
 	if (!isUse || !g_AnimModelDraw) return;
-	
+
 	// アニメーション更新（毎フレーム呼び出し）
 	const float dt = 1.0f / 60.0f;  // 60FPS想定
 	g_AnimModelDraw->UpdateAnimation(dt);
@@ -40,7 +44,7 @@ void DebugDraw_Update(void)
 	const float PI = 3.14159265f;
 	float cameraYaw = Camera_GetYaw();
 	float cameraYawRad = cameraYaw * PI / 180.0f;
-	
+
 	// 移動速度
 	const float moveSpeed = 0.028f;
 	XMFLOAT3 moveDirection = { 0.0f, 0.0f, 0.0f };
@@ -94,12 +98,12 @@ void DebugDraw_Update(void)
 		// 移動方向のy軸回転角度を計算（ラジアンから度数法へ変換）
 		float targetAngle = atan2f(-moveDirection.x, -moveDirection.z) * 180.0f / PI;
 		XMFLOAT3 currentRotation = g_AnimModelDraw->GetRot();
-		
+
 		// 角度の差分を計算（-180度～180度の範囲に正規化）
 		float angleDiff = targetAngle - currentRotation.y;
 		while (angleDiff > 180.0f) angleDiff -= 360.0f;
 		while (angleDiff < -180.0f) angleDiff += 360.0f;
-		
+
 		// 目標角度に向けてスムーズに回転（回転速度は5度/フレーム）
 		const float rotationSpeed = 5.0f;
 		if (fabsf(angleDiff) > rotationSpeed)
@@ -110,9 +114,9 @@ void DebugDraw_Update(void)
 		{
 			currentRotation.y = targetAngle;
 		}
-		
+
 		g_AnimModelDraw->SetRot(currentRotation);
-		
+
 		g_AnimModelDraw->PlayAnimationByName("run", true);	// 移動中は走るアニメーション
 	}
 	else
@@ -125,20 +129,20 @@ void DebugDraw_Update(void)
 void DebugDraw_Draw(void)
 {
 	if (!isUse || !g_AnimModelDraw) return;
-	
+
 	g_AnimModelDraw->Draw();  // アニメーション対応モデルを描画
 }
 
 void DebugDraw_Finalize(void)
 {
 	if (!isUse) return;
-	
+
 	if (g_AnimModelDraw)
 	{
 		delete g_AnimModelDraw;
 		g_AnimModelDraw = NULL;
 	}
-	
+
 	if (g_SpotLight)
 	{
 		delete g_SpotLight;
@@ -159,7 +163,7 @@ void DebugDraw_SetSpotLightHeight(float height)
 	if (g_SpotLight)
 	{
 		g_SpotLight->SetHeightOffset(height);
-		
+
 		// 直ちに適用したい場合は、モデル位置を取得して更新
 		if (g_AnimModelDraw)
 		{
