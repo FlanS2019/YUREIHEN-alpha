@@ -39,6 +39,7 @@ Busters::Busters(const XMFLOAT3& pos, const XMFLOAT3& scale, const XMFLOAT3& rot
 	m_Velocity(0.0f, 0.0f, 0.0f),
 	m_MoveSpeed(BUSTERS_MOVE_SPEED_SEARCH),
 	m_DistanceToGhost(0.0f),
+	m_ReactionCooldown(0),
 	m_Icon(nullptr)
 {
 	m_Icon = new Billboard();
@@ -62,6 +63,11 @@ void Busters::Update(void)
 	if (m_DetectionGraceTimer > 0)
 	{
 		m_DetectionGraceTimer--;
+	}
+
+	if (m_ReactionCooldown > 0)
+	{
+		m_ReactionCooldown--;
 	}
 
 	// アイコンの状態更新
@@ -100,6 +106,27 @@ void Busters::Update(void)
 	if (m_WaitTimer > 0)
 	{
 		m_WaitTimer--;
+
+		// 警戒(SUSPICION) または 追跡(CHASE) の硬直中は、プレイヤーの方へ振り向く
+		if (m_State == BUSTERS_SUSPICION || m_State == BUSTERS_CHASE)
+		{
+			Ghost* ghost = GetGhost();
+			if (ghost)
+			{
+				float dx = ghost->GetPos().x - m_Position.x;
+				float dz = ghost->GetPos().z - m_Position.z;
+
+				// 向きの計算 (MoveToと同じ計算式)
+				float angle = atan2f(dx, dz);
+				float deg = XMConvertToDegrees(angle);
+
+				// 即座に向くならこれ
+				SetRotY(deg + 180.0f);
+
+
+			}
+		}
+
 		return;
 	}
 
@@ -240,7 +267,6 @@ void Busters::CheckState(void)
 {
 	Ghost* ghost = GetGhost();
 	if (!ghost) return;
-	if (m_WaitTimer > 0) return;
 	if (m_DetectionGraceTimer > 0) return;
 
 	XMFLOAT3 ghostPos = ghost->GetPos();
@@ -273,9 +299,21 @@ void Busters::CheckState(void)
 			this->SetColor(1.0f, 0.0f, 0.0f, 1.0f); // 赤
 			ghost->SetIsDetectedByBuster(true);
 
+			if (m_ReactionCooldown <= 0)
+			{
+				// クールタイムがなければ驚いて硬直する
+				m_WaitTimer = WAIT_TIMER_DEFAULT;         // 1秒硬直
+				m_ReactionCooldown = WAIT_TIMER_COOLDOWN; // 次の30秒間は驚かない（即反応する）
+			}
+			else
+			{
+				// クールタイム中なら硬直せず、すぐに追いかける！
+				m_WaitTimer = 0;
+			}
+		}
+
 			// 発見されたらコンボリセット
 			//UI_ScareCombo_Reset();
-		}
 
 		// 距離が近づくにつれ恐怖ゲージを減らす（赤発見時のみ）
 		if (m_DistanceToGhost < BUSTERS_PATROL_RANGH)
@@ -291,6 +329,17 @@ void Busters::CheckState(void)
 			m_State = BUSTERS_SUSPICION;
 			this->SetColor(1.0f, 1.0f, 0.0f, 1.0f); // 黄
 			ghost->SetIsDetectedByBuster(false);
+
+			if (m_ReactionCooldown <= 0)
+			{
+				// クールタイムがなければ驚いて硬直する
+				m_WaitTimer = WAIT_TIMER_DEFAULT;         // 1秒硬直
+				m_ReactionCooldown = WAIT_TIMER_COOLDOWN; // 次の30秒間は驚かない（即反応する）
+			}
+			else
+			{
+				m_WaitTimer = 0;
+			}
 		}
 	}
 	else

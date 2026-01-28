@@ -29,6 +29,7 @@ private:
 	int m_TargetFurnitureIndex;
 	int m_WaitTimer;
 	int m_DetectionGraceTimer;
+	int m_ReactionCooldown;
 
 	std::vector<XMFLOAT3> m_PathList;
 
@@ -48,7 +49,8 @@ public:
 	void MoveTo(XMFLOAT3 targetPos);
 	void OnScared(void);
 	void OnLured(XMFLOAT3 targetPos);
-	void OnStopped(void);             
+	void OnStopped(void);
+	
 	
 	void SetIsGhostDiscover(bool discover);
 };

@@ -25,7 +25,7 @@ static float GetCurrentScareRange()
 {
 	int combo = UI_ScareCombo_GetNumber();
 	float range = SCARE_RANGE * (float)combo / 5.0f;
-	if (range < 2.0f) range = 2.0f; // 最低保証
+	if (range < 2.5f) range = 2.5f;
 	return range;
 }
 
@@ -34,12 +34,12 @@ static void UpdateRangeCircleState()
 {
 	if (!g_Ghost || !g_Ghost->m_pRangeCircle) return;
 
-	// 1. コンボ数に合わせてサイズ（スケール）を更新
+	// コンボ数に合わせてサイズ（スケール）を更新
 	float currentRange = GetCurrentScareRange();
 	// 円モデルの直径 = 半径 * 2
 	g_Ghost->m_pRangeCircle->SetSize({ currentRange * 2.0f, 0.1f, currentRange * 2.0f });
 
-	// 2. 位置を家具に合わせる
+	// 位置を家具に合わせる
 	Furniture* pFurniture = GetFurniture(g_Ghost->GetInRangeNum());
 	if (pFurniture)
 	{
