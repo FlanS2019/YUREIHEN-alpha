@@ -22,6 +22,7 @@ static Sprite* g_OpInazumaSprite = nullptr;		// 稲妻
 
 static DWORD g_OpStartTime = 0;
 static SoundData* g_pBGM = nullptr;
+static bool g_BGMPlayed = false;				// BGM再生フラグ
 
 // フレームレート設定（40 FPS用）
 static const float g_OpAnimFPS = 40.0f;
@@ -214,10 +215,8 @@ void OpAnim_Initialize(ID3D11Device* pDevice, ID3D11DeviceContext* pContext)
 	g_Inazuma.active = false;
 
 	// BGM再生
-	g_pBGM = LoadMP3("asset/sound/bgm/HauntedHalloween.mp3");
-	if (g_pBGM) {
-		PlaySound(g_pBGM, true);
-	}
+	g_pBGM = LoadMP3("asset/sound/se/ghost1.mp3");
+	g_BGMPlayed = false;
 
 	g_OpStartTime = timeGetTime();
 }
@@ -237,6 +236,8 @@ void OpAnim_Finalize(void)
 		UnloadSound(g_pBGM);
 		g_pBGM = nullptr;
 	}
+
+	g_BGMPlayed = false;
 }
 
 // ========================
@@ -389,6 +390,12 @@ void OpAnim_Update(void)
 	DWORD currentTime = timeGetTime();
 	DWORD elapsedTime = currentTime - g_OpStartTime;
 	float elapsedSeconds = elapsedTime / 1000.0f;
+
+	// BGMを一度だけ再生
+	if (!g_BGMPlayed && g_pBGM) {
+		PlaySound(g_pBGM, true);
+		g_BGMPlayed = true;
+	}
 
 	UpdateInazuma(elapsedSeconds);
 	UpdateBasuta(elapsedSeconds);
