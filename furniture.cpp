@@ -9,6 +9,10 @@
 #include "Floor3.h"
 #include "field.h"
 #include <cmath>   // sinf用
+#include <fstream>
+#include <map>
+#include <string>
+#include <vector>
 
 Furniture* g_Furniture[FURNITURE_NUM]{};
 
@@ -66,7 +70,8 @@ void Furniture_Initialize(void)
 						{ 1.0f, 1.0f, 1.0f },      // サイズ
 						{ 0.0f, rotY, 0.0f },      // 回転
 						"asset\\model\\cube.fbx", // モデル
-						ACTION_SCARE                // アクション
+						ACTION_SCARE,                // アクション
+						id
 					);
 					break;
 				case 51:
@@ -76,7 +81,8 @@ void Furniture_Initialize(void)
 						{ 1.0f, 1.0f, 1.0f },      // サイズ
 						{ 0.0f, rotY, 0.0f },      // 回転
 						"asset\\model\\tall_bookshelf.fbx", // モデル
-						ACTION_SCARE                // アクション
+						ACTION_SCARE,                // アクション
+						id
 					);
 					break;
 				case 52:
@@ -86,7 +92,8 @@ void Furniture_Initialize(void)
 						{ 1.0f, 1.0f, 1.0f },      // サイズ
 						{ 0.0f, rotY, 0.0f },      // 回転
 						"asset\\model\\sofa.fbx", // モデル
-						ACTION_SCARE                // アクション
+						ACTION_SCARE,                // アクション
+						id
 					);
 					break;
 				case 53:
@@ -96,7 +103,8 @@ void Furniture_Initialize(void)
 						{ 1.0f, 1.0f, 1.0f },      // サイズ
 						{ 0.0f, rotY, 0.0f },      // 回転
 						"asset\\model\\cube.fbx", // モデル
-						ACTION_SCARE                // アクション
+						ACTION_SCARE,                // アクション
+						id
 					);
 					break;
 				case 54:
@@ -106,7 +114,8 @@ void Furniture_Initialize(void)
 						{ 1.0f, 1.0f, 1.0f },      // サイズ
 						{ 0.0f, rotY, 0.0f },      // 回転
 						"asset\\model\\rockingchair.fbx", // モデル
-						ACTION_LURE                // アクション
+						ACTION_LURE,                // アクション
+						id
 					);
 					break;
 				case 55:
@@ -116,7 +125,8 @@ void Furniture_Initialize(void)
 						{ 1.0f, 1.0f, 1.0f },      // サイズ
 						{ 0.0f, rotY, 0.0f },      // 回転
 						"asset\\model\\phonograph.fbx", // モデル
-						ACTION_STOP               // アクション
+						ACTION_STOP,               // アクション
+						id
 					);
 					break;
 				case 56:
@@ -126,7 +136,8 @@ void Furniture_Initialize(void)
 						{ 1.0f, 1.0f, 1.0f },      // サイズ
 						{ 0.0f, rotY, 0.0f },      // 回転
 						"asset\\model\\cube.fbx", // モデル
-						ACTION_STOP                // アクション
+						ACTION_STOP,                // アクション
+						id
 					);
 					break;
 				case 57:
@@ -136,7 +147,8 @@ void Furniture_Initialize(void)
 						{ 1.0f, 1.0f, 1.0f },      // サイズ
 						{ 0.0f, rotY, 0.0f },      // 回転
 						"asset\\model\\danro.fbx", // モデル
-						ACTION_LURE                // アクション
+						ACTION_LURE,                // アクション
+						id
 					);
 					break;
 				case 58:
@@ -146,7 +158,8 @@ void Furniture_Initialize(void)
 						{ 1.0f, 1.0f, 1.0f },      // サイズ
 						{ 0.0f, rotY, 0.0f },      // 回転
 						"asset\\model\\bathtub.fbx", // モデル
-						ACTION_LURE                // アクション
+						ACTION_LURE,                // アクション
+						id
 					);
 					break;
 				case 59:
@@ -156,7 +169,8 @@ void Furniture_Initialize(void)
 						{ 1.0f, 1.0f, 1.0f },      // サイズ
 						{ 0.0f, rotY, 0.0f },      // 回転
 						"asset\\model\\kitchen.fbx", // モデル
-						ACTION_SCARE                // アクション
+						ACTION_SCARE,                // アクション
+						id
 					);
 					break;
 				case 60:
@@ -166,7 +180,8 @@ void Furniture_Initialize(void)
 						{ 1.0f, 1.0f, 1.0f },      // サイズ
 						{ 0.0f, rotY, 0.0f },      // 回転
 						"asset\\model\\cube.fbx", // モデル
-						ACTION_LURE                // アクション
+						ACTION_LURE,                // アクション
+						id
 					);
 					break;
 				case 61:
@@ -176,7 +191,8 @@ void Furniture_Initialize(void)
 						{ 1.0f, 1.0f, 1.0f },      // サイズ
 						{ 0.0f, rotY, 0.0f },      // 回転
 						"asset\\model\\cube.fbx", // モデル
-						ACTION_STOP               // アクション
+						ACTION_STOP,               // アクション
+						id
 					);
 					break;
 				case 62:
@@ -186,7 +202,8 @@ void Furniture_Initialize(void)
 						{ 1.0f, 1.0f, 1.0f },      // サイズ
 						{ 0.0f, rotY, 0.0f },      // 回転
 						"asset\\model\\cube.fbx", // モデル
-						ACTION_SCARE                // アクション
+						ACTION_SCARE,                // アクション
+						id
 					);
 					break;
 				case 63:
@@ -196,7 +213,8 @@ void Furniture_Initialize(void)
 						{ 1.0f, 1.0f, 1.0f },      // サイズ
 						{ 0.0f, rotY, 0.0f },      // 回転
 						"asset\\model\\cube.fbx", // モデル
-						ACTION_SCARE                // アクション
+						ACTION_SCARE,                // アクション
+						id
 					);
 					break;
 				case 64:
@@ -206,7 +224,8 @@ void Furniture_Initialize(void)
 						{ 1.0f, 1.0f, 1.0f },      // サイズ
 						{ 0.0f, rotY, 0.0f },      // 回転
 						"asset\\model\\mirror.fbx", // モデル
-						ACTION_SCARE                // アクション
+						ACTION_SCARE,                // アクション
+						id
 					);
 					break;
 				case 65:
@@ -216,7 +235,8 @@ void Furniture_Initialize(void)
 						{ 1.0f, 1.0f, 1.0f },      // サイズ
 						{ 0.0f, rotY, 0.0f },      // 回転
 						"asset\\model\\cube.fbx", // モデル
-						ACTION_SCARE                // アクション
+						ACTION_SCARE,                // アクション
+						id
 					);
 					break;
 				case 66:
@@ -226,7 +246,8 @@ void Furniture_Initialize(void)
 						{ 1.0f, 1.0f, 1.0f },      // サイズ
 						{ 0.0f, rotY, 0.0f },      // 回転
 						"asset\\model\\cube.fbx", // モデル
-						ACTION_SCARE                // アクション
+						ACTION_SCARE,                // アクション
+						id
 					);
 					break;
 				case 67:
@@ -236,7 +257,8 @@ void Furniture_Initialize(void)
 						{ 1.0f, 1.0f, 1.0f },      // サイズ
 						{ 0.0f, rotY, 0.0f },      // 回転
 						"asset\\model\\cube.fbx", // モデル
-						ACTION_LURE               // アクション
+						ACTION_LURE,               // アクション
+						id
 					);
 					break;
 				case 68:
@@ -246,7 +268,8 @@ void Furniture_Initialize(void)
 						{ 1.0f, 1.0f, 1.0f },      // サイズ
 						{ 0.0f, rotY, 0.0f },      // 回転
 						"asset\\model\\cube.fbx", // モデル
-						ACTION_NONE                // アクション
+						ACTION_NONE,                // アクション
+						id
 					);
 					break;
 				case 69:
@@ -256,7 +279,8 @@ void Furniture_Initialize(void)
 						{ 1.0f, 1.0f, 1.0f },      // サイズ
 						{ 0.0f, rotY, 0.0f },      // 回転
 						"asset\\model\\cube.fbx", // モデル
-						ACTION_NONE                // アクション
+						ACTION_NONE,                // アクション
+						id
 					);
 					break;
 				}
@@ -354,6 +378,51 @@ void Furniture::Update(void)
 		break;
 		}
 	}
+
+	// ビルボードの更新
+	XMFLOAT3 pos = GetPos();
+	XMFLOAT3 rot = GetRot();
+	XMFLOAT3 size = GetDisplaySize();
+
+	// マーカー（ID:98）がある方向を向くようにオフセットを計算
+	// field.cpp の Field_CalculateRotationFromMarker の戻り値に対応する正面方向を算出
+	// 0度: -Z方向, 180度: +Z方向, 90度: -X方向, 270度: +X方向
+	float rad = XMConvertToRadians(rot.y);
+	float dirX = -sinf(rad); // 90度で -1, 270度で 1
+	float dirZ = -cosf(rad); // 0度で -1, 180度で 1
+
+	// モデルの厚み（size.z）の半分より少し手前に配置
+	float offsetDist = (size.z * 0.5f) + 0.4f;
+
+	pos.x += dirX * offsetDist;
+	pos.z += dirZ * offsetDist;
+	pos.y += size.y * 0.5f; // 家具の高さの中央付近に配置
+
+	m_Billboard.SetPos(pos);
+
+	// 距離判定 (Ghost検出範囲の1.5倍 未満かつクールタイム中でないかつアクション中でない場合に表示)
+	if (m_DistanceToGhost < (FURNITURE_DETECTION_RANGE * 1.5f) && !IsCoolingDown() && !GetIsActing())
+	{
+		switch (m_ActionType)
+		{
+		case ACTION_SCARE: m_Billboard.SetIcon(BILLBOARD_ICON::ALERT);    break;
+		case ACTION_LURE:  m_Billboard.SetIcon(BILLBOARD_ICON::QUESTION); break;
+		case ACTION_STOP:  m_Billboard.SetIcon(BILLBOARD_ICON::STUN);     break;
+		default:           m_Billboard.SetIcon(BILLBOARD_ICON::NONE);     break;
+		}
+	}
+	else
+	{
+		m_Billboard.SetIcon(BILLBOARD_ICON::NONE);
+	}
+
+	m_Billboard.Update();
+}
+
+void Furniture::Draw(void)
+{
+	Sprite3D::Draw();
+	m_Billboard.Draw();
 }
 
 void Furniture::StartAction(void)
@@ -373,13 +442,13 @@ void Furniture::StartAction(void)
 	m_CooldownTimer = 10.0f; // 10秒間のクールタイムを設定
 }
 
-void CreateFurniture(XMFLOAT3 pos, XMFLOAT3 scale, XMFLOAT3 rot, const char* modelPath, FURNITURE_ACTION action)
+void CreateFurniture(XMFLOAT3 pos, XMFLOAT3 scale, XMFLOAT3 rot, const char* modelPath, FURNITURE_ACTION action, int blockID)
 {
 	// 配列がいっぱいなら何もしない（エラー防止）
 	if (g_FurnitureCount >= FURNITURE_NUM) return;
 
 	// 配列の「次の空いている場所」に家具を作る
-	g_Furniture[g_FurnitureCount] = new Furniture(pos, scale, rot, modelPath, action);
+	g_Furniture[g_FurnitureCount] = new Furniture(pos, scale, rot, modelPath, action, blockID);
 
 	// 地面の高さをセット
 	g_Furniture[g_FurnitureCount]->SetGroundLevel(pos.y);
@@ -447,6 +516,121 @@ Furniture* GetFurniture(int index)
 {
 	if (index >= 0 && index < FURNITURE_NUM) return g_Furniture[index];
 	return nullptr;
+}
+
+static std::map<int, std::string> g_BlockNameJaMap;
+static bool g_FileLoadFailed = false; // 読み込み失敗フラグ
+static bool g_BlockDefinitionsLoaded = false; // 読み込み完了フラグ
+
+// block_definitions.json を読み込み、IDと日本語名のマップを作成する
+static void LoadBlockDefinitions()
+{
+	if (g_BlockDefinitionsLoaded) return;
+	g_BlockDefinitionsLoaded = true;
+
+	std::ifstream file("SchemToArray\\block_definitions.json");
+	if (!file.is_open())
+	{
+		g_FileLoadFailed = true;
+		return;
+	}
+
+	// エラー回避のため、明示的に文字列へ読み込む
+	std::string content;
+	file.seekg(0, std::ios::end);
+	content.reserve(static_cast<size_t>(file.tellg()));
+	file.seekg(0, std::ios::beg);
+	content.assign((std::istreambuf_iterator<char>(file)), std::istreambuf_iterator<char>());
+
+	size_t pos = 0;
+	while ((pos = content.find('{', pos)) != std::string::npos)
+	{
+		size_t level = 1;
+		size_t endPos = pos + 1;
+		while (level > 0 && endPos < content.length())
+		{
+			if (content[endPos] == '{') level++;
+			else if (content[endPos] == '}') level--;
+			endPos++;
+		}
+
+		if (level == 0)
+		{
+			std::string object = content.substr(pos, endPos - pos);
+
+			std::string names_ja = "";
+			int id = -1;
+
+			// names_ja を探す
+			size_t npos = object.find("\"names_ja\"");
+			if (npos != std::string::npos)
+			{
+				size_t colon = object.find(':', npos);
+				if (colon != std::string::npos) {
+					size_t s = object.find('"', colon);
+					if (s != std::string::npos) {
+						size_t e = object.find('"', s + 1);
+						if (e != std::string::npos)
+						{
+							names_ja = object.substr(s + 1, e - s - 1);
+						}
+					}
+				}
+			}
+
+			// id または default_id を探す
+			size_t ipos = object.find("\"id\"");
+			if (ipos == std::string::npos)
+			{
+				ipos = object.find("\"default_id\"");
+			}
+
+			if (ipos != std::string::npos)
+			{
+				size_t colon = object.find(':', ipos);
+				if (colon != std::string::npos) {
+					size_t s = object.find_first_of("0123456789", colon);
+					if (s != std::string::npos)
+					{
+						size_t e = object.find_first_not_of("0123456789", s);
+						std::string idStr = (e == std::string::npos) ? object.substr(s) : object.substr(s, e - s);
+						if (!idStr.empty()) {
+							id = std::stoi(idStr);
+						}
+					}
+				}
+			}
+
+			if (id != -1 && !names_ja.empty())
+			{
+				// 見つかった ID と日本語名のペアを保存
+				g_BlockNameJaMap[id] = names_ja;
+			}
+		}
+		// 次の '{' から探索を続ける（入れ子構造にも対応）
+		pos++;
+	}
+}
+
+// 与えられた数字のIDから日本語名を返す
+std::string GetBlockNameJa(int id)
+{
+	if (!g_BlockDefinitionsLoaded && !g_FileLoadFailed)
+	{
+		LoadBlockDefinitions();
+	}
+
+	if (g_FileLoadFailed)
+	{
+		return "ファイルが見つかりませんでした";
+	}
+
+	if (g_BlockNameJaMap.count(id) > 0)
+	{
+		return g_BlockNameJaMap[id];
+	}
+
+	return "不明";
 }
 
 bool FurnitureScareStart(int index)

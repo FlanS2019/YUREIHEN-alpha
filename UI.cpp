@@ -196,7 +196,7 @@ void UI_Update(void)
 		SetScene(SCENE_ANM_LOSE);// Debug用に敗北アニメーションへ直接飛ぶ
 		return;
 
-	}	
+	}
 	// 恐怖ゲージが最大なら勝利シーンへ移行（デバッグ用）///////////////////////////////////
 	if (g_ScareGauge->GetValue() >= g_ScareGauge->GetMaxValue())
 	{
@@ -204,11 +204,13 @@ void UI_Update(void)
 	}
 
 	// --- 敗北条件 ---
-#if STOP_TIMER_BUSTER
+#if defined(STOP_TIMER_BUSTER)
 	bool timeEnded = false;
 #else
 	bool timeEnded = g_Clock->Update();
 #endif
+
+
 	if (timeEnded || g_ScareGauge->GetValue() <= 0.0f)
 	{
 		hal::dout << "敗北条件を満たしました" << std::endl;
@@ -229,20 +231,63 @@ void UI_Update(void)
 
 		if (state == GS_FURNITURE_FOUND)
 		{
-			g_PossessGuideText = "スペース：家具に憑依";
+			Furniture* pFurniture = GetFurniture(furnitureIdx);
+			if (pFurniture)
+			{
+				std::string name = GetBlockNameJa(pFurniture->GetBlockID());
+				g_PossessGuideText = "スペース：" + name + "に憑依";
+			}
+			else
+			{
+				g_PossessGuideText = "スペース：家具に憑依";
+			}
 		}
 		else if (state == GS_TRANSFORM || state == GS_SCARE)
 		{
 			Furniture* pFurniture = GetFurniture(furnitureIdx);
 			if (pFurniture)
 			{
-				FURNITURE_ACTION action = pFurniture->GetActionType();
-				switch (action)
+				if (pFurniture->IsCoolingDown())
 				{
-				case ACTION_SCARE: g_PossessGuideText = "スペース：驚かせる"; break;
-				case ACTION_LURE:  g_PossessGuideText = "スペース：引き寄せる"; break;
-				case ACTION_STOP:  g_PossessGuideText = "スペース：気絶させる"; break;
+					int sec = (int)ceilf(pFurniture->GetCooldownTimer());
+					g_PossessGuideText = "再使用まで あと " + std::to_string(sec) + " 秒";
 				}
+				else
+				{
+					FURNITURE_ACTION action = pFurniture->GetActionType();
+					switch (action)
+					{
+					case ACTION_SCARE: g_PossessGuideText = "スペースで驚かせ"; break;
+					case ACTION_LURE:  g_PossessGuideText = "スペースで引き寄せ"; break;
+					case ACTION_STOP:  g_PossessGuideText = "スペースで気絶"; break;
+					}
+				}
+			}
+		}
+		else if (state == GS_MOVING)
+		{
+			// クールダウン中の家具が近くにあるかチェック
+			float minCooldownDist = FURNITURE_DETECTION_RANGE;
+			int closestCooldownIdx = -1;
+
+			for (int i = 0; i < FURNITURE_NUM; i++)
+			{
+				Furniture* pFurniture = GetFurniture(i);
+				if (pFurniture && pFurniture->IsCoolingDown())
+				{
+					float dist = pFurniture->GetDistanceToGhost();
+					if (dist <= minCooldownDist)
+					{
+						minCooldownDist = dist;
+						closestCooldownIdx = i;
+					}
+				}
+			}
+
+			if (closestCooldownIdx != -1)
+			{
+				int sec = (int)ceilf(GetFurniture(closestCooldownIdx)->GetCooldownTimer());
+				g_PossessGuideText = "再使用まで あと " + std::to_string(sec) + " 秒";
 			}
 		}
 	}

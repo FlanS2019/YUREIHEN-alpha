@@ -41,6 +41,7 @@ unsigned int Direct3D_GetBackBufferHeight(); // バックバッファの高さ�
 
 
 void	SetDepthTest(bool flg);	//深度テスト切り替え
+void	SetDepthWrite(bool flg); // 深度書き込み切り替え
 
 
 enum	BLENDSTATE

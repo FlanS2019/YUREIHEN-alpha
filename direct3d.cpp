@@ -32,6 +32,7 @@ static float	bFactor[4] = { 0.0f,0.0f,0.0f,0.0f };
 static ID3D11BlendState* bState[BLENDSTATE_MAX];
 static ID3D11DepthStencilState* g_DepthStateEnable;
 static ID3D11DepthStencilState* g_DepthStateDisable;
+static ID3D11DepthStencilState* g_DepthStateReadOnly;
 
 
 
@@ -165,6 +166,11 @@ bool Direct3D_Initialize(HWND hWnd)
 	depthStencilDesc.DepthFunc = D3D11_COMPARISON_LESS;
 	depthStencilDesc.StencilEnable = FALSE;
 	g_pDevice->CreateDepthStencilState(&depthStencilDesc, &g_DepthStateEnable);//深度有効ステート
+
+	depthStencilDesc.DepthEnable = TRUE;
+	depthStencilDesc.DepthWriteMask = D3D11_DEPTH_WRITE_MASK_ZERO; // 書き込み禁止
+	g_pDevice->CreateDepthStencilState(&depthStencilDesc, &g_DepthStateReadOnly);
+
 	depthStencilDesc.DepthEnable = FALSE;
 	depthStencilDesc.DepthWriteMask = D3D11_DEPTH_WRITE_MASK_ZERO;
 	g_pDevice->CreateDepthStencilState(&depthStencilDesc, &g_DepthStateDisable);//深度無効ステート
@@ -197,6 +203,18 @@ void	SetDepthTest(bool flg)
 	}
 }
 
+void SetDepthWrite(bool flg)
+{
+	if (flg)
+	{
+		g_pDeviceContext->OMSetDepthStencilState(g_DepthStateEnable, NULL);
+	}
+	else
+	{
+		g_pDeviceContext->OMSetDepthStencilState(g_DepthStateReadOnly, NULL);
+	}
+}
+
 void Direct3D_Finalize()
 {
 	releaseBackBuffer();
@@ -215,6 +233,10 @@ void Direct3D_Finalize()
 		g_pDevice->Release();
 		g_pDevice = nullptr;
 	}
+
+	SAFE_RELEASE(g_DepthStateReadOnly);
+	SAFE_RELEASE(g_DepthStateEnable);
+	SAFE_RELEASE(g_DepthStateDisable);
 }
 
 void Direct3D_Clear()
