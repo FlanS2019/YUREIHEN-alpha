@@ -8,12 +8,17 @@
 #include "field.h"
 #include "define.h"
 #include "ghost.h"
+#include "font.h"
+#include "furniture.h"
 
 // グローバル変数
 static Timer* g_Clock = nullptr;
 static Gauge* g_ScareGauge = nullptr;
 Sprite* g_Reticle = nullptr;
 static DWORD g_LastScoreUpdateTime = 0;
+
+static FontRenderer* g_PossessGuideFont = nullptr;
+static std::string g_PossessGuideText = "";
 
 static Sprite* g_FloorNumberBG = nullptr;
 static Number* g_FloorNumber = nullptr;
@@ -170,6 +175,14 @@ void UI_Initialize(void)
 
 	g_LastFrameFloor = Field_GetCurrentFloor();
 	g_ScareGauge->SetValue(g_FloorGaugeValues[g_LastFrameFloor]);
+
+	g_PossessGuideFont = new FontRenderer(
+		{ SCREEN_WIDTH / 2.0f, SCREEN_HEIGHT - 100.0f },
+		40.0f,
+		0.0f,
+		{ 1.0f, 1.0f, 1.0f, 1.0f },
+		""
+	);
 }
 
 //----------------------------
@@ -205,11 +218,43 @@ void UI_Update(void)
 	UI_ScareCombo_Update();
 	g_FloorNumber->SetNumber(Field_GetCurrentFloor() + 1);
 
+	Ghost* ghost = GetGhost();
+
+	// 家具憑依・アクションガイドの表示制御
+	g_PossessGuideText = "";
+	if (ghost)
+	{
+		GHOST_STATE state = ghost->GetState();
+		int furnitureIdx = ghost->GetInRangeNum();
+
+		if (state == GS_FURNITURE_FOUND)
+		{
+			g_PossessGuideText = "スペース：家具に憑依";
+		}
+		else if (state == GS_TRANSFORM || state == GS_SCARE)
+		{
+			Furniture* pFurniture = GetFurniture(furnitureIdx);
+			if (pFurniture)
+			{
+				FURNITURE_ACTION action = pFurniture->GetActionType();
+				switch (action)
+				{
+				case ACTION_SCARE: g_PossessGuideText = "スペース：驚かせる"; break;
+				case ACTION_LURE:  g_PossessGuideText = "スペース：引き寄せる"; break;
+				case ACTION_STOP:  g_PossessGuideText = "スペース：気絶させる"; break;
+				}
+			}
+		}
+	}
+
+	if (g_PossessGuideFont)
+	{
+		g_PossessGuideFont->SetText(g_PossessGuideText);
+	}
+
 	// --- 階段ガイドの制御 ---
 	bool onStairs = false;
 	int targetFloor = 0;
-
-	Ghost* ghost = GetGhost();
 
 	if (ghost && !ghost->GetIsTransformed())
 	{
@@ -295,6 +340,11 @@ void UI_Draw(void)
 	g_Clock->Draw();
 	g_ScareGauge->Draw();
 
+	if (g_PossessGuideFont && g_PossessGuideText != "")
+	{
+		g_PossessGuideFont->Draw();
+	}
+
 	// クリックガイド
 	//if (g_GuideClick) g_GuideClick->Draw();
 
@@ -315,6 +365,8 @@ void UI_Finalize(void)
 	delete g_ScareGauge;
 	delete g_Reticle;
 	UI_ScareCombo_Finalize();
+
+	if (g_PossessGuideFont) { delete g_PossessGuideFont; g_PossessGuideFont = nullptr; }
 
 	if (g_FloorNumberBG) { delete g_FloorNumberBG; g_FloorNumberBG = nullptr; }
 	if (g_FloorNumber) { delete g_FloorNumber; g_FloorNumber = nullptr; }
