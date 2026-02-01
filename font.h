@@ -17,7 +17,6 @@
 #include <map>
 #include <deque>
 #include "component.h"
-
 using namespace DirectX;
 
 // フォント設定定数

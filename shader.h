@@ -27,5 +27,6 @@ void Shader_SetCameraPos(const DirectX::XMFLOAT3& pos);
 
 void Shader_Begin();
 void Shader_BeginInstance(); // インスタンス描画専用
+void Shader_RefreshState();  // シェーダーの状態をリセット（毎フレーム呼ぶ）
 
 #endif // SHADER_H

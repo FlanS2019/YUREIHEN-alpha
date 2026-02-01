@@ -5,12 +5,12 @@
 #include "texture.h"
 #include "component.h"
 #include "model.h"
+using namespace DirectX;
 #include "sprite3d.h"
 #include "debug_ostream.h"
 #include <DirectXMath.h>
 #include <vector>
 #include <string>
-using namespace DirectX;
 
 // アニメーション用キーフレーム構造体
 struct KeyVec3 { double time; XMFLOAT3 value; };

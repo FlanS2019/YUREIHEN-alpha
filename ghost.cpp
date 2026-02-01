@@ -1,5 +1,5 @@
 ﻿#include "ghost.h"
-#include "main.h"
+using namespace DirectX;
 #include "sprite.h"
 #include "sprite3d.h"
 #include "texture.h"
@@ -300,7 +300,7 @@ void Ghost::ScareStart(void)
 				ScareComboUP();
 				m_HasIncreasedMultiplier = true;
 			}
-			AddScareGauge(1.0f * UI_ScareCombo_GetNumber());
+			AddScareGauge(SCORE_SCARE * UI_ScareCombo_GetNumber());
 			Busters_CheckGaugeEvent();
 		}
 		break;
@@ -315,7 +315,7 @@ void Ghost::ScareStart(void)
 				ScareComboUP();
 				m_HasIncreasedMultiplier = true;
 			}
-			AddScareGauge(0.1f * UI_ScareCombo_GetNumber());
+			AddScareGauge(SCORE_LURE * UI_ScareCombo_GetNumber());
 		}
 		break;
 
@@ -329,12 +329,11 @@ void Ghost::ScareStart(void)
 				ScareComboUP();
 				m_HasIncreasedMultiplier = true;
 			}
-			AddScareGauge(0.1f * UI_ScareCombo_GetNumber());
+			AddScareGauge(SCORE_STOP * UI_ScareCombo_GetNumber());
 		}
 		break;
 	}
 }
-
 
 void Ghost::FurnitureSearch(void)
 {

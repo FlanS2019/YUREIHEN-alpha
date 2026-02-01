@@ -11,12 +11,13 @@
 #include "font.h"
 #include "direct3d.h"
 #include "shader.h"
-#include "main.h"
 #include "light.h"
+#include "define.h"
 #include <cstdlib>
 #include <cstring>
 #include <d3d11.h>
 #include <d3dcompiler.h>
+using namespace DirectX;
 
 #pragma comment(lib, "d3dcompiler.lib")
 

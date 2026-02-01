@@ -403,9 +403,35 @@ void Furniture_Update(void)
 
 void Furniture_Draw(void)
 {
+	Camera* pCamera = GetCamera();
+	if (!pCamera) return;
+
+	XMFLOAT3 cameraPos = pCamera->GetPos();
+	XMFLOAT3 cameraAt = pCamera->GetAtPos();
+	XMVECTOR vCamPos = XMLoadFloat3(&cameraPos);
+	XMVECTOR vCamAt = XMLoadFloat3(&cameraAt);
+	XMVECTOR vForward = XMVector3Normalize(XMVectorSubtract(vCamAt, vCamPos));
+
 	for (int i = 0; i < FURNITURE_NUM; i++)
 	{
-		if (g_Furniture[i]) g_Furniture[i]->Draw();
+		if (g_Furniture[i])
+		{
+			XMFLOAT3 pos = g_Furniture[i]->GetPos();
+			XMVECTOR vPos = XMLoadFloat3(&pos);
+			XMVECTOR vToPos = XMVectorSubtract(vPos, vCamPos);
+
+			// 距離によるカリング (fieldと同じく50ユニット)
+			float distSq;
+			XMStoreFloat(&distSq, XMVector3LengthSq(vToPos));
+			if (distSq > 2500.0f) continue;
+
+			// 背面カリング (カメラの向きに対して後ろにある家具は描画しない)
+			float dot;
+			XMStoreFloat(&dot, XMVector3Dot(vToPos, vForward));
+			if (dot < -2.0f) continue; // 余裕を持たせて-2.0f
+
+			g_Furniture[i]->Draw();
+		}
 	}
 }
 

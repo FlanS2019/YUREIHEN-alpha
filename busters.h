@@ -9,7 +9,6 @@
 #include "define.h"
 #include "billboard.h"
 #include <vector>
-
 using namespace DirectX;
 
 enum BUSTERS_STATE

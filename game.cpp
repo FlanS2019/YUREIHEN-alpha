@@ -5,9 +5,8 @@
 ==============================================================================*/
 #include <d3d11.h>
 #include <DirectXMath.h>
-using namespace DirectX;
 #include "direct3d.h"
-#include "main.h"
+using namespace DirectX;
 #include "shader.h"
 #include "debug_ostream.h"
 #include "game.h"

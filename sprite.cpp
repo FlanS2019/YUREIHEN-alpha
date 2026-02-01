@@ -1,10 +1,11 @@
 ﻿//sprite.cpp
 #include "sprite.h"
 #include "shader.h"
-#include "main.h"
 #include "texture.h"
 #include "light.h"
+#include "define.h"
 #include <cmath>
+using namespace DirectX;
 
 //グローバル変数
 static constexpr int NUM_VERTEX = 6; // 使用できる最大頂点数

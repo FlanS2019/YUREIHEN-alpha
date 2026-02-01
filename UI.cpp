@@ -116,7 +116,7 @@ void UI_Initialize(void)
 		BLENDSTATE_ALFA,
 		L"asset\\texture\\gauge.png",
 		3, 1,
-		0.0f, 100.0f,
+		0.0f, SCARE_GAUGE_MAX,
 		2, 0
 	);
 

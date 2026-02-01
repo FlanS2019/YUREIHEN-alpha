@@ -17,7 +17,6 @@
 #include "Floor1.h"
 #include "Floor2.h"
 #include "Floor3.h"
-
 using namespace DirectX;
 
 // グローバル変数
@@ -312,6 +311,10 @@ void Field_Draw(void)
 	Shader_SetMatrix(VP);
 
 	XMFLOAT3 cameraPos = pCamera->GetPos();
+	XMFLOAT3 cameraAt = pCamera->GetAtPos();
+	XMVECTOR vCamPos = XMLoadFloat3(&cameraPos);
+	XMVECTOR vCamAt = XMLoadFloat3(&cameraAt);
+	XMVECTOR vForward = XMVector3Normalize(XMVectorSubtract(vCamAt, vCamPos));
 
 	D3D11_VIEWPORT vp;
 	UINT numVP = 1;
@@ -362,12 +365,20 @@ void Field_Draw(void)
 			continue;
 		}
 
-		float dx = mapData.pos.x - cameraPos.x;
-		float dy = mapData.pos.y - cameraPos.y;
-		float dz = mapData.pos.z - cameraPos.z;
-		if (dx * dx + dy * dy + dz * dz > 2500.0f) continue;
-
 		XMVECTOR vPos = XMLoadFloat3(&mapData.pos);
+		XMVECTOR vToPos = XMVectorSubtract(vPos, vCamPos);
+
+		// 距離によるカリング
+		float distSq;
+		XMStoreFloat(&distSq, XMVector3LengthSq(vToPos));
+		if (distSq > 2500.0f) continue;
+
+		// 背面カリング (カメラの後ろにあるものは描画しない)
+		float dot;
+		XMStoreFloat(&dot, XMVector3Dot(vToPos, vForward));
+		if (dot < -2.0f) continue; // 余裕を持って-2.0f
+
+		// 錐体カリング (Frustum Culling) もどき
 		XMVECTOR vClipPos = XMVector3TransformCoord(vPos, VP);
 
 		XMFLOAT3 clipPos;

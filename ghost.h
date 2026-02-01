@@ -5,7 +5,6 @@
 #include "sprite3d.h"
 #include "define.h"
 #include "light.h"
-
 using namespace DirectX;
 
 enum GHOST_STATE

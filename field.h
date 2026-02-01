@@ -5,7 +5,6 @@
 #include <vector>
 #include "direct3d.h"
 #include "shader.h"
-
 using namespace DirectX;
 
 // ブロックの種類

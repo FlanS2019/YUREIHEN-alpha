@@ -7,6 +7,7 @@
 #include <d3d11.h>
 #include "direct3d.h"
 #include "debug_ostream.h"
+#include "shader.h"
 
 #pragma comment(lib, "d3d11.lib")//DirectXのプログラムを追加する
 // #pragma comment(lib, "dxgi.lib")
@@ -225,7 +226,8 @@ void Direct3D_Clear()
 	// レンダーターゲットビューとデプスステンシルビューの設定/////////////追加
 	g_pDeviceContext->OMSetRenderTargets(1, &g_pRenderTargetView, g_pDepthStencilView);
 
-
+	// シェーダーの状態をリセット
+	Shader_RefreshState();
 }
 
 void Direct3D_Present()
@@ -355,7 +357,6 @@ void releaseBackBuffer()
 		g_pDepthStencilView = nullptr;
 	}
 }
-
 
 //以下の関数を一番下へ追加
 void SetBlendState(BLENDSTATE blend)

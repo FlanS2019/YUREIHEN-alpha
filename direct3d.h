@@ -13,10 +13,8 @@
 #include <d3d11.h>
 #include <mmsystem.h>
 #include "DirectXTex.h"
-#include "light.h"
-
 using namespace DirectX;
-
+#include "light.h"
 
 #if defined(_DEBUG)
 #pragma comment(lib, "DirectXTex_Debug.lib")

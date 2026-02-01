@@ -1,10 +1,12 @@
 ﻿#include "result.h"
-#include "main.h"
 #include "sprite.h"
 #include "texture.h"
 #include "keyboard.h"
 #include "fade.h"
 #include "debug_ostream.h"
+#include "define.h"
+using namespace DirectX;
+
 
 // ①Spriteのインスタンス、ポインタ用意
 static Sprite* g_pResultSprite = nullptr;

@@ -7,7 +7,6 @@
 #include "sprite3d.h"
 #include "component.h"
 #include "define.h"
-
 using namespace DirectX;
 
 // �A�N�V�����̎��

@@ -1,15 +1,17 @@
 ﻿#include "title.h"
-#include "main.h"
 #include "sprite.h"
 #include "texture.h"
 #include "keyboard.h"
 #include "fade.h"
 #include "debug_ostream.h"
+#include "define.h"
 #include "shader.h"
 #include "direct3d.h"
 #include "font.h"
 #include "sound.h"
 #include <cmath>
+using namespace DirectX;
+
 
 // ①Spriteのインスタンス、ポインタ用意
 static SplitSprite* g_pTitleSprite = nullptr;

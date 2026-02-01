@@ -1,11 +1,13 @@
-﻿#include "main.h"
-#include "debugdraw.h"
+﻿#include "debugdraw.h"
+#include "define.h"
 #include "Camera.h"
 #include "shader.h"
 #include "keyboard.h"
 #include "sprite3d.h"
 #include "anim_sprite3d.h"
 #include "light.h"
+#include "direct3d.h"
+using namespace DirectX;
 
 AnimSprite3D* g_AnimModelDraw = NULL;  // アニメーション対応モデル
 static bool isUse = DEBUG_DRAW;  // 処理の有効/無効を制御

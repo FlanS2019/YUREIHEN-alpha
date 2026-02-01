@@ -11,14 +11,11 @@
    - SpotLight クラス：追従型スポットライト管理
 
 ==============================================================================*/
-#ifndef LIGHT_H
-#define LIGHT_H
-
+#pragma once
+using namespace DirectX;
 #define NOMINMAX
 #include <Windows.h>
 #include <DirectXMath.h>
-
-using namespace DirectX;
 
 // シェーダー定数バッファ用構造体
 struct LightData
@@ -88,5 +85,3 @@ public:
 	float GetRange() const { return this->range; }
 	float GetIntensity() const { return this->intensity; }
 };
-
-#endif // LIGHT_H

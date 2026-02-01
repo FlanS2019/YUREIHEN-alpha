@@ -32,6 +32,14 @@ static ID3D11Buffer* g_pCameraPositionBuffer = nullptr;//カメラ位置バッ�
 
 static LightData g_CurrentLightData;
 
+// 現在設定されているシェーダーの種類を記録する
+enum SHADER_TYPE {
+	SHADER_TYPE_NONE,
+	SHADER_TYPE_DEFAULT,
+	SHADER_TYPE_INSTANCE
+};
+static SHADER_TYPE g_CurrentShaderType = SHADER_TYPE_NONE;
+
 // 注意！初期化で外部から設定されるもの。Release不要。
 static ID3D11Device* g_pDevice = nullptr;
 static ID3D11DeviceContext* g_pContext = nullptr;
@@ -263,6 +271,9 @@ void Shader_SetCameraPos(const DirectX::XMFLOAT3& pos)
 
 void Shader_Begin()
 {
+	if (g_CurrentShaderType == SHADER_TYPE_DEFAULT) return;
+	g_CurrentShaderType = SHADER_TYPE_DEFAULT;
+
 	// 頂点シェーダーとピクセルシェーダーを描画パイプラインに設定
 	g_pContext->VSSetShader(g_pVertexShader, nullptr, 0);
 	g_pContext->PSSetShader(g_pPixelShader, nullptr, 0);
@@ -284,6 +295,9 @@ void Shader_Begin()
 // フィールド専用インスタンス描画開始
 void Shader_BeginInstance()
 {
+	if (g_CurrentShaderType == SHADER_TYPE_INSTANCE) return;
+	g_CurrentShaderType = SHADER_TYPE_INSTANCE;
+
 	if (!g_pInstanceVertexShader) { Shader_Begin(); return; }
 
 	g_pContext->VSSetShader(g_pInstanceVertexShader, nullptr, 0);
@@ -297,4 +311,10 @@ void Shader_BeginInstance()
 	g_pContext->PSSetConstantBuffers(2, 1, &g_pLightConstantBuffer);
 	g_pContext->PSSetConstantBuffers(3, 1, &g_pMaterialColorBuffer);
 	g_pContext->PSSetConstantBuffers(4, 1, &g_pCameraPositionBuffer);
+}
+
+// 毎フレームのリセット用（Clearなどで呼ぶ想定）
+void Shader_RefreshState()
+{
+	g_CurrentShaderType = SHADER_TYPE_NONE;
 }

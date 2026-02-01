@@ -4,7 +4,6 @@
 #include <DirectXMath.h>
 #include "model.h"
 #include "anim_sprite3d.h"
-
 using namespace DirectX;
 
 void DebugDraw_Initialize(void);

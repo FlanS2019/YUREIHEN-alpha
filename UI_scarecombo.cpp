@@ -1,15 +1,8 @@
 ﻿#include "UI_scarecombo.h"
 #include "UI.h"
+#include "define.h"
 #include "debug_ostream.h"
 #include <windows.h>
-
-#define SCARECOMBO_POS_X (SCREEN_WIDTH - 110.0f)
-#define SCARECOMBO_POS_Y (170.0f)
-#define SCARECOMBO_MAX (5)
-#define SCARECOMBO_OVER_TIME (10000)// ミリ秒
-#define SCARECOMBO_BAR_SIZE_X (140.0f)
-#define SCARECOMBO_BAR_POS_X (SCARECOMBO_POS_X - 70.0f)
-
 
 // グローバル変数
 static Sprite* g_ScareComboBG = nullptr;//恐怖コンボの背景
@@ -17,7 +10,6 @@ static Number* g_ScareCombo = nullptr;
 static Sprite* g_ScareComboBar = nullptr;//恐怖コンボの時間切れを表示
 ULONGLONG g_StartTime = GetTickCount64();
 ULONGLONG g_KeikaTime = GetTickCount64();
-
 
  // 恐怖コンボの初期化
 void UI_ScareCombo_Initialize(void)
