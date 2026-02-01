@@ -15,18 +15,49 @@
 #include "UI_scarecombo.h"
 #include "define.h"
 #include "sound.h"
+#include <algorithm>
 #include "shader.h"
 
 Ghost* g_Ghost = NULL;
 SoundData* g_pScareSound = nullptr;
 
+// 現在の驚かし範囲（半径）を計算する関数
+static float GetCurrentScareRange()
+{
+	int combo = UI_ScareCombo_GetNumber();
+	float range = SCARE_RANGE * (float)combo / 5.0f;
+	if (range < 2.5f) range = 2.5f;
+	return range;
+}
+
+// 円のサイズと位置を更新するヘルパー関数
+static void UpdateRangeCircleState()
+{
+	if (!g_Ghost || !g_Ghost->m_pRangeCircle) return;
+
+	// コンボ数に合わせてサイズ（スケール）を更新
+	float currentRange = GetCurrentScareRange();
+	// 円モデルの直径 = 半径 * 2
+	g_Ghost->m_pRangeCircle->SetSize({ currentRange * 2.0f, 0.1f, currentRange * 2.0f });
+
+	// 位置を家具に合わせる
+	Furniture* pFurniture = GetFurniture(g_Ghost->GetInRangeNum());
+	if (pFurniture)
+	{
+		XMFLOAT3 circlePos = pFurniture->GetPos();
+		float groundY = pFurniture->GetGroundLevel();
+		circlePos.y = groundY + 0.01f;
+		g_Ghost->m_pRangeCircle->SetPos(circlePos);
+	}
+}
+
 void Ghost_Initialize(ID3D11Device* pDevice, ID3D11DeviceContext* pContext)
 {
 	g_Ghost = new Ghost(
-		{ -3.0f, Ghost::GetGhostPosY(), -10.0f },	//位置
-		{ 1.0f, 1.0f, 1.0f },					//スケール
-		{ 0.0f, 180.0f, 0.0f },					//回転（度）
-		"asset\\model\\ghost.fbx"				//モデルパス
+		{ -3.0f, Ghost::GetGhostPosY(), -10.0f },
+		{ 1.0f, 1.0f, 1.0f },
+		{ 0.0f, 180.0f, 0.0f },
+		"asset\\model\\ghost.fbx"
 	);
 
 	// 検出範囲を表示する円を初期化
@@ -42,12 +73,14 @@ void Ghost_Initialize(ID3D11Device* pDevice, ID3D11DeviceContext* pContext)
 		);
 
 		XMFLOAT3 circlePos = g_Ghost->GetPos();
-
 		circlePos.y = 0.01f;
+
+		// 初期サイズ
+		float initRange = 2.0f;
 
 		g_Ghost->m_pRangeCircle = new Sprite3D(
 			circlePos,
-			{ SCARE_RANGE * 2.0, 0.1f, SCARE_RANGE * 2.0 },
+			{ initRange * 2.0f, 0.1f, initRange * 2.0f },
 			{ 0.0f, 0.0f, 0.0f },
 			"asset\\model\\circle.fbx"
 		);
@@ -77,6 +110,7 @@ void Ghost_Update(void)
 		g_Ghost->FurnitureSearch();
 		g_Ghost->FloorMove();
 		break;
+
 	case GS_FURNITURE_FOUND:
 		g_Ghost->SetIsDraw(true);
 		g_Ghost->Move();
@@ -85,27 +119,26 @@ void Ghost_Update(void)
 
 		if (Keyboard_IsKeyDownTrigger(KK_SPACE))
 		{
-			g_Ghost->SetState(GS_TRANSFORM);
-			g_Ghost->m_HasIncreasedMultiplier = false; // 憑依しなおした時にフラグをリセット
-		}
 
+			UpdateRangeCircleState();
+
+			g_Ghost->SetState(GS_TRANSFORM);
+			g_Ghost->m_HasIncreasedMultiplier = false;
+		}
 		break;
+
 	case GS_TRANSFORM:
 		g_Ghost->SetIsDraw(false);
 		g_Ghost->Transforming();
 
-		// 検出範囲の円を更新
 		if (g_Ghost->m_pRangeCircle)
 		{
 			Furniture* pFurniture = GetFurniture(g_Ghost->GetInRangeNum());
 			if (pFurniture)
 			{
 				XMFLOAT3 circlePos = pFurniture->GetPos();
-
 				float groundY = pFurniture->GetGroundLevel();
-
 				circlePos.y = groundY + 0.01f;
-
 				g_Ghost->m_pRangeCircle->SetPos(circlePos);
 			}
 		}
@@ -113,33 +146,38 @@ void Ghost_Update(void)
 		if (Keyboard_IsKeyDownTrigger(KK_SPACE))
 		{
 			g_Ghost->SetState(GS_SCARE);
-
-			//家具とプレイヤーをジャンプさせる
 			g_Ghost->ScareStart();
 		}
 
 		if (Keyboard_IsKeyDownTrigger(KK_E))
 		{
+
+			UpdateRangeCircleState();
+
 			g_Ghost->ResetPos();
 			g_Ghost->SetState(GS_MOVING);
 		}
 		break;
+
 	case GS_SCARE:
-		g_Ghost->SetIsDraw(false);		// 描画無効化
-		g_Ghost->Transforming();	    // 変身中処理
+		g_Ghost->SetIsDraw(false);
+		g_Ghost->Transforming();
 
 		// 家具のジャンプが終わったら移動状態に戻る
 		if (FurnitureScareEnded(g_Ghost->GetInRangeNum()))
 		{
+			UpdateRangeCircleState();
+
 			g_Ghost->ResetPos();
 			g_Ghost->SetState(GS_MOVING);
 		}
 		break;
+
 	default:
 		break;
 	}
 
-	// P キーで現在位置をデバッグ出力
+	// P キーでデバッグ出力
 	if (Keyboard_IsKeyDownTrigger(KK_P))
 	{
 		if (g_Ghost)
@@ -147,31 +185,21 @@ void Ghost_Update(void)
 			XMFLOAT3 pos = g_Ghost->GetPos();
 			hal::dout << "Ghost Position: X=" << pos.x << ", Y=" << pos.y << ", Z=" << pos.z << std::endl;
 		}
-		else
-		{
-			hal::dout << "Ghost is not initialized!" << std::endl;
-		}
 	}
 
 	if (g_Ghost)
 	{
 		Camera_SetTargetPos(g_Ghost->GetPos());
 	}
-
-
-	// ステート処理をデバッグ出力
-	//hal::dout << "Ghost State: " << g_Ghost->GetState() << std::endl;
 }
 
 void Ghost_Draw(void)
 {
-	// Ghost自身を描画
 	if (g_Ghost)
 	{
 		g_Ghost->Draw();
 	}
 
-	// 変身中 または 驚かし中 のみ検出範囲の円を描画
 	if (g_Ghost && g_Ghost->m_pRangeCircle &&
 		(g_Ghost->GetState() == GS_TRANSFORM || g_Ghost->GetState() == GS_SCARE))
 	{
@@ -212,7 +240,6 @@ void Ghost::Transforming(void)
 		SetPos(pFurniture->GetPos());
 	}
 
-	// Ghost（Furniture） と buster の距離を計算
 	Busters* pBuster = GetBusters();
 	if (pBuster)
 	{
@@ -223,10 +250,10 @@ void Ghost::Transforming(void)
 		XMVECTOR distVec = XMVectorSubtract(busterVec, ghostVec);
 		float distance = XMVectorGetX(XMVector3Length(distVec));
 
-		//距離が一定以下なら驚かせる
-		if (distance <= SCARE_RANGE)
+		float currentRange = GetCurrentScareRange();
+
+		if (distance <= currentRange)
 		{
-			//レンジに入っているなら色を変える
 			pBuster->SetIsGhostDiscover(true);
 		}
 		else
@@ -238,14 +265,11 @@ void Ghost::Transforming(void)
 
 void Ghost::ScareStart(void)
 {
-	// 家具のアクション開始（見た目）
 	FurnitureScareStart(m_InRangeFurnitureNum);
 
-	// 家具の情報を取得
 	Furniture* pFurniture = GetFurniture(m_InRangeFurnitureNum);
 	if (!pFurniture) return;
 
-	// バスターズとの距離計算
 	Busters* pBuster = GetBusters();
 	if (!pBuster) return;
 
@@ -260,61 +284,58 @@ void Ghost::ScareStart(void)
 	XMVECTOR distVec = XMVectorSubtract(XMLoadFloat3(&busterPos), XMLoadFloat3(&ghostPos));
 	float distance = XMVectorGetX(XMVector3Length(distVec));
 
-	// アクションタイプによって効果を変える
 	FURNITURE_ACTION action = pFurniture->GetActionType();
+
+	float currentRange = GetCurrentScareRange();
 
 	switch (action)
 	{
-	case ACTION_SCARE: // 既存：範囲小、ダメージ大
-		if (distance <= SCARE_RANGE)
+	case ACTION_SCARE:
+
+		if (distance <= currentRange)
 		{
-			BustersScare(); // 驚く
-			
+			BustersScare();
 			if (!m_HasIncreasedMultiplier)
 			{
 				ScareComboUP();
 				m_HasIncreasedMultiplier = true;
 			}
-
 			AddScareGauge(1.0f * UI_ScareCombo_GetNumber());
-
 			Busters_CheckGaugeEvent();
 		}
 		break;
 
-	case ACTION_LURE: // おびき寄せ：範囲大（2倍）
-		if (distance <= SCARE_RANGE * 2.0f)
-		{
-			// 敵に家具の位置を教える
-			BustersLured(ghostPos);
+	case ACTION_LURE:
 
+		if (distance <= currentRange * 2.0f)
+		{
+			BustersLured(ghostPos);
 			if (!m_HasIncreasedMultiplier)
 			{
 				ScareComboUP();
 				m_HasIncreasedMultiplier = true;
 			}
-
-			// おびき寄せ成功として少しゲージが増える
 			AddScareGauge(0.1f * UI_ScareCombo_GetNumber());
 		}
 		break;
 
-	case ACTION_STOP: // 足止め：範囲中、ダメージ小、長時間停止
-		if (distance <= SCARE_RANGE)
-		{
-			BustersStopped(); // 足止め
+	case ACTION_STOP:
 
+		if (distance <= currentRange)
+		{
+			BustersStopped();
 			if (!m_HasIncreasedMultiplier)
 			{
 				ScareComboUP();
 				m_HasIncreasedMultiplier = true;
 			}
-
 			AddScareGauge(0.1f * UI_ScareCombo_GetNumber());
 		}
 		break;
 	}
 }
+
+
 void Ghost::FurnitureSearch(void)
 {
 	float tempDistance = 999999.0f;
@@ -325,12 +346,8 @@ void Ghost::FurnitureSearch(void)
 		Furniture* pFurniture = GetFurniture(i);
 		if (pFurniture)
 		{
-			// クールタイム中の家具は候補から外す（色はUpdateで管理される）
 			if (pFurniture->IsCoolingDown()) continue;
-
 			pFurniture->ResetColor();
-
-			// ACTION_NONE の家具はスキップ
 			if (pFurniture->GetActionType() == ACTION_NONE) continue;
 
 			if (pFurniture->GetDistanceToGhost() <= FURNITURE_DETECTION_RANGE &&
@@ -345,18 +362,15 @@ void Ghost::FurnitureSearch(void)
 	if (tempInRangeNum != -1)
 	{
 		m_InRangeFurnitureNum = tempInRangeNum;
-
 		Furniture* pFurniture = GetFurniture(m_InRangeFurnitureNum);
 		if (pFurniture)
 		{
-			// 黄色に設定（1.0f, 1.0f, 0.0f）で、m_UseOriginalColor が false になる
-			pFurniture->SetColor(1.0f, 1.0f, 0.0f, 1.0f);  // 黄色
+			pFurniture->SetColor(1.0f, 1.0f, 0.0f, 1.0f);
 			this->SetState(GS_FURNITURE_FOUND);
 		}
 	}
 	else
 	{
-		// 範囲外ならターゲットなしにして、状態をMOVINGに戻す
 		m_InRangeFurnitureNum = -1;
 		this->SetState(GS_MOVING);
 	}
@@ -442,8 +456,7 @@ void Ghost::Move(void)
 
 void Ghost::FloorMove(void)
 {
-	return;// 階段移動無効化
-	
+
 	if (m_FloorCooldown > 0.0f)
 	{
 		m_FloorCooldown -= 1.0f / 60.0f;
@@ -499,11 +512,10 @@ void Ghost::ResetPos(void)
 	m_Position = { m_Position.x, GHOST_POS_Y, m_Position.z };
 	m_InRangeFurnitureNum = -1;
 	m_IsTransformed = false;
-	m_HasIncreasedMultiplier = false; // 憑依解除時にもリセット
+	m_HasIncreasedMultiplier = false;
 }
 
 Ghost* GetGhost(void)
 {
 	return g_Ghost;
 }
-

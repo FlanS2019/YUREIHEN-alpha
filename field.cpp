@@ -13,7 +13,7 @@
 #include <map>
 #include <cmath> 
 #include <algorithm> // sort用に必要
-
+#include "keyboard.h"
 #include "Floor1.h"
 #include "Floor2.h"
 #include "Floor3.h"
@@ -25,6 +25,9 @@ static ID3D11Device* g_pDevice = NULL;
 static ID3D11DeviceContext* g_pContext = NULL;
 static ID3D11Buffer* g_VertexBuffer = NULL;
 static ID3D11Buffer* g_IndexBuffer = NULL;
+
+// 壁の表示フラグ（true=表示, false=非表示）
+static bool g_DebugShowWalls = true;
 
 // インスタンス描画用バッファ
 #define MAX_INSTANCES (5000)
@@ -197,6 +200,11 @@ void Field_Initialize(ID3D11Device* pDevice, ID3D11DeviceContext* pContext)
 
 void Field_Update(void)
 {
+	if (Keyboard_IsKeyDownTrigger(KK_M))
+	{
+		g_DebugShowWalls = !g_DebugShowWalls;
+	}
+
 	// まず「今、隠すべき場所」を計算
 	static uint8_t shouldHide[MAP_LENGTH][MAP_WIDTH];
 	memset(shouldHide, 0, sizeof(shouldHide));
@@ -346,6 +354,13 @@ void Field_Draw(void)
 	for (const auto& mapData : g_MapList)
 	{
 		if (mapData.isHidden) continue;
+
+		// 壁（Y座標が0以上＝地面より上にあるブロック）の場合、フラグがfalseなら描画をスキップする
+		// 地面（pos.y = -1.0f）は常に表示する
+		if (!g_DebugShowWalls && mapData.pos.y >= 0.0f)
+		{
+			continue;
+		}
 
 		float dx = mapData.pos.x - cameraPos.x;
 		float dy = mapData.pos.y - cameraPos.y;

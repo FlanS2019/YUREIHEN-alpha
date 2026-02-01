@@ -39,6 +39,8 @@ Busters::Busters(const XMFLOAT3& pos, const XMFLOAT3& scale, const XMFLOAT3& rot
 	m_Velocity(0.0f, 0.0f, 0.0f),
 	m_MoveSpeed(BUSTERS_MOVE_SPEED_SEARCH),
 	m_DistanceToGhost(0.0f),
+	m_ReactionCooldown(0),
+	m_KeepStateTimer(0),
 	m_Icon(nullptr)
 {
 	m_Icon = new Billboard();
@@ -62,6 +64,11 @@ void Busters::Update(void)
 	if (m_DetectionGraceTimer > 0)
 	{
 		m_DetectionGraceTimer--;
+	}
+
+	if (m_ReactionCooldown > 0)
+	{
+		m_ReactionCooldown--;
 	}
 
 	// アイコンの状態更新
@@ -100,6 +107,25 @@ void Busters::Update(void)
 	if (m_WaitTimer > 0)
 	{
 		m_WaitTimer--;
+
+		// 警戒(SUSPICION) または 追跡(CHASE) の硬直中は、プレイヤーの方へ振り向く
+		if (m_State == BUSTERS_SUSPICION || m_State == BUSTERS_CHASE)
+		{
+			Ghost* ghost = GetGhost();
+			if (ghost)
+			{
+				float dx = ghost->GetPos().x - m_Position.x;
+				float dz = ghost->GetPos().z - m_Position.z;
+
+				// 向きの計算 (MoveToと同じ計算式)
+				float angle = atan2f(dx, dz);
+				float deg = XMConvertToDegrees(angle);
+
+
+				SetRotY(deg + 180.0f);
+			}
+		}
+
 		return;
 	}
 
@@ -240,7 +266,6 @@ void Busters::CheckState(void)
 {
 	Ghost* ghost = GetGhost();
 	if (!ghost) return;
-	if (m_WaitTimer > 0) return;
 	if (m_DetectionGraceTimer > 0) return;
 
 	XMFLOAT3 ghostPos = ghost->GetPos();
@@ -264,18 +289,48 @@ void Busters::CheckState(void)
 	}
 
 	bool hasWall = Field_CheckWallBetween(m_Position, ghostPos);
+	bool isDetected = false; //発見フラグ
 
-	if (!hasWall && m_DistanceToGhost < BUSTERS_PATROL_RANGH)
+	// ヒステリシス（境界でのチラつき防止）
+	float checkChaseRange = BUSTERS_PATROL_RANGH;
+	if (m_State == BUSTERS_CHASE)
 	{
+		checkChaseRange *= 1.2f; // 追跡中は範囲を20%広げる
+	}
+
+	float checkSuspicionRange = BUSTERS_SUSPICION_RANGE;
+	if (m_State == BUSTERS_SUSPICION)
+	{
+		checkSuspicionRange *= 1.2f; // 警戒中も範囲を20%広げる
+	}
+
+
+	if (!hasWall && m_DistanceToGhost < checkChaseRange)
+	{
+		isDetected = true; // 発見フラグ
+		m_KeepStateTimer = KEEP_STATE_TIME; //1秒間は見失わない
+
 		if (m_State != BUSTERS_CHASE)
 		{
 			m_State = BUSTERS_CHASE;
 			this->SetColor(1.0f, 0.0f, 0.0f, 1.0f); // 赤
 			ghost->SetIsDetectedByBuster(true);
 
-			// 発見されたらコンボリセット
-			UI_ScareCombo_Reset();
+			if (m_ReactionCooldown <= 0)
+			{
+				// クールタイムがなければ驚いて硬直する
+				m_WaitTimer = WAIT_TIMER_DEFAULT;         // 1秒硬直
+				m_ReactionCooldown = WAIT_TIMER_COOLDOWN; // 次の30秒間は驚かない（即反応する）
+			}
+			else
+			{
+				// クールタイム中なら硬直せず、すぐに追いかける！
+				m_WaitTimer = 0;
+			}
 		}
+
+		// 発見されたらコンボリセット
+		//UI_ScareCombo_Reset();
 
 		// 距離が近づくにつれ恐怖ゲージを減らす（赤発見時のみ）
 		if (m_DistanceToGhost < BUSTERS_PATROL_RANGH)
@@ -284,17 +339,39 @@ void Busters::CheckState(void)
 			AddScareGauge(reduceAmount);
 		}
 	}
-	else if (!hasWall && m_DistanceToGhost < BUSTERS_SUSPICION_RANGE)
+
+	else if (!hasWall && m_DistanceToGhost < checkSuspicionRange)
 	{
+		isDetected = true; // 発見フラグ
+		m_KeepStateTimer = KEEP_STATE_TIME; //1秒間は見失わない
+
 		if (m_State != BUSTERS_SUSPICION)
 		{
 			m_State = BUSTERS_SUSPICION;
 			this->SetColor(1.0f, 1.0f, 0.0f, 1.0f); // 黄
 			ghost->SetIsDetectedByBuster(false);
+
+			if (m_ReactionCooldown <= 0)
+			{
+				// クールタイムがなければ驚いて硬直する
+				m_WaitTimer = WAIT_TIMER_DEFAULT;         // 1秒硬直
+				m_ReactionCooldown = WAIT_TIMER_COOLDOWN; // 次の30秒間は驚かない（即反応する）
+			}
+			else
+			{
+				m_WaitTimer = 0;
+			}
 		}
 	}
 	else
 	{
+		// 見失った時の処理
+		if (m_KeepStateTimer > 0)
+		{
+			m_KeepStateTimer--;
+			return; // 前の状態（赤や黄）が維持される
+		}
+
 		if (m_State != BUSTERS_SEARCH)
 		{
 			m_State = BUSTERS_SEARCH;
@@ -337,7 +414,7 @@ void Busters::MoveTo(XMFLOAT3 targetPos)
 
 	// --- X軸移動 ---
 	float nextX = m_Position.x + dx * m_MoveSpeed;
-	if (!checkWallCollision(nextX, m_Position.z)) 
+	if (!checkWallCollision(nextX, m_Position.z))
 	{
 		m_Position.x = nextX;
 	}
@@ -425,7 +502,6 @@ XMFLOAT3 GetRandomBusterPos(int floor)
 		}
 
 		// IDが0 (空気) ならスポーンOK
-		// ※家具などがある場所も避けたい場合は家具IDもチェックしてください
 		if (blockID == 0)
 		{
 			// グリッド座標 -> ワールド座標 変換
@@ -600,6 +676,18 @@ void Busters_CheckGaugeEvent(void)
 		if (nextFloor == 1) addCount = 1; // 2階へ行くとき： +1人
 		if (nextFloor == 0) addCount = 2; // 1階へ行くとき： +2人
 
+		for (Busters* buster : g_BustersList[currentFloor])
+		{
+			// 下の階のランダムな位置へ移動
+			XMFLOAT3 newPos = GetRandomBusterPos(nextFloor);
+			buster->SetPos(newPos);
+
+			// 下の階のリストに追加
+			g_BustersList[nextFloor].push_back(buster);
+		}
+		// 現在の階のバスターズを空に
+		g_BustersList[currentFloor].clear();
+
 		for (int i = 0; i < addCount; i++)
 		{
 			if (nextFloor >= 0 && nextFloor < MAP_FLOORS)
@@ -623,7 +711,7 @@ void Busters_CheckGaugeEvent(void)
 		}
 
 		// 下の階へ移動
-		Field_ChangeFloor(nextFloor);
+		//Field_ChangeFloor(nextFloor);
 	}
 	else
 	{

@@ -70,7 +70,7 @@ void Minimap_Initialize(void)
 		L"asset/texture/icon_ghost.png"
 	);
 
-	// バスターズアイコン
+	/*// バスターズアイコン
 	g_BusterIcon = new Sprite(
 		XMFLOAT2(MINIMAP_POS_X, MINIMAP_POS_Y),
 		XMFLOAT2(30.0f, 30.0f), // サイズ調整
@@ -78,7 +78,7 @@ void Minimap_Initialize(void)
 		XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f),
 		BLENDSTATE_ALFA,
 		L"asset/texture/icon_buster.png"
-	);
+	);*/
 }
 
 void Minimap_Finalize(void)
@@ -133,7 +133,7 @@ void Minimap_Draw(void)
 	if (buster)
 	{
 		// 敵のワールド座標をミニマップ座標に変換して描画
-		DrawMiniMapIcon(g_BusterIcon, buster->GetPos().x, buster->GetPos().z);
+		//DrawMiniMapIcon(g_BusterIcon, buster->GetPos().x, buster->GetPos().z);
 	}
 
 	// 4. プレイヤーアイコン描画 (中心)
