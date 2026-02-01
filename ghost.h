@@ -4,6 +4,7 @@
 #include <DirectXMath.h>
 #include "sprite3d.h"
 #include "define.h"
+#include "light.h"
 
 using namespace DirectX;
 
@@ -30,6 +31,7 @@ public:
 	bool m_HasIncreasedMultiplier; // 倍率を加算したか
 
 	Sprite3D* m_pRangeCircle;
+	PointLight* m_pLight;
 
 
 	Ghost(const XMFLOAT3& pos, const XMFLOAT3& scale, const XMFLOAT3& rot, const char* pass)
@@ -44,7 +46,8 @@ public:
 		m_IsDraw(true),
 		m_HasIncreasedMultiplier(false),
 
-		m_pRangeCircle(nullptr)
+		m_pRangeCircle(nullptr),
+		m_pLight(nullptr)
 	{
 	}
 
@@ -54,6 +57,12 @@ public:
 		{
 			delete m_pRangeCircle;
 			m_pRangeCircle = nullptr;
+		}
+
+		if (m_pLight)
+		{
+			delete m_pLight;
+			m_pLight = nullptr;
 		}
 	}
 
@@ -101,6 +110,7 @@ void Ghost_Initialize(ID3D11Device* pDevice, ID3D11DeviceContext* pContext);
 void Ghost_Update(void);
 void Ghost_Draw(void);
 void Ghost_Finalize(void);
+void Ghost_SetLight(void);
 
 // Ghostのゲッター
 Ghost* GetGhost(void);

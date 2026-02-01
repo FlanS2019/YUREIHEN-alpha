@@ -16,6 +16,7 @@
 #include "define.h"
 #include "sound.h"
 #include <algorithm>
+#include "shader.h"
 
 Ghost* g_Ghost = NULL;
 SoundData* g_pScareSound = nullptr;
@@ -62,6 +63,15 @@ void Ghost_Initialize(ID3D11Device* pDevice, ID3D11DeviceContext* pContext)
 	// 検出範囲を表示する円を初期化
 	if (g_Ghost)
 	{
+		g_Ghost->m_pLight = new PointLight(
+			TRUE,
+			XMFLOAT4(0.0f, 0.5f, 0.0f, 1.0f),		// 位置 (Point Light)
+			XMFLOAT4(0.0f, -1.0f, 0.0f, 0.0f),		// 方向 (Dummy)
+			XMFLOAT4(1.0f, 1.0f, 0.9f, 1.0f),		// 拡散光
+			6.0f,									// 減衰距離 (Range)
+			0.8f									// 強度 (Intensity)
+		);
+
 		XMFLOAT3 circlePos = g_Ghost->GetPos();
 		circlePos.y = 0.01f;
 
@@ -85,6 +95,12 @@ void Ghost_Initialize(ID3D11Device* pDevice, ID3D11DeviceContext* pContext)
 void Ghost_Update(void)
 {
 	if (!g_Ghost) return;
+
+	// ライトの更新
+	if (g_Ghost->m_pLight) {
+		XMFLOAT3 ghostPos = g_Ghost->GetPos();
+		g_Ghost->m_pLight->SetPosition(ghostPos.x, ghostPos.y, ghostPos.z);
+	}
 
 	switch (g_Ghost->GetState())
 	{
@@ -203,6 +219,14 @@ void Ghost_Finalize(void)
 	{
 		delete g_Ghost;
 		g_Ghost = NULL;
+	}
+}
+
+void Ghost_SetLight(void)
+{
+	if (g_Ghost && g_Ghost->m_pLight)
+	{
+		Shader_SetPointLight(g_Ghost->m_pLight);
 	}
 }
 

@@ -8,71 +8,72 @@
 // 定数バッファ
 cbuffer Buffer0 : register(b0)
 {
-    float4x4 mtx;
+	float4x4 mtx;
 };
 
 cbuffer Buffer1 : register(b1)
 {
-    float4x4 worldMtx;
+	float4x4 worldMtx;
 };
 
 struct LIGHT
 {
-    bool enable;
-    bool3 dummy;
-    float4 Direction;
-    float4 Diffuse;
-    float4 Ambient;
+	bool enable;
+	bool3 dummy;
+	float4 Position; // ライト位置（ポイントライト用）
+	float4 Direction; // ライト方向（直光源用）
+	float4 Diffuse;
+	float4 Ambient;
+	float4 Params; // x: Range, y: Intensity
 };
 
 cbuffer Buffer2 : register(b2)
 {
-    LIGHT Light;
+	LIGHT Light;
 };
 
 //入力用頂点構造体
 struct VS_INPUT
 {
-    float4 posL : POSITION0;
-    float4 normal : NORMAL0;
-    float4 color : COLOR0;
-    float2 texcoord : TEXCOORD0;
+	float4 posL : POSITION0;
+	float4 normal : NORMAL0;
+	float4 color : COLOR0;
+	float2 texcoord : TEXCOORD0;
+	
 };
 
 //出力用頂点構造体
 struct VS_OUTPUT
 {
-    float4 posH : SV_POSITION;
-    float4 color : COLOR0;
-    float2 texcoord : TEXCOORD0;
-    float4 normal : NORMAL0;        // 法線をピクセルシェーダーに渡す
-    float4 worldPos : TEXCOORD1;    // ワールド座標
+	float4 posH : SV_POSITION;
+	float4 color : COLOR0;
+	float2 texcoord : TEXCOORD0;
+	float4 normal : NORMAL0; // 法線をピクセルシェーダーに渡す
+	float4 worldPos : TEXCOORD1; // ワールド座標
 };
 
 VS_OUTPUT main(VS_INPUT vs_in)
 {
-    VS_OUTPUT vs_out;
+	VS_OUTPUT vs_out;
     
-    // 頂点座標を射影座標へ変換
-    vs_out.posH = mul(vs_in.posL, mtx);
+    //頂点を行列で変換
+	vs_out.posH = mul(vs_in.posL, mtx);
     
-    // テクスチャ座標
-    vs_out.texcoord = vs_in.texcoord;
+    //テクスチャ座標
+	vs_out.texcoord = vs_in.texcoord;
     
     // ワールド座標を計算（ライティング計算用）
-    vs_out.worldPos = mul(vs_in.posL, worldMtx);
+	vs_out.worldPos = mul(vs_in.posL, worldMtx);
     
     // 法線をワールド座標系に変換
-    // 回転行列のみを適用（スケーリングの影響を除く）
-    float3 worldNormal = mul(vs_in.normal.xyz, (float3x3)worldMtx);
+	vs_out.normal = float4(vs_in.normal.xyz, 0.0f);
+	vs_out.normal = mul(vs_out.normal, worldMtx);
+	vs_out.normal = normalize(vs_out.normal);
     
-    // 法線を正規化
-    vs_out.normal = float4(normalize(worldNormal), 0.0f);
+    // 頂点カラーは そのまま出力
+	vs_out.color = vs_in.color;
     
-    // 頂点カラー（そのまま出力）
-    vs_out.color = vs_in.color;
-    
-    return vs_out;
+	return vs_out;
 }
 
 //=============================================================================
