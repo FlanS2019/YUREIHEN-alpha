@@ -13,7 +13,6 @@ using namespace DirectX;
 #include "debug_ostream.h"
 #include <fstream>
 #include "shader.h"
-#include "light.h"
 
 
 static ID3D11VertexShader* g_pVertexShader = nullptr;//頂点シェーダー
@@ -27,9 +26,11 @@ ID3D11Buffer* g_pVSConstantBuffer = nullptr;//定数バッファ1個
 static ID3D11PixelShader* g_pPixelShader = nullptr;//ピクセルシェーダー
 
 static ID3D11Buffer* g_pLightConstantBuffer = nullptr;//定数バッファ1個
-ID3D11Buffer* g_pWorldConstantBuffer = nullptr;//定数バッファ1個
+static ID3D11Buffer* g_pWorldConstantBuffer = nullptr;//定数バッファ1個
 static ID3D11Buffer* g_pMaterialColorBuffer = nullptr;//マテリアル色バッファ
 static ID3D11Buffer* g_pCameraPositionBuffer = nullptr;//カメラ位置バッファ
+
+static LightData g_CurrentLightData;
 
 // 注意！初期化で外部から設定されるもの。Release不要。
 static ID3D11Device* g_pDevice = nullptr;
@@ -56,7 +57,7 @@ bool Shader_Initialize(ID3D11Device* pDevice, ID3D11DeviceContext* pContext)
 	std::ifstream ifs_vs("shader_vertex_2d.cso", std::ios::binary);
 
 	if (!ifs_vs) {
-		MessageBox(nullptr, L"頂点シェーダーの読み込みに失敗しました\n\nshader_vertex_2d.cso", L"エラー", MB_OK);
+		//MessageBox(nullptr, "頂点シェーダーの読み込みに失敗しました\n\nshader_vertex_2d.cso", "エラー", MB_OK);
 		return false;
 	}
 
@@ -65,9 +66,9 @@ bool Shader_Initialize(ID3D11Device* pDevice, ID3D11DeviceContext* pContext)
 	std::streamsize filesize = ifs_vs.tellg(); // ファイルポインタの位置を取得（つまりファイルサイズ）
 	ifs_vs.seekg(0, std::ios::beg); // ファイルポインタを先頭に戻す
 
-	// バイナリデータを格納するためのバッファを確保
+	// バイナリデータを格納するためのバッフェを確保
 	unsigned char* vsbinary_pointer = new unsigned char[filesize];
-	
+
 	ifs_vs.read((char*)vsbinary_pointer, filesize); // バイナリデータを読み込む
 	ifs_vs.close(); // ファイルを閉じる
 
@@ -75,49 +76,28 @@ bool Shader_Initialize(ID3D11Device* pDevice, ID3D11DeviceContext* pContext)
 	hr = g_pDevice->CreateVertexShader(vsbinary_pointer, filesize, nullptr, &g_pVertexShader);
 
 	if (FAILED(hr)) {
-		hal::dout << "Shader_Initialize() : 項点シェーダーの作成に失敗しました" << std::endl;
+		hal::dout << "Shader_Initialize() : 頂点シェーダーの作成に失敗しました" << std::endl;
 		delete[] vsbinary_pointer; // メモリリークしないようにバイナリデータのバッファを解放
 		return false;
 	}
 
-	// 通常の頂点レイアウト定義
+
+	// 頂点レイアウトの定義<<<<<<<NORMAL追加
 	D3D11_INPUT_ELEMENT_DESC layout[] = {
 		{ "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT,    0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0 },
 		{ "NORMAL", 0, DXGI_FORMAT_R32G32B32_FLOAT,    0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0 },
 		{ "COLOR", 0, DXGI_FORMAT_R32G32B32A32_FLOAT,    0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0 },
 		{ "TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT,    0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0 },
 	};
+
+	// 頂点レイアウトの作成
 	hr = g_pDevice->CreateInputLayout(layout, ARRAYSIZE(layout), vsbinary_pointer, filesize, &g_pInputLayout);
-	delete[] vsbinary_pointer;
+	delete[] vsbinary_pointer; // 不要になったので解放
 
-	// --- フィールド専用インスタンスシェーダーの読み込み ---
-	std::ifstream ifs_ivs("shader_field_instance.cso", std::ios::binary);
-	if (ifs_ivs) {
-		ifs_ivs.seekg(0, std::ios::end);
-		std::streamsize ivs_filesize = ifs_ivs.tellg();
-		ifs_ivs.seekg(0, std::ios::beg);
-		unsigned char* ivs_pointer = new unsigned char[ivs_filesize];
-		ifs_ivs.read((char*)ivs_pointer, ivs_filesize);
-		ifs_ivs.close();
-
-		g_pDevice->CreateVertexShader(ivs_pointer, ivs_filesize, nullptr, &g_pInstanceVertexShader);
-
-		// 明示的なオフセット指定で構造体とのズレを防止
-		D3D11_INPUT_ELEMENT_DESC i_layout[] = {
-			{ "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT,    0, 0,  D3D11_INPUT_PER_VERTEX_DATA, 0 },
-			{ "NORMAL",   0, DXGI_FORMAT_R32G32B32_FLOAT,    0, 12, D3D11_INPUT_PER_VERTEX_DATA, 0 },
-			{ "COLOR",    0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, 24, D3D11_INPUT_PER_VERTEX_DATA, 0 },
-			{ "TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT,       0, 40, D3D11_INPUT_PER_VERTEX_DATA, 0 },
-			
-			{ "INSTANCEWORLD", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 1, 0,  D3D11_INPUT_PER_INSTANCE_DATA, 1 },
-			{ "INSTANCEWORLD", 1, DXGI_FORMAT_R32G32B32A32_FLOAT, 1, 16, D3D11_INPUT_PER_INSTANCE_DATA, 1 },
-			{ "INSTANCEWORLD", 2, DXGI_FORMAT_R32G32B32A32_FLOAT, 1, 32, D3D11_INPUT_PER_INSTANCE_DATA, 1 },
-			{ "INSTANCEWORLD", 3, DXGI_FORMAT_R32G32B32A32_FLOAT, 1, 48, D3D11_INPUT_PER_INSTANCE_DATA, 1 },
-		};
-		g_pDevice->CreateInputLayout(i_layout, ARRAYSIZE(i_layout), ivs_pointer, ivs_filesize, &g_pInstanceInputLayout);
-		delete[] ivs_pointer;
+	if (FAILED(hr)) {
+		hal::dout << "Shader_Initialize() : 頂点レイアウトの作成に失敗しました" << std::endl;
+		return false;
 	}
-
 
 	// 頂点シェーダー用定数バッファの作成
 	D3D11_BUFFER_DESC buffer_desc{};
@@ -125,15 +105,16 @@ bool Shader_Initialize(ID3D11Device* pDevice, ID3D11DeviceContext* pContext)
 	buffer_desc.BindFlags = D3D11_BIND_CONSTANT_BUFFER; // バインドフラグ
 
 	g_pDevice->CreateBuffer(&buffer_desc, nullptr, &g_pVSConstantBuffer);
-	g_pContext->VSSetConstantBuffers(0, 1, &g_pVSConstantBuffer); // 定数バッファを頂点シェーダーにセット
-
 	g_pDevice->CreateBuffer(&buffer_desc, nullptr, &g_pWorldConstantBuffer);
-	g_pContext->VSSetConstantBuffers(1, 1, &g_pWorldConstantBuffer);  // ワールド行列
-
-	// Light構造体のサイズを16バイト境界に修正
-	buffer_desc.ByteWidth = (sizeof(Light) + 15) & ~0xF;
+	
+	buffer_desc.ByteWidth = sizeof(LightData); // ライト用バッファサイズ
 	g_pDevice->CreateBuffer(&buffer_desc, nullptr, &g_pLightConstantBuffer);
-	g_pContext->VSSetConstantBuffers(2, 1, &g_pLightConstantBuffer);  // ライト情報
+
+	// 定数バッファを初期状態（ライト無効）で初期化
+	g_CurrentLightData = {};
+	g_CurrentLightData.enable = FALSE;
+	g_CurrentLightData.ambient = { 0.3f, 0.3f, 0.3f, 1.0f };
+	g_pContext->UpdateSubresource(g_pLightConstantBuffer, 0, nullptr, &g_CurrentLightData, 0, 0);
 
 	// マテリアル色バッファの作成
 	buffer_desc.ByteWidth = sizeof(XMFLOAT4);
@@ -146,26 +127,54 @@ bool Shader_Initialize(ID3D11Device* pDevice, ID3D11DeviceContext* pContext)
 	// 事前コンパイル済みピクセルシェーダーの読み込み
 	std::ifstream ifs_ps("shader_pixel_2d.cso", std::ios::binary);
 	if (!ifs_ps) {
-		MessageBox(nullptr, L"ピクセルシェーダーの読み込みに失敗しました\n\nshader_pixel_2d.cso", L"エラー", MB_OK);
 		return false;
 	}
 
 	ifs_ps.seekg(0, std::ios::end);
-	filesize = ifs_ps.tellg();
+	std::streamsize ps_filesize = ifs_ps.tellg();
 	ifs_ps.seekg(0, std::ios::beg);
 
-	unsigned char* psbinary_pointer = new unsigned char[filesize];
-	ifs_ps.read((char*)psbinary_pointer, filesize);
+	unsigned char* psbinary_pointer = new unsigned char[ps_filesize];
+	ifs_ps.read((char*)psbinary_pointer, ps_filesize);
 	ifs_ps.close();
 
 	// ピクセルシェーダーの作成
-	hr = g_pDevice->CreatePixelShader(psbinary_pointer, filesize, nullptr, &g_pPixelShader);
-
-	delete[] psbinary_pointer; // バイナリデータのバッファを解放
+	hr = g_pDevice->CreatePixelShader(psbinary_pointer, ps_filesize, nullptr, &g_pPixelShader);
+	delete[] psbinary_pointer;
 
 	if (FAILED(hr)) {
 		hal::dout << "Shader_Initialize() : ピクセルシェーダーの作成に失敗しました" << std::endl;
 		return false;
+	}
+
+	// --- フィールド専用インスタンスシェーダーの読み込み（任意） ---
+	std::ifstream ifs_ivs("shader_field_instance.cso", std::ios::binary);
+	if (ifs_ivs) {
+		ifs_ivs.seekg(0, std::ios::end);
+		std::streamsize ivs_filesize = ifs_ivs.tellg();
+		ifs_ivs.seekg(0, std::ios::beg);
+		unsigned char* ivs_pointer = new unsigned char[ivs_filesize];
+		ifs_ivs.read((char*)ivs_pointer, ivs_filesize);
+		ifs_ivs.close();
+
+		hr = g_pDevice->CreateVertexShader(ivs_pointer, ivs_filesize, nullptr, &g_pInstanceVertexShader);
+
+		if (SUCCEEDED(hr)) {
+			// インスタンス描画用のレイアウト定義
+			D3D11_INPUT_ELEMENT_DESC instLayout[] = {
+				{ "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT,    0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0 },
+				{ "NORMAL", 0, DXGI_FORMAT_R32G32B32_FLOAT,    0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0 },
+				{ "COLOR", 0, DXGI_FORMAT_R32G32B32A32_FLOAT,    0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0 },
+				{ "TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT,    0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0 },
+				// インスタンスデータ (スロット1)
+				{ "INSTANCEWORLD", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 1, 0, D3D11_INPUT_PER_INSTANCE_DATA, 1 },
+				{ "INSTANCEWORLD", 1, DXGI_FORMAT_R32G32B32A32_FLOAT, 1, 16, D3D11_INPUT_PER_INSTANCE_DATA, 1 },
+				{ "INSTANCEWORLD", 2, DXGI_FORMAT_R32G32B32A32_FLOAT, 1, 32, D3D11_INPUT_PER_INSTANCE_DATA, 1 },
+				{ "INSTANCEWORLD", 3, DXGI_FORMAT_R32G32B32A32_FLOAT, 1, 48, D3D11_INPUT_PER_INSTANCE_DATA, 1 },
+			};
+			g_pDevice->CreateInputLayout(instLayout, ARRAYSIZE(instLayout), ivs_pointer, ivs_filesize, &g_pInstanceInputLayout);
+		}
+		delete[] ivs_pointer;
 	}
 
 	return true;
@@ -212,39 +221,31 @@ void Shader_SetWorldMatrix(const DirectX::XMMATRIX& matrix)
 	g_pContext->UpdateSubresource(g_pWorldConstantBuffer, 0, nullptr, &transpose, 0, 0);
 }
 
-void Shader_SetLight(Light* light)
+void Shader_SetPointLight(PointLight* light)
 {
-	if (!light) return;
+	if (light) {
+		g_CurrentLightData.enable = light->enable;
+		g_CurrentLightData.position = light->position;
+		g_CurrentLightData.direction = light->direction;
+		g_CurrentLightData.diffuse = light->diffuse;
+		g_CurrentLightData.params.x = light->range;
+		g_CurrentLightData.params.y = light->intensity;
+	}
+	else {
+		g_CurrentLightData.enable = FALSE;
+	}
+	g_pContext->UpdateSubresource(g_pLightConstantBuffer, 0, nullptr, &g_CurrentLightData, 0, 0);
+}
 
-	// HLSL側の float4 ベース構造体定義に合わせた一時構造体
-	struct ShaderLightData
-	{
-		XMFLOAT4 type_enable_dummy;	// x=type, y=enable, z=dummy, w=dummy
-		XMFLOAT4 position;
-		XMFLOAT4 direction;
-		XMFLOAT4 diffuse;
-		XMFLOAT4 ambient;
-		XMFLOAT4 params;			// x=range, y=intensity, z=coneAngle, w=falloff
-	} data;
-
-	// データをfloat4パック形式にコピー
-	data.type_enable_dummy.x = (float)light->GetLightType();
-	data.type_enable_dummy.y = (float)light->GetEnable();
-	data.type_enable_dummy.z = 0.0f;
-	data.type_enable_dummy.w = 0.0f;
-	
-	data.position = light->GetPosition();
-	data.direction = light->GetDirection();
-	data.diffuse = light->GetDiffuse();
-	data.ambient = light->GetAmbient();
-	
-	data.params.x = light->GetRange();
-	data.params.y = light->GetIntensity();
-	data.params.z = light->GetConeAngle();
-	data.params.w = light->GetFalloff();
-
-	// 定数バッファにデータをセット
-	g_pContext->UpdateSubresource(g_pLightConstantBuffer, 0, nullptr, &data, 0, 0);
+void Shader_SetAmbientLight(AmbientLight* ambient)
+{
+	if (ambient) {
+		g_CurrentLightData.ambient = ambient->color;
+	}
+	else {
+		g_CurrentLightData.ambient = { 0.3f, 0.3f, 0.3f, 1.0f };
+	}
+	g_pContext->UpdateSubresource(g_pLightConstantBuffer, 0, nullptr, &g_CurrentLightData, 0, 0);
 }
 
 void Shader_SetMaterialColor(const DirectX::XMFLOAT4& color)
@@ -273,7 +274,7 @@ void Shader_Begin()
 	g_pContext->VSSetConstantBuffers(0, 1, &g_pVSConstantBuffer);
 	g_pContext->VSSetConstantBuffers(1, 1, &g_pWorldConstantBuffer);  // ワールド行列をセット
 	g_pContext->VSSetConstantBuffers(2, 1, &g_pLightConstantBuffer);  // ライト情報を頂点シェーダーに設定
-	
+
 	// ピクセルシェーダーにもライト定数バッファとマテリアル色バッファを設定
 	g_pContext->PSSetConstantBuffers(2, 1, &g_pLightConstantBuffer);
 	g_pContext->PSSetConstantBuffers(3, 1, &g_pMaterialColorBuffer);
@@ -292,7 +293,7 @@ void Shader_BeginInstance()
 	g_pContext->VSSetConstantBuffers(0, 1, &g_pVSConstantBuffer);
 	g_pContext->VSSetConstantBuffers(1, 1, &g_pWorldConstantBuffer);
 	g_pContext->VSSetConstantBuffers(2, 1, &g_pLightConstantBuffer);
-	
+
 	g_pContext->PSSetConstantBuffers(2, 1, &g_pLightConstantBuffer);
 	g_pContext->PSSetConstantBuffers(3, 1, &g_pMaterialColorBuffer);
 	g_pContext->PSSetConstantBuffers(4, 1, &g_pCameraPositionBuffer);

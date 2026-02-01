@@ -1,4 +1,4 @@
-// フィールド専用・インスタンシング描画用頂点シェーダー [shader_field_instance.hlsl]
+//フィールド専用・インスタンシング描画用頂点シェーダー [shader_field_instance.hlsl]
 
 // 定数バッファ
 cbuffer Buffer0 : register(b0)
