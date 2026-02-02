@@ -41,11 +41,22 @@ Busters::Busters(const XMFLOAT3& pos, const XMFLOAT3& scale, const XMFLOAT3& rot
 	m_DistanceToGhost(0.0f),
 	m_ReactionCooldown(0),
 	m_KeepStateTimer(0),
-	m_Icon(nullptr)
+	m_Icon(nullptr),
+	m_pHeadlight(nullptr)
 {
 	m_Icon = new Billboard();
 
 	m_Icon->Initialize({ 0.0f, 0.0f, 0.0f }, { 0.7f, 0.7f }, { 0.0f, 0.0f, 0.0f }, true);
+
+	// ヘッドライト初期化
+	m_pHeadlight = new PointLight(
+		TRUE,
+		XMFLOAT4(pos.x, pos.y + 1.6f, pos.z, 1.0f),	// 頭部位置
+		XMFLOAT4(0.0f, 0.0f, 1.0f, 0.0f),				// 方向（ダミー）
+		XMFLOAT4(1.0f, 1.0f, 0.95f, 1.0f),				// 白～微黄色
+		10.0f,											// 範囲
+		2.0f											// 強度
+	);
 }
 
 Busters::~Busters()
@@ -54,6 +65,12 @@ Busters::~Busters()
 	{
 		delete m_Icon;
 		m_Icon = nullptr;
+	}
+
+	if (m_pHeadlight)
+	{
+		delete m_pHeadlight;
+		m_pHeadlight = nullptr;
 	}
 }
 
@@ -69,6 +86,24 @@ void Busters::Update(void)
 	if (m_ReactionCooldown > 0)
 	{
 		m_ReactionCooldown--;
+	}
+
+	// ヘッドライトの位置を頭部に追従させる
+	if (m_pHeadlight)
+	{
+		XMFLOAT3 headPos = m_Position;
+		headPos.y += 2.0f;	// 頭部の高さ
+
+		// バスターズの向き（Y軸回転）を考慮して前方にオフセット
+		float rotY = GetRot().y;
+		float radY = XMConvertToRadians(rotY);
+		float forwardOffsetX = sinf(radY) * 0.8f;	// 前方X方向オフセット
+		float forwardOffsetZ = cosf(radY) * 0.8f;	// 前方Z方向オフセット
+
+		headPos.x += -forwardOffsetX;
+		headPos.z += -forwardOffsetZ;
+
+		m_pHeadlight->SetPosition(headPos.x, headPos.y, headPos.z);
 	}
 
 	// アイコンの状態更新
@@ -657,7 +692,14 @@ void Busters_CheckGaugeEvent(void)
 
 	int currentFloor = Field_GetCurrentFloor();
 
-	if (currentFloor > 0)
+	if (currentFloor == END_FLOOR - 1)
+	{
+		// -------------------------------------------------
+		// クリア階（3階）の場合 -> ゲーム勝利
+		// -------------------------------------------------
+		StartFade(SCENE_ANM_WIN);
+	}
+	else if (currentFloor > 0)
 	{
 		// -------------------------------------------------
 		// 2階以上の場合 -> 下の階へ逃げる
@@ -708,6 +750,16 @@ void Busters_CheckGaugeEvent(void)
 					g_BustersList[nextFloor].push_back(newBuster);
 				}
 			}
+		}
+
+		// 幽霊も下の階へ自動移動
+		Ghost* ghost = GetGhost();
+		if (ghost)
+		{
+			// 現在の幽霊の位置をそのまま保持して下の階に移動
+			XMFLOAT3 ghostPos = ghost->GetPos();
+			Field_ChangeFloor(nextFloor);
+			ghost->SetPos(ghostPos);
 		}
 
 		// 下の階へ移動

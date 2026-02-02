@@ -8,6 +8,7 @@
 #include "component.h"
 #include "define.h"
 #include "billboard.h"
+#include "light.h"
 #include <vector>
 using namespace DirectX;
 
@@ -39,6 +40,7 @@ private:
 	float m_DistanceToGhost;
 
 	Billboard* m_Icon;
+	PointLight* m_pHeadlight;
 
 public:
 	Busters(const XMFLOAT3& pos, const XMFLOAT3& scale, const XMFLOAT3& rot, const char* pass);
@@ -52,7 +54,7 @@ public:
 	void OnLured(XMFLOAT3 targetPos);
 	void OnStopped(void);
 	
-	
+	PointLight* GetHeadlight(void) const { return m_pHeadlight; }
 	void SetIsGhostDiscover(bool discover);
 };
 
