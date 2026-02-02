@@ -13,7 +13,6 @@
 #include <map>
 #include <cstring> // memcpy
 #include <windows.h> // GetFileAttributesA
-
 using namespace DirectX;
 
 static std::unordered_map<std::string, MODEL*> g_ModelCache;

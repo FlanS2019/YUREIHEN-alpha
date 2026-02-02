@@ -1,4 +1,5 @@
-﻿#include "animation.h"
+﻿#include "main.h"
+#include "animation.h"
 #include "sprite.h"
 #include "keyboard.h"
 #include "fade.h"
@@ -7,9 +8,10 @@
 #include "component.h"
 #include "shader.h"
 #include "direct3d.h"
-#include "main.h"
+#include "define.h"
 #include <timeapi.h>
 #pragma comment(lib, "winmm.lib")
+using namespace DirectX;
 
 // グローバル変数
 static ID3D11Device* g_pDevice = NULL;

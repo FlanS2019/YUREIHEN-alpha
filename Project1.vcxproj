@@ -101,7 +101,7 @@
       <ConformanceMode>true</ConformanceMode>
       <AdditionalOptions>/utf-8</AdditionalOptions>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
-      <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
+      <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -138,7 +138,7 @@
       <ConformanceMode>true</ConformanceMode>
       <AdditionalOptions>/utf-8</AdditionalOptions>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
-      <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
+      <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -263,16 +263,11 @@
   </ItemGroup>
   <ItemGroup>
     <None Include=".github\workflows\release.yml" />
+    <None Include="apply_fix.ps1" />
     <None Include="convert_to_utf8bom.ps1" />
     <None Include="DirectXTex.inl" />
-    <None Include="fbxexport.md" />
-    <None Include="MODEL_CPP_IMPROVEMENTS.md" />
-    <None Include="MODEL_RENDER_CHECKLIST.md" />
     <None Include="SchemToArray\block_definitions.json" />
-  </ItemGroup>
-  <ItemGroup>
-    <Library Include="DirectXTex_Debug.lib" />
-    <Library Include="DirectXTex_Release.lib" />
+    <None Include="shader-refactor-plan.md" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

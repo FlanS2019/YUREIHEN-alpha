@@ -18,6 +18,8 @@ static float g_lastPitch = 0.0f;  // 前フレームのピッチ
 static float g_lastYaw = 0.0f;    // 前フレームのヨー
 static XMFLOAT3 g_targetPos = { 0.0f, 0.0f, 0.0f };  // 注視対象位置
 
+static float g_CameraSensitivity = 0.1f;	// 感度調整用変数
+
 void Camera_Initialize(void)
 {
 
@@ -135,6 +137,16 @@ void Camera_SetTargetPos(XMFLOAT3 targetPos)
 float Camera_GetYaw(void)
 {
 	return g_yaw;
+}
+
+void Camera_SetSensitivity(float sensitivity)
+{
+	g_CameraSensitivity = sensitivity;
+}
+
+float Camera_GetSensitivity()
+{
+	return g_CameraSensitivity;
 }
 
 Camera* GetCamera(void)

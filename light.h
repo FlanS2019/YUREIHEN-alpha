@@ -11,135 +11,77 @@
    - SpotLight クラス：追従型スポットライト管理
 
 ==============================================================================*/
-#ifndef LIGHT_H
-#define LIGHT_H
-
+#pragma once
+using namespace DirectX;
+#define NOMINMAX
 #include <Windows.h>
 #include <DirectXMath.h>
 
-using namespace DirectX;
-
-// ================================================================================
-// Light クラス：基本ライト（平行光源、ポイントライト、スポットライト対応）
-// ================================================================================
-
-class Light
+// シェーダー定数バッファ用構造体
+struct LightData
 {
-protected:
-	BOOL enable;	// ライトの有効無効
-	BOOL dummy[3];	// パディング
-	XMFLOAT4 position;		// ライト位置（ポイントライト・スポットライト用）
-	XMFLOAT4 direction;		// ライトの向き（正規化される）
-	XMFLOAT4 diffuse;		// 光の色
-	XMFLOAT4 ambient;		// 環境光
-	
-public:
-	// 平行光源コンストラクタ
-	Light(BOOL e, XMFLOAT4 direction, XMFLOAT4 diffuse, XMFLOAT4 ambient);
-
-	// ポイントライト/スポットライトコンストラクタ
-	Light(BOOL e, XMFLOAT4 position, XMFLOAT4 direction, XMFLOAT4 diffuse, XMFLOAT4 ambient);
-
-	// 有効/無効設定
-	void SetEnable(BOOL enable) { this->enable = enable; }
-	BOOL GetEnable() const { return enable; }
-	
-	// ポイントライト用メソッド
-	void SetPosition(XMFLOAT4 pos) { this->position = pos; }
-	void SetPosition(float x, float y, float z) { 
-		this->position = XMFLOAT4(x, y, z, 1.0f); 
-	}
-	XMFLOAT4 GetPosition() const { return position; }
-	
-	// 方向設定用メソッド
-	void SetDirection(XMFLOAT4 dir);
-	XMFLOAT4 GetDirection() const { return direction; }
-	
-	// ディフューズ色設定
-	void SetDiffuse(XMFLOAT4 diffuse) { this->diffuse = diffuse; }
-	XMFLOAT4 GetDiffuse() const { return diffuse; }
-	
-	// アンビエント設定
-	void SetAmbient(XMFLOAT4 ambient) { this->ambient = ambient; }
-	XMFLOAT4 GetAmbient() const { return ambient; }
-	
-private:
-	// ベクトルの正規化ヘルパー
-	static void NormalizeVector(XMFLOAT4& vec);
+	BOOL enable;
+	BOOL dummy[3];
+	XMFLOAT4 position;
+	XMFLOAT4 direction;
+	XMFLOAT4 diffuse;
+	XMFLOAT4 ambient;
+	XMFLOAT4 params;	// x: range, y: intensity
 };
-
-// ================================================================================
-// AmbientLight クラス：環境光管理
-// ================================================================================
 
 class AmbientLight
 {
-private:
-	BOOL enable;			// 環境光の有効無効
-	XMFLOAT4 ambientColor;	// 環境光の色
-
 public:
-	// コンストラクタ
-	AmbientLight(BOOL enable, XMFLOAT4 color);
-	
-	// デストラクタ
-	~AmbientLight() = default;
-	
-	// 有効/無効設定
+	XMFLOAT4 color;
+
+	AmbientLight() : color(0.3f, 0.3f, 0.3f, 1.0f) {}
+	AmbientLight(XMFLOAT4 color) : color(color) {}
+
+	void SetColor(XMFLOAT4 color) { this->color = color; }
+	XMFLOAT4 GetColor() const { return color; }
+};
+
+class PointLight
+{
+public:
+	BOOL enable;
+	XMFLOAT4 position;
+	XMFLOAT4 direction;
+	XMFLOAT4 diffuse;
+	float range;
+	float intensity;
+
+	PointLight() : enable(FALSE), position{ 0,0,0,1 }, direction{ 0,0,1,0 }, diffuse{ 1,1,1,1 }, range(10.0f), intensity(1.0f) {}
+
+	PointLight(BOOL e, XMFLOAT4 pos, XMFLOAT4 dir, XMFLOAT4 diffuse, float range = 10.0f, float intensity = 1.0f)
+		: enable(e), position(pos), diffuse(diffuse), range(range), intensity(intensity)
+	{
+		SetDirection(dir);
+	}
+
 	void SetEnable(BOOL enable) { this->enable = enable; }
 	BOOL GetEnable() const { return enable; }
-	
-	// 環境光色設定
-	void SetColor(XMFLOAT4 color) { this->ambientColor = color; }
-	void SetColor(float r, float g, float b, float a = 1.0f) {
-		this->ambientColor = XMFLOAT4(r, g, b, a);
+
+	void SetPosition(XMFLOAT4 pos) { this->position = pos; }
+	void SetPosition(float x, float y, float z) { this->position = XMFLOAT4(x, y, z, 1.0f); }
+	XMFLOAT4 GetPosition() const { return this->position; }
+
+	void SetDirection(XMFLOAT4 dir) {
+		float len = sqrtf(dir.x * dir.x + dir.y * dir.y + dir.z * dir.z);
+		if (len > 0.0f) {
+			this->direction = XMFLOAT4(dir.x / len, dir.y / len, dir.z / len, dir.w);
+		}
+		else {
+			this->direction = dir;
+		}
 	}
-	XMFLOAT4 GetColor() const { return ambientColor; }
+	XMFLOAT4 GetDirection() const { return this->direction; }
+
+	void SetDiffuse(XMFLOAT4 color) { this->diffuse = color; }
+	XMFLOAT4 GetDiffuse() const { return this->diffuse; }
+
+	void SetRange(float range) { this->range = range; }
+	void SetIntensity(float intensity) { this->intensity = intensity; }
+	float GetRange() const { return this->range; }
+	float GetIntensity() const { return this->intensity; }
 };
-
-// ================================================================================
-// SpotLight クラス：追従型スポットライト
-// ================================================================================
-
-class SpotLight
-{
-private:
-	Light* light;				// ライトオブジェクト
-	float heightOffset;			// 追従対象からの高さオフセット
-	XMFLOAT3 lastTrackedPos;	// 最後に追従した位置
-
-public:
-	// コンストラクタ
-	SpotLight(float heightOffset = 2.0f);
-	
-	// デストラクタ
-	~SpotLight();
-	
-	// ライト情報を追従対象に基づいて更新
-	void UpdatePosition(XMFLOAT3 targetPos);
-	
-	// ライトオブジェクトの取得
-	Light* GetLight() const { return light; }
-	
-	// 有効/無効設定
-	void SetEnable(BOOL enable);
-	BOOL GetEnable() const;
-	
-	// 色設定
-	void SetColor(float r, float g, float b, float a = 1.0f);
-	void SetColor(XMFLOAT4 color);
-	XMFLOAT4 GetColor() const;
-	
-	// 方向設定
-	void SetDirection(XMFLOAT4 dir);
-	XMFLOAT4 GetDirection() const;
-	
-	// 高さオフセット設定
-	void SetHeightOffset(float offset) { this->heightOffset = offset; }
-	float GetHeightOffset() const { return heightOffset; }
-	
-	// 現在のライト位置を取得
-	XMFLOAT4 GetPosition() const;
-};
-
-#endif // LIGHT_H

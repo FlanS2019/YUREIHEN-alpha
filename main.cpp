@@ -9,11 +9,11 @@
 #include <windows.h>
 #include <algorithm>
 #include <chrono>
+#include "main.h"
 #include "scene.h"
 #include "direct3d.h"
 #include "shader.h"
 #include "debug_ostream.h"
-#include "main.h"
 #include "keyboard.h"
 #include "mouse.h"
 #include "sprite.h"
@@ -21,17 +21,24 @@
 #include "sound.h"
 #include "ghost.h"
 #include <iostream>
+using namespace DirectX;
+
+// ハイパフォーマンスGPUを使用するためのヒント
+extern "C" {
+	_declspec(dllexport) DWORD NvOptimusEnablement = 0x00000001;
+	_declspec(dllexport) int AmdPowerXpressRequestHighPerformance = 1;
+}
 
 //==================================
 //グローバル変数
 //==================================
 
-//#ifndef _DEBUG
+#ifndef _DEBUG
 int g_CountFPS;
 long long g_UpdateTime = 0;
 long long g_DrawTime = 0;
 wchar_t g_DebugStr[2048];
-//#endif
+#endif
 static int g_TargetFPS = FPS;  // 目標FPS（デフォルトは FPS マクロの値）
 
 #pragma comment(lib, "winmm.lib")
@@ -194,13 +201,13 @@ int APIENTRY WinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance,
 					if (Ghost* pGhost = GetGhost())
 					{
 						DirectX::XMFLOAT3 pos = pGhost->GetPos();
-						hal::dout << "drop! Total: " << totalTime 
-								  << "us (Upd: " << g_UpdateTime << "us, Drw: " << g_DrawTime 
-								  << "us) | Ghost Pos: X=" << pos.x << ", Y=" << pos.y << ", Z=" << pos.z << std::endl;
+						hal::dout << "drop! Total: " << totalTime
+							<< "us (Upd: " << g_UpdateTime << "us, Drw: " << g_DrawTime
+							<< "us) | Ghost Pos: X=" << pos.x << ", Y=" << pos.y << ", Z=" << pos.z << std::endl;
 					}
 				}
 
-				//#ifndef _DEBUG
+#if defined(_DEBUG)
 				//ウィンドウキャプションへ情報を表示（0.2秒に1回更新）
 				if ((dwCurrentTime - dwTitleUpdateTime) >= 200)
 				{
@@ -208,7 +215,7 @@ int APIENTRY WinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance,
 					swprintf(g_DebugStr, sizeof(g_DebugStr) / sizeof(wchar_t), L"FPS: %d | Total: %lldus | Upd: %lldus | Drw: %lldus", g_CountFPS, g_UpdateTime + g_DrawTime, g_UpdateTime, g_DrawTime);
 					SetWindowText(hWnd, g_DebugStr);
 				}
-				//#endif
+#endif
 
 				keycopy();
 
@@ -290,7 +297,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 		hal::dout << "終了確認\n" << std::endl;
 
 		//if (MessageBox(hWnd, "本当に終了してよろしいですか", "確認", MB_OKCANCEL | MB_DEFBUTTON2) == IDOK)
-		if(true)
+		if (true)
 		{
 			//OKが押された
 			DestroyWindow(hWnd);

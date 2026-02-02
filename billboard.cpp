@@ -152,6 +152,11 @@ void Billboard::Draw(void)
 {
 	if (!m_VertexBuffer || !m_Texture) return;
 
+	// 状態の設定
+	SetBlendState(BLENDSTATE_ALFA);
+	SetDepthWrite(false); // 深度書き込みを無効にして透明部分の重なりによる不自然な遮蔽を防ぐ
+	Shader_Begin();
+
 	// 1. カメラ情報の取得
 	XMMATRIX view = GetCamera()->GetView();
 	XMMATRIX proj = GetCamera()->GetProjection();
@@ -191,4 +196,7 @@ void Billboard::Draw(void)
 	context->PSSetShaderResources(0, 1, &m_Texture);
 
 	context->Draw(m_VertexCount, 0);
+
+	// 状態を戻す
+	SetDepthWrite(true);
 }

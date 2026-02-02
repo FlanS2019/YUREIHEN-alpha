@@ -2,11 +2,13 @@
 #include "keyboard.h"
 #include "fade.h"
 #include "debug_ostream.h"
+#include "define.h"
 #include "LoseAnim.h"
 #include "sound.h"
 #include <timeapi.h>
 #include <cmath>	// 揺れ用の sinf（揺れを消す場合は残しても問題ありません）
 #pragma comment(lib, "winmm.lib")
+using namespace DirectX;
 
 // グローバル変数
 static ID3D11Device* g_pDevice = NULL;

@@ -1,3 +1,9 @@
+/*=============================================================================
+
+   2D描画用ピクセルシェーダー [shader_pixel_2d.hlsl]
+--------------------------------------------------------------------------------
+
+==============================================================================*/
 Texture2D g_Texture : register(t0);
 SamplerState g_SamplerState : register(s0);
 
@@ -5,9 +11,11 @@ struct LIGHT
 {
 	bool enable;
 	bool3 dummy;
-	float4 Direction;
+	float4 Position; // ライト位置（ポイントライト用）
+	float4 Direction; // ライト方向（直光源用）
 	float4 Diffuse;
 	float4 Ambient;
+	float4 Params; // x: Range, y: Intensity
 };
 
 cbuffer Buffer2 : register(b2)
@@ -20,102 +28,66 @@ cbuffer Buffer3 : register(b3)
 	float4 MaterialColor;
 };
 
-cbuffer Buffer4 : register(b4)
-{
-	float4 CameraPos;
-};
-
 struct PS_INPUT
 {
 	float4 posH : SV_POSITION;
 	float4 color : COLOR0;
 	float2 texcoord : TEXCOORD0;
-	float4 normal : NORMAL0;
-	float4 worldPos : TEXCOORD1;
+	float4 normal : NORMAL0; // 法線（ワールド空間）
+	float4 worldPos : TEXCOORD1; // ワールド座標
 };
 
 float4 main(PS_INPUT ps_in) : SV_TARGET
 {
+    // テクスチャからサンプル
 	float4 texColor = g_Texture.Sample(g_SamplerState, ps_in.texcoord);
     
+    // マテリアルカラー安全チェック
 	float4 materialColorSafe = MaterialColor;
 	if (MaterialColor.r == 0.0f && MaterialColor.g == 0.0f && MaterialColor.b == 0.0f)
 	{
 		materialColorSafe = float4(1.0f, 1.0f, 1.0f, 1.0f);
 	}
     
+    // ベースカラー = テクスチャカラー × マテリアルカラー × 頂点カラー
 	float4 baseColor = texColor * materialColorSafe * ps_in.color;
     
-	// ライトが無効な場合は環境光のみ適用して返す
-	if (!Light.enable)
+    // ライティング計算
+	if (Light.enable)
 	{
-		float3 ambientOnly = Light.Ambient.rgb;
-		if (ambientOnly.r < 0.1f && ambientOnly.g < 0.1f && ambientOnly.b < 0.1f)
-		{
-			ambientOnly = float3(1.0f, 1.0f, 1.0f);
-		}
-		baseColor.rgb *= ambientOnly;
-		return baseColor;
-	}
-    
-	// Blinn-Phongライティング計算
-	{
+        // 法線を正規化
 		float3 normal = normalize(ps_in.normal.xyz);
-		
-		// ライト方向（既に正規化済み）
-		float3 lightDir = normalize(-Light.Direction.xyz);
-		
-		// ビュー方向：ワールド座標で計算
-		float3 viewDir = normalize(CameraPos.xyz - ps_in.worldPos.xyz);
         
-		// ディフューズ成分（Lambert）
-		float lambertDiffuse = max(dot(normal, lightDir), 0.0f);
-		float3 diffuse = lambertDiffuse * Light.Diffuse.rgb;
+		float3 diffuseColor = float3(0, 0, 0);
+		float3 ambientColor = Light.Ambient.rgb;
         
-		// スペキュラ成分（Blinn-Phong）
-		// MaterialColor.w で光沢有効フラグを制御
-		// w > 0.5 なら光沢あり、w <= 0.5 なら光沢なし
-		float3 specular = float3(0.0f, 0.0f, 0.0f);
-		if (MaterialColor.w > 0.5f)
+        // Position の w=1 ならポイントライト、w=0 なら直光源
+		if (Light.Position.w > 0.5f)
 		{
-			float3 halfDir = normalize(lightDir + viewDir);
-			float blinnSpecular = max(dot(normal, halfDir), 0.0f);
+            // ポイントライト：ピクセルからライトへの方向を計算
+			float3 lightVec = Light.Position.xyz - ps_in.worldPos.xyz;
+			float dist = length(lightVec);
+			float3 lightDir = normalize(lightVec);
+
+			// 距離減衰の計算
+			float range = max(0.1f, Light.Params.x);
+			float intensity = Light.Params.y;
+			float attenuation = saturate(1.0f - (dist / range));
+			attenuation = pow(attenuation, 2.0f); // 減衰を急にする
 			
-			// 光沢度パラメータ：高いほど鏡面的（反射光がより集中）
-			float shininess = 16.0f;
-			float specularIntensity = pow(blinnSpecular, shininess);
-			
-			// スペキュラ強度：反射光の強さ
-			float specularStrength = 2.0f;
-			specular = specularIntensity * specularStrength * Light.Diffuse.rgb;
+			float lambert = max(dot(normal, lightDir), 0.0f);
+			diffuseColor = lambert * Light.Diffuse.rgb * attenuation * intensity;
 		}
 		else
 		{
-			// グレア効果：拡散光的なスペキュラで全体的に明るくする
-			float3 halfDir = normalize(lightDir + viewDir);
-			float blinnSpecular = max(dot(normal, halfDir), 0.0f);
-			
-			// 低い光沢度で柔らかいグレア
-			float shininess = 2.0f;
-			float specularIntensity = pow(blinnSpecular, shininess);
-			
-			// グレア強度：弱めに設定
-			float specularStrength = 0.3f;
-			specular = specularIntensity * specularStrength * Light.Diffuse.rgb;
+            // 直光源：方向をそのまま使用
+			float3 lightDir = normalize(-Light.Direction.xyz);
+			float lambert = max(dot(normal, lightDir), 0.0f);
+			diffuseColor = lambert * Light.Diffuse.rgb;
 		}
         
-		// 環境光（ディフューズをサポート）
-		float3 ambient = Light.Ambient.rgb;
-		if (ambient.r < 0.01f && ambient.g < 0.01f && ambient.b < 0.01f)
-		{
-			ambient = float3(1.0f, 1.0f, 1.0f);
-		}
-        
-		// 最終的な色に合成
-		// テクスチャ色 × (ディフューズ + 環境光) + スペキュラ（環境光の影響を受けない）
-		float3 finalColor = baseColor.rgb * (diffuse + ambient) + specular;
-		
-		baseColor.rgb = finalColor;
+        // 最終的なライティングカラーの算出
+		baseColor.rgb *= (diffuseColor + ambientColor);
 	}
     
 	return baseColor;

@@ -8,6 +8,7 @@
 #include <vector>
 using namespace DirectX;
 
+
 #define CLOCK_POS_X (120.0f)
 #define CLOCK_POS_Y (120.0f)
 #define CLOCK_SIZE (300.0f)

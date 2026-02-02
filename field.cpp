@@ -1,4 +1,5 @@
-﻿#include "field.h"
+﻿#include "define.h"
+#include "field.h"
 #include "texture.h"
 #include "Camera.h"
 #include "sprite.h"
@@ -12,11 +13,10 @@
 #include <map>
 #include <cmath> 
 #include <algorithm> // sort用に必要
-
+#include "keyboard.h"
 #include "Floor1.h"
 #include "Floor2.h"
 #include "Floor3.h"
-
 using namespace DirectX;
 
 // グローバル変数
@@ -24,6 +24,9 @@ static ID3D11Device* g_pDevice = NULL;
 static ID3D11DeviceContext* g_pContext = NULL;
 static ID3D11Buffer* g_VertexBuffer = NULL;
 static ID3D11Buffer* g_IndexBuffer = NULL;
+
+// 壁の表示フラグ（true=表示, false=非表示）
+static bool g_DebugShowWalls = true;
 
 // インスタンス描画用バッファ
 #define MAX_INSTANCES (5000)
@@ -196,6 +199,11 @@ void Field_Initialize(ID3D11Device* pDevice, ID3D11DeviceContext* pContext)
 
 void Field_Update(void)
 {
+	if (Keyboard_IsKeyDownTrigger(KK_M))
+	{
+		g_DebugShowWalls = !g_DebugShowWalls;
+	}
+
 	// まず「今、隠すべき場所」を計算
 	static uint8_t shouldHide[MAP_LENGTH][MAP_WIDTH];
 	memset(shouldHide, 0, sizeof(shouldHide));
@@ -303,6 +311,10 @@ void Field_Draw(void)
 	Shader_SetMatrix(VP);
 
 	XMFLOAT3 cameraPos = pCamera->GetPos();
+	XMFLOAT3 cameraAt = pCamera->GetAtPos();
+	XMVECTOR vCamPos = XMLoadFloat3(&cameraPos);
+	XMVECTOR vCamAt = XMLoadFloat3(&cameraAt);
+	XMVECTOR vForward = XMVector3Normalize(XMVectorSubtract(vCamAt, vCamPos));
 
 	D3D11_VIEWPORT vp;
 	UINT numVP = 1;
@@ -346,12 +358,27 @@ void Field_Draw(void)
 	{
 		if (mapData.isHidden) continue;
 
-		float dx = mapData.pos.x - cameraPos.x;
-		float dy = mapData.pos.y - cameraPos.y;
-		float dz = mapData.pos.z - cameraPos.z;
-		if (dx * dx + dy * dy + dz * dz > 2500.0f) continue;
+		// 壁（Y座標が0以上＝地面より上にあるブロック）の場合、フラグがfalseなら描画をスキップする
+		// 地面（pos.y = -1.0f）は常に表示する
+		if (!g_DebugShowWalls && mapData.pos.y >= 0.0f)
+		{
+			continue;
+		}
 
 		XMVECTOR vPos = XMLoadFloat3(&mapData.pos);
+		XMVECTOR vToPos = XMVectorSubtract(vPos, vCamPos);
+
+		// 距離によるカリング
+		float distSq;
+		XMStoreFloat(&distSq, XMVector3LengthSq(vToPos));
+		if (distSq > 2500.0f) continue;
+
+		// 背面カリング (カメラの後ろにあるものは描画しない)
+		float dot;
+		XMStoreFloat(&dot, XMVector3Dot(vToPos, vForward));
+		if (dot < -2.0f) continue; // 余裕を持って-2.0f
+
+		// 錐体カリング (Frustum Culling) もどき
 		XMVECTOR vClipPos = XMVector3TransformCoord(vPos, VP);
 
 		XMFLOAT3 clipPos;
@@ -580,6 +607,7 @@ std::vector<XMFLOAT3> Field_FindPath(XMFLOAT3 start, XMFLOAT3 end)
 	int dirX[] = { 0, 0, -1, 1 };
 	int dirZ[] = { -1, 1, 0, 0 };
 	bool found = false;
+	int maxCalculationSteps = 1000;
 
 	while (!openList.empty())
 	{
@@ -635,6 +663,8 @@ std::vector<XMFLOAT3> Field_FindPath(XMFLOAT3 start, XMFLOAT3 end)
 			cx = n.parentX;
 			cz = n.parentZ;
 			steps++;
+
+			if (steps > maxCalculationSteps) break;
 		}
 	}
 

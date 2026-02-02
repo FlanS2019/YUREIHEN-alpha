@@ -1,23 +1,21 @@
-﻿#include "main.h"
-#include "debugdraw.h"
+﻿#include "debugdraw.h"
+#include "define.h"
 #include "Camera.h"
 #include "shader.h"
 #include "keyboard.h"
 #include "sprite3d.h"
 #include "anim_sprite3d.h"
 #include "light.h"
+#include "direct3d.h"
+using namespace DirectX;
 
 AnimSprite3D* g_AnimModelDraw = NULL;  // アニメーション対応モデル
 static bool isUse = DEBUG_DRAW;  // 処理の有効/無効を制御
-static SpotLight* g_SpotLight = nullptr;  // スポットライト用オブジェクト
 
 void DebugDraw_Initialize(void)
 {
 	if (!isUse) return;
-	
-	// スポットライト初期化
-	g_SpotLight = new SpotLight(2.0f);  // 高さオフセット 2.0f
-	
+
 	// アニメーション対応モデル（cyancube.fbx）
 	g_AnimModelDraw = new AnimSprite3D(
 		{ 0.0f, 0.0f, 0.0f },			//位置
@@ -30,7 +28,7 @@ void DebugDraw_Initialize(void)
 void DebugDraw_Update(void)
 {
 	if (!isUse || !g_AnimModelDraw) return;
-	
+
 	// アニメーション更新（毎フレーム呼び出し）
 	const float dt = 1.0f / 60.0f;  // 60FPS想定
 	g_AnimModelDraw->UpdateAnimation(dt);
@@ -40,7 +38,7 @@ void DebugDraw_Update(void)
 	const float PI = 3.14159265f;
 	float cameraYaw = Camera_GetYaw();
 	float cameraYawRad = cameraYaw * PI / 180.0f;
-	
+
 	// 移動速度
 	const float moveSpeed = 0.028f;
 	XMFLOAT3 moveDirection = { 0.0f, 0.0f, 0.0f };
@@ -82,24 +80,18 @@ void DebugDraw_Update(void)
 	currentPos.z += moveDirection.z;
 	g_AnimModelDraw->SetPos(currentPos);
 
-	// スポットライトをモデルに追従させる
-	if (g_SpotLight)
-	{
-		g_SpotLight->UpdatePosition(currentPos);
-	}
-
 	// 移動方向に応じてモデルをy軸回転させる
 	if (isMoving)
 	{
 		// 移動方向のy軸回転角度を計算（ラジアンから度数法へ変換）
 		float targetAngle = atan2f(-moveDirection.x, -moveDirection.z) * 180.0f / PI;
 		XMFLOAT3 currentRotation = g_AnimModelDraw->GetRot();
-		
+
 		// 角度の差分を計算（-180度～180度の範囲に正規化）
 		float angleDiff = targetAngle - currentRotation.y;
 		while (angleDiff > 180.0f) angleDiff -= 360.0f;
 		while (angleDiff < -180.0f) angleDiff += 360.0f;
-		
+
 		// 目標角度に向けてスムーズに回転（回転速度は5度/フレーム）
 		const float rotationSpeed = 5.0f;
 		if (fabsf(angleDiff) > rotationSpeed)
@@ -110,9 +102,9 @@ void DebugDraw_Update(void)
 		{
 			currentRotation.y = targetAngle;
 		}
-		
+
 		g_AnimModelDraw->SetRot(currentRotation);
-		
+
 		g_AnimModelDraw->PlayAnimationByName("run", true);	// 移動中は走るアニメーション
 	}
 	else
@@ -125,63 +117,17 @@ void DebugDraw_Update(void)
 void DebugDraw_Draw(void)
 {
 	if (!isUse || !g_AnimModelDraw) return;
-	
+
 	g_AnimModelDraw->Draw();  // アニメーション対応モデルを描画
 }
 
 void DebugDraw_Finalize(void)
 {
 	if (!isUse) return;
-	
+
 	if (g_AnimModelDraw)
 	{
 		delete g_AnimModelDraw;
 		g_AnimModelDraw = NULL;
 	}
-	
-	if (g_SpotLight)
-	{
-		delete g_SpotLight;
-		g_SpotLight = nullptr;
-	}
-}
-
-void DebugDraw_SetSpotLightColor(float r, float g, float b)
-{
-	if (g_SpotLight)
-	{
-		g_SpotLight->SetColor(r, g, b, 1.0f);
-	}
-}
-
-void DebugDraw_SetSpotLightHeight(float height)
-{
-	if (g_SpotLight)
-	{
-		g_SpotLight->SetHeightOffset(height);
-		
-		// 直ちに適用したい場合は、モデル位置を取得して更新
-		if (g_AnimModelDraw)
-		{
-			XMFLOAT3 modelPos = g_AnimModelDraw->GetPos();
-			g_SpotLight->UpdatePosition(modelPos);
-		}
-	}
-}
-
-void DebugDraw_EnableSpotLight(bool enable)
-{
-	if (g_SpotLight)
-	{
-		g_SpotLight->SetEnable(enable ? TRUE : FALSE);
-	}
-}
-
-Light* DebugDraw_GetSpotLight(void)
-{
-	if (g_SpotLight)
-	{
-		return g_SpotLight->GetLight();
-	}
-	return nullptr;
 }

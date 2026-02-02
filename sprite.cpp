@@ -1,15 +1,15 @@
 ﻿//sprite.cpp
 #include "sprite.h"
 #include "shader.h"
-#include "main.h"
 #include "texture.h"
 #include "light.h"
+#include "define.h"
 #include <cmath>
+using namespace DirectX;
 
 //グローバル変数
 static constexpr int NUM_VERTEX = 6; // 使用できる最大頂点数
 static ID3D11Buffer* g_pVertexBuffer = nullptr; // 頂点バッファ
-static Light* g_p2DLight = nullptr; // 2D描画用ライト（常に明るい）
 // 注意！初期化で外部から設定されるもの。Release不要。
 static ID3D11Device* g_pDevice = nullptr;
 static ID3D11DeviceContext* g_pContext = nullptr;
@@ -31,14 +31,6 @@ void Sprite_Initialize()
 	bd.BindFlags = D3D11_BIND_VERTEX_BUFFER;
 	bd.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
 	g_pDevice->CreateBuffer(&bd, NULL, &g_pVertexBuffer);
-
-	// 2D描画用ライト作成（常に白で明るい）
-	g_p2DLight = new Light(
-		TRUE,
-		XMFLOAT4(0.0f, -1.0f, 0.0f, 0.0f),
-		XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f),
-		XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f)
-	);
 }
 
 //----------------------------
@@ -49,11 +41,6 @@ void Sprite_Finalize()
 	if (g_pVertexBuffer) {
 		g_pVertexBuffer->Release();
 		g_pVertexBuffer = nullptr;
-	}
-
-	if (g_p2DLight) {
-		delete g_p2DLight;
-		g_p2DLight = nullptr;
 	}
 }
 
@@ -70,13 +57,14 @@ void Sprite_BeginDraw2D()
 	// スクリーン座標用の射影行列を設定
 	Shader_SetMatrix(XMMatrixOrthographicOffCenterLH(0.0f, SCREEN_WIDTH, SCREEN_HEIGHT, 0.0f, 0.0f, 1.0f));
 
+	// 2D描画用にワールド行列を単位行列にリセット
+	Shader_SetWorldMatrix(XMMatrixIdentity());
+
 	// 2D描画用にマテリアル色を白に設定
 	Shader_SetMaterialColor({ 1.0f, 1.0f, 1.0f, 1.0f });
 
-	// 2D描画用ライトを設定（常に明るい）
-	if (g_p2DLight) {
-		Shader_SetLight(g_p2DLight);
-	}
+	// 2D描画用にライトを無効化
+	Shader_SetPointLight(nullptr);
 
 	g_pDevice = Direct3D_GetDevice();
 	g_pContext = Direct3D_GetDeviceContext();
@@ -105,9 +93,7 @@ void Sprite_Single_Draw(XMFLOAT2 pos, XMFLOAT2 size,float rot, XMFLOAT4 color, B
 		Shader_Begin();
 		Shader_SetMatrix(XMMatrixOrthographicOffCenterLH(0.0f, SCREEN_WIDTH, SCREEN_HEIGHT, 0.0f, 0.0f, 1.0f));
 		Shader_SetMaterialColor({ 1.0f, 1.0f, 1.0f, 1.0f });
-		if (g_p2DLight) {
-			Shader_SetLight(g_p2DLight);
-		}
+		Shader_SetPointLight(nullptr); // ライトを無効化
 	}
 
 	// テクスチャ設定
@@ -138,7 +124,7 @@ void Sprite_Single_Draw(XMFLOAT2 pos, XMFLOAT2 size,float rot, XMFLOAT4 color, B
 		float rx = lx[i] * co - ly[i] * si;
 		float ry = lx[i] * si + ly[i] * co;
 		v[i].position = { rx + pos.x, ry + pos.y, 0.0f };
-		v[i].normal = { 0.0f, 0.0f, 0.0f };
+		v[i].normal = { 0.0f, 0.0f, -1.0f }; // 法線を設定（NaN回避とライティング用）
 		v[i].color = color;
 	}
 
@@ -189,9 +175,7 @@ void Sprite_Split_Draw(XMFLOAT2 pos, XMFLOAT2 size, float rot, XMFLOAT4 color, B
 		Shader_Begin();
 		Shader_SetMatrix(XMMatrixOrthographicOffCenterLH(0.0f, SCREEN_WIDTH, SCREEN_HEIGHT, 0.0f, 0.0f, 1.0f));
 		Shader_SetMaterialColor({ 1.0f, 1.0f, 1.0f, 1.0f });
-		if (g_p2DLight) {
-			Shader_SetLight(g_p2DLight);
-		}
+		Shader_SetPointLight(nullptr); // ライトを無効化
 	}
 
 	// テクスチャ設定
@@ -222,7 +206,7 @@ void Sprite_Split_Draw(XMFLOAT2 pos, XMFLOAT2 size, float rot, XMFLOAT4 color, B
 		float rx = lx[i] * co - ly[i] * si;
 		float ry = lx[i] * si + ly[i] * co;
 		v[i].position = { rx + pos.x, ry + pos.y, 0.0f };
-		v[i].normal = { 0.0f, 0.0f, 0.0f };
+		v[i].normal = { 0.0f, 0.0f, -1.0f }; // 法線を設定（NaN回避とライティング用）
 		v[i].color = color;
 	}
 

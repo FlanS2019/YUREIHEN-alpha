@@ -11,17 +11,15 @@
 #include "font.h"
 #include "direct3d.h"
 #include "shader.h"
-#include "main.h"
 #include "light.h"
+#include "define.h"
 #include <cstdlib>
 #include <cstring>
 #include <d3d11.h>
 #include <d3dcompiler.h>
+using namespace DirectX;
 
 #pragma comment(lib, "d3dcompiler.lib")
-
-// 2D描画用ライト（フォント描画用）
-static Light* g_pFontLight = nullptr;
 
 FontRenderer::FontRenderer(XMFLOAT2 pos, float fontSize, float rotation,
 	XMFLOAT4 color, const std::string& text)
@@ -34,16 +32,6 @@ FontRenderer::FontRenderer(XMFLOAT2 pos, float fontSize, float rotation,
 	m_pAtlasData(nullptr), m_pFontData(nullptr), m_pFontInfo(nullptr),
 	m_FontAscender(0), m_FontDescender(0)
 {
-	// フォント用ライト初期化（最初の1回のみ）
-	if (!g_pFontLight) {
-		g_pFontLight = new Light(
-			TRUE,
-			XMFLOAT4(0.0f, -1.0f, 0.0f, 0.0f),
-			XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f),
-			XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f)
-		);
-	}
-
 	// シェーダー作成
 	if (!CreateShaders()) {
 		return;
@@ -418,13 +406,14 @@ void FontRenderer::Draw() {
 	// スクリーン座標用の射影行列を設定
 	Shader_SetMatrix(XMMatrixOrthographicOffCenterLH(0.0f, SCREEN_WIDTH, SCREEN_HEIGHT, 0.0f, 0.0f, 1.0f));
 
+	// 2D描画用にワールド行列をリセット
+	Shader_SetWorldMatrix(XMMatrixIdentity());
+
 	// マテリアル色を設定
 	Shader_SetMaterialColor(m_Color);
 
-	// 2D描画用ライト（既作成のグローバルライトを設定）
-	if (g_pFontLight) {
-		Shader_SetLight(g_pFontLight);
-	}
+	// ライトを無効化
+	Shader_SetPointLight(nullptr);
 
 	// テクスチャ設定
 	pContext->PSSetShaderResources(0, 1, &m_pSRV);

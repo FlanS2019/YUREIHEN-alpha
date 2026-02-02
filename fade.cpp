@@ -1,13 +1,15 @@
 ﻿// =========================================================
 // fade.cpp フェード制御
 // =========================================================
-#include "main.h"
 #include "fade.h"
 #include "sprite.h"
 #include "scene.h"
 #include "texture.h"
 #include "shader.h"
+#include "define.h"
 #include "direct3d.h"
+using namespace DirectX;
+
 
 // モジュール内の単一インスタンス
 static Fade* g_pFade = nullptr;

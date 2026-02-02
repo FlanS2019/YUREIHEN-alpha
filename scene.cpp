@@ -1,5 +1,4 @@
-﻿#include "main.h"
-#include "scene.h"
+﻿#include "scene.h"
 #include "game.h"
 #include "animation.h"
 #include "WinAnim.h"
@@ -10,6 +9,8 @@
 #include "texture.h"
 #include "title.h"
 #include "result.h"
+#include "define.h"
+using namespace DirectX;
 
 //DIRECT_STARTがtrueの場合、最初からゲームシーンにする
 #if DIRECT_START

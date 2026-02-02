@@ -2,8 +2,8 @@
 #include <d3d11.h>
 #include <DirectXMath.h>
 #include <string>
-
 using namespace DirectX;
+
 
 
 enum class BILLBOARD_ICON

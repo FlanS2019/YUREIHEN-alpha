@@ -13,12 +13,10 @@
 #include <d3d11.h>
 #include <mmsystem.h>
 #include "DirectXTex.h"
+using namespace DirectX;
 #include "light.h"
 
-using namespace DirectX;
-
-
-#if _DEBUG
+#if defined(_DEBUG)
 #pragma comment(lib, "DirectXTex_Debug.lib")
 #else
 #pragma comment(lib, "DirectXTex_Release.lib")
@@ -43,6 +41,7 @@ unsigned int Direct3D_GetBackBufferHeight(); // バックバッファの高さ�
 
 
 void	SetDepthTest(bool flg);	//深度テスト切り替え
+void	SetDepthWrite(bool flg); // 深度書き込み切り替え
 
 
 enum	BLENDSTATE

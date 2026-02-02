@@ -1,5 +1,7 @@
 ﻿#pragma once
-#include "main.h"
+#include "direct3d.h"
+#include "define.h"
+using namespace DirectX;
 
 class Camera
 {
@@ -69,3 +71,7 @@ void Camera_Draw(void);
 float Camera_GetYaw(void);
 void Camera_SetTargetPos(XMFLOAT3 targetPos);  // 注視対象位置を設定
 Camera* GetCamera(void);
+
+//マウス感度設定
+void Camera_SetSensitivity(float sensitivity);
+float Camera_GetSensitivity();

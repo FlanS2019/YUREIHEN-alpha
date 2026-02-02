@@ -8,6 +8,7 @@
 #include <timeapi.h>
 #include <cmath>
 #include <vector>
+#include "define.h"
 #pragma comment(lib, "winmm.lib")
 
 //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
