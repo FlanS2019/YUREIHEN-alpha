@@ -48,6 +48,11 @@ public:
 	XMFLOAT3 GetRotation(void) { return m_Rot; }
 
 	void SetColor(XMFLOAT4 color) { m_Color = color; }
+	XMFLOAT4 GetColor(void) { return m_Color; }
+
+	// ライティング無効化オプション
+	void SetIgnoreLighting(bool ignore) { m_IgnoreLighting = ignore; }
+	bool GetIgnoreLighting(void) const { return m_IgnoreLighting; }
 
 private:
 	ID3D11Buffer* m_VertexBuffer;
@@ -59,6 +64,7 @@ private:
 	XMFLOAT4 m_Color;
 
 	bool m_IsDoubleSided;
+	bool m_IgnoreLighting; // ライティング無効化フラグ
 	int m_VertexCount;
 
 	// 現在のアイコンタイプを覚えておく

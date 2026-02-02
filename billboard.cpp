@@ -16,7 +16,8 @@ struct BILLBOARD_VERTEX
 Billboard::Billboard()
 	: m_Pos(0, 0, 0), m_Size(1, 1), m_Rot(0, 0, 0), m_IsDoubleSided(false),
 	m_Texture(nullptr), m_VertexBuffer(nullptr), m_VertexCount(0),
-	m_CurrentIconType(BILLBOARD_ICON::NONE) // 初期状態
+	m_CurrentIconType(BILLBOARD_ICON::NONE),
+	m_IgnoreLighting(true) // デフォルトでライティング無効化
 {
 	m_Color = XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f);
 }
@@ -38,6 +39,7 @@ void Billboard::Initialize(XMFLOAT3 pos, XMFLOAT2 size, XMFLOAT3 rot, bool isDou
 	m_Rot = rot;
 	m_IsDoubleSided = isDoubleSided;
 	m_Color = XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f);
+	m_IgnoreLighting = true; // ライティング無効化を有効
 
 	// バッファ作成
 	CreateBuffer();
@@ -108,23 +110,26 @@ void Billboard::CreateBuffer(void)
 	float h = 0.5f;
 	std::vector<BILLBOARD_VERTEX> vList;
 
+	// ライティング無効化時は頂点カラーを白に設定
+	XMFLOAT4 vertexColor = m_IgnoreLighting ? XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f) : XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f);
+
 	// 表面
-	vList.push_back({ { -w,  h, 0.0f }, { 0.0f, 0.0f, -1.0f }, { 1,1,1,1 }, { 0.0f, 0.0f } });
-	vList.push_back({ {  w,  h, 0.0f }, { 0.0f, 0.0f, -1.0f }, { 1,1,1,1 }, { 1.0f, 0.0f } });
-	vList.push_back({ { -w, -h, 0.0f }, { 0.0f, 0.0f, -1.0f }, { 1,1,1,1 }, { 0.0f, 1.0f } });
-	vList.push_back({ { -w, -h, 0.0f }, { 0.0f, 0.0f, -1.0f }, { 1,1,1,1 }, { 0.0f, 1.0f } });
-	vList.push_back({ {  w,  h, 0.0f }, { 0.0f, 0.0f, -1.0f }, { 1,1,1,1 }, { 1.0f, 0.0f } });
-	vList.push_back({ {  w, -h, 0.0f }, { 0.0f, 0.0f, -1.0f }, { 1,1,1,1 }, { 1.0f, 1.0f } });
+	vList.push_back({ { -w,  h, 0.0f }, { 0.0f, 0.0f, -1.0f }, vertexColor, { 0.0f, 0.0f } });
+	vList.push_back({ {  w,  h, 0.0f }, { 0.0f, 0.0f, -1.0f }, vertexColor, { 1.0f, 0.0f } });
+	vList.push_back({ { -w, -h, 0.0f }, { 0.0f, 0.0f, -1.0f }, vertexColor, { 0.0f, 1.0f } });
+	vList.push_back({ { -w, -h, 0.0f }, { 0.0f, 0.0f, -1.0f }, vertexColor, { 0.0f, 1.0f } });
+	vList.push_back({ {  w,  h, 0.0f }, { 0.0f, 0.0f, -1.0f }, vertexColor, { 1.0f, 0.0f } });
+	vList.push_back({ {  w, -h, 0.0f }, { 0.0f, 0.0f, -1.0f }, vertexColor, { 1.0f, 1.0f } });
 
 	// 裏面
 	if (m_IsDoubleSided)
 	{
-		vList.push_back({ {  w,  h, 0.0f }, { 0.0f, 0.0f, 1.0f }, { 1,1,1,1 }, { 1.0f, 0.0f } });
-		vList.push_back({ { -w,  h, 0.0f }, { 0.0f, 0.0f, 1.0f }, { 1,1,1,1 }, { 0.0f, 0.0f } });
-		vList.push_back({ {  w, -h, 0.0f }, { 0.0f, 0.0f, 1.0f }, { 1,1,1,1 }, { 1.0f, 1.0f } });
-		vList.push_back({ {  w, -h, 0.0f }, { 0.0f, 0.0f, 1.0f }, { 1,1,1,1 }, { 1.0f, 1.0f } });
-		vList.push_back({ { -w,  h, 0.0f }, { 0.0f, 0.0f, 1.0f }, { 1,1,1,1 }, { 0.0f, 0.0f } });
-		vList.push_back({ { -w, -h, 0.0f }, { 0.0f, 0.0f, 1.0f }, { 1,1,1,1 }, { 0.0f, 1.0f } });
+		vList.push_back({ {  w,  h, 0.0f }, { 0.0f, 0.0f, 1.0f }, vertexColor, { 1.0f, 0.0f } });
+		vList.push_back({ { -w,  h, 0.0f }, { 0.0f, 0.0f, 1.0f }, vertexColor, { 0.0f, 0.0f } });
+		vList.push_back({ {  w, -h, 0.0f }, { 0.0f, 0.0f, 1.0f }, vertexColor, { 1.0f, 1.0f } });
+		vList.push_back({ {  w, -h, 0.0f }, { 0.0f, 0.0f, 1.0f }, vertexColor, { 1.0f, 1.0f } });
+		vList.push_back({ { -w,  h, 0.0f }, { 0.0f, 0.0f, 1.0f }, vertexColor, { 0.0f, 0.0f } });
+		vList.push_back({ { -w, -h, 0.0f }, { 0.0f, 0.0f, 1.0f }, vertexColor, { 0.0f, 1.0f } });
 	}
 
 	m_VertexCount = (int)vList.size();
@@ -154,7 +159,8 @@ void Billboard::Draw(void)
 
 	// 状態の設定
 	SetBlendState(BLENDSTATE_ALFA);
-	SetDepthWrite(false); // 深度書き込みを無効にして透明部分の重なりによる不自然な遮蔽を防ぐ
+	SetDepthWrite(false);
+
 	Shader_Begin();
 
 	// 1. カメラ情報の取得
@@ -179,13 +185,14 @@ void Billboard::Draw(void)
 	// ワールド行列の完成
 	XMMATRIX world = matScale * matRot * matBillboard * matTrans;
 
-	// 3.ワールド・ビュー・プロジェクションを全部かけ合わせる (WVP行列)
+	// 3. ワールド・ビュー・プロジェクションを全部かけ合わせる (WVP行列)
 	XMMATRIX wvp = world * view * proj;
 
 	Shader_SetMatrix(wvp);
-
 	Shader_SetWorldMatrix(world);
 
+	// Billboard のマテリアルカラーを白に設定（ライティング影響を最小化）
+	Shader_SetMaterialColor({ 1.0f, 1.0f, 1.0f, 1.0f });
 
 	// 4. 描画
 	ID3D11DeviceContext* context = Direct3D_GetDeviceContext();
