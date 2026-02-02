@@ -24,8 +24,7 @@ using namespace DirectX;
 #include <windows.h>
 #include <string> // to_string用
 
-Light* MainLight;
-AmbientLight* g_pAmbientLight = nullptr;
+static AmbientLight* g_pAmbientLight = nullptr;
 static SoundData* g_pBGM = nullptr;
 
 static int g_NextFloorID = -1;
@@ -51,8 +50,7 @@ void Game_Initialize(ID3D11Device* pDevice, ID3D11DeviceContext* pContext)
 {
 	if (!pDevice || !pContext) return;
 
-	MainLight = new Light(TRUE, XMFLOAT4(0.0f, -1.0f, -1.0f, 1.0f), XMFLOAT4(0.2f, 0.2f, 0.2f, 1.0f), XMFLOAT4(0.6f, 0.6f, 0.6f, 1.0f));
-	g_pAmbientLight = new AmbientLight(TRUE, XMFLOAT4(1.0f, 1.0f, 1.0f, 0.0f));
+	g_pAmbientLight = new AmbientLight(XMFLOAT4(0.3f, 0.3f, 0.3f, 1.0f));
 
 	Camera_Initialize();
 	Ghost_Initialize(pDevice, pContext);
@@ -176,6 +174,7 @@ void Game_Update(void)
 	// ========================================================
 
 	Ghost_Update();
+
 	Camera_Update();
 	Shader_SetCameraPos(GetCamera()->GetPos());
 	Field_Update();
@@ -189,9 +188,12 @@ void Game_Update(void)
 
 void Game_Draw(void)
 {
-	MainLight->SetEnable(true);
-	Shader_SetLight(MainLight);
+	//3D描画の前に深度テストを有効にする
 	SetDepthTest(true);
+
+	// ライト情報のセット
+	Shader_SetAmbientLight(g_pAmbientLight);
+	Ghost_SetLight();
 
 	Field_Draw();
 	Busters_Draw();
@@ -226,14 +228,6 @@ void Game_Finalize(void)
 		g_pBGM = nullptr;
 	}
 
-	// 解放
-	if (g_pPauseBG) delete g_pPauseBG;
-	if (g_pButtonResume) delete g_pButtonResume;
-	if (g_pButtonVolume) delete g_pButtonVolume;
-	if (g_pButtonBright) delete g_pButtonBright;
-	if (g_pButtonTitle) delete g_pButtonTitle;
-
-	delete MainLight;
 	if (g_pAmbientLight) {
 		delete g_pAmbientLight;
 		g_pAmbientLight = nullptr;
