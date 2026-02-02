@@ -69,3 +69,4 @@ void BustersLured(XMFLOAT3 pos);
 void BustersStopped(void);
 void Busters_CheckGaugeEvent(void);
 void Busters_UpdateFloorChangeSequence(void);
+void Busters_SetLight(void);

@@ -31,7 +31,7 @@
 //=== フィールド関連定数 ===
 #define MAP_FLOORS (3)
 #define START_FLOOR (3)// 階の数字をそのまま入れる（使用時に-1）
-#define END_FLOOR (2) // クリア階（3階：インデックス2）。ここで恐怖ゲージMAXでクリア
+#define END_FLOOR (3) // ここで恐怖ゲージMAXでクリア
 
 //=== Camera 関連定数 ===
 #define PITCH_LIMIT_LOOK_UP    (25.0f)   // 上を見る限界（カメラが下がる限界）: 床埋まり防止
@@ -79,10 +79,10 @@
 
 //=== スコア関連定数 ===
 #define SCARE_GAUGE_MAX (100.0f)
-#define SCORE_LURE (1.0f) // 引き寄せスコア
-#define SCORE_STOP (1.0f) // 停止スコア
-#define SCORE_SCARE (3.0f) // 驚かせスコア
-#define BUSTER_GAUGE_REDUCTION (0.05f) // バスターに見つかったときのゲージ減少値（1フレームあたり）
+#define SCORE_LURE (0.5f) // 引き寄せスコア
+#define SCORE_STOP (0.5f) // 停止スコア
+#define SCORE_SCARE (2.45f) // 驚かせスコア
+#define BUSTER_GAUGE_REDUCTION (0.07f) // バスターに見つかったときのゲージ減少値（1フレームあたり）
 
 //=== UI_ScareCombo 関連定数 ===
 #define SCARECOMBO_POS_X (SCREEN_WIDTH - 110.0f)

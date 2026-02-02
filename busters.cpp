@@ -788,3 +788,16 @@ void Busters::Draw(void)
 		m_Icon->Draw();
 	}
 }
+
+// =================================================================
+// バスターズのライト設定
+// =================================================================
+void Busters_SetLight(void)
+{
+	Busters* pBuster = GetBusters();
+	if (!pBuster || !pBuster->GetHeadlight()) return;
+
+	// バスターズのヘッドライト位置を更新してシェーダーに設定
+	PointLight* pHeadlight = pBuster->GetHeadlight();
+	Shader_SetPointLight(pHeadlight);
+}
