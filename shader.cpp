@@ -44,6 +44,17 @@ static SHADER_TYPE g_CurrentShaderType = SHADER_TYPE_NONE;
 static ID3D11Device* g_pDevice = nullptr;
 static ID3D11DeviceContext* g_pContext = nullptr;
 
+// 定数バッファの更新用ヘルパー関数
+template<typename T>
+static void UpdateConstantBuffer(ID3D11Buffer* buffer, const T& data)
+{
+	if (!buffer || !g_pContext) return;
+	D3D11_MAPPED_SUBRESOURCE msr;
+	if (SUCCEEDED(g_pContext->Map(buffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &msr))) {
+		memcpy(msr.pData, &data, sizeof(T));
+		g_pContext->Unmap(buffer, 0);
+	}
+}
 
 bool Shader_Initialize(ID3D11Device* pDevice, ID3D11DeviceContext* pContext)
 {
@@ -109,20 +120,22 @@ bool Shader_Initialize(ID3D11Device* pDevice, ID3D11DeviceContext* pContext)
 
 	// 頂点シェーダー用定数バッファの作成
 	D3D11_BUFFER_DESC buffer_desc{};
-	buffer_desc.ByteWidth = sizeof(XMFLOAT4X4); // バッファのサイズ //<<<<<<<<<<XMFLOAT4X4に変更
-	buffer_desc.BindFlags = D3D11_BIND_CONSTANT_BUFFER; // バインドフラグ
+	buffer_desc.Usage = D3D11_USAGE_DYNAMIC;            // 頻繁な更新に適した設定
+	buffer_desc.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
+	buffer_desc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE; // CPUからの書き込みを許可
 
+	buffer_desc.ByteWidth = sizeof(XMFLOAT4X4);
 	g_pDevice->CreateBuffer(&buffer_desc, nullptr, &g_pVSConstantBuffer);
 	g_pDevice->CreateBuffer(&buffer_desc, nullptr, &g_pWorldConstantBuffer);
 	
-	buffer_desc.ByteWidth = sizeof(LightData); // ライト用バッファサイズ
+	buffer_desc.ByteWidth = sizeof(LightData);
 	g_pDevice->CreateBuffer(&buffer_desc, nullptr, &g_pLightConstantBuffer);
 
 	// 定数バッファを初期状態（ライト無効）で初期化
 	g_CurrentLightData = {};
 	g_CurrentLightData.enable = FALSE;
 	g_CurrentLightData.ambient = { 0.3f, 0.3f, 0.3f, 1.0f };
-	g_pContext->UpdateSubresource(g_pLightConstantBuffer, 0, nullptr, &g_CurrentLightData, 0, 0);
+	UpdateConstantBuffer(g_pLightConstantBuffer, g_CurrentLightData);
 
 	// マテリアル色バッファの作成
 	buffer_desc.ByteWidth = sizeof(XMFLOAT4);
@@ -214,7 +227,7 @@ void Shader_SetMatrix(const DirectX::XMMATRIX& matrix)
 	XMStoreFloat4x4(&transpose, XMMatrixTranspose(matrix));
 
 	// 定数バッファに行列をセット
-	g_pContext->UpdateSubresource(g_pVSConstantBuffer, 0, nullptr, &transpose, 0, 0);
+	UpdateConstantBuffer(g_pVSConstantBuffer, transpose);
 }
 
 void Shader_SetWorldMatrix(const DirectX::XMMATRIX& matrix)
@@ -226,7 +239,7 @@ void Shader_SetWorldMatrix(const DirectX::XMMATRIX& matrix)
 	XMStoreFloat4x4(&transpose, XMMatrixTranspose(matrix));
 
 	// 定数バッファに行列をセット
-	g_pContext->UpdateSubresource(g_pWorldConstantBuffer, 0, nullptr, &transpose, 0, 0);
+	UpdateConstantBuffer(g_pWorldConstantBuffer, transpose);
 }
 
 void Shader_SetPointLight(PointLight* light)
@@ -242,7 +255,7 @@ void Shader_SetPointLight(PointLight* light)
 	else {
 		g_CurrentLightData.enable = FALSE;
 	}
-	g_pContext->UpdateSubresource(g_pLightConstantBuffer, 0, nullptr, &g_CurrentLightData, 0, 0);
+	UpdateConstantBuffer(g_pLightConstantBuffer, g_CurrentLightData);
 }
 
 void Shader_SetAmbientLight(AmbientLight* ambient)
@@ -253,20 +266,20 @@ void Shader_SetAmbientLight(AmbientLight* ambient)
 	else {
 		g_CurrentLightData.ambient = { 0.3f, 0.3f, 0.3f, 1.0f };
 	}
-	g_pContext->UpdateSubresource(g_pLightConstantBuffer, 0, nullptr, &g_CurrentLightData, 0, 0);
+	UpdateConstantBuffer(g_pLightConstantBuffer, g_CurrentLightData);
 }
 
 void Shader_SetMaterialColor(const DirectX::XMFLOAT4& color)
 {
 	// 定数バッファにマテリアル色をセット
-	g_pContext->UpdateSubresource(g_pMaterialColorBuffer, 0, nullptr, &color, 0, 0);
+	UpdateConstantBuffer(g_pMaterialColorBuffer, color);
 }
 
 void Shader_SetCameraPos(const DirectX::XMFLOAT3& pos)
 {
 	// 定数バッファにカメラ位置をセット（XMFLOAT4に変換）
 	XMFLOAT4 cameraPos = { pos.x, pos.y, pos.z, 1.0f };
-	g_pContext->UpdateSubresource(g_pCameraPositionBuffer, 0, nullptr, &cameraPos, 0, 0);
+	UpdateConstantBuffer(g_pCameraPositionBuffer, cameraPos);
 }
 
 void Shader_Begin()

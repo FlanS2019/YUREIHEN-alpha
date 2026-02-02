@@ -23,16 +23,22 @@
 #include <iostream>
 using namespace DirectX;
 
+// ハイパフォーマンスGPUを使用するためのヒント
+extern "C" {
+	_declspec(dllexport) DWORD NvOptimusEnablement = 0x00000001;
+	_declspec(dllexport) int AmdPowerXpressRequestHighPerformance = 1;
+}
+
 //==================================
 //グローバル変数
 //==================================
 
-//#ifndef _DEBUG
+#ifndef _DEBUG
 int g_CountFPS;
 long long g_UpdateTime = 0;
 long long g_DrawTime = 0;
 wchar_t g_DebugStr[2048];
-//#endif
+#endif
 static int g_TargetFPS = FPS;  // 目標FPS（デフォルトは FPS マクロの値）
 
 #pragma comment(lib, "winmm.lib")
