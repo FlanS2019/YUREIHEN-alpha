@@ -146,6 +146,8 @@ void Title_Initialize(ID3D11Device* pDevice, ID3D11DeviceContext* pContext)
 	// タイトル画面ではマウスカーソルを表示・絶対モードに設定
 	Mouse_SetMode(MOUSE_POSITION_MODE_ABSOLUTE);
 	Mouse_SetVisible(true);
+	// マウスロックを明示的に解除
+	ShowCursor(TRUE);
 }
 
 void Title_Update(void)
