@@ -158,3 +158,15 @@ void StopSound(SoundData* data) {
     data->pSourceVoice->Stop();
     data->pSourceVoice->FlushSourceBuffers();
 }
+
+// マスターボリューム設定
+void SetMasterVolume(float volume)
+{
+	if (g_pMasterVoice)
+	{
+		// 0.0 ~ 1.0 の範囲にクランプ
+		if (volume < 0.0f) volume = 0.0f;
+		if (volume > 1.0f) volume = 1.0f;
+		g_pMasterVoice->SetVolume(volume);
+	}
+}
