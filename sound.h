@@ -34,3 +34,6 @@ void UnloadSound(SoundData* data);
 // 再生・停止
 void PlaySound(SoundData* data, bool loop = false);
 void StopSound(SoundData* data);
+
+//音量
+void SetMasterVolume(float volume);
