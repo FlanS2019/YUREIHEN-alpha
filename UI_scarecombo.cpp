@@ -1,4 +1,6 @@
-﻿#include "UI_scarecombo.h"
+﻿#pragma execution_character_set("utf-8")
+
+#include "UI_scarecombo.h"
 #include "UI.h"
 #include "define.h"
 #include "debug_ostream.h"
@@ -51,6 +53,11 @@ void UI_ScareCombo_Initialize(void)
 // 恐怖コンボの更新
 void UI_ScareCombo_Update(void)
 {
+	if (!g_ScareCombo)
+	{
+		return;
+	}
+
 	g_KeikaTime = GetTickCount64();
 
 	// 恐怖コンボの残り時間バーのスケール更新
@@ -79,6 +86,11 @@ void UI_ScareCombo_Update(void)
 // 恐怖コンボの描画
 void UI_ScareCombo_Draw(void)
 {
+	if (!g_ScareCombo)
+	{
+		return;
+	}
+
 	g_ScareComboBG->Draw();
 
 	// 恐怖コンボの残り時間バーは1コンボ以上のときのみ表示
