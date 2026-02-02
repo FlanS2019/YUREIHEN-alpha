@@ -6,6 +6,7 @@ void OpAnim_Finalize(void);
 void OpAnim_Update();
 void OpAnimDraw(void);
 
-void UpdateInazuma(float elapsedSeconds);
-void UpdateBasuta(float elapsedSeconds);
-void UpdateYurei(float elapsedSeconds);
+static void UpdateInazuma(float elapsedSeconds);
+static void UpdateBasuta(float elapsedSeconds);
+static void UpdateYurei(float elapsedSeconds);
+static void UpdateRain(float elapsedSeconds);

@@ -181,7 +181,7 @@ void Field_Initialize(ID3D11Device* pDevice, ID3D11DeviceContext* pContext)
 
 	g_TextureStairs = LoadTexture(L"asset\\texture\\wood.png");
 
-	g_CurrentFloor = START_FLOOR - 1; //定数は１階２階３階そのままなので-1する
+	g_CurrentFloor = 0; // 3階スタート
 	LoadMapData(g_CurrentFloor);
 
 	if (!g_MapList.empty()) {
