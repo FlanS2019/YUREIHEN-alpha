@@ -75,8 +75,8 @@ void Camera_Update(void)
     }
     
     // マウス移動量を回転角度に反映
-    g_yaw += static_cast<float>(mouseState.x) * MOUSE_SENSITIVITY;
-    g_pitch -= static_cast<float>(mouseState.y) * MOUSE_SENSITIVITY;  // 縦方向を反転
+    g_yaw += static_cast<float>(mouseState.x) * MOUSE_SENSITIVITY * g_CameraSensitivity * 2;
+    g_pitch -= static_cast<float>(mouseState.y) * MOUSE_SENSITIVITY * g_CameraSensitivity * 2;  // 縦方向を反転
     
 	if (g_pitch > PITCH_LIMIT_LOOK_UP)
 	{

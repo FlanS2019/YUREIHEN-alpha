@@ -63,7 +63,7 @@
 #define KEEP_STATE_TIME (120)			 // 発見状態を維持する時間
 
 //=== Ghost 関連定数 ===
-#define SCARE_RANGE (7.5f)		// 恐怖範囲
+#define SCARE_RANGE (10.0f)		// 恐怖範囲
 #define GHOST_MOVEMENT_SPEED (0.01f)
 #define GHOST_ACCELERATION (0.010f)
 #define GHOST_DECELERATION (0.98f)

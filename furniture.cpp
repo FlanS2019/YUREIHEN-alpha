@@ -325,10 +325,20 @@ void Furniture::Update(void)
 	if (pGhost)
 	{
 		XMFLOAT3 ghostPos = pGhost->GetPos();
-		XMVECTOR ghostVec = XMLoadFloat3(&ghostPos);
-		XMVECTOR furnitureVec = XMLoadFloat3(&m_Position);
-		XMVECTOR distVec = XMVectorSubtract(furnitureVec, ghostVec);
-		m_DistanceToGhost = XMVectorGetX(XMVector3Length(distVec));
+		XMFLOAT3 furniturePos = GetPos();
+		
+		// Y軸を除いた水平面での距離計算
+		float dx = furniturePos.x - ghostPos.x;
+		float dz = furniturePos.z - ghostPos.z;
+		m_DistanceToGhost = sqrtf(dx * dx + dz * dz);
+		
+		// Y軸方向の距離制限チェック
+		float dy = fabsf(furniturePos.y - ghostPos.y);
+		if (dy > 50.0f)
+		{
+			// Y軸が50を超えていれば検知範囲外の距離として設定
+			m_DistanceToGhost = FURNITURE_DETECTION_RANGE * 2.0f;
+		}
 	}
 
 	// 2. アクション実行時の処理 (ビジュアル変化)
@@ -422,6 +432,10 @@ void Furniture::Update(void)
 void Furniture::Draw(void)
 {
 	Sprite3D::Draw();
+	
+	// シェーダーの状態をリセット（Billboard 描画の前に必要）
+	Shader_RefreshState();
+	
 	m_Billboard.Draw();
 }
 
@@ -502,6 +516,9 @@ void Furniture_Draw(void)
 			g_Furniture[i]->Draw();
 		}
 	}
+	
+	// 全家具の描画完了後、シェーダーの状態をリセット
+	Shader_RefreshState();
 }
 
 void Furniture_Finalize(void)

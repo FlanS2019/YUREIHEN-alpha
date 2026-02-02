@@ -52,6 +52,8 @@ public:
 	{
 		// ビルボードの初期化 (サイズを大きくし、位置は後でUpdateで調整する)
 		m_Billboard.Initialize({ pos.x, pos.y + 1.0f, pos.z }, { 1.0f, 1.0f }, { 0,0,0 });
+		// ライティング無効化を有効にして、アイコンを常に明るく表示
+		m_Billboard.SetIgnoreLighting(true);
 	}
 
 	~Furniture() = default;

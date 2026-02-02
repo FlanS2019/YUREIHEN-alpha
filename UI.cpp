@@ -1,4 +1,6 @@
-﻿#include "camera.h"
+﻿#pragma execution_character_set("utf-8")
+
+#include "camera.h"
 #include "UI.h"
 #include "sprite.h"
 #include "debug_ostream.h"
@@ -73,6 +75,9 @@ static XMFLOAT2 WorldToScreen(const XMFLOAT3& worldPos)
 //----------------------------
 void UI_Initialize(void)
 {
+	// 恐怖コンボを最初に初期化
+	UI_ScareCombo_Initialize();
+
 	g_Clock = new Timer(
 		{ CLOCK_POS_X, CLOCK_POS_Y },
 		{ CLOCK_SIZE, CLOCK_SIZE },
@@ -133,8 +138,6 @@ void UI_Initialize(void)
 		BLENDSTATE_ALFA,
 		L"asset\\texture\\grass.png"
 	);
-
-	UI_ScareCombo_Initialize();
 
 	// 現在の階層表示
 
@@ -201,6 +204,12 @@ void UI_Initialize(void)
 //----------------------------
 void UI_Update(void)
 {
+	// g_ScareComboのnullcheck
+	if (!g_ScareGauge)
+	{
+		return;
+	}
+
 	hal::dout <<g_ScareGauge->GetValue() << std::endl;
 
 	if (Keyboard_IsKeyDown(KK_L))
@@ -250,7 +259,11 @@ void UI_Update(void)
 	}
 
 	UI_ScareCombo_Update();
-	g_FloorNumber->SetNumber(Field_GetCurrentFloor() + 1);
+	
+	if (g_FloorNumber)
+	{
+		g_FloorNumber->SetNumber(Field_GetCurrentFloor() + 1);
+	}
 
 	Ghost* ghost = GetGhost();
 
@@ -414,8 +427,8 @@ void UI_Draw(void)
 	if (g_FloorNumber) g_FloorNumber->Draw();
 	if (g_FloorTextF) g_FloorTextF->Draw();
 
-	g_Clock->Draw();
-	g_ScareGauge->Draw();
+	if (g_Clock) g_Clock->Draw();
+	if (g_ScareGauge) g_ScareGauge->Draw();
 
 	if (g_PossessGuideFont && g_PossessGuideText != "")
 	{

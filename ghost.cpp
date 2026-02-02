@@ -96,12 +96,6 @@ void Ghost_Update(void)
 {
 	if (!g_Ghost) return;
 
-	// ライトの更新
-	if (g_Ghost->m_pLight) {
-		XMFLOAT3 ghostPos = g_Ghost->GetPos();
-		g_Ghost->m_pLight->SetPosition(ghostPos.x, ghostPos.y, ghostPos.z);
-	}
-
 	switch (g_Ghost->GetState())
 	{
 	case GS_MOVING:
@@ -224,10 +218,14 @@ void Ghost_Finalize(void)
 
 void Ghost_SetLight(void)
 {
-	if (g_Ghost && g_Ghost->m_pLight)
-	{
-		Shader_SetPointLight(g_Ghost->m_pLight);
-	}
+	if (!g_Ghost || !g_Ghost->m_pLight) return;
+
+	// 毎フレーム Ghost の最新位置をライトに反映
+	XMFLOAT3 ghostPos = g_Ghost->GetPos();
+	g_Ghost->m_pLight->SetPosition(ghostPos.x, ghostPos.y, ghostPos.z);
+
+	// シェーダーにライト情報を設定
+	Shader_SetPointLight(g_Ghost->m_pLight);
 }
 
 // ========== Ghost クラスメソッドの実装 ==========
