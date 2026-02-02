@@ -33,7 +33,7 @@ static FontRenderer* g_pRightArrowFont = nullptr;
 // 設定値
 static float g_Volume = 1.0f;
 static float g_MouseSensitivity = 1.0f;
-static float g_Brightness = 0.6f; // MainLightの環境光初期値に合わせる
+static float g_Brightness = 0.4f; // MainLightの環境光初期値に合わせる
 
 // マウスカーソル状態フラグ
 static bool g_PauseMouseStateChangedFlag = false;
@@ -67,7 +67,7 @@ void UI_PauseMenu_Initialize(ID3D11Device* pDevice, ID3D11DeviceContext* pContex
 	g_PauseCursor = 0;
 	g_Volume = 1.0f;
 	g_MouseSensitivity = 1.0f;
-	g_Brightness = 0.6f;
+	g_Brightness = 0.4f;
 	g_PauseMouseStateChangedFlag = false;
 
 	// カメラに初期マウス感度を反映
@@ -311,7 +311,7 @@ void UI_PauseMenu_Update(void)
 					 mouseState.y >= buttonCenterY - ARROW_HIT_MARGIN_Y && mouseState.y <= buttonCenterY + ARROW_HIT_MARGIN_Y)
 			{
 				g_Brightness += 0.05f;
-				if (g_Brightness > 2.0f) g_Brightness = 2.0f;
+				if (g_Brightness > 1.0f) g_Brightness = 1.0f;
 			}
 		}
 	}
@@ -399,7 +399,7 @@ void UI_PauseMenu_Update(void)
 			g_KeyboardUsed = true;
 			g_KeyboardIgnoreTimer = KEYBOARD_IGNORE_DURATION;
 		}
-		if (g_Brightness > 2.0f) g_Brightness = 2.0f;
+		if (g_Brightness > 1.0f) g_Brightness = 1.0f;
 		if (g_Brightness < 0.0f) g_Brightness = 0.0f;
 		
 		// テキスト更新
@@ -601,4 +601,9 @@ void UI_PauseMenu_SetPause(bool isPause)
 		ShowCursor(FALSE);
 		g_PauseMouseStateChangedFlag = false;
 	}
+}
+
+float UI_PauseMenu_GetBrightness(void)
+{
+	return g_Brightness;
 }
