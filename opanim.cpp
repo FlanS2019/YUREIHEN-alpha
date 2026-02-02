@@ -3,6 +3,7 @@
 #include "fade.h"
 #include "debug_ostream.h"
 #include "opanim.h"
+#include "mouse.h"
 #include "sound.h"
 #include "font.h"
 #include <timeapi.h>
@@ -312,6 +313,10 @@ void OpAnim_Initialize(ID3D11Device* pDevice, ID3D11DeviceContext* pContext)
 	// BGM再生
 	g_pBGM = LoadMP3("asset/sound/se/lightning_rain.mp3");
 	g_BGMPlayed = false;
+
+	// OP画面ではマウスカーソルを表示・絶対モードに設定
+	Mouse_SetMode(MOUSE_POSITION_MODE_ABSOLUTE);
+	Mouse_SetVisible(true);
 
 	g_OpStartTime = timeGetTime();
 }

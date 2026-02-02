@@ -144,6 +144,9 @@ bool Mouse_IsVisible(void)
 
 void Mouse_SetVisible(bool visible)
 {
+    // 相対モード中でカーソル表示をリクエストされた場合でも、
+    // 実際のモード切り替えが完了するまで待たずに表示しようとする
+    // （複雑になるため、ここでは何もしない）
     if (gMode == MOUSE_POSITION_MODE_RELATIVE) {
         return;
     }

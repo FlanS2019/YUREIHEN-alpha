@@ -4,6 +4,7 @@
 #include "debug_ostream.h"
 #include "sound.h"
 #include "WinAnim.h"
+#include "mouse.h"
 #include <timeapi.h>
 #include "define.h"
 #pragma comment(lib, "winmm.lib")
@@ -35,6 +36,10 @@ void Animation_Win_Initialize(ID3D11Device* pDevice, ID3D11DeviceContext* pConte
 	if (g_pBGM) {
 		PlaySound(g_pBGM, true);
 	}
+
+	// アニメーション画面ではマウスカーソルを表示・絶対モードに設定
+	Mouse_SetMode(MOUSE_POSITION_MODE_ABSOLUTE);
+	Mouse_SetVisible(true);
 }
 
 void Animation_Win_Update(void)

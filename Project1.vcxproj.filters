@@ -91,7 +91,5 @@
     <None Include="DirectXTex.inl" />
     <None Include=".github\workflows\release.yml" />
     <None Include="SchemToArray\block_definitions.json" />
-    <None Include="shader-refactor-plan.md" />
-    <None Include="apply_fix.ps1" />
   </ItemGroup>
 </Project>

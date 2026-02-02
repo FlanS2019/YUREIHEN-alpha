@@ -19,6 +19,7 @@ using namespace DirectX;
 #include "debugdraw.h"
 #include "sound.h"
 #include "minimap.h"
+#include "mouse.h"
 #include "light.h"
 #include <windows.h>
 #include <string> // to_string用
@@ -42,6 +43,9 @@ static Sprite* g_pButtonTitle = nullptr;
 // 設定値
 static float g_Volume = 1.0f;
 static float g_Brightness = 0.6f; // MainLightの環境光初期値に合わせる
+
+// マウスカーソル状態フラグ
+static bool g_PauseMouseStateChangedFlag = false;
 
 // ==========================================
 
@@ -68,6 +72,7 @@ void Game_Initialize(ID3D11Device* pDevice, ID3D11DeviceContext* pContext)
 	g_PauseCursor = 0;
 	g_Volume = 1.0f;
 	g_Brightness = 0.6f;
+	g_PauseMouseStateChangedFlag = false;
 
 	// 背景
 	g_pPauseBG = new Sprite({ SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2 }, { SCREEN_WIDTH, SCREEN_HEIGHT }, 0, { 0,0,0,0.7f }, BLENDSTATE_ALFA, L"asset/texture/fade.png");
@@ -109,6 +114,24 @@ void Game_Update(void)
 	{
 		g_IsPause = !g_IsPause;
 		g_PauseCursor = 0;
+
+		// ポーズ状態が変わったときにマウスカーソル状態を管理
+		if (g_IsPause)
+		{
+			// ポーズ開始：マウスを絶対座標モード・表示
+			Mouse_SetMode(MOUSE_POSITION_MODE_ABSOLUTE);
+			// モード切り替え後、確実にカーソルを表示
+			ShowCursor(TRUE);
+			g_PauseMouseStateChangedFlag = true;
+		}
+		else
+		{
+			// ポーズ終了：マウスを相対モード・非表示に戻す
+			Mouse_SetMode(MOUSE_POSITION_MODE_RELATIVE);
+			// モード切り替え後、確実にカーソルを非表示
+			ShowCursor(FALSE);
+			g_PauseMouseStateChangedFlag = false;
+		}
 	}
 
 	if (g_IsPause)
@@ -134,18 +157,26 @@ void Game_Update(void)
 			if (Keyboard_IsKeyDown(KK_LEFT))  g_Brightness -= 0.01f;
 			if (g_Brightness > 2.0f) g_Brightness = 2.0f;
 			if (g_Brightness < 0.0f) g_Brightness = 0.0f;
-
-			//// MainLightのAmbientを調整して明るさを擬似変更
-			//if (MainLight) {
-			//	MainLight->SetAmbient({ g_Brightness, g_Brightness, g_Brightness, 1.0f });
-			//}
 		}
 
 		// 決定操作
 		if (Keyboard_IsKeyDownTrigger(KK_SPACE) || Keyboard_IsKeyDownTrigger(KK_ENTER))
 		{
-			if (g_PauseCursor == 0) g_IsPause = false; // Resume
-			if (g_PauseCursor == 3) { g_IsPause = false; SetScene(SCENE_TITLE); } // Title
+			if (g_PauseCursor == 0)
+			{
+				// Resume：マウスを相対モード・非表示に戻す
+				g_IsPause = false;
+				Mouse_SetMode(MOUSE_POSITION_MODE_RELATIVE);
+				// モード切り替え後、確実にカーソルを非表示
+				ShowCursor(FALSE);
+				g_PauseMouseStateChangedFlag = false;
+			}
+			if (g_PauseCursor == 3)
+			{
+				// Title：SetSceneの中でCamera_Finalizeがマウスカーソルをリセットするのでここでは何もしない
+				g_IsPause = false;
+				SetScene(SCENE_TITLE);
+			}
 		}
 
 		// ボタン色更新（選択中は赤、それ以外は白。調整項目は値に応じて青っぽく）

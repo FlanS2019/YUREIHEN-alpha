@@ -36,8 +36,9 @@ void Camera_Initialize(void)
 	// マウスを相対モードに設定
 	Mouse_SetMode(MOUSE_POSITION_MODE_RELATIVE);
 
-	// カーソルを非表示
-	ShowCursor(FALSE);
+	// カーソル表示状態を設定（ShowCursor()のカウント問題を避けるため、Mouse_SetVisible()を使う）
+	// Mouse_SetVisible() は相対モード中は何もしないため、Mouse_SetMode()の後に呼ぶ
+	Mouse_SetVisible(false);
 
 	g_pitch = 0.0f;
 	g_yaw = 0.0f;
@@ -49,8 +50,8 @@ void Camera_Finalize(void)
     // マウスを絶対モードに戻す
     Mouse_SetMode(MOUSE_POSITION_MODE_ABSOLUTE);
     
-    // カーソルを表示
-    ShowCursor(TRUE);
+    // カーソルを表示（Mouse_SetVisible()を使う）
+    Mouse_SetVisible(true);
     
     delete CameraObject;
 }
@@ -61,14 +62,6 @@ void Camera_Update(void)
     Mouse_State mouseState;
     Mouse_GetState(&mouseState);
     
-    // ESCキーで終了
-    if (Keyboard_IsKeyDownTrigger(KK_ESCAPE))
-    {
-        Mouse_SetMode(MOUSE_POSITION_MODE_ABSOLUTE);
-        ShowCursor(TRUE);
-        return;
-    }
-    
     // マウスロック状態でない場合は視点操作をスキップ
     if (mouseState.positionMode == MOUSE_POSITION_MODE_ABSOLUTE)
     {
@@ -76,7 +69,7 @@ void Camera_Update(void)
         if (mouseState.leftButton)
         {
             Mouse_SetMode(MOUSE_POSITION_MODE_RELATIVE);
-            ShowCursor(FALSE);
+            Mouse_SetVisible(false);
         }
         return;  // マウスロック解除中は視点操作をしない
     }

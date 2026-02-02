@@ -263,11 +263,9 @@
   </ItemGroup>
   <ItemGroup>
     <None Include=".github\workflows\release.yml" />
-    <None Include="apply_fix.ps1" />
     <None Include="convert_to_utf8bom.ps1" />
     <None Include="DirectXTex.inl" />
     <None Include="SchemToArray\block_definitions.json" />
-    <None Include="shader-refactor-plan.md" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

@@ -8,6 +8,7 @@
 #include "shader.h"
 #include "direct3d.h"
 #include "font.h"
+#include "mouse.h"
 #include "sound.h"
 #include <cmath>
 using namespace DirectX;
@@ -141,6 +142,10 @@ void Title_Initialize(ID3D11Device* pDevice, ID3D11DeviceContext* pContext)
 	if (g_pBGM) {
 		PlaySound(g_pBGM, true);
 	}
+
+	// タイトル画面ではマウスカーソルを表示・絶対モードに設定
+	Mouse_SetMode(MOUSE_POSITION_MODE_ABSOLUTE);
+	Mouse_SetVisible(true);
 }
 
 void Title_Update(void)

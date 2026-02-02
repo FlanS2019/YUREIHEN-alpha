@@ -4,6 +4,7 @@
 #include "debug_ostream.h"
 #include "define.h"
 #include "LoseAnimED.h"
+#include "mouse.h"
 #include "sound.h"
 #include <timeapi.h>
 #include <cmath>	// 揺れ用の sinf
@@ -74,6 +75,10 @@ void Animation_LoseED_Initialize(ID3D11Device* pDevice, ID3D11DeviceContext* pCo
 	if (g_pBGM) {
 		PlaySound(g_pBGM, true);
 	}
+
+	// アニメーション画面ではマウスカーソルを表示・絶対モードに設定
+	Mouse_SetMode(MOUSE_POSITION_MODE_ABSOLUTE);
+	Mouse_SetVisible(true);
 
 	g_ElapsedTime = 0.0f;
 }

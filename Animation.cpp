@@ -9,6 +9,7 @@
 #include "shader.h"
 #include "direct3d.h"
 #include "define.h"
+#include "mouse.h"
 #include <timeapi.h>
 #pragma comment(lib, "winmm.lib")
 using namespace DirectX;
@@ -59,6 +60,9 @@ void Animation_Logo_Initialize(ID3D11Device* pDevice, ID3D11DeviceContext* pCont
 		L"asset\\texture\\fade.png"			// テクスチャパス
 	);
 
+	// ロゴ画面ではマウスカーソルを表示・絶対モードに設定
+	Mouse_SetMode(MOUSE_POSITION_MODE_ABSOLUTE);
+	Mouse_SetVisible(true);
 }
 
 void Animation_Logo_Update(void)
@@ -131,6 +135,7 @@ void Animation_Op_Initialize(ID3D11Device* pDevice, ID3D11DeviceContext* pContex
 {
 	SetFPS(40);
 	OpAnim_Initialize(pDevice, pContext);
+	// OpAnim_Initialize内でマウスカーソルの設定が行われます
 }
 
 void Animation_Op_Update(void)
