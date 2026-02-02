@@ -236,13 +236,14 @@ void UI_Update(void)
 		}
 		
 		g_LastFrameFloor = currentFloor;
+		
+		// 1階に到達したらクリア
+		if (currentFloor == 0)
+		{
+			StartFade(SCENE_ANM_WIN);
+		}
 	}
 	
-	// 恐怖ゲージが最大なら勝利シーンへ移行（デバッグ用）///////////////////////////////////
-	if (g_ScareGauge->GetValue() >= g_ScareGauge->GetMaxValue())
-	{
-		StartFade(SCENE_ANM_WIN);
-	}
 
 	// --- 敗北条件 ---
 #if defined(STOP_TIMER_BUSTER)
@@ -493,4 +494,13 @@ void UI_ResetScareGauge(void)
 	{
 		g_ScareGauge->SetValue(g_FloorGaugeValues[g_LastFrameFloor]);
 	}
+}
+
+float UI_GetScareGauge(void)
+{
+	if (g_ScareGauge)
+	{
+		return g_ScareGauge->GetValue();
+	}
+	return 0.0f;
 }
