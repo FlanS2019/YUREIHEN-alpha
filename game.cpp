@@ -21,6 +21,7 @@ using namespace DirectX;
 #include "minimap.h"
 #include "mouse.h"
 #include "light.h"
+#include "font.h"
 #include <windows.h>
 #include <string> // to_string用
 
@@ -33,12 +34,12 @@ static int g_NextFloorID = -1;
 // ポーズ画面用の変数
 // ==========================================
 static bool g_IsPause = false;
-static int  g_PauseCursor = 0; // 0:再開, 1:音量, 2:明るさ, 3:タイトル
+static int  g_PauseCursor = 0; // 0:ゲームに戻る, 1:音量, 2:明るさ, 3:タイトル
 static Sprite* g_pPauseBG = nullptr;
-static Sprite* g_pButtonResume = nullptr;
+static FontRenderer* g_pResumeButtonFont = nullptr;
 static Sprite* g_pButtonVolume = nullptr;
 static Sprite* g_pButtonBright = nullptr;
-static Sprite* g_pButtonTitle = nullptr;
+static FontRenderer* g_pTitleButtonFont = nullptr;
 
 // 設定値
 static float g_Volume = 1.0f;
@@ -82,14 +83,14 @@ void Game_Initialize(ID3D11Device* pDevice, ID3D11DeviceContext* pContext)
 	float by = SCREEN_HEIGHT / 2 - 100;
 	float gap = 70.0f;
 
-	// Resume
-	g_pButtonResume = new Sprite({ bx, by }, { 300, 60 }, 0, { 1,1,1,1 }, BLENDSTATE_ALFA, L"asset/texture/button.PNG");
+	// Resume (ゲームに戻る)
+	g_pResumeButtonFont = new FontRenderer({ bx, by }, 40.0f, 0.0f, { 1,1,1,1 }, "ゲームに戻る");
 	// Volume
 	g_pButtonVolume = new Sprite({ bx, by + gap }, { 300, 60 }, 0, { 1,1,1,1 }, BLENDSTATE_ALFA, L"asset/texture/button.PNG");
 	// Brightness
 	g_pButtonBright = new Sprite({ bx, by + gap * 2 }, { 300, 60 }, 0, { 1,1,1,1 }, BLENDSTATE_ALFA, L"asset/texture/button.PNG");
 	// Title
-	g_pButtonTitle = new Sprite({ bx, by + gap * 3 }, { 300, 60 }, 0, { 1,1,1,1 }, BLENDSTATE_ALFA, L"asset/texture/button.PNG");
+	g_pTitleButtonFont = new FontRenderer({ bx, by + gap * 3 }, 40.0f, 0.0f, { 1,1,1,1 }, "タイトルへ戻る");
 }
 
 void Game_Update(void)
@@ -179,19 +180,33 @@ void Game_Update(void)
 			}
 		}
 
-		// ボタン色更新（選択中は赤、それ以外は白。調整項目は値に応じて青っぽく）
-		g_pButtonResume->SetColor({ 1,1,1,1 });
-		g_pButtonVolume->SetColor({ 1,1,1,1 }); // 値によって色を変えたい場合はここで
+		// ボタン色更新
+		if (g_pResumeButtonFont) {
+			g_pResumeButtonFont->SetColor({ 1,1,1,1 });
+		}
+		g_pButtonVolume->SetColor({ 1,1,1,1 });
 		g_pButtonBright->SetColor({ 1,1,1,1 });
-		g_pButtonTitle->SetColor({ 1,1,1,1 });
+		if (g_pTitleButtonFont) {
+			g_pTitleButtonFont->SetColor({ 1,1,1,1 });
+		}
 
 		XMFLOAT4 selColor = { 1.0f, 0.5f, 0.5f, 1.0f }; // 選択色（赤）
+		XMFLOAT4 resumeSelColor = { 1.0f, 1.0f, 0.5f, 1.0f }; // ゲームに戻る選択色（黄色）
+		XMFLOAT4 titleSelColor = { 1.0f, 1.0f, 0.5f, 1.0f }; // タイトルボタン選択色（黄色）
 
 		switch (g_PauseCursor) {
-		case 0: g_pButtonResume->SetColor(selColor); break;
+		case 0: 
+			if (g_pResumeButtonFont) {
+				g_pResumeButtonFont->SetColor(resumeSelColor);
+			}
+			break;
 		case 1: g_pButtonVolume->SetColor({ 0.5f, 1.0f, 0.5f, 1.0f }); break; // 音量は緑
 		case 2: g_pButtonBright->SetColor({ 0.5f, 0.5f, 1.0f, 1.0f }); break; // 明るさは青
-		case 3: g_pButtonTitle->SetColor(selColor); break;
+		case 3: 
+			if (g_pTitleButtonFont) {
+				g_pTitleButtonFont->SetColor(titleSelColor);
+			}
+			break;
 		}
 
 		// バーなどで値を可視化したい場合は、ボタンのサイズを変えるなどの工夫が可能
@@ -241,10 +256,10 @@ void Game_Draw(void)
 	if (g_IsPause)
 	{
 		if (g_pPauseBG) g_pPauseBG->Draw();
-		if (g_pButtonResume) g_pButtonResume->Draw();
+		if (g_pResumeButtonFont) g_pResumeButtonFont->Draw();
 		if (g_pButtonVolume) g_pButtonVolume->Draw();
 		if (g_pButtonBright) g_pButtonBright->Draw();
-		if (g_pButtonTitle) g_pButtonTitle->Draw();
+		if (g_pTitleButtonFont) g_pTitleButtonFont->Draw();
 	}
 
 	Sprite_EndDraw2D();
@@ -261,6 +276,16 @@ void Game_Finalize(void)
 	if (g_pAmbientLight) {
 		delete g_pAmbientLight;
 		g_pAmbientLight = nullptr;
+	}
+
+	if (g_pResumeButtonFont) {
+		delete g_pResumeButtonFont;
+		g_pResumeButtonFont = nullptr;
+	}
+
+	if (g_pTitleButtonFont) {
+		delete g_pTitleButtonFont;
+		g_pTitleButtonFont = nullptr;
 	}
 
 	Camera_Finalize();

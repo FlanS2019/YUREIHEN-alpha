@@ -30,7 +30,7 @@
 
 //=== フィールド関連定数 ===
 #define MAP_FLOORS (3)
-#define START_FLOOR (1)// 階の数字をそのまま入れる（使用時に-1）
+#define START_FLOOR (3)// 階の数字をそのまま入れる（使用時に-1）
 
 //=== Camera 関連定数 ===
 #define PITCH_LIMIT_LOOK_UP    (25.0f)   // 上を見る限界（カメラが下がる限界）: 床埋まり防止

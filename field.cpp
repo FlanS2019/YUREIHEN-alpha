@@ -39,7 +39,7 @@ static ID3D11ShaderResourceView* g_TextureStairs;
 XMFLOAT3 rotateBox = XMFLOAT3(0, 0, 0);
 static std::vector<MAPDATA> g_MapList;
 
-static int g_CurrentFloor = 0;
+static int g_CurrentFloor = START_FLOOR;
 
 #undef MAP_W
 #undef MAP_H
@@ -181,7 +181,7 @@ void Field_Initialize(ID3D11Device* pDevice, ID3D11DeviceContext* pContext)
 
 	g_TextureStairs = LoadTexture(L"asset\\texture\\wood.png");
 
-	g_CurrentFloor = 0; // 3階スタート
+	g_CurrentFloor = START_FLOOR; // 3階スタート
 	LoadMapData(g_CurrentFloor);
 
 	if (!g_MapList.empty()) {
