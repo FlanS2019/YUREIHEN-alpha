@@ -135,10 +135,10 @@ void Game_Update(void)
 			if (g_Brightness > 2.0f) g_Brightness = 2.0f;
 			if (g_Brightness < 0.0f) g_Brightness = 0.0f;
 
-			// MainLightのAmbientを調整して明るさを擬似変更
-			if (MainLight) {
-				MainLight->SetAmbient({ g_Brightness, g_Brightness, g_Brightness, 1.0f });
-			}
+			//// MainLightのAmbientを調整して明るさを擬似変更
+			//if (MainLight) {
+			//	MainLight->SetAmbient({ g_Brightness, g_Brightness, g_Brightness, 1.0f });
+			//}
 		}
 
 		// 決定操作
