@@ -34,6 +34,10 @@ struct CharInfo {
     int glyphIndex;         // グリフインデックス
 };
 
+// グローバルフォントデータ管理
+void Font_InitializeGlobalData();
+void Font_FinalizeGlobalData();
+
 // フォント管理クラス
 class FontRenderer : public Transform2D
 {
@@ -82,7 +86,6 @@ private:
 	void UpdateAtlasTexture();
 
 	// stbtt 関連
-	unsigned char* m_pFontData;
 	struct stbtt_fontinfo* m_pFontInfo;
 };
 

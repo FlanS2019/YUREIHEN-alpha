@@ -16,6 +16,7 @@
 #include "debug_ostream.h"
 #include "keyboard.h"
 #include "mouse.h"
+#include "font.h"
 #include "sprite.h"
 #include "fade.h"
 #include "sound.h"
@@ -115,6 +116,7 @@ int APIENTRY WinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance,
 	Keyboard_Initialize();
 	Mouse_Initialize(hWnd);
 	Shader_Initialize(Direct3D_GetDevice(), Direct3D_GetDeviceContext());
+	Font_InitializeGlobalData();
 	Sprite_Initialize();
 	Fade_Initialize();
 	InitSound();
@@ -226,6 +228,7 @@ int APIENTRY WinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance,
 	Finalize();
 	UninitSound();
 	Fade_Finalize();
+	Font_FinalizeGlobalData();
 	Sprite_Finalize();
 	Shader_Finalize();
 	Direct3D_Finalize();

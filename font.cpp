@@ -21,6 +21,57 @@ using namespace DirectX;
 
 #pragma comment(lib, "d3dcompiler.lib")
 
+// ==========================================
+// グローバルフォントデータ
+// ==========================================
+static unsigned char* g_pGlobalFontData = nullptr;
+static int g_GlobalFontDataSize = 0;
+
+void Font_InitializeGlobalData()
+{
+	if (g_pGlobalFontData != nullptr) {
+		return; // 既に初期化済み
+	}
+
+	// フォントファイル読み込み
+	FILE* f = nullptr;
+	fopen_s(&f, "asset/font/KaiseiDecol-Medium.ttf", "rb");
+	if (!f) {
+		OutputDebugStringA("Font_InitializeGlobalData: Failed to open font file\n");
+		return;
+	}
+
+	fseek(f, 0, SEEK_END);
+	long size = ftell(f);
+	fseek(f, 0, SEEK_SET);
+
+	g_pGlobalFontData = (unsigned char*)malloc(size);
+	if (!g_pGlobalFontData) {
+		fclose(f);
+		OutputDebugStringA("Font_InitializeGlobalData: Failed to allocate memory\n");
+		return;
+	}
+
+	fread(g_pGlobalFontData, 1, size, f);
+	fclose(f);
+	g_GlobalFontDataSize = size;
+
+	OutputDebugStringA("Font_InitializeGlobalData: Font data loaded successfully\n");
+}
+
+void Font_FinalizeGlobalData()
+{
+	if (g_pGlobalFontData) {
+		free(g_pGlobalFontData);
+		g_pGlobalFontData = nullptr;
+		g_GlobalFontDataSize = 0;
+	}
+}
+
+// ==========================================
+// FontRenderer クラス実装
+// ==========================================
+
 FontRenderer::FontRenderer(XMFLOAT2 pos, float fontSize, float rotation,
 	XMFLOAT4 color, const std::string& text)
 	: Transform2D(pos, rotation, { 1.0f, 1.0f }), m_Color(color), m_Text(text),
@@ -29,7 +80,7 @@ FontRenderer::FontRenderer(XMFLOAT2 pos, float fontSize, float rotation,
 	m_pVertexBuffer(nullptr),
 	m_VertexCount(0), m_AtlasWidth(0), m_AtlasHeight(0),
 	m_AtlasNextX(0), m_AtlasNextY(0), m_AtlasRowHeight(0),
-	m_pAtlasData(nullptr), m_pFontData(nullptr), m_pFontInfo(nullptr),
+	m_pAtlasData(nullptr), m_pFontInfo(nullptr),
 	m_FontAscender(0), m_FontDescender(0)
 {
 	// シェーダー作成
@@ -50,9 +101,8 @@ FontRenderer::~FontRenderer() {
 	if (m_pSRV) m_pSRV->Release();
 	if (m_pTexture) m_pTexture->Release();
 	if (m_pAtlasData) free(m_pAtlasData);
-	if (m_pFontData) free(m_pFontData);
 	if (m_pFontInfo) free(m_pFontInfo);
-	// ライトのクリーンアップはしない（複数のFontRendererが共有）
+	// グローバルフォントデータの削除はしない（複数のFontRendererで共有）
 }
 
 bool FontRenderer::CreateShaders() {
@@ -68,38 +118,20 @@ bool FontRenderer::BakeAtlas() {
 		return false;
 	}
 
-	// フォントファイル読み込み
-	FILE* f = nullptr;
-	fopen_s(&f, "asset/font/KaiseiDecol-Medium.ttf", "rb");
-	//fopen_s(&f, "asset/font/NotoSansJP.ttf", "rb");
-	if (!f) {
+	// グローバルフォントデータを確認
+	if (g_pGlobalFontData == nullptr || g_GlobalFontDataSize == 0) {
+		OutputDebugStringA("FontRenderer::BakeAtlas: Global font data not initialized\n");
 		return false;
 	}
-
-	fseek(f, 0, SEEK_END);
-	long size = ftell(f);
-	fseek(f, 0, SEEK_SET);
-
-	m_pFontData = (unsigned char*)malloc(size);
-	if (!m_pFontData) {
-		fclose(f);
-		return false;
-	}
-
-	fread(m_pFontData, 1, size, f);
-	fclose(f);
 
 	// stbtt フォント初期化
 	m_pFontInfo = (struct stbtt_fontinfo*)malloc(sizeof(struct stbtt_fontinfo));
 	if (!m_pFontInfo) {
-		free(m_pFontData);
 		return false;
 	}
 
-	if (!stbtt_InitFont(m_pFontInfo, m_pFontData, 0)) {
-		free(m_pFontData);
+	if (!stbtt_InitFont(m_pFontInfo, g_pGlobalFontData, 0)) {
 		free(m_pFontInfo);
-		m_pFontData = nullptr;
 		m_pFontInfo = nullptr;
 		return false;
 	}
@@ -115,9 +147,7 @@ bool FontRenderer::BakeAtlas() {
 	m_pAtlasData = (unsigned char*)calloc(m_AtlasWidth * m_AtlasHeight, 1);
 
 	if (!m_pAtlasData) {
-		free(m_pFontData);
 		free(m_pFontInfo);
-		m_pFontData = nullptr;
 		m_pFontInfo = nullptr;
 		return false;
 	}
@@ -142,10 +172,8 @@ bool FontRenderer::BakeAtlas() {
 	unsigned char* atlasRGBA = (unsigned char*)malloc(m_AtlasWidth * m_AtlasHeight * 4);
 	if (!atlasRGBA) {
 		free(m_pAtlasData);
-		free(m_pFontData);
 		free(m_pFontInfo);
 		m_pAtlasData = nullptr;
-		m_pFontData = nullptr;
 		m_pFontInfo = nullptr;
 		return false;
 	}
@@ -166,10 +194,8 @@ bool FontRenderer::BakeAtlas() {
 	if (FAILED(hr)) {
 		free(atlasRGBA);
 		free(m_pAtlasData);
-		free(m_pFontData);
 		free(m_pFontInfo);
 		m_pAtlasData = nullptr;
-		m_pFontData = nullptr;
 		m_pFontInfo = nullptr;
 		return false;
 	}
@@ -181,10 +207,8 @@ bool FontRenderer::BakeAtlas() {
 		m_pTexture = nullptr;
 		free(atlasRGBA);
 		free(m_pAtlasData);
-		free(m_pFontData);
 		free(m_pFontInfo);
 		m_pAtlasData = nullptr;
-		m_pFontData = nullptr;
 		m_pFontInfo = nullptr;
 		return false;
 	}
@@ -220,10 +244,8 @@ bool FontRenderer::BakeAtlas() {
 		m_pTexture->Release();
 		free(atlasRGBA);
 		free(m_pAtlasData);
-		free(m_pFontData);
 		free(m_pFontInfo);
 		m_pAtlasData = nullptr;
-		m_pFontData = nullptr;
 		m_pFontInfo = nullptr;
 		return false;
 	}
