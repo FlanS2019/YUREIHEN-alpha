@@ -8,6 +8,7 @@
 #include "shader.h"
 #include "define.h"
 #include "direct3d.h"
+#include "mouse.h"
 using namespace DirectX;
 
 
@@ -77,6 +78,9 @@ void Fade::Update()
 		{
 			m_Color.w = 0.0f;
 			m_State = FADE_NONE;
+			// フェード完了時にマウスロック解除
+			Mouse_SetMode(MOUSE_POSITION_MODE_ABSOLUTE);
+			Mouse_SetVisible(true);
 		}
 		break;
 
