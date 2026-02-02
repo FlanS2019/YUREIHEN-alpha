@@ -170,7 +170,15 @@ void UI_Initialize(void)
 	// ゲージ管理を初期化
 	for (int i = 0; i < MAP_FLOORS; i++)
 	{
-		g_FloorGaugeValues[i] = 50.0f;
+		// 階層ごとに初期値を設定
+		if (i == 2) // 3階（インデックス2）
+		{
+			g_FloorGaugeValues[i] = 60.0f;
+		}
+		else // 1階、2階
+		{
+			g_FloorGaugeValues[i] = 50.0f;
+		}
 	}
 
 	g_LastFrameFloor = Field_GetCurrentFloor();
@@ -183,6 +191,9 @@ void UI_Initialize(void)
 		{ 1.0f, 1.0f, 1.0f, 1.0f },
 		""
 	);
+
+	hal::dout << g_ScareGauge->GetValue() << std::endl;
+
 }
 
 //----------------------------
@@ -190,6 +201,7 @@ void UI_Initialize(void)
 //----------------------------
 void UI_Update(void)
 {
+	hal::dout <<g_ScareGauge->GetValue() << std::endl;
 
 	if (Keyboard_IsKeyDown(KK_L))
 	{
@@ -197,6 +209,26 @@ void UI_Update(void)
 		return;
 
 	}
+	
+	// 階層が変わったかチェック
+	int currentFloor = Field_GetCurrentFloor();
+	if (currentFloor != g_LastFrameFloor)
+	{
+		// 前フレームの階層のゲージ値を保存
+		if (g_LastFrameFloor >= 0 && g_LastFrameFloor < MAP_FLOORS)
+		{
+			g_FloorGaugeValues[g_LastFrameFloor] = g_ScareGauge->GetValue();
+		}
+		
+		// 新しい階層のゲージ値を復元
+		if (currentFloor >= 0 && currentFloor < MAP_FLOORS)
+		{
+			g_ScareGauge->SetValue(g_FloorGaugeValues[currentFloor]);
+		}
+		
+		g_LastFrameFloor = currentFloor;
+	}
+	
 	// 恐怖ゲージが最大なら勝利シーンへ移行（デバッグ用）///////////////////////////////////
 	if (g_ScareGauge->GetValue() >= g_ScareGauge->GetMaxValue())
 	{
@@ -446,6 +478,6 @@ void UI_ResetScareGauge(void)
 {
 	if (g_ScareGauge)
 	{
-		g_ScareGauge->SetValue(g_ScareGauge->GetMinValue());
+		g_ScareGauge->SetValue(g_FloorGaugeValues[g_LastFrameFloor]);
 	}
 }

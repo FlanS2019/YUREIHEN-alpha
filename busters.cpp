@@ -335,7 +335,7 @@ void Busters::CheckState(void)
 		// 距離が近づくにつれ恐怖ゲージを減らす（赤発見時のみ）
 		if (m_DistanceToGhost < BUSTERS_PATROL_RANGH)
 		{
-			float reduceAmount = (1.0f - (m_DistanceToGhost / BUSTERS_PATROL_RANGH)) * -0.1f;
+			float reduceAmount = (1.0f - (m_DistanceToGhost / BUSTERS_PATROL_RANGH)) * -BUSTER_GAUGE_REDUCTION;
 			AddScareGauge(reduceAmount);
 		}
 	}

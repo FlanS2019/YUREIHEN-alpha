@@ -78,9 +78,10 @@
 
 //=== スコア関連定数 ===
 #define SCARE_GAUGE_MAX (100.0f)
-#define SCORE_LURE (3) // 引き寄せスコア
-#define SCORE_STOP (3) // 停止スコア
-#define SCORE_SCARE (5) // 驚かせスコア
+#define SCORE_LURE (3.0f) // 引き寄せスコア
+#define SCORE_STOP (3.0f) // 停止スコア
+#define SCORE_SCARE (5.0f) // 驚かせスコア
+#define BUSTER_GAUGE_REDUCTION (0.05f) // バスターに見つかったときのゲージ減少値（1フレームあたり）
 
 //=== UI_ScareCombo 関連定数 ===
 #define SCARECOMBO_POS_X (SCREEN_WIDTH - 110.0f)
