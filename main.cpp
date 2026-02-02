@@ -33,12 +33,10 @@ extern "C" {
 //グローバル変数
 //==================================
 
-#ifndef _DEBUG
 int g_CountFPS;
 long long g_UpdateTime = 0;
 long long g_DrawTime = 0;
 wchar_t g_DebugStr[2048];
-#endif
 static int g_TargetFPS = FPS;  // 目標FPS（デフォルトは FPS マクロの値）
 
 #pragma comment(lib, "winmm.lib")
