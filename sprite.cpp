@@ -51,6 +51,9 @@ void Sprite_BeginDraw2D()
 {
 	if (g_b2DBegun) return; // 既に開始済みなら何もしない
 
+	g_pDevice = Direct3D_GetDevice();
+	g_pContext = Direct3D_GetDeviceContext();
+
 	// シェーダー開始（一度だけ）
 	Shader_Begin();
 
@@ -65,9 +68,6 @@ void Sprite_BeginDraw2D()
 
 	// 2D描画用にライトを無効化
 	Shader_SetPointLight(nullptr);
-
-	g_pDevice = Direct3D_GetDevice();
-	g_pContext = Direct3D_GetDeviceContext();
 
 	g_b2DBegun = true;
 }
@@ -92,6 +92,7 @@ void Sprite_Single_Draw(XMFLOAT2 pos, XMFLOAT2 size,float rot, XMFLOAT4 color, B
 	if (!g_b2DBegun) {
 		Shader_Begin();
 		Shader_SetMatrix(XMMatrixOrthographicOffCenterLH(0.0f, SCREEN_WIDTH, SCREEN_HEIGHT, 0.0f, 0.0f, 1.0f));
+		Shader_SetWorldMatrix(XMMatrixIdentity());
 		Shader_SetMaterialColor({ 1.0f, 1.0f, 1.0f, 1.0f });
 		Shader_SetPointLight(nullptr); // ライトを無効化
 	}
@@ -174,6 +175,7 @@ void Sprite_Split_Draw(XMFLOAT2 pos, XMFLOAT2 size, float rot, XMFLOAT4 color, B
 	if (!g_b2DBegun) {
 		Shader_Begin();
 		Shader_SetMatrix(XMMatrixOrthographicOffCenterLH(0.0f, SCREEN_WIDTH, SCREEN_HEIGHT, 0.0f, 0.0f, 1.0f));
+		Shader_SetWorldMatrix(XMMatrixIdentity());
 		Shader_SetMaterialColor({ 1.0f, 1.0f, 1.0f, 1.0f });
 		Shader_SetPointLight(nullptr); // ライトを無効化
 	}

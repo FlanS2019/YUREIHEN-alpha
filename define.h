@@ -13,8 +13,8 @@
 
 #if defined(_DEBUG)
 //=== デバッグ関連定数 ===
-#define STOP_TIMER_BUSTER (true) //trueならタイマーとバスターズのupdateを停止させる
-#define DIRECT_START (true) //trueならgameシーンから直接開始する
+#define STOP_TIMER_BUSTER (false) //trueならタイマーとバスターズのupdateを停止させる
+#define DIRECT_START (false) //trueならgameシーンから直接開始する
 #define DEBUG_DRAW (false) //trueならdebugdraw機能を有効にする
 #else
 //==================================
@@ -31,6 +31,7 @@
 //=== フィールド関連定数 ===
 #define MAP_FLOORS (3)
 #define START_FLOOR (3)// 階の数字をそのまま入れる（使用時に-1）
+#define END_FLOOR (2) // クリア階（3階：インデックス2）。ここで恐怖ゲージMAXでクリア
 
 //=== Camera 関連定数 ===
 #define PITCH_LIMIT_LOOK_UP    (25.0f)   // 上を見る限界（カメラが下がる限界）: 床埋まり防止
@@ -63,7 +64,7 @@
 #define KEEP_STATE_TIME (120)			 // 発見状態を維持する時間
 
 //=== Ghost 関連定数 ===
-#define SCARE_RANGE (10.0f)		// 恐怖範囲
+#define SCARE_RANGE (12.0f)		// 恐怖範囲
 #define GHOST_MOVEMENT_SPEED (0.01f)
 #define GHOST_ACCELERATION (0.010f)
 #define GHOST_DECELERATION (0.98f)
@@ -78,9 +79,9 @@
 
 //=== スコア関連定数 ===
 #define SCARE_GAUGE_MAX (100.0f)
-#define SCORE_LURE (3.0f) // 引き寄せスコア
-#define SCORE_STOP (3.0f) // 停止スコア
-#define SCORE_SCARE (5.0f) // 驚かせスコア
+#define SCORE_LURE (1.0f) // 引き寄せスコア
+#define SCORE_STOP (1.0f) // 停止スコア
+#define SCORE_SCARE (3.0f) // 驚かせスコア
 #define BUSTER_GAUGE_REDUCTION (0.05f) // バスターに見つかったときのゲージ減少値（1フレームあたり）
 
 //=== UI_ScareCombo 関連定数 ===
