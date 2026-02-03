@@ -2,6 +2,8 @@
 <Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup>
     <FxCompile Include="shader_field_instance.hlsl" />
+    <FxCompile Include="shader_pixel_2d.hlsl" />
+    <FxCompile Include="shader_vertex_2d.hlsl" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="animation.cpp" />
