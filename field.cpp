@@ -194,7 +194,12 @@ void Field_Initialize(ID3D11Device* pDevice, ID3D11DeviceContext* pContext)
 	idesc.Usage = D3D11_USAGE_DYNAMIC;
 	idesc.BindFlags = D3D11_BIND_VERTEX_BUFFER;
 	idesc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
-	pDevice->CreateBuffer(&idesc, NULL, &g_InstanceBuffer);
+	HRESULT hr = pDevice->CreateBuffer(&idesc, NULL, &g_InstanceBuffer);
+	if (FAILED(hr) || g_InstanceBuffer == NULL)
+	{
+		MessageBox(NULL, L"インスタンスバッファの作成に失敗しました", L"エラー", MB_OK);
+		return;
+	}
 }
 
 void Field_Update(void)

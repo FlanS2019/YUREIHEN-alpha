@@ -188,15 +188,24 @@ void CreateBox(ID3D11Device* pDevice, ID3D11DeviceContext* pContext,
 		bd.ByteWidth = sizeof(Vertex3D) * BOX_NUM_VERTEX;//格納できる頂点数
 		bd.BindFlags = D3D11_BIND_VERTEX_BUFFER;
 		bd.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
-		pDevice->CreateBuffer(&bd, NULL, ppVertexBuffer);
+		
+		HRESULT hr = pDevice->CreateBuffer(&bd, NULL, ppVertexBuffer);
+		if (FAILED(hr) || *ppVertexBuffer == NULL)
+		{
+			MessageBox(NULL, L"頂点バッファの作成に失敗しました", L"エラー", MB_OK);
+			return;
+		}
 
-		//頂点バッファをt頂点バッファに設定
 		D3D11_MAPPED_SUBRESOURCE msr;
-		pContext->Map(*ppVertexBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &msr);
+		hr = pContext->Map(*ppVertexBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &msr);
+		if (FAILED(hr))
+		{
+			MessageBox(NULL, L"頂点バッファのMapに失敗しました", L"エラー", MB_OK);
+			return;
+		}
+		
 		Vertex3D* vertex = (Vertex3D*)msr.pData;
-		//頂点データコピー
 		CopyMemory(&vertex[0], &Box_vdata[0], sizeof(Vertex3D) * BOX_NUM_VERTEX);
-		//コピー完了
 		pContext->Unmap(*ppVertexBuffer, 0);
 	}
 
@@ -208,14 +217,23 @@ void CreateBox(ID3D11Device* pDevice, ID3D11DeviceContext* pContext,
 		bd.ByteWidth = sizeof(UINT) * 6 * 6;//格納できる頂点数
 		bd.BindFlags = D3D11_BIND_INDEX_BUFFER;
 		bd.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
-		pDevice->CreateBuffer(&bd, NULL, ppIndexBuffer);
+		
+		HRESULT hr = pDevice->CreateBuffer(&bd, NULL, ppIndexBuffer);
+		if (FAILED(hr) || *ppIndexBuffer == NULL)
+		{
+			MessageBox(NULL, L"インデックスバッファの作成に失敗しました", L"エラー", MB_OK);
+			return;
+		}
 
-		//インデックスバッファに書き込み
 		D3D11_MAPPED_SUBRESOURCE msr;
-		pContext->Map(*ppIndexBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &msr);
+		hr = pContext->Map(*ppIndexBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &msr);
+		if (FAILED(hr))
+		{
+			MessageBox(NULL, L"インデックスバッファのMapに失敗しました", L"エラー", MB_OK);
+			return;
+		}
+		
 		UINT* index = (UINT*)msr.pData;
-
-		//インデックスデータコピー
 		CopyMemory(&index[0], &Box_idxdata[0], sizeof(UINT) * 6 * 6);
 		pContext->Unmap(*ppIndexBuffer, 0);
 	}
@@ -282,11 +300,20 @@ void CreateSimpleBox(ID3D11Device* pDevice, ID3D11Buffer** ppVB, ID3D11Buffer** 
 
 	D3D11_SUBRESOURCE_DATA sd{};
 	sd.pSysMem = vertices;
-	pDevice->CreateBuffer(&bd, &sd, ppVB);
+	HRESULT hr = pDevice->CreateBuffer(&bd, &sd, ppVB);
+	if (FAILED(hr) || *ppVB == NULL)
+	{
+		MessageBox(NULL, L"SimpleBox頂点バッファの作成に失敗しました", L"エラー", MB_OK);
+		return;
+	}
 
-	// インデックスバッファ作成
 	bd.ByteWidth = sizeof(unsigned int) * 36; // インデックス数36
 	bd.BindFlags = D3D11_BIND_INDEX_BUFFER;
 	sd.pSysMem = indices;
-	pDevice->CreateBuffer(&bd, &sd, ppIB);
+	hr = pDevice->CreateBuffer(&bd, &sd, ppIB);
+	if (FAILED(hr) || *ppIB == NULL)
+	{
+		MessageBox(NULL, L"SimpleBoxインデックスバッファの作成に失敗しました", L"エラー", MB_OK);
+		return;
+	}
 }

@@ -58,45 +58,38 @@ static void UpdateConstantBuffer(ID3D11Buffer* buffer, const T& data)
 
 bool Shader_Initialize(ID3D11Device* pDevice, ID3D11DeviceContext* pContext)
 {
-	HRESULT hr; // 戻り値格納用
+	HRESULT hr;
 
-	// デバイスとデバイスコンテキストのチェック
 	if (!pDevice || !pContext) {
 		hal::dout << "Shader_Initialize() : 与えられたデバイスかコンテキストが不正です" << std::endl;
 		return false;
 	}
 
-	// デバイスとデバイスコンテキストの保存
 	g_pDevice = pDevice;
 	g_pContext = pContext;
 
-
-	// 事前コンパイル済み頂点シェーダーの読み込み
-	//csoはhlslファイルの実行形式ファイル
 	std::ifstream ifs_vs("shader_vertex_2d.cso", std::ios::binary);
 
 	if (!ifs_vs) {
-		//MessageBox(nullptr, "頂点シェーダーの読み込みに失敗しました\n\nshader_vertex_2d.cso", "エラー", MB_OK);
+		MessageBox(nullptr, L"頂点シェーダーの読み込みに失敗しました\n\nshader_vertex_2d.cso", L"エラー", MB_OK);
 		return false;
 	}
 
-	// ファイルサイズを取得
-	ifs_vs.seekg(0, std::ios::end); // ファイルポインタを末尾に移動
-	std::streamsize filesize = ifs_vs.tellg(); // ファイルポインタの位置を取得（つまりファイルサイズ）
-	ifs_vs.seekg(0, std::ios::beg); // ファイルポインタを先頭に戻す
+	ifs_vs.seekg(0, std::ios::end);
+	std::streamsize filesize = ifs_vs.tellg();
+	ifs_vs.seekg(0, std::ios::beg);
 
-	// バイナリデータを格納するためのバッフェを確保
 	unsigned char* vsbinary_pointer = new unsigned char[filesize];
 
-	ifs_vs.read((char*)vsbinary_pointer, filesize); // バイナリデータを読み込む
-	ifs_vs.close(); // ファイルを閉じる
+	ifs_vs.read((char*)vsbinary_pointer, filesize);
+	ifs_vs.close();
 
-	// 頂点シェーダーの作成
 	hr = g_pDevice->CreateVertexShader(vsbinary_pointer, filesize, nullptr, &g_pVertexShader);
 
 	if (FAILED(hr)) {
 		hal::dout << "Shader_Initialize() : 頂点シェーダーの作成に失敗しました" << std::endl;
-		delete[] vsbinary_pointer; // メモリリークしないようにバイナリデータのバッファを解放
+		MessageBox(nullptr, L"頂点シェーダーの作成に失敗しました", L"エラー", MB_OK);
+		delete[] vsbinary_pointer;
 		return false;
 	}
 
@@ -111,10 +104,11 @@ bool Shader_Initialize(ID3D11Device* pDevice, ID3D11DeviceContext* pContext)
 
 	// 頂点レイアウトの作成
 	hr = g_pDevice->CreateInputLayout(layout, ARRAYSIZE(layout), vsbinary_pointer, filesize, &g_pInputLayout);
-	delete[] vsbinary_pointer; // 不要になったので解放
+	delete[] vsbinary_pointer;
 
 	if (FAILED(hr)) {
 		hal::dout << "Shader_Initialize() : 頂点レイアウトの作成に失敗しました" << std::endl;
+		MessageBox(nullptr, L"頂点レイアウトの作成に失敗しました", L"エラー", MB_OK);
 		return false;
 	}
 
@@ -148,6 +142,7 @@ bool Shader_Initialize(ID3D11Device* pDevice, ID3D11DeviceContext* pContext)
 	// 事前コンパイル済みピクセルシェーダーの読み込み
 	std::ifstream ifs_ps("shader_pixel_2d.cso", std::ios::binary);
 	if (!ifs_ps) {
+		MessageBox(nullptr, L"ピクセルシェーダーの読み込みに失敗しました\n\nshader_pixel_2d.cso", L"エラー", MB_OK);
 		return false;
 	}
 
@@ -165,6 +160,7 @@ bool Shader_Initialize(ID3D11Device* pDevice, ID3D11DeviceContext* pContext)
 
 	if (FAILED(hr)) {
 		hal::dout << "Shader_Initialize() : ピクセルシェーダーの作成に失敗しました" << std::endl;
+		MessageBox(nullptr, L"ピクセルシェーダーの作成に失敗しました", L"エラー", MB_OK);
 		return false;
 	}
 
