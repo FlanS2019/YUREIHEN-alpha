@@ -33,18 +33,37 @@ static float GetCurrentScareRange()
 	return SCARE_COMBO_BASE_RADIUS + (combo - 1) * SCARE_COMBO_RADIUS_STEP;
 }
 
+static float GetActionEffectiveRange(Furniture* pFurniture, float baseRange)
+{
+    if (!pFurniture)
+    {
+        return baseRange;
+    }
+
+    switch (pFurniture->GetActionType())
+    {
+    case ACTION_LURE:
+        return baseRange * 2.0f;
+    case ACTION_STOP:
+        return BUSTERS_STOP_RANGE;
+    default:
+        return baseRange;
+    }
+}
+
 // 円のサイズと位置を更新するヘルパー関数
 static void UpdateRangeCircleState()
 {
 	if (!g_Ghost || !g_Ghost->m_pRangeCircle) return;
 
-	// コンボ数に合わせてサイズ（スケール）を更新
+	Furniture* pFurniture = GetFurniture(g_Ghost->GetInRangeNum());
 	float currentRange = GetCurrentScareRange();
+	float actionRange = GetActionEffectiveRange(pFurniture, currentRange);
+
 	// 円モデルの直径 = 半径 * 2
-	g_Ghost->m_pRangeCircle->SetSize({ currentRange * 2.0f, 0.1f, currentRange * 2.0f });
+	g_Ghost->m_pRangeCircle->SetSize({ actionRange * 2.0f, 0.1f, actionRange * 2.0f });
 
 	// 位置を家具に合わせる
-	Furniture* pFurniture = GetFurniture(g_Ghost->GetInRangeNum());
 	if (pFurniture)
 	{
 		XMFLOAT3 circlePos = pFurniture->GetPos();
@@ -427,7 +446,7 @@ void Ghost::ScareStart(void)
 
 	case ACTION_STOP:
 
-		if (distance <= currentRange)
+		if (distance <= BUSTERS_STOP_RANGE)
 		{
 			BustersStopped();
 			if (!m_HasIncreasedMultiplier)

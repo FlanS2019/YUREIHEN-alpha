@@ -61,8 +61,9 @@
 #define BUSTERS_DEFOURT_GAUGE (50.0f)
 #define WAIT_TIMER_DEFAULT (60)		     // 待機時間のデフォルト
 #define WAIT_TIMER_COOLDOWN (1800)		 // 待機のクールタイム
-#define KEEP_STATE_TIME (120)			 // 発見状態を維持する時間
+#define KEEP_STATE_TIME (120)		 // 発見状態を維持する時間
 #define BUSTERS_LURE_STAY_FRAMES (300)
+#define BUSTERS_STOP_RANGE (5.0f)
 
 //=== Ghost 関連定数 ===
 #define SCARE_RANGE (12.0f)		// 恐怖範囲
