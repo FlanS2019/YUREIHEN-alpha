@@ -232,14 +232,14 @@ void Animation_Lose_Update(void)
 	// ENTERキーでゲームへ戻る
 	if (Keyboard_IsKeyDownTrigger(KK_ENTER))
 	{
-		StartFade(SCENE_GAME);
+		StartFade(SCENE_TITLE);
 	}
 
 	// ENTERキーでゲームへ戻る
-	if (Keyboard_IsKeyDownTrigger(KK_E))
-	{
-		StartFade(SCENE_ANM_LOSE_ED);
-	}
+	//if (Keyboard_IsKeyDownTrigger(KK_E))
+	//{
+	//	StartFade(SCENE_ANM_LOSE_ED);
+	//}
 }
 
 void Animation_Lose_Draw(void)
