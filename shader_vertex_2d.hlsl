@@ -5,6 +5,8 @@
 
 ==============================================================================*/
 
+#define MAX_POINT_LIGHTS 8
+
 // 定数バッファ
 cbuffer Buffer0 : register(b0)
 {
@@ -16,20 +18,22 @@ cbuffer Buffer1 : register(b1)
 	float4x4 worldMtx;
 };
 
-struct LIGHT
+struct POINT_LIGHT
 {
 	bool enable;
 	bool3 dummy;
 	float4 Position; // ライト位置（ポイントライト用）
 	float4 Direction; // ライト方向（直光源用）
 	float4 Diffuse;
-	float4 Ambient;
 	float4 Params; // x: Range, y: Intensity
 };
 
 cbuffer Buffer2 : register(b2)
 {
-	LIGHT Light;
+	POINT_LIGHT PointLights[MAX_POINT_LIGHTS];
+	int PointLightCount;
+	float3 LightPadding;
+	float4 AmbientColor;
 };
 
 //入力用頂点構造体

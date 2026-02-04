@@ -853,10 +853,25 @@ void Busters::Draw(void)
 // =================================================================
 void Busters_SetLight(void)
 {
-	Busters* pBuster = GetBusters();
-	if (!pBuster || !pBuster->GetHeadlight()) return;
+    int currentFloor = Field_GetCurrentFloor();
+    if (currentFloor < 0 || currentFloor >= MAP_FLOORS)
+    {
+        return;
+    }
 
-	// バスターズのヘッドライト位置を更新してシェーダーに設定
-	PointLight* pHeadlight = pBuster->GetHeadlight();
-	Shader_SetPointLight(pHeadlight);
+    for (Busters* pBuster : g_BustersList[currentFloor])
+    {
+        if (!pBuster)
+        {
+            continue;
+        }
+
+        PointLight* pHeadlight = pBuster->GetHeadlight();
+        if (!pHeadlight)
+        {
+            continue;
+        }
+
+        Shader_AddPointLight(pHeadlight);
+    }
 }

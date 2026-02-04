@@ -17,16 +17,25 @@ using namespace DirectX;
 #include <Windows.h>
 #include <DirectXMath.h>
 
+#define MAX_POINT_LIGHTS (8) // HLSL側の定義と必ず一致させる
+
 // シェーダー定数バッファ用構造体
-struct LightData
+struct PointLightData
 {
 	BOOL enable;
 	BOOL dummy[3];
 	XMFLOAT4 position;
 	XMFLOAT4 direction;
 	XMFLOAT4 diffuse;
-	XMFLOAT4 ambient;
 	XMFLOAT4 params;	// x: range, y: intensity
+};
+
+struct LightData
+{
+	PointLightData pointLights[MAX_POINT_LIGHTS];
+	int lightCount;
+	float padding[3];
+	XMFLOAT4 ambient;
 };
 
 class AmbientLight

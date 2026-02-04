@@ -349,7 +349,7 @@ void Ghost_SetLight(void)
 	g_Ghost->m_pLight->SetPosition(ghostPos.x, ghostPos.y, ghostPos.z);
 
 	// シェーダーにライト情報を設定
-	Shader_SetPointLight(g_Ghost->m_pLight);
+	Shader_AddPointLight(g_Ghost->m_pLight);
 }
 
 // ========== Ghost クラスメソッドの実装 ==========

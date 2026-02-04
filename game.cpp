@@ -100,6 +100,7 @@ void Game_Draw(void)
 
 	// ライト情報のセット
 	Shader_SetAmbientLight(g_pAmbientLight);
+	Shader_ClearPointLights();
 	Ghost_SetLight();
 	Busters_SetLight();
 
