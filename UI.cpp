@@ -246,7 +246,7 @@ void UI_Update(void)
 	
 
 	// --- 敗北条件 ---
-#if defined(STOP_TIMER_BUSTER)
+#if STOP_TIMER_BUSTER
 	bool timeEnded = false;
 #else
 	bool timeEnded = g_Clock->Update();
