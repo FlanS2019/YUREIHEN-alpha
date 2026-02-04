@@ -10,3 +10,4 @@ static void UpdateInazuma(float elapsedSeconds);
 static void UpdateBasuta(float elapsedSeconds);
 static void UpdateYurei(float elapsedSeconds);
 static void UpdateRain(float elapsedSeconds);
+static void UpdateFonts(float elapsedSeconds);
