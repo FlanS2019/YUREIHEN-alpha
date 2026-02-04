@@ -25,9 +25,12 @@ SoundData* g_pScareSound = nullptr;
 static float GetCurrentScareRange()
 {
 	int combo = UI_ScareCombo_GetNumber();
-	float range = SCARE_RANGE * (float)combo / 5.0f;
-	if (range < 2.5f) range = 2.5f;
-	return range;
+	if (combo < 1)
+	{
+		combo = 1;
+	}
+
+	return SCARE_COMBO_BASE_RADIUS + (combo - 1) * SCARE_COMBO_RADIUS_STEP;
 }
 
 // 円のサイズと位置を更新するヘルパー関数
@@ -49,6 +52,105 @@ static void UpdateRangeCircleState()
 		circlePos.y = groundY + 0.01f;
 		g_Ghost->m_pRangeCircle->SetPos(circlePos);
 	}
+}
+
+static void UpdateLureFurnitureMovement()
+{
+    if (!g_Ghost)
+    {
+        return;
+    }
+
+    int furnitureIndex = g_Ghost->GetInRangeNum();
+    if (furnitureIndex < 0)
+    {
+        return;
+    }
+
+    Furniture* pFurniture = GetFurniture(furnitureIndex);
+    if (!pFurniture || pFurniture->GetActionType() != ACTION_LURE)
+    {
+        return;
+    }
+
+    float cameraYaw = Camera_GetYaw();
+    float yawRad = XMConvertToRadians(cameraYaw);
+    float forwardX = sinf(yawRad);
+    float forwardZ = cosf(yawRad);
+    float rightX = cosf(yawRad);
+    float rightZ = -sinf(yawRad);
+
+    float dirX = 0.0f;
+    float dirZ = 0.0f;
+
+    if (Keyboard_IsKeyDown(KK_W))
+    {
+        dirX += forwardX;
+        dirZ += forwardZ;
+    }
+    if (Keyboard_IsKeyDown(KK_S))
+    {
+        dirX -= forwardX;
+        dirZ -= forwardZ;
+    }
+    if (Keyboard_IsKeyDown(KK_D))
+    {
+        dirX += rightX;
+        dirZ += rightZ;
+    }
+    if (Keyboard_IsKeyDown(KK_A))
+    {
+        dirX -= rightX;
+        dirZ -= rightZ;
+    }
+
+    if (dirX == 0.0f && dirZ == 0.0f)
+    {
+        return;
+    }
+
+    float length = sqrtf(dirX * dirX + dirZ * dirZ);
+    if (length <= 0.0f)
+    {
+        return;
+    }
+
+    dirX /= length;
+    dirZ /= length;
+
+    float moveSpeed = GHOST_MAX_SPEED * LURE_POSSESSED_SPEED_RATIO;
+    XMFLOAT3 currentPos = pFurniture->GetPos();
+    XMFLOAT3 newPos = currentPos;
+
+    float r = 0.4f;
+
+    float nextX = newPos.x + dirX * moveSpeed;
+    bool hitX = Field_IsOuterWall(nextX + r, newPos.z + r) ||
+        Field_IsOuterWall(nextX + r, newPos.z - r) ||
+        Field_IsOuterWall(nextX - r, newPos.z + r) ||
+        Field_IsOuterWall(nextX - r, newPos.z - r);
+
+    if (!hitX)
+    {
+        newPos.x = nextX;
+    }
+
+    float nextZ = newPos.z + dirZ * moveSpeed;
+    bool hitZ = Field_IsOuterWall(newPos.x + r, nextZ + r) ||
+        Field_IsOuterWall(newPos.x + r, nextZ - r) ||
+        Field_IsOuterWall(newPos.x - r, nextZ + r) ||
+        Field_IsOuterWall(newPos.x - r, nextZ - r);
+
+    if (!hitZ)
+    {
+        newPos.z = nextZ;
+    }
+
+    if (newPos.x != currentPos.x || newPos.z != currentPos.z)
+    {
+        pFurniture->SetPos(newPos);
+        pFurniture->SetBasePos(newPos);
+    }
 }
 
 void Ghost_Initialize(ID3D11Device* pDevice, ID3D11DeviceContext* pContext)
@@ -117,12 +219,15 @@ void Ghost_Update(void)
 			UpdateRangeCircleState();
 
 			g_Ghost->SetState(GS_TRANSFORM);
+			g_Ghost->SetIsTransformed(true);
+			g_Ghost->SetVelocity({ 0.0f, 0.0f, 0.0f });
 			g_Ghost->m_HasIncreasedMultiplier = false;
 		}
 		break;
 
 	case GS_TRANSFORM:
 		g_Ghost->SetIsDraw(false);
+		UpdateLureFurnitureMovement();
 		g_Ghost->Transforming();
 
 		if (g_Ghost->m_pRangeCircle)
@@ -304,10 +409,12 @@ void Ghost::ScareStart(void)
 		break;
 
 	case ACTION_LURE:
+	{
+		float lureRange = currentRange * 2.0f;
 
-		if (distance <= currentRange * 2.0f)
+		if (distance <= lureRange)
 		{
-			BustersLured(ghostPos);
+			BustersLured(ghostPos, lureRange);
 			if (!m_HasIncreasedMultiplier)
 			{
 				ScareComboUP();
@@ -315,6 +422,7 @@ void Ghost::ScareStart(void)
 			}
 			AddScareGauge(SCORE_LURE * UI_ScareCombo_GetNumber());
 		}
+	}
 		break;
 
 	case ACTION_STOP:

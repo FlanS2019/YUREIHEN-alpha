@@ -14,7 +14,7 @@
 #if defined(_DEBUG)
 //=== デバッグ関連定数 ===
 #define STOP_TIMER_BUSTER (false) //trueならタイマーとバスターズのupdateを停止させる
-#define DIRECT_START (false) //trueならgameシーンから直接開始する
+#define DIRECT_START (true) //trueならgameシーンから直接開始する
 #define DEBUG_DRAW (false) //trueならdebugdraw機能を有効にする
 #else
 //==================================
@@ -31,7 +31,7 @@
 //=== フィールド関連定数 ===
 #define MAP_FLOORS (3)
 #define START_FLOOR (3)// 階の数字をそのまま入れる（使用時に-1）
-#define END_FLOOR (3) // ここで恐怖ゲージMAXでクリア
+#define END_FLOOR (3) // この階で恐怖ゲージMAXでクリア
 
 //=== Camera 関連定数 ===
 #define PITCH_LIMIT_LOOK_UP    (25.0f)   // 上を見る限界（カメラが下がる限界）: 床埋まり防止
@@ -62,15 +62,19 @@
 #define WAIT_TIMER_DEFAULT (60)		     // 待機時間のデフォルト
 #define WAIT_TIMER_COOLDOWN (1800)		 // 待機のクールタイム
 #define KEEP_STATE_TIME (120)			 // 発見状態を維持する時間
+#define BUSTERS_LURE_STAY_FRAMES (300)
 
 //=== Ghost 関連定数 ===
 #define SCARE_RANGE (12.0f)		// 恐怖範囲
+#define SCARE_COMBO_BASE_RADIUS (3.0f)
+#define SCARE_COMBO_RADIUS_STEP (1.0f)
 #define GHOST_MOVEMENT_SPEED (0.01f)
 #define GHOST_ACCELERATION (0.010f)
 #define GHOST_DECELERATION (0.98f)
 #define GHOST_MAX_SPEED (0.10f)
 #define FLOOR_COOLDOWN_TIME (2.0f) // 階層移動のクールダウン時間（秒）
 #define GHOST_POS_Y (0.5f)
+#define LURE_POSSESSED_SPEED_RATIO (0.5f)
 
 //=== Minimap 関連定数 ===
 #define MINIMAP_POS_OFFSET   (150.0f) 

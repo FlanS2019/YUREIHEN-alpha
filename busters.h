@@ -41,6 +41,10 @@ private:
 
 	Billboard* m_Icon;
 	PointLight* m_pHeadlight;
+	XMFLOAT3 m_LureTargetPos;
+	bool m_HasLureTarget;
+	int m_LureStayTimer;
+	bool m_IsGhostDiscover;
 
 public:
 	Busters(const XMFLOAT3& pos, const XMFLOAT3& scale, const XMFLOAT3& rot, const char* pass);
@@ -65,7 +69,7 @@ void Busters_Finalize(void);
 
 Busters* GetBusters(void);
 void BustersScare(void);
-void BustersLured(XMFLOAT3 pos);
+void BustersLured(const XMFLOAT3& pos, float radius);
 void BustersStopped(void);
 void Busters_CheckGaugeEvent(void);
 void Busters_UpdateFloorChangeSequence(void);

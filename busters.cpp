@@ -42,7 +42,11 @@ Busters::Busters(const XMFLOAT3& pos, const XMFLOAT3& scale, const XMFLOAT3& rot
 	m_ReactionCooldown(0),
 	m_KeepStateTimer(0),
 	m_Icon(nullptr),
-	m_pHeadlight(nullptr)
+	m_pHeadlight(nullptr),
+	m_LureTargetPos(pos),
+	m_HasLureTarget(false),
+	m_LureStayTimer(0),
+	m_IsGhostDiscover(false)
 {
 	m_Icon = new Billboard();
 
@@ -209,6 +213,22 @@ void Busters::Update(void)
 
 	case BUSTERS_LURED: // 誘引
 		m_MoveSpeed = BUSTERS_MOVE_SPEED_SUSPICION;
+		if (!m_HasLureTarget)
+		{
+			if (m_LureStayTimer > 0)
+			{
+				m_LureStayTimer--;
+				return;
+			}
+
+			m_State = BUSTERS_SEARCH;
+			m_TargetFurnitureIndex = -1;
+			m_WaitTimer = 0;
+			m_PathList.clear();
+			break;
+		}
+
+		nextStepPos = m_LureTargetPos;
 		break;
 
 	case BUSTERS_SUSPICION: // 警戒
@@ -295,10 +315,27 @@ void Busters::Update(void)
 	}
 
 	MoveTo(nextStepPos);
+
+	if (m_State == BUSTERS_LURED && m_HasLureTarget)
+	{
+		float dx = m_LureTargetPos.x - m_Position.x;
+		float dz = m_LureTargetPos.z - m_Position.z;
+		float distSq = dx * dx + dz * dz;
+		if (distSq <= 0.04f)
+		{
+			m_HasLureTarget = false;
+			m_LureStayTimer = BUSTERS_LURE_STAY_FRAMES;
+		}
+	}
 }
 
 void Busters::CheckState(void)
 {
+	if (m_State == BUSTERS_LURED)
+	{
+		return;
+	}
+
 	Ghost* ghost = GetGhost();
 	if (!ghost) return;
 	if (m_DetectionGraceTimer > 0) return;
@@ -474,22 +511,14 @@ void Busters::OnScared(void)
 
 void Busters::OnLured(XMFLOAT3 targetPos)
 {
-	m_State = BUSTERS_LURED;
-	this->SetColor(0.0f, 1.0f, 1.0f, 1.0f); // シアン
-	m_WaitTimer = 0;
-	m_DetectionGraceTimer = 120; // 2秒間（60FPS想定）発見されないようにする
-	m_PathList = Field_FindPath(m_Position, targetPos);
-
-	if (!m_PathList.empty())
-	{
-		std::reverse(m_PathList.begin(), m_PathList.end());
-		m_PathList.erase(m_PathList.begin());
-	}
-
-	if (m_PathList.empty())
-	{
-		m_PathList.push_back(targetPos);
-	}
+    m_State = BUSTERS_LURED;
+    this->SetColor(0.0f, 1.0f, 1.0f, 1.0f); // シアン
+    m_WaitTimer = 0;
+    m_DetectionGraceTimer = BUSTERS_LURE_STAY_FRAMES;
+    m_PathList.clear();
+    m_HasLureTarget = true;
+    m_LureTargetPos = targetPos;
+    m_LureStayTimer = 0;
 }
 
 void Busters::OnStopped(void)
@@ -502,9 +531,25 @@ void Busters::OnStopped(void)
 
 void Busters::SetIsGhostDiscover(bool discover)
 {
-	if (m_WaitTimer > 0) return;
-	if (discover) this->SetColor(0.0f, 1.0f, 0.0f, 1.0f);
-	else this->ResetColor();
+    if (m_State != BUSTERS_SEARCH)
+    {
+        if (m_IsGhostDiscover)
+        {
+            m_IsGhostDiscover = false;
+        }
+        return;
+    }
+
+    if (discover)
+    {
+        m_IsGhostDiscover = true;
+        this->SetColor(0.0f, 1.0f, 0.0f, 1.0f);
+    }
+    else if (m_IsGhostDiscover)
+    {
+        m_IsGhostDiscover = false;
+        this->ResetColor();
+    }
 }
 
 XMFLOAT3 GetRandomBusterPos(int floor)
@@ -661,15 +706,29 @@ void BustersScare(void)
 	}
 }
 
-void BustersLured(XMFLOAT3 pos)
+void BustersLured(const XMFLOAT3& pos, float radius)
 {
-	int currentFloor = Field_GetCurrentFloor();
-	if (currentFloor >= 0 && currentFloor < MAP_FLOORS)
-	{
-		for (Busters* buster : g_BustersList[currentFloor]) {
-			buster->OnLured(pos);
-		}
-	}
+    if (radius <= 0.0f)
+    {
+        return;
+    }
+
+    float radiusSq = radius * radius;
+    int currentFloor = Field_GetCurrentFloor();
+    if (currentFloor >= 0 && currentFloor < MAP_FLOORS)
+    {
+        for (Busters* buster : g_BustersList[currentFloor])
+        {
+            XMFLOAT3 busterPos = buster->GetPos();
+            float dx = busterPos.x - pos.x;
+            float dz = busterPos.z - pos.z;
+            float distSq = dx * dx + dz * dz;
+            if (distSq <= radiusSq)
+            {
+                buster->OnLured(pos);
+            }
+        }
+    }
 }
 
 void BustersStopped(void)
