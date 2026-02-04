@@ -95,6 +95,7 @@ void Sprite_Single_Draw(XMFLOAT2 pos, XMFLOAT2 size,float rot, XMFLOAT4 color, B
 		Shader_SetMatrix(XMMatrixOrthographicOffCenterLH(0.0f, SCREEN_WIDTH, SCREEN_HEIGHT, 0.0f, 0.0f, 1.0f));
 		Shader_SetWorldMatrix(XMMatrixIdentity());
 		Shader_SetMaterialColor({ 1.0f, 1.0f, 1.0f, 1.0f });
+		Shader_SetAmbientLight(&g_SpriteAmbientLight);
 		Shader_SetPointLight(nullptr); // ライトを無効化
 	}
 
@@ -178,6 +179,7 @@ void Sprite_Split_Draw(XMFLOAT2 pos, XMFLOAT2 size, float rot, XMFLOAT4 color, B
 		Shader_SetMatrix(XMMatrixOrthographicOffCenterLH(0.0f, SCREEN_WIDTH, SCREEN_HEIGHT, 0.0f, 0.0f, 1.0f));
 		Shader_SetWorldMatrix(XMMatrixIdentity());
 		Shader_SetMaterialColor({ 1.0f, 1.0f, 1.0f, 1.0f });
+		Shader_SetAmbientLight(&g_SpriteAmbientLight);
 		Shader_SetPointLight(nullptr); // ライトを無効化
 	}
 
