@@ -16,7 +16,7 @@ static ID3D11DeviceContext* g_pContext = nullptr;
 
 // 2D描画最適化用フラグ
 static bool g_b2DBegun = false;
-
+static AmbientLight g_SpriteAmbientLight(XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f));
 //----------------------------
 //スプライト初期化
 //----------------------------
@@ -66,7 +66,8 @@ void Sprite_BeginDraw2D()
 	// 2D描画用にマテリアル色を白に設定
 	Shader_SetMaterialColor({ 1.0f, 1.0f, 1.0f, 1.0f });
 
-	// 2D描画用にライトを無効化
+	// 2D描画時はライティングを完全にフラット化
+	Shader_SetAmbientLight(&g_SpriteAmbientLight);
 	Shader_SetPointLight(nullptr);
 
 	g_b2DBegun = true;
