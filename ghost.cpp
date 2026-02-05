@@ -26,7 +26,7 @@ static float GetCurrentScareRange()
 {
 	int combo = UI_ScareCombo_GetNumber();
 	float range = SCARE_RANGE * (float)combo / 5.0f;
-	if (range < 2.5f) range = 2.5f;
+	if (range < 3.5f) range = 3.5f;
 	return range;
 }
 
