@@ -39,12 +39,14 @@ static Sprite* g_OpBikkuriSprite = nullptr;		// びっくり（！マーク）
 static Sprite* g_OpInazumaSprite = nullptr;		// 稲妻
 
 static DWORD g_OpStartTime = 0;
-static SoundData* g_pBGM = nullptr;
+static SoundData* g_pBGM_Ghost = nullptr;		// BGM 1: Ghost1
+static SoundData* g_pBGM_LightningRain = nullptr;	// BGM 2: Lightning Rain
 static bool g_BGMPlayed = false;				// BGM再生フラグ
 
 //日本語フォント
 static FontRenderer* g_pOpAnimFont = nullptr;
 static FontRenderer* g_pOpAnimFont2 = nullptr;
+static FontRenderer* g_pOpAnimFont3 = nullptr;
 
 // フレームレート設定（40 FPS用）
 static const float g_OpAnimFPS = 40.0f;
@@ -122,11 +124,23 @@ static const float INAZUMA_INTERVAL_MIN = 1.0f;
 static const float INAZUMA_INTERVAL_MAX = 3.5f;
 static const float INAZUMA_BASE_ALPHA = 0.5f;
 // フェード全体
-static const float FADE_OUT_TIME = 8.0f;// フェードアウト開始時間(OPアニメーション全体の流す時間)
+static const float FADE_OUT_TIME = 9.0f;// フェードアウト開始時間(OPアニメーション全体の流す時間)
 static const float YUREI_DETECT_TIME = 2.0f;// 幽霊反応開始時間
+
 // アニメーション定数セクションに追加
 static const float BIKKURI_APPEAR_DELAY = 0.3f;	// びっくり表示遅延（秒）
 
+// ========================
+// フォント制御パラメータ
+// ========================
+static struct {
+	float fadeOutStartTime;		// フェードアウト開始時間
+	float fadeOutDuration;		// フェードアウト時間
+	float fadeInStartTime;		// フェードイン開始時間
+	float fadeInDuration;		// フェードイン時間
+	float alpha1;				// g_pOpAnimFont と g_pOpAnimFont2 のアルファ
+	float alpha3;				// g_pOpAnimFont3 のアルファ
+} g_FontControl = { 6.0f, 0.5f, 6.5f, 1.0f, 1.0f, 0.0f };
 // ========================
 // ユーティリティ関数
 // ========================
@@ -265,8 +279,8 @@ void OpAnim_Initialize(ID3D11Device* pDevice, ID3D11DeviceContext* pContext)
 
 	// びっくりマークスプライト（初期は透明）
 	g_OpBikkuriSprite = new Sprite(
-		{ g_Yurei.currentPos.x, g_Yurei.currentPos.y - 100.0f },	// 位置（幽霊上方）
-		{ 100.0f, 100.0f },						// サイズ
+		{ g_Yurei.currentPos.x, g_Yurei.currentPos.y - 50.0f },	// 位置（幽霊上方）
+		{ 453, 340 },						// サイズ
 		0.0f,										// 回転（度）
 		{ 1.0f, 1.0f, 1.0f, 0.0f },				// 色（初期は透明）
 		BLENDSTATE_ALFA,							// BlendState
@@ -289,16 +303,24 @@ void OpAnim_Initialize(ID3D11Device* pDevice, ID3D11DeviceContext* pContext)
 		70.0f,													//フォントサイズ（ピクセル）
 		0.0f,													//回転
 		{ 1.0f, 1.0f, 1.0f, 1.0f },								//RGBA
-		"Press Enter - エンターキーを押してスタート！"			//テキスト
+		"平和に暮らしていたはずの幽霊ちゃん・・・。"			//テキスト
+	);
+	//日本語フォント描画
+	g_pOpAnimFont2 = new FontRenderer(
+		{ SCREEN_WIDTH / 2.0f, SCREEN_HEIGHT -60 },			//位置（画面中央）
+		70.0f,													//フォントサイズ（ピクセル）
+		0.0f,													//回転
+		{ 1.0f, 1.0f, 1.0f, 1.0f },								//RGBA
+		"おや、怪しい人達が現れましたよ？"											//テキスト
 	);
 
 	//日本語フォント描画
-	g_pOpAnimFont2 = new FontRenderer(
-		{ SCREEN_WIDTH / 2.0f, SCREEN_HEIGHT / 2.0f },			//位置（画面中央）
-		200.0f,													//フォントサイズ（ピクセル）
+	g_pOpAnimFont3 = new FontRenderer(
+		{ SCREEN_WIDTH / 2.0f, SCREEN_HEIGHT -80 },			//位置（画面中央）
+		70.0f,													//フォントサイズ（ピクセル）
 		0.0f,													//回転
-		{ 0.0f, 0.8f, 0.8f, 0.8f },								//RGBA
-		"g_pTitleFont2"											//テキスト
+		{ 1.0f, 1.0f, 1.0f, 1.0f },								//RGBA
+		"さてさて、追い出す準備でもいたしましょうか・・・。"											//テキスト
 	);
 
 
@@ -306,12 +328,9 @@ void OpAnim_Initialize(ID3D11Device* pDevice, ID3D11DeviceContext* pContext)
 	g_Inazuma.nextTrigger = 0.5f + Rand01() * 1.5f;
 	g_Inazuma.active = false;
 
-	// BGM再生
-	g_pBGM = LoadMP3("asset/sound/se/ghost1.mp3");
-	g_BGMPlayed = false;
-
-	// BGM再生
-	g_pBGM = LoadMP3("asset/sound/se/lightning_rain.mp3");
+	// BGM 両方を読み込み・再生
+	g_pBGM_Ghost = LoadMP3("asset/sound/bgm/BGM1op.mp3");
+	g_pBGM_LightningRain = LoadMP3("asset/sound/se/lightning_rain.mp3");
 	g_BGMPlayed = false;
 
 	// OP画面ではマウスカーソルを表示・絶対モードに設定
@@ -341,13 +360,20 @@ void OpAnim_Finalize(void)
 	delete g_OpInazumaSprite; g_OpInazumaSprite = nullptr;
 	delete g_pOpAnimFont; g_pOpAnimFont = nullptr;
 	delete g_pOpAnimFont2; g_pOpAnimFont2 = nullptr;
+	delete g_pOpAnimFont3; g_pOpAnimFont3 = nullptr;
 
 
-	// BGM解放
-	if (g_pBGM) {
-		StopSound(g_pBGM);
-		UnloadSound(g_pBGM);
-		g_pBGM = nullptr;
+	// BGM両方を解放
+	if (g_pBGM_Ghost) {
+		StopSound(g_pBGM_Ghost);
+		UnloadSound(g_pBGM_Ghost);
+		g_pBGM_Ghost = nullptr;
+	}
+
+	if (g_pBGM_LightningRain) {
+		StopSound(g_pBGM_LightningRain);
+		UnloadSound(g_pBGM_LightningRain);
+		g_pBGM_LightningRain = nullptr;
 	}
 
 	g_BGMPlayed = false;
@@ -582,6 +608,45 @@ static void UpdateRain(float elapsedSeconds)
 	}
 }
 
+// フォント更新処理
+static void UpdateFonts(float elapsedSeconds)
+{
+	// g_pOpAnimFont と g_pOpAnimFont2 のフェードアウト・イン
+	if (elapsedSeconds >= g_FontControl.fadeOutStartTime)
+	{
+		float fadeOutTime = elapsedSeconds - g_FontControl.fadeOutStartTime;
+		float fadeOutRatio = Clamp(fadeOutTime / g_FontControl.fadeOutDuration, 0.0f, 1.0f);
+		g_FontControl.alpha1 = Clamp(1.0f - fadeOutRatio, 0.0f, 1.0f);
+	}
+
+	// g_pOpAnimFont3 のフェードイン（フェードアウト完了後）
+	if (elapsedSeconds >= g_FontControl.fadeInStartTime)
+	{
+		float fadeInTime = elapsedSeconds - g_FontControl.fadeInStartTime;
+		float fadeInRatio = Clamp(fadeInTime / g_FontControl.fadeInDuration, 0.0f, 1.0f);
+		g_FontControl.alpha3 = Clamp(fadeInRatio, 0.0f, 1.0f);
+	}
+
+	// フォントカラーに反映
+	if (g_pOpAnimFont) {
+		XMFLOAT4 color = g_pOpAnimFont->GetColor();
+		color.w = g_FontControl.alpha1;
+		g_pOpAnimFont->SetColor(color);
+	}
+
+	if (g_pOpAnimFont2) {
+		XMFLOAT4 color = g_pOpAnimFont2->GetColor();
+		color.w = g_FontControl.alpha1;
+		g_pOpAnimFont2->SetColor(color);
+	}
+
+	if (g_pOpAnimFont3) {
+		XMFLOAT4 color = g_pOpAnimFont3->GetColor();
+		color.w = g_FontControl.alpha3;
+		g_pOpAnimFont3->SetColor(color);
+	}
+}
+
 void OpAnim_Update(void)
 {
 	if (g_OpStartTime == 0) return; // 初期化前ガード
@@ -590,15 +655,21 @@ void OpAnim_Update(void)
 	DWORD elapsedTime = currentTime - g_OpStartTime;
 	float elapsedSeconds = elapsedTime / 1000.0f;
 
-	// BGMを一度だけ再生
-	if (!g_BGMPlayed && g_pBGM) {
-		PlaySound(g_pBGM, true);
+	// BGM両方を一度だけ再生
+	if (!g_BGMPlayed) {
+		if (g_pBGM_Ghost) {
+			PlaySound(g_pBGM_Ghost, true);
+		}
+		if (g_pBGM_LightningRain) {
+			PlaySound(g_pBGM_LightningRain, true);
+		}
 		g_BGMPlayed = true;
 	}
 
 	UpdateInazuma(elapsedSeconds);
 	UpdateBasuta(elapsedSeconds);
 	UpdateYurei(elapsedSeconds);
+	UpdateFonts(elapsedSeconds);
 
 	// 雨更新を追加
 	UpdateRain(elapsedSeconds);
@@ -635,5 +706,6 @@ void OpAnimDraw(void)
 	if (g_OpBikkuriSprite) g_OpBikkuriSprite->Draw();	// びっくり
 	if (g_OpInazumaSprite) g_OpInazumaSprite->Draw();	// 稲妻
 	g_pOpAnimFont->Draw();
-	//g_pOpAnimFont2->Draw();
+	g_pOpAnimFont2->Draw();
+	g_pOpAnimFont3->Draw();
 }

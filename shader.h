@@ -20,6 +20,8 @@ void Shader_Finalize();
 void Shader_SetMatrix(const DirectX::XMMATRIX& matrix);
 
 void Shader_SetWorldMatrix(const DirectX::XMMATRIX& matrix);
+void Shader_ClearPointLights();
+void Shader_AddPointLight(PointLight* light);
 void Shader_SetPointLight(PointLight* light);
 void Shader_SetAmbientLight(AmbientLight* ambient);
 void Shader_SetMaterialColor(const DirectX::XMFLOAT4& color);

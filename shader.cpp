@@ -56,6 +56,11 @@ static void UpdateConstantBuffer(ID3D11Buffer* buffer, const T& data)
 	}
 }
 
+static void UpdateLightBuffer()
+{
+    UpdateConstantBuffer(g_pLightConstantBuffer, g_CurrentLightData);
+}
+
 bool Shader_Initialize(ID3D11Device* pDevice, ID3D11DeviceContext* pContext)
 {
 	HRESULT hr;
@@ -127,9 +132,9 @@ bool Shader_Initialize(ID3D11Device* pDevice, ID3D11DeviceContext* pContext)
 
 	// 定数バッファを初期状態（ライト無効）で初期化
 	g_CurrentLightData = {};
-	g_CurrentLightData.enable = FALSE;
+	g_CurrentLightData.lightCount = 0;
 	g_CurrentLightData.ambient = { 0.3f, 0.3f, 0.3f, 1.0f };
-	UpdateConstantBuffer(g_pLightConstantBuffer, g_CurrentLightData);
+	UpdateLightBuffer();
 
 	// マテリアル色バッファの作成
 	buffer_desc.ByteWidth = sizeof(XMFLOAT4);
@@ -238,20 +243,45 @@ void Shader_SetWorldMatrix(const DirectX::XMMATRIX& matrix)
 	UpdateConstantBuffer(g_pWorldConstantBuffer, transpose);
 }
 
+void Shader_ClearPointLights()
+{
+	for (int i = 0; i < MAX_POINT_LIGHTS; ++i)
+	{
+		g_CurrentLightData.pointLights[i] = {};
+	}
+	g_CurrentLightData.lightCount = 0;
+	UpdateLightBuffer();
+}
+
+void Shader_AddPointLight(PointLight* light)
+{
+	if (!light)
+	{
+		return;
+	}
+
+	if (g_CurrentLightData.lightCount >= MAX_POINT_LIGHTS)
+	{
+		hal::dout << "Shader_AddPointLight() : MAX_POINT_LIGHTS(" << MAX_POINT_LIGHTS << ") を超えています" << std::endl;
+		return;
+	}
+
+	PointLightData& dst = g_CurrentLightData.pointLights[g_CurrentLightData.lightCount];
+	dst = {};
+	dst.enable = light->enable;
+	dst.position = light->position;
+	dst.direction = light->direction;
+	dst.diffuse = light->diffuse;
+	dst.params = XMFLOAT4(light->range, light->intensity, 0.0f, 0.0f);
+
+	++g_CurrentLightData.lightCount;
+	UpdateLightBuffer();
+}
+
 void Shader_SetPointLight(PointLight* light)
 {
-	if (light) {
-		g_CurrentLightData.enable = light->enable;
-		g_CurrentLightData.position = light->position;
-		g_CurrentLightData.direction = light->direction;
-		g_CurrentLightData.diffuse = light->diffuse;
-		g_CurrentLightData.params.x = light->range;
-		g_CurrentLightData.params.y = light->intensity;
-	}
-	else {
-		g_CurrentLightData.enable = FALSE;
-	}
-	UpdateConstantBuffer(g_pLightConstantBuffer, g_CurrentLightData);
+	Shader_ClearPointLights();
+	Shader_AddPointLight(light);
 }
 
 void Shader_SetAmbientLight(AmbientLight* ambient)
@@ -262,7 +292,7 @@ void Shader_SetAmbientLight(AmbientLight* ambient)
 	else {
 		g_CurrentLightData.ambient = { 0.3f, 0.3f, 0.3f, 1.0f };
 	}
-	UpdateConstantBuffer(g_pLightConstantBuffer, g_CurrentLightData);
+	UpdateLightBuffer();
 }
 
 void Shader_SetMaterialColor(const DirectX::XMFLOAT4& color)

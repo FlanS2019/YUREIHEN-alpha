@@ -71,6 +71,7 @@ public:
 	bool IsCoolingDown(void) const { return m_CooldownTimer > 0.0f; }
 	float GetCooldownTimer(void) const { return m_CooldownTimer; }
 	int GetBlockID(void) const { return m_BlockID; }
+	void SetBasePos(const XMFLOAT3& pos) { m_BasePos = pos; }
 };
 
 void Furniture_Initialize(void);
