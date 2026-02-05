@@ -64,6 +64,8 @@
 #define KEEP_STATE_TIME (120)		 // 発見状態を維持する時間
 #define BUSTERS_LURE_STAY_FRAMES (300)
 #define BUSTERS_STOP_RANGE (5.0f)
+#define BUSTERS_FOV_ANGLE 60.0f  // 視野角（度）
+#define BUSTERS_FOV_COS   0.5f   
 
 //=== Ghost 関連定数 ===
 #define SCARE_RANGE (12.0f)		// 恐怖範囲

@@ -114,8 +114,8 @@ void UI_ScareCombo_Finalize(void)
 	g_ScareComboBar = nullptr;
 }
 
-void g_StartTime = GetTickCount64();
-ScareComboUP(void)
+//void g_StartTime = GetTickCount64();
+void ScareComboUP(void)
 {
 		//g_ScareComboNumを加算
 	g_ScareCombo->AddNumber(1);
