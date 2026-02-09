@@ -60,6 +60,7 @@ public:
 	
 	PointLight* GetHeadlight(void) const { return m_pHeadlight; }
 	void SetIsGhostDiscover(bool discover);
+	bool IsTargetInFOV(const XMFLOAT3& targetPos, float range);
 };
 
 void Busters_Initialize(void);

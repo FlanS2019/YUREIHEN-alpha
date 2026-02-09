@@ -114,10 +114,10 @@ void UI_ScareCombo_Finalize(void)
 	g_ScareComboBar = nullptr;
 }
 
+//void g_StartTime = GetTickCount64();
 void ScareComboUP(void)
 {
-	g_StartTime = GetTickCount64();
-	//g_ScareComboNumを加算
+		//g_ScareComboNumを加算
 	g_ScareCombo->AddNumber(1);
 	//5を超えないように
 	if (g_ScareCombo->GetNumber() > SCARECOMBO_MAX)

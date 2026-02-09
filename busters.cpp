@@ -234,28 +234,27 @@ void Busters::Update(void)
 	case BUSTERS_SUSPICION: // 警戒
 		if (GetGhost())
 		{
-			// 壁がない場合は直線的に進む
-			if (!Field_CheckWallBetween(m_Position, GetGhost()->GetPos()))
+			bool hasWall = Field_CheckWallBetween(m_Position, GetGhost()->GetPos());
+
+			if (!hasWall)
 			{
+				// 壁がない -> 直線移動
 				m_PathList.clear();
 				nextStepPos = GetGhost()->GetPos();
 			}
 			else
 			{
-				// 経路が空、またはターゲットに到達したら再計算
+				// 壁がある -> 経路探索を使用
 				if (m_PathList.empty())
 				{
+					// 経路がない場合のみ再検索
 					m_PathList = Field_FindPath(m_Position, GetGhost()->GetPos());
 					if (!m_PathList.empty()) {
 						std::reverse(m_PathList.begin(), m_PathList.end());
-						m_PathList.erase(m_PathList.begin()); // 現在地のタイルをスキップ
+						if (m_PathList.size() > 0) m_PathList.erase(m_PathList.begin());
 					}
 				}
-			}
 
-			if (m_PathList.empty())
-			{
-				nextStepPos = GetGhost()->GetPos();
 			}
 		}
 		m_MoveSpeed = BUSTERS_MOVE_SPEED_SUSPICION;
@@ -264,32 +263,36 @@ void Busters::Update(void)
 	case BUSTERS_CHASE: // 追跡
 		if (GetGhost())
 		{
-			// 壁がない場合は直線的に追跡する
-			if (!Field_CheckWallBetween(m_Position, GetGhost()->GetPos()))
+
+			bool hasWall = Field_CheckWallBetween(m_Position, GetGhost()->GetPos());
+
+			if (!hasWall)
 			{
+				// 壁がない -> 直線追跡
 				m_PathList.clear();
 				nextStepPos = GetGhost()->GetPos();
 			}
 			else
 			{
-				// 追跡中は最短経路を常に更新
-				m_PathList = Field_FindPath(m_Position, GetGhost()->GetPos());
-				if (!m_PathList.empty()) {
-					std::reverse(m_PathList.begin(), m_PathList.end());
-					m_PathList.erase(m_PathList.begin()); // 現在地のタイルをスキップ
-				}
-			}
+				// 壁がある -> 経路探索
 
-			if (m_PathList.empty())
-			{
-				nextStepPos = GetGhost()->GetPos();
+				if (m_PathList.empty())
+				{
+					m_PathList = Field_FindPath(m_Position, GetGhost()->GetPos());
+					if (!m_PathList.empty()) {
+						std::reverse(m_PathList.begin(), m_PathList.end());
+						if (m_PathList.size() > 0) m_PathList.erase(m_PathList.begin());
+					}
+				}
+
 			}
 		}
 		m_MoveSpeed = BUSTERS_MOVE_SPEED_CHASE;
 		break;
 	}
 
-	// 経路が存在する場合、次の目的地へ向かう
+	// 経路リストがある場合は、その先頭を次の目的地にする
+	// (壁ごしの直線移動よりもこちらが優先される)
 	if (!m_PathList.empty())
 	{
 		nextStepPos = m_PathList[0];
@@ -298,17 +301,18 @@ void Busters::Update(void)
 		float dz = nextStepPos.z - m_Position.z;
 		float distSq = dx * dx + dz * dz;
 
-		// 目的地に近づいたら次のノードへ
+		// ノードに到達したらリストから削除
 		if (distSq < 0.2f * 0.2f)
 		{
 			m_PathList.erase(m_PathList.begin());
+			// 目的地（リスト末尾）に到達した場合の処理
 			if (m_PathList.empty())
 			{
 				if (m_State == BUSTERS_SEARCH || m_State == BUSTERS_LURED)
 				{
 					m_State = BUSTERS_SEARCH;
 					m_TargetFurnitureIndex = -1;
-					m_WaitTimer = 120; // 到着後の待機
+					m_WaitTimer = 120;
 				}
 			}
 		}
@@ -340,14 +344,10 @@ void Busters::CheckState(void)
 	if (!ghost) return;
 	if (m_DetectionGraceTimer > 0) return;
 
-	XMFLOAT3 ghostPos = ghost->GetPos();
-	XMVECTOR ghostVec = XMLoadFloat3(&ghostPos);
-	XMVECTOR myVec = XMLoadFloat3(&m_Position);
-	m_DistanceToGhost = XMVectorGetX(XMVector3Length(XMVectorSubtract(ghostVec, myVec)));
-
-	// 変身中（憑依中）
+	// 変身中（憑依中）は見つからない処理
 	if (ghost->GetState() == GS_TRANSFORM || ghost->GetState() == GS_SCARE)
 	{
+		// 見失う
 		if (m_State != BUSTERS_SEARCH && m_State != BUSTERS_LURED)
 		{
 			m_State = BUSTERS_SEARCH;
@@ -360,27 +360,28 @@ void Busters::CheckState(void)
 		return;
 	}
 
-	bool hasWall = Field_CheckWallBetween(m_Position, ghostPos);
-	bool isDetected = false; //発見フラグ
+	// 壁チェック
+	bool hasWall = Field_CheckWallBetween(m_Position, ghost->GetPos());
 
-	// ヒステリシス（境界でのチラつき防止）
-	float checkChaseRange = BUSTERS_PATROL_RANGH;
-	if (m_State == BUSTERS_CHASE)
+
+	// 判定範囲の決定（ヒステリシス付き）
+	float chaseRange = BUSTERS_PATROL_RANGH;
+	if (m_State == BUSTERS_CHASE) chaseRange *= 1.2f;
+
+	float suspicionRange = BUSTERS_SUSPICION_RANGE;
+	if (m_State == BUSTERS_SUSPICION) suspicionRange *= 1.2f;
+
+	// 視野判定を実行
+	bool inChaseArea = IsTargetInFOV(ghost->GetPos(), chaseRange);
+	bool inSuspicionArea = IsTargetInFOV(ghost->GetPos(), suspicionRange);
+
+
+	// --- 状態遷移ロジック ---
+
+	// 優先度高：追跡範囲 (壁なし かつ 視野内)
+	if (!hasWall && inChaseArea)
 	{
-		checkChaseRange *= 1.2f; // 追跡中は範囲を20%広げる
-	}
-
-	float checkSuspicionRange = BUSTERS_SUSPICION_RANGE;
-	if (m_State == BUSTERS_SUSPICION)
-	{
-		checkSuspicionRange *= 1.2f; // 警戒中も範囲を20%広げる
-	}
-
-
-	if (!hasWall && m_DistanceToGhost < checkChaseRange)
-	{
-		isDetected = true; // 発見フラグ
-		m_KeepStateTimer = KEEP_STATE_TIME; //1秒間は見失わない
+		m_KeepStateTimer = KEEP_STATE_TIME; // 見失い防止タイマー更新
 
 		if (m_State != BUSTERS_CHASE)
 		{
@@ -388,34 +389,29 @@ void Busters::CheckState(void)
 			this->SetColor(1.0f, 0.0f, 0.0f, 1.0f); // 赤
 			ghost->SetIsDetectedByBuster(true);
 
+			// 初回発見時の硬直処理
 			if (m_ReactionCooldown <= 0)
 			{
-				// クールタイムがなければ驚いて硬直する
-				m_WaitTimer = WAIT_TIMER_DEFAULT;         // 1秒硬直
-				m_ReactionCooldown = WAIT_TIMER_COOLDOWN; // 次の30秒間は驚かない（即反応する）
+				m_WaitTimer = WAIT_TIMER_DEFAULT;
+				m_ReactionCooldown = WAIT_TIMER_COOLDOWN;
 			}
 			else
 			{
-				// クールタイム中なら硬直せず、すぐに追いかける！
 				m_WaitTimer = 0;
 			}
 		}
 
-		// 発見されたらコンボリセット
-		//UI_ScareCombo_Reset();
-
-		// 距離が近づくにつれ恐怖ゲージを減らす（赤発見時のみ）
+		// 接近時のゲージ減少処理
 		if (m_DistanceToGhost < BUSTERS_PATROL_RANGH)
 		{
 			float reduceAmount = (1.0f - (m_DistanceToGhost / BUSTERS_PATROL_RANGH)) * -BUSTER_GAUGE_REDUCTION;
 			AddScareGauge(reduceAmount);
 		}
 	}
-
-	else if (!hasWall && m_DistanceToGhost < checkSuspicionRange)
+	// 優先度中：警戒範囲 (壁なし かつ 視野内)
+	else if (!hasWall && inSuspicionArea)
 	{
-		isDetected = true; // 発見フラグ
-		m_KeepStateTimer = KEEP_STATE_TIME; //1秒間は見失わない
+		m_KeepStateTimer = KEEP_STATE_TIME;
 
 		if (m_State != BUSTERS_SUSPICION)
 		{
@@ -425,9 +421,8 @@ void Busters::CheckState(void)
 
 			if (m_ReactionCooldown <= 0)
 			{
-				// クールタイムがなければ驚いて硬直する
-				m_WaitTimer = WAIT_TIMER_DEFAULT;         // 1秒硬直
-				m_ReactionCooldown = WAIT_TIMER_COOLDOWN; // 次の30秒間は驚かない（即反応する）
+				m_WaitTimer = WAIT_TIMER_DEFAULT;
+				m_ReactionCooldown = WAIT_TIMER_COOLDOWN;
 			}
 			else
 			{
@@ -435,26 +430,28 @@ void Busters::CheckState(void)
 			}
 		}
 	}
+	// 範囲外 or 壁あり or 後ろ側
 	else
 	{
-		// 見失った時の処理
+		// 見失い猶予中
 		if (m_KeepStateTimer > 0)
 		{
 			m_KeepStateTimer--;
-			return; // 前の状態（赤や黄）が維持される
+			return; // 状態維持
 		}
 
+		// 完全に見失った -> 探索に戻る
 		if (m_State != BUSTERS_SEARCH)
 		{
 			m_State = BUSTERS_SEARCH;
 			this->ResetColor();
 			ghost->SetIsDetectedByBuster(false);
 			m_TargetFurnitureIndex = -1;
+			m_PathList.clear(); // 経路リセット
 			m_WaitTimer = 30;
 		}
 	}
 }
-
 void Busters::MoveTo(XMFLOAT3 targetPos)
 {
 	if (GetIsJumping()) return;
@@ -552,6 +549,41 @@ void Busters::SetIsGhostDiscover(bool discover)
     }
 }
 
+bool Busters::IsTargetInFOV(const XMFLOAT3& targetPos, float range)
+{
+	// 距離チェック
+	XMVECTOR myPosVec = XMLoadFloat3(&m_Position);
+	XMVECTOR targetPosVec = XMLoadFloat3(&targetPos);
+	XMVECTOR dirVec = XMVectorSubtract(targetPosVec, myPosVec);
+	float distSq = XMVectorGetX(XMVector3LengthSq(dirVec)); // 距離の2乗
+
+	if (distSq > range * range) return false; // 範囲外
+
+	// 角度チェック (内積)
+	// バスターズの正面ベクトル
+	// MoveToで `atan2 + 180` しているので、正面は `rotY + 180` の方向
+	float rotRad = XMConvertToRadians(GetRot().y + 180.0f);
+	XMVECTOR forwardVec = XMVectorSet(sinf(rotRad), 0.0f, cosf(rotRad), 0.0f);
+
+	// ターゲットへの方向ベクトル（XZ平面）
+	dirVec = XMVectorSet(targetPos.x - m_Position.x, 0.0f, targetPos.z - m_Position.z, 0.0f);
+	dirVec = XMVector3Normalize(dirVec);
+
+	// 内積計算
+	float dot = XMVectorGetX(XMVector3Dot(forwardVec, dirVec));
+
+	// 閾値計算 (視野角の半分)
+	float limitCos = cosf(XMConvertToRadians(BUSTERS_FOV_ANGLE / 2.0f));
+
+	// 内積が閾値より大きければ視野内（cosは角度が小さいほど1に近い）
+	if (dot >= limitCos)
+	{
+		return true;
+	}
+
+	return false; // 視野角の外
+}
+
 XMFLOAT3 GetRandomBusterPos(int floor)
 {
 	int attempts = 0;
@@ -598,6 +630,91 @@ XMFLOAT3 GetRandomBusterPos(int floor)
 	return { 0.0f, PATROL_HEIGHT, 0.0f };
 }
 
+void DrawDebugFan(const XMFLOAT3& center, float rotY, float fovAngle, float range, const XMFLOAT4& color)
+{
+	// 簡易的な頂点構造体
+	struct DebugVertex {
+		XMFLOAT3 pos;
+		XMFLOAT4 col;
+	};
+
+	ID3D11Device* pDevice = Direct3D_GetDevice();
+	ID3D11DeviceContext* pContext = Direct3D_GetDeviceContext();
+
+	// ラインの頂点を作成
+	std::vector<DebugVertex> vertices;
+	XMFLOAT3 startPos = { center.x, center.y + 0.1f, center.z }; // 少し浮かせる
+
+	// 角度計算 (Degree -> Radian)
+	float radY = XMConvertToRadians(rotY);
+	float halfFovRad = XMConvertToRadians(fovAngle / 2.0f);
+
+	// 扇形の解像度（分割数）
+	const int segments = 10;
+
+	// 左端から右端までラインを引く
+	for (int i = 0; i <= segments; i++)
+	{
+		float progress = (float)i / segments; // 0.0 ～ 1.0
+		float currentAngle = (radY + XM_PI) - halfFovRad + (halfFovRad * 2.0f * progress);
+		// ※ +XM_PI (180度) はモデルの向き（MoveToで+180している仕様）に合わせる補正
+
+		// 終点計算
+		float dx = sinf(currentAngle);
+		float dz = cosf(currentAngle);
+		XMFLOAT3 endPos = {
+			startPos.x + dx * range,
+			startPos.y,
+			startPos.z + dz * range
+		};
+
+		// 中心から外周への線
+		if (i == 0 || i == segments) // 両端のみ描画（全部描くとくどいため）
+		{
+			vertices.push_back({ startPos, color });
+			vertices.push_back({ endPos, color });
+		}
+
+		// 外周の弧を描画（ひとつ前の点と結ぶ）
+		if (i > 0)
+		{
+			float prevAngle = (radY + XM_PI) - halfFovRad + (halfFovRad * 2.0f * ((float)(i - 1) / segments));
+			XMFLOAT3 prevEndPos = {
+				startPos.x + sinf(prevAngle) * range,
+				startPos.y,
+				startPos.z + cosf(prevAngle) * range
+			};
+			vertices.push_back({ prevEndPos, color });
+			vertices.push_back({ endPos, color });
+		}
+	}
+
+	// 頂点バッファ作成・描画（一時的）
+	D3D11_BUFFER_DESC bd = {};
+	bd.Usage = D3D11_USAGE_DEFAULT;
+	bd.ByteWidth = sizeof(DebugVertex) * (UINT)vertices.size();
+	bd.BindFlags = D3D11_BIND_VERTEX_BUFFER;
+
+	D3D11_SUBRESOURCE_DATA initData = {};
+	initData.pSysMem = vertices.data();
+
+	ID3D11Buffer* pVertexBuffer = nullptr;
+	if (SUCCEEDED(pDevice->CreateBuffer(&bd, &initData, &pVertexBuffer)))
+	{
+		// シェーダー設定（既存の3D描画用設定を利用すると仮定）
+		// 本来は専用シェーダーを使うべきですが、ここでは色情報を含む頂点として描画
+		UINT stride = sizeof(DebugVertex);
+		UINT offset = 0;
+		pContext->IASetVertexBuffers(0, 1, &pVertexBuffer, &stride, &offset);
+		pContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_LINELIST);
+
+		// 描画（マテリアルカラーを無視させるためシェーダー設定が必要な場合あり）
+		// ここでは描画発行のみ
+		pContext->Draw((UINT)vertices.size(), 0);
+
+		pVertexBuffer->Release();
+	}
+}
 // =================================================================
 // グローバル関数
 // =================================================================
@@ -846,6 +963,7 @@ void Busters::Draw(void)
 		// ビルボード描画
 		m_Icon->Draw();
 	}
+
 }
 
 // =================================================================
