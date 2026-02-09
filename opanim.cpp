@@ -130,7 +130,7 @@ private:
 	XMFLOAT2 m_position;
 public:
 	void Initialize() {
-		m_position = { SCREEN_WIDTH / 2.0f - 320.0f, SCREEN_HEIGHT / 2.0f + 1.0f };
+		m_position = { SCREEN_WIDTH / 2.0f - 320.0f, SCREEN_HEIGHT / 2.0f + 20 };// 少し左寄せ
 		m_sprite = std::make_unique<Sprite>(
 			m_position, XMFLOAT2{ 700.0f, 700.0f }, 0.0f,
 			XMFLOAT4{ 1.0f, 1.0f, 1.0f, 1.0f },
@@ -188,7 +188,7 @@ public:
 	}
 
 	void StartMoving(const XMFLOAT2& start, const XMFLOAT2& target) {
-		m_moveTween.Start(start, target, 5.0f, EasingType::Linear);
+		m_moveTween.Start(start, target, 13.0f, EasingType::Linear);
 		m_alphaTween.Start(0.0f, 1.0f, 2.0f, EasingType::Linear);
 		m_stateMachine.SetState(AnimState::Moving);
 	}
@@ -206,6 +206,7 @@ public:
 
 //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // 幽霊（ステートマシン + トゥイーン）
+// 変更点：振り向いてからワンテンポ（遅延）置いてから斜め左に消える処理を追加
 //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 class OpGhost {
 private:
@@ -218,6 +219,10 @@ private:
 	Tween<float> m_appearTween, m_exitTween;
 	Tween<XMFLOAT2> m_moveTween, m_sizeTween;
 
+	// 追加: 反応後の遅延（ワンテンポ）と、遅延中にトゥイーン開始済みかどうかのフラグ
+	float m_reactDelay;
+	bool m_reactTweenStarted;
+
 	void IdleState(float dt) {
 		m_wobblePhase += dt * 4.5f;
 		m_currentPos.y = m_basePos.y + sinf(m_wobblePhase) * 8.0f;
@@ -225,17 +230,19 @@ private:
 	}
 
 	void ReactingState(float dt) {
+		// 振り向いてから出発するまでの間はその場で揺れる
+		m_wobblePhase += dt * 4.5f;
 		m_currentPos.y = m_basePos.y + sinf(m_wobblePhase) * 8.0f;
 		m_sprite->SetPos(m_currentPos);
 	}
 
 public:
-	OpGhost() : m_stateMachine(this), m_wobblePhase(0.0f), m_flipped(false) {}
+	OpGhost() : m_stateMachine(this), m_wobblePhase(0.0f), m_flipped(false), m_reactDelay(0.0f), m_reactTweenStarted(false) {}
 
 	void Initialize(const XMFLOAT2& mansionPos) {
 		m_basePos = { mansionPos.x + 40.0f, mansionPos.y - 50.0f };
 		m_currentPos = m_basePos;
-		m_currentSize = { 1924.0f, 1361.0f };
+		m_currentSize = { 600.0f, 425.0f };
 
 		m_sprite = std::make_unique<Sprite>(
 			m_currentPos, m_currentSize, 0.0f,
@@ -245,7 +252,8 @@ public:
 
 		m_exclamation = std::make_unique<Sprite>(
 			XMFLOAT2{ m_currentPos.x, m_currentPos.y - 50.0f },
-			XMFLOAT2{ 453.0f, 340.0f }, 0.0f,
+			// 変更: ビックリマークも幽霊に合わせて縮小
+			XMFLOAT2{ 180.0f, 135.0f }, 0.0f,
 			XMFLOAT4{ 1.0f, 1.0f, 1.0f, 0.0f },
 			BLENDSTATE_ALFA, L"asset\\yureihen\\Alpha_Tex\\bikkuri2.png"
 		);
@@ -273,14 +281,14 @@ public:
 	}
 
 	void StartReacting() {
+		// すぐに移動を開始せず、まず振り向いてワンテンポ待つ
 		m_flipped = true;
 		m_sprite->SetFlipType(FLIPTYPE2D::FLIPTYPE2D_HORIZONTAL);
 		m_exclamation->SetColor({ 1.0f, 1.0f, 1.0f, 1.0f });
 
-		XMFLOAT2 exitPos = { m_basePos.x - 900.0f, m_basePos.y + 500.0f };
-		m_moveTween.Start(m_basePos, exitPos, 8.0f, EasingType::EaseOutCubic);
-		m_sizeTween.Start(m_currentSize, XMFLOAT2{ 180.0f, 180.0f }, 8.0f, EasingType::EaseOutCubic);
-		m_exitTween.Start(1.0f, 0.0f, 8.0f, EasingType::Linear);
+		// ワンテンポの遅延（秒）を設定（必要なら値を調整）
+		m_reactDelay = 0.6f;
+		m_reactTweenStarted = false;
 
 		m_stateMachine.SetState(AnimState::Reacting);
 	}
@@ -291,6 +299,18 @@ public:
 		m_sizeTween.Update(dt);
 		m_exitTween.Update(dt);
 		m_stateMachine.Update(dt);
+
+		// 遅延が設定されている場合、経過させて遅延終了時に移動・縮小・フェードアウトを開始
+		if (m_reactDelay > 0.0f) {
+			m_reactDelay -= dt;
+			if (m_reactDelay <= 0.0f && !m_reactTweenStarted) {
+				XMFLOAT2 exitPos = { m_basePos.x - 900.0f, m_basePos.y + 500.0f };
+				m_moveTween.Start(m_basePos, exitPos, 8.0f, EasingType::EaseOutCubic);
+				m_sizeTween.Start(m_currentSize, XMFLOAT2{ 180.0f, 180.0f }, 8.0f, EasingType::EaseOutCubic);
+				m_exitTween.Start(1.0f, 0.0f, 8.0f, EasingType::Linear);
+				m_reactTweenStarted = true;
+			}
+		}
 
 		if (m_exclamation) {
 			m_exclamation->SetPos({ m_currentPos.x, m_currentPos.y - 100.0f });
@@ -308,7 +328,7 @@ public:
 	}
 
 	bool ShouldReact(const XMFLOAT2& busterPos) const {
-		return OpAnimUtil::Distance(busterPos, m_basePos) < 800.0f;
+		return OpAnimUtil::Distance(busterPos, m_basePos) < 1000.0f;
 	}
 };
 
@@ -322,19 +342,20 @@ private:
 
 public:
 	void Initialize() {
+		// 初期は透明に設定しておく（出現時にフェードインするため）
 		m_fonts[0] = std::make_unique<FontRenderer>(
 			XMFLOAT2{ SCREEN_WIDTH / 2.0f, (SCREEN_HEIGHT / 5.0f) * 4 },
-			70.0f, 0.0f, XMFLOAT4{ 1.0f, 1.0f, 1.0f, 1.0f },
+			70.0f, 0.0f, XMFLOAT4{ 1.0f, 1.0f, 1.0f, 0.0f }, // alpha = 0.0f
 			"平和に暮らしていたはずの幽霊ちゃん・・・。"
 		);
 		m_fonts[1] = std::make_unique<FontRenderer>(
 			XMFLOAT2{ SCREEN_WIDTH / 2.0f, SCREEN_HEIGHT - 60 },
-			70.0f, 0.0f, XMFLOAT4{ 1.0f, 1.0f, 1.0f, 1.0f },
+			70.0f, 0.0f, XMFLOAT4{ 1.0f, 1.0f, 1.0f, 0.0f }, // alpha = 0.0f
 			"おや、怪しい人達が現れましたよ？"
 		);
 		m_fonts[2] = std::make_unique<FontRenderer>(
 			XMFLOAT2{ SCREEN_WIDTH / 2.0f, SCREEN_HEIGHT - 80 },
-			70.0f, 0.0f, XMFLOAT4{ 1.0f, 1.0f, 1.0f, 1.0f },
+			70.0f, 0.0f, XMFLOAT4{ 1.0f, 1.0f, 1.0f, 0.0f }, // alpha = 0.0f
 			"さてさて、追い出す準備でもいたしましょうか・・・。"
 		);
 
@@ -349,10 +370,22 @@ public:
 		}
 	}
 
+	// 指定したフォントをフェードインして表示する（デフォルト1.0秒）
+	void ShowFont(int index, float duration = 1.0f) {
+		if (index < 0 || index >= 3) return;
+		if (!m_fonts[index]) return;
+		// 現在の alpha から 1.0f へフェード（既に一部見えていても対応）
+		float cur = m_fonts[index]->GetColor().w;
+		m_alphaTweens[index].Start(cur, 1.0f, duration, EasingType::Linear);
+	}
+
+	// 全体をフェードアウトする（現在の alpha -> 0.0f へ）
 	void StartFades() {
-		m_alphaTweens[0].Start(1.0f, 0.0f, 0.5f, EasingType::Linear);
-		m_alphaTweens[1].Start(1.0f, 0.0f, 0.5f, EasingType::Linear);
-		m_alphaTweens[2].Start(1.0f, 0.0f, 0.5f, EasingType::Linear);
+		for (int i = 0; i < 3; ++i) {
+			if (!m_fonts[i]) continue;
+			float cur = m_fonts[i]->GetColor().w;
+			m_alphaTweens[i].Start(cur, 0.0f, 0.5f, EasingType::Linear);
+		}
 	}
 
 	void Update(float dt) {
@@ -367,7 +400,6 @@ public:
 		for (auto& font : m_fonts) font.reset();
 	}
 };
-
 //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // BGM管理（変更なし）
 //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -428,19 +460,26 @@ public:
 			XMFLOAT2 target = { m_mansion.GetPosition().x - 150.0f, m_mansion.GetPosition().y + 50.0f };
 			m_buster.StartMoving(start, target);
 			m_ghost.StartAppearing();
+
+			// 幽霊が出てきたタイミングで最初のテキストを表示
+			m_text.ShowFont(0, 1.0f);
 			});
 
 		m_timeline.AddEvent(4.0f, [this]() {
+			// バスターが画面に出てきたタイミングで2番目のテキストを表示
+			m_text.ShowFont(1, 1.0f);
+
 			if (m_ghost.ShouldReact(m_buster.GetPosition())) {
 				m_ghost.StartReacting();
 			}
 			});
 
-		m_timeline.AddEvent(6.0f, [this]() {
-			m_text.StartFades();
+		// 7.0 は最後に 3 番目のテキストを表示
+		m_timeline.AddEvent(7.0f, [this]() {
+			m_text.ShowFont(2, 1.0f);
 			});
 
-		m_timeline.AddEvent(13.0f, [this]() {
+		m_timeline.AddEvent(6.0f, [this]() {
 			if (GetFadeState() == FADE_NONE) {
 				StartFade(SCENE_GAME);
 			}
