@@ -113,3 +113,4 @@ void Ghost_SetLight(void);
 
 // Ghostのゲッター
 Ghost* GetGhost(void);
+XMFLOAT3 GetGhostStartPos(void);

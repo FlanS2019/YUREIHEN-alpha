@@ -34,6 +34,13 @@ static Number* g_GuideFloorNum = nullptr;
 static Sprite* g_GuideFloorF = nullptr;
 static bool g_ShowGuideFloor = false;
 
+// チュートリアル用
+static bool g_IsTutorial = false;
+static bool g_TutorialCompleted = false;
+static int g_TutorialLastFloor = -1;
+static Sprite* g_pTutorialBG = nullptr;
+static FontRenderer* g_pTutorialFont = nullptr;
+
 // 各階層のゲージ値を保存する配列
 static float g_FloorGaugeValues[MAP_FLOORS];
 // 前フレームの階層を記憶しておく変数
@@ -195,7 +202,7 @@ void UI_Initialize(void)
 		""
 	);
 
-	hal::dout << g_ScareGauge->GetValue() << std::endl;
+	//hal::dout << g_ScareGauge->GetValue() << std::endl;
 
 }
 
@@ -209,8 +216,6 @@ void UI_Update(void)
 	{
 		return;
 	}
-
-	hal::dout <<g_ScareGauge->GetValue() << std::endl;
 
 	if (Keyboard_IsKeyDown(KK_L))
 	{

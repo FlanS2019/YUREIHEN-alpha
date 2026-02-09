@@ -14,7 +14,7 @@ using namespace DirectX;
 
 //DIRECT_STARTがtrueの場合、最初からゲームシーンにする
 #if DIRECT_START
-static SCENE scene = SCENE_ANM_LOGO;
+static SCENE scene = SCENE_GAME;
 #else
 static SCENE scene = SCENE_ANM_LOGO;
 #endif
