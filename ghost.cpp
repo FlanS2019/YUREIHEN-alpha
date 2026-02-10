@@ -474,7 +474,7 @@ void Ghost::FurnitureSearch(void)
 		if (pFurniture)
 		{
 			if (pFurniture->IsCoolingDown()) continue;
-			pFurniture->ResetColor();
+
 			if (pFurniture->GetActionType() == ACTION_NONE) continue;
 
 			if (pFurniture->GetDistanceToGhost() <= FURNITURE_DETECTION_RANGE &&
@@ -492,7 +492,7 @@ void Ghost::FurnitureSearch(void)
 		Furniture* pFurniture = GetFurniture(m_InRangeFurnitureNum);
 		if (pFurniture)
 		{
-			pFurniture->SetColor(1.0f, 1.0f, 0.0f, 1.0f);
+			pFurniture->SetIsGhostTarget(true);
 			this->SetState(GS_FURNITURE_FOUND);
 		}
 	}

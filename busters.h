@@ -19,6 +19,7 @@ enum BUSTERS_STATE
 	BUSTERS_CHASE,      // 幽霊を見つけて追跡（確定）
 	BUSTERS_STUN,		//気絶中
 	BUSTERS_LURED		// 誘引中
+
 };
 
 class Busters : public Sprite3D, public Jump
@@ -31,6 +32,7 @@ private:
 	int m_DetectionGraceTimer;
 	int m_KeepStateTimer;
 	int m_ReactionCooldown;
+	int m_PathUpdateTimer;
 
 
 	std::vector<XMFLOAT3> m_PathList;
@@ -45,6 +47,10 @@ private:
 	bool m_HasLureTarget;
 	int m_LureStayTimer;
 	bool m_IsGhostDiscover;
+
+	XMFLOAT3 m_LastPathCalcGhostPos;
+	XMFLOAT3 m_PrevPos; // 前フレームの座標
+	int m_StuckTimer;   // 動いていない時間を計測
 
 public:
 	Busters(const XMFLOAT3& pos, const XMFLOAT3& scale, const XMFLOAT3& rot, const char* pass);

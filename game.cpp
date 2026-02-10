@@ -113,13 +113,14 @@ void Game_Update(void)
 	}
 	// ========================================================
 
-	Ghost_Update();
+
 
 	Camera_Update();
 	Shader_SetCameraPos(GetCamera()->GetPos());
 	Field_Update();
 	UI_Update();
 	Furniture_Update();
+	Ghost_Update();
 #if !STOP_TIMER_BUSTER
 	Busters_Update();
 #endif
