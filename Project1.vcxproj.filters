@@ -39,6 +39,7 @@
     <ClCompile Include="UI_PauseMenu.cpp" />
     <ClCompile Include="UI_Tutorial.cpp" />
     <ClCompile Include="shader_2d.cpp" />
+    <ClCompile Include="ClickFont.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="animation.h" />
@@ -87,6 +88,7 @@
     <ClInclude Include="UI_Tutorial.h" />
     <ClInclude Include="shader_2d.h" />
     <ClInclude Include="HoleSprite.h" />
+    <ClInclude Include="ClickFont.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="convert_to_utf8bom.ps1" />

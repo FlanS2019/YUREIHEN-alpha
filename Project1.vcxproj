@@ -154,10 +154,12 @@
     <ClCompile Include="box.cpp" />
     <ClCompile Include="busters.cpp" />
     <ClCompile Include="camera.cpp" />
+    <ClCompile Include="ClickFont.cpp" />
     <ClCompile Include="debug_ostream.cpp" />
     <ClCompile Include="direct3d.cpp" />
     <ClCompile Include="fade.cpp" />
     <ClCompile Include="field.cpp" />
+    <ClInclude Include="ClickFont.h" />
     <ClInclude Include="field.h" />
     <ClCompile Include="font.cpp" />
     <ClCompile Include="furniture.cpp" />
