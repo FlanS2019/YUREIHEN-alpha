@@ -350,16 +350,34 @@ void Busters::Update(void)
 		float arriveThreshold = 0.5f;
 		if (m_PathList.size() == 1) arriveThreshold = 1.0f;
 
-		if (distSq < arriveThreshold * arriveThreshold)
+		bool forceArrive = false;
+		if (m_State == BUSTERS_SEARCH && m_TargetFurnitureIndex != -1)
+		{
+			Furniture* target = GetFurniture(m_TargetFurnitureIndex);
+			if (target)
+			{
+				float fdx = target->GetPos().x - m_Position.x;
+				float fdz = target->GetPos().z - m_Position.z;
+
+				if (fdx * fdx + fdz * fdz < 1.2f * 1.2f)
+				{
+					forceArrive = true;
+				}
+			}
+		}
+
+		if (distSq < arriveThreshold * arriveThreshold || forceArrive)
 		{
 			m_PathList.erase(m_PathList.begin());
-			if (m_PathList.empty())
+
+			if (m_PathList.empty() || forceArrive)
 			{
 				if (m_State == BUSTERS_SEARCH || m_State == BUSTERS_LURED)
 				{
 					m_State = BUSTERS_SEARCH;
-					m_TargetFurnitureIndex = -1;
-					m_WaitTimer = 300;
+					m_TargetFurnitureIndex = -1; // ターゲット解除
+					m_WaitTimer = 300;           // 調査（待機）開始
+					m_PathList.clear();          // 残りのパスも消す
 				}
 			}
 		}
@@ -631,8 +649,8 @@ void Busters::SetIsGhostDiscover(bool discover)
     if (discover)
     {
         m_IsGhostDiscover = true;
-        this->SetColor(0.0f, 1.0f, 0.0f, 1.0f);
-    }
+		this->SetColor(1.0f, 0.0f, 0.0f, 1.0f);
+	}
     else if (m_IsGhostDiscover)
     {
         m_IsGhostDiscover = false;
