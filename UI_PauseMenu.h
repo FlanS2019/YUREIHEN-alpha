@@ -3,7 +3,7 @@
 #include <d3d11.h>
 #include <DirectXMath.h>
 #include "sprite.h"
-#include "font.h"
+#include "ClickFont.h"
 using namespace DirectX;
 
 // ==========================================

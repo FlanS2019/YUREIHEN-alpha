@@ -10,14 +10,15 @@
 #include "font.h"
 #include "mouse.h"
 #include "sound.h"
+#include "ClickFont.h"
 #include <cmath>
 using namespace DirectX;
 
 
 // ①Spriteのインスタンス、ポインタ用意
 static SplitSprite* g_pTitleSprite = nullptr;
-static FontRenderer* g_pTitleFont = nullptr;
 static FontRenderer* g_pTitleFont2 = nullptr;
+static ClickFont* g_pStartClickFont = nullptr;
 static Sprite* g_pSizeComparisonSprite = nullptr;
 static Sprite* g_pinazuma = nullptr;
 static SoundData* g_pBGM = nullptr;
@@ -79,29 +80,34 @@ void Title_Initialize(ID3D11Device* pDevice, ID3D11DeviceContext* pContext)
 	g_pTitleSprite = new SplitSprite(
 		{ SCREEN_WIDTH / 2 - 200.0f, SCREEN_HEIGHT / 2.0f - 100.0f },		//位置
 		{ SCREEN_WIDTH * 0.7f, SCREEN_HEIGHT * 0.7f },						//サイズ
-		0.0f,																//回転（度）
+		0.0f,															//回転（度）
 		{ 1.0f, 1.0f, 1.0f, 1.0f },											//RGBA
-		BLENDSTATE_NONE,													//BlendState
-		L"asset\\texture\\title.png",										//テクスチャパス
-		2, 1																//分割数X, Y
+		BLENDSTATE_NONE,												//BlendState
+		L"asset\\texture\\title.png",											//テクスチャパス
+		2, 1															//分割数X, Y
 	);
 
-	//日本語フォント描画
-	g_pTitleFont = new FontRenderer(
-		{ SCREEN_WIDTH / 2.0f, (SCREEN_HEIGHT / 5.0f) * 4 },	//位置（画面中央）
-		70.0f,													//フォントサイズ（ピクセル）
-		0.0f,													//回転
-		{ 1.0f, 1.0f, 1.0f, 1.0f },								//RGBA
-		"Press Enter - エンターキーを押してスタート！"			//テキスト
+	//日本語フォント描画（クリック対応）
+	g_pStartClickFont = new ClickFont(
+		{ SCREEN_WIDTH / 2.0f, (SCREEN_HEIGHT / 5.0f) * 4 },
+		70.0f,
+		0.0f,
+		{ 1.0f, 1.0f, 1.0f, 1.0f },
+		{ 1.0f, 0.85f, 0.2f, 1.0f },
+		"ここをクリックしてスタート！ Click to Start"
 	);
+	g_pStartClickFont->SetHitSize({ 900.0f, 90.0f });
+	g_pStartClickFont->SetOnClick([]() {
+		StartFade(SCENE_ANM_OP);
+	});
 
 	//日本語フォント描画
 	g_pTitleFont2 = new FontRenderer(
 		{ SCREEN_WIDTH / 2.0f, SCREEN_HEIGHT / 2.0f },			//位置（画面中央）
-		200.0f,													//フォントサイズ（ピクセル）
-		0.0f,													//回転
-		{ 0.0f, 0.8f, 0.8f, 0.8f },								//RGBA
-		"g_pTitleFont2"											//テキスト
+		200.0f,												//フォントサイズ（ピクセル）
+		0.0f,												//回転
+		{ 0.0f, 0.8f, 0.8f, 0.8f },									//RGBA
+		"g_pTitleFont2"													//テキスト
 	);
 
 	// サイズ比較用Sprite（1.png 32x32 中央配置）
@@ -193,16 +199,8 @@ void Title_Update(void)
 		g_pInazumaSprite->SetColor({ 0.95f, 0.95f, 1.0f, Clamp(inazumaAlpha, 0.0f, 1.5f) });
 	}
 
-	// Debug: Wキーで勝利アニメーションへ直接遷移（タイトル上でのデバッグ用）
-	//if (Keyboard_IsKeyDown(KK_W))
-	//{
-	//	SetScene(SCENE_ANM_WIN);// Debug用に勝利アニメーションへ直接飛ぶ
-	//	return;
-	//}
-	//if (Keyboard_IsKeyDown(KK_L))
-	//{
-	//	SetScene(SCENE_ANM_LOSE);// Debug用にロゴアニメーションへ直接飛ぶ
-	//}
+	if (g_pStartClickFont) g_pStartClickFont->Update();
+
 	// ③適当な処理　アニメーションなどもここで
 	if (Keyboard_IsKeyDownTrigger(KK_ENTER))
 	{
@@ -221,7 +219,7 @@ void Title_Draw(void)
 
 	g_pTitleSprite->Draw();
 	//g_pSizeComparisonSprite->Draw();
-	g_pTitleFont->Draw();
+	if (g_pStartClickFont) g_pStartClickFont->Draw();
 	//g_pTitleFont2->Draw();
 	g_pinazuma->Draw();
 	if (g_pInazumaSprite) g_pInazumaSprite->Draw();	// 稲妻描画
@@ -230,22 +228,11 @@ void Title_Draw(void)
 void Title_Finalize(void)
 {
 
-	// BGM解放
-	if (g_pBGM) {
-		StopSound(g_pBGM);
-		UnloadSound(g_pBGM);
-		g_pBGM = nullptr;
-	}
-
-
 	delete g_pTitleSprite;
 	g_pTitleSprite = nullptr;
 
 	delete g_pSizeComparisonSprite;
 	g_pSizeComparisonSprite = nullptr;
-
-	delete g_pTitleFont;
-	g_pTitleFont = nullptr;
 
 	delete g_pTitleFont2;
 	g_pTitleFont2 = nullptr;
@@ -255,6 +242,11 @@ void Title_Finalize(void)
 
 	delete g_pInazumaSprite;
 	g_pInazumaSprite = nullptr;
+
+	if (g_pStartClickFont) {
+		delete g_pStartClickFont;
+		g_pStartClickFont = nullptr;
+	}
 
 	// BGM解放
 	if (g_pBGM) {
