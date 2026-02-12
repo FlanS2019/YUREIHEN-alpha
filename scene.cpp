@@ -22,7 +22,7 @@ static SCENE scene = SCENE_ANM_LOGO;
 void Init(void)
 {
 	switch (scene)
-	{
+	{	
 	case SCENE_TITLE:
 		Title_Initialize(Direct3D_GetDevice(), Direct3D_GetDeviceContext());
 		break;
