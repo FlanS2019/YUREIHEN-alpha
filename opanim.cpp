@@ -53,7 +53,7 @@ private:
 	};
 
 	std::vector<RainDrop> m_rainDrops;
-	static constexpr int RAIN_COUNT = 70;
+	static constexpr int RAIN_COUNT = 1000;
 
 public:
 	void Initialize() {
@@ -216,10 +216,9 @@ private:
 	float m_wobblePhase;
 	bool m_flipped;
 	StateMachine<OpGhost> m_stateMachine;
-	Tween<float> m_appearTween, m_exitTween;
+	Tween<float> m_appearTween, m_exitTween, m_exclamationTween;
 	Tween<XMFLOAT2> m_moveTween, m_sizeTween;
 
-	// 追加: 反応後の遅延（ワンテンポ）と、遅延中にトゥイーン開始済みかどうかのフラグ
 	float m_reactDelay;
 	bool m_reactTweenStarted;
 
@@ -230,7 +229,6 @@ private:
 	}
 
 	void ReactingState(float dt) {
-		// 振り向いてから出発するまでの間はその場で揺れる
 		m_wobblePhase += dt * 4.5f;
 		m_currentPos.y = m_basePos.y + sinf(m_wobblePhase) * 8.0f;
 		m_sprite->SetPos(m_currentPos);
@@ -252,7 +250,6 @@ public:
 
 		m_exclamation = std::make_unique<Sprite>(
 			XMFLOAT2{ m_currentPos.x, m_currentPos.y - 50.0f },
-			// 変更: ビックリマークも幽霊に合わせて縮小
 			XMFLOAT2{ 180.0f, 135.0f }, 0.0f,
 			XMFLOAT4{ 1.0f, 1.0f, 1.0f, 0.0f },
 			BLENDSTATE_ALFA, L"asset\\yureihen\\Alpha_Tex\\bikkuri2.png"
@@ -261,18 +258,23 @@ public:
 		m_stateMachine.RegisterState(AnimState::Idle, [this](float dt) { IdleState(dt); });
 		m_stateMachine.RegisterState(AnimState::Reacting, [this](float dt) { ReactingState(dt); });
 
-		// トゥイーン設定
 		m_appearTween.SetCallback([this](const float& alpha) {
 			m_sprite->SetColor({ 1.0f, 1.0f, 1.0f, alpha });
-			});
-		m_moveTween.SetCallback([this](const XMFLOAT2& pos) { m_basePos = pos; });
+		});
+		m_moveTween.SetCallback([this](const XMFLOAT2& pos) {
+			m_currentPos = pos;
+			m_sprite->SetPos(m_currentPos);
+		});
 		m_sizeTween.SetCallback([this](const XMFLOAT2& size) {
 			m_currentSize = size;
 			m_sprite->SetSize(size);
-			});
+		});
 		m_exitTween.SetCallback([this](const float& alpha) {
 			m_sprite->SetColor({ 1.0f, 1.0f, 1.0f, alpha });
-			});
+		});
+		m_exclamationTween.SetCallback([this](const float& alpha) {
+			m_exclamation->SetColor({ 1.0f, 1.0f, 1.0f, alpha });
+		});
 	}
 
 	void StartAppearing() {
@@ -281,12 +283,10 @@ public:
 	}
 
 	void StartReacting() {
-		// すぐに移動を開始せず、まず振り向いてワンテンポ待つ
 		m_flipped = true;
 		m_sprite->SetFlipType(FLIPTYPE2D::FLIPTYPE2D_HORIZONTAL);
 		m_exclamation->SetColor({ 1.0f, 1.0f, 1.0f, 1.0f });
 
-		// ワンテンポの遅延（秒）を設定（必要なら値を調整）
 		m_reactDelay = 0.6f;
 		m_reactTweenStarted = false;
 
@@ -298,16 +298,20 @@ public:
 		m_moveTween.Update(dt);
 		m_sizeTween.Update(dt);
 		m_exitTween.Update(dt);
+		m_exclamationTween.Update(dt);
 		m_stateMachine.Update(dt);
 
-		// 遅延が設定されている場合、経過させて遅延終了時に移動・縮小・フェードアウトを開始
 		if (m_reactDelay > 0.0f) {
 			m_reactDelay -= dt;
 			if (m_reactDelay <= 0.0f && !m_reactTweenStarted) {
-				XMFLOAT2 exitPos = { m_basePos.x - 900.0f, m_basePos.y + 500.0f };
-				m_moveTween.Start(m_basePos, exitPos, 8.0f, EasingType::EaseOutCubic);
-				m_sizeTween.Start(m_currentSize, XMFLOAT2{ 180.0f, 180.0f }, 8.0f, EasingType::EaseOutCubic);
-				m_exitTween.Start(1.0f, 0.0f, 8.0f, EasingType::Linear);
+				// ビックリマークをすぐに消す
+				m_exclamationTween.Start(1.0f, 0.0f, 0.3f, EasingType::Linear);
+
+				// 画面左に移動
+				XMFLOAT2 exitPos = { -300.0f, m_currentPos.y };
+				m_moveTween.Start(m_currentPos, exitPos, 6.0f, EasingType::Linear);
+				m_sizeTween.Start(m_currentSize, XMFLOAT2{ 150.0f, 106.25f }, 6.0f, EasingType::EaseOutCubic);
+				m_exitTween.Start(1.0f, 0.0f, 6.0f, EasingType::Linear);
 				m_reactTweenStarted = true;
 			}
 		}
@@ -328,7 +332,7 @@ public:
 	}
 
 	bool ShouldReact(const XMFLOAT2& busterPos) const {
-		return OpAnimUtil::Distance(busterPos, m_basePos) < 1000.0f;
+		return OpAnimUtil::Distance(busterPos, m_basePos) < 3600.0f;
 	}
 };
 
@@ -344,7 +348,7 @@ public:
 	void Initialize() {
 		// 初期は透明に設定しておく（出現時にフェードインするため）
 		m_fonts[0] = std::make_unique<FontRenderer>(
-			XMFLOAT2{ SCREEN_WIDTH / 2.0f, (SCREEN_HEIGHT / 5.0f) * 4 },
+			XMFLOAT2{ SCREEN_WIDTH / 2.0f, SCREEN_HEIGHT - 60 },
 			70.0f, 0.0f, XMFLOAT4{ 1.0f, 1.0f, 1.0f, 0.0f }, // alpha = 0.0f
 			"平和に暮らしていたはずの幽霊ちゃん・・・。"
 		);
@@ -354,7 +358,7 @@ public:
 			"おや、怪しい人達が現れましたよ？"
 		);
 		m_fonts[2] = std::make_unique<FontRenderer>(
-			XMFLOAT2{ SCREEN_WIDTH / 2.0f, SCREEN_HEIGHT - 80 },
+			XMFLOAT2{ SCREEN_WIDTH / 2.0f, SCREEN_HEIGHT - 60 },
 			70.0f, 0.0f, XMFLOAT4{ 1.0f, 1.0f, 1.0f, 0.0f }, // alpha = 0.0f
 			"さてさて、追い出す準備でもいたしましょうか・・・。"
 		);
@@ -366,7 +370,7 @@ public:
 					color.w = alpha;
 					m_fonts[i]->SetColor(color);
 				}
-				});
+			});
 		}
 	}
 
@@ -377,6 +381,15 @@ public:
 		// 現在の alpha から 1.0f へフェード（既に一部見えていても対応）
 		float cur = m_fonts[index]->GetColor().w;
 		m_alphaTweens[index].Start(cur, 1.0f, duration, EasingType::Linear);
+	}
+
+	// 指定したフォントをフェードアウトする
+	void HideFont(int index, float duration = 0.5f) {
+		if (index < 0 || index >= 3) return;
+		if (!m_fonts[index]) return;
+		// 現在の alpha から 0.0f へフェード
+		float cur = m_fonts[index]->GetColor().w;
+		m_alphaTweens[index].Start(cur, 0.0f, duration, EasingType::Linear);
 	}
 
 	// 全体をフェードアウトする（現在の alpha -> 0.0f へ）
@@ -455,35 +468,41 @@ public:
 		m_bgm.Initialize();
 
 		// タイムラインイベント設定（時間ベース管理を一元化）
-		m_timeline.AddEvent(2.0f, [this]() {
+		m_timeline.AddEvent(2.5f, [this]() 
+		{
+			m_ghost.StartAppearing();
+			m_text.ShowFont(0, 0.5f);// テキスト0を2秒かけてフェードイン
+		});
+
+		m_timeline.AddEvent(10.0f, [this]()// 7.0秒：バスター出現開始
+		{
 			XMFLOAT2 start = { SCREEN_WIDTH + 200.0f, SCREEN_HEIGHT / 2.0f + 50.0f };
 			XMFLOAT2 target = { m_mansion.GetPosition().x - 150.0f, m_mansion.GetPosition().y + 50.0f };
 			m_buster.StartMoving(start, target);
-			m_ghost.StartAppearing();
+		});
 
-			// 幽霊が出てきたタイミングで最初のテキストを表示
-			m_text.ShowFont(0, 1.0f);
-			});
-
-		m_timeline.AddEvent(4.0f, [this]() {
-			// バスターが画面に出てきたタイミングで2番目のテキストを表示
-			m_text.ShowFont(1, 1.0f);
-
+		m_timeline.AddEvent(8.0f, [this]()// 10.0秒：テキスト切り替え
+		{
+			m_text.HideFont(0, 1.0f);		// テキスト0を1秒かけてフェードアウト
+			m_text.ShowFont(1, 1.0f);		// 同時にテキスト1を1秒かけてフェードイン
+			
 			if (m_ghost.ShouldReact(m_buster.GetPosition())) {
 				m_ghost.StartReacting();
 			}
-			});
+		});
 
-		// 7.0 は最後に 3 番目のテキストを表示
-		m_timeline.AddEvent(7.0f, [this]() {
-			m_text.ShowFont(2, 1.0f);
-			});
+		m_timeline.AddEvent(13.0f, [this]() // 18.0秒：テキスト切り替え
+			{
+			m_text.HideFont(1, 0.5f);		// テキスト1を1秒かけてフェードアウト
+			m_text.ShowFont(2, 0.5f);		// 同時にテキスト2を1秒かけてフェードイン
+		});
 
-		m_timeline.AddEvent(6.0f, [this]() {
+		// 25.0秒：シーン遷移フェード開始
+		m_timeline.AddEvent(17.0f, [this]() {
 			if (GetFadeState() == FADE_NONE) {
 				StartFade(SCENE_GAME);
 			}
-			});
+		});
 
 		Mouse_SetMode(MOUSE_POSITION_MODE_ABSOLUTE);
 		Mouse_SetVisible(true);
