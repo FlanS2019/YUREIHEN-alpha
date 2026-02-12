@@ -35,21 +35,10 @@ static int g_NextFloorID = -1;
 
 void Game_Initialize(ID3D11Device* pDevice, ID3D11DeviceContext* pContext)
 {
-	if (!pDevice || !pContext) return;
-
 	g_pAmbientLight = new AmbientLight(XMFLOAT4(0.3f, 0.3f, 0.3f, 1.0f));
-
 
 	Camera_Initialize();
 	Ghost_Initialize(pDevice, pContext);
-	XMFLOAT3 cameraPos = GetCamera()->GetPos();
-	XMFLOAT3 targetPos = GetCamera()->GetAtPos();
-	hal::dout << "=== Camera Info ===" << std::endl;
-	hal::dout << "Camera Position: X=" << cameraPos.x << ", Y=" << cameraPos.y << ", Z=" << cameraPos.z << std::endl;
-	hal::dout << "Target Position: X=" << targetPos.x << ", Y=" << targetPos.y << ", Z=" << targetPos.z << std::endl;
-	//hal::dout << "Pitch: " << g_pitch << ", Yaw: " << g_yaw << std::endl;
-	hal::dout << "===================" << std::endl;
-
 	Field_Initialize(pDevice, pContext);
 	UI_Initialize();
 	Furniture_Initialize();
@@ -86,19 +75,6 @@ void Game_Update(void)
 	UI_Tutorial_Update();
 	if (UI_Tutorial_IsActive())
 	{
-
-		// Oキーでカメラ情報をデバッグ出力
-		if (Keyboard_IsKeyDownTrigger(KK_O))
-		{
-			XMFLOAT3 cameraPos = GetCamera()->GetPos();
-			XMFLOAT3 targetPos = GetCamera()->GetAtPos();
-			hal::dout << "=== Camera Info ===" << std::endl;
-			hal::dout << "Camera Position: X=" << cameraPos.x << ", Y=" << cameraPos.y << ", Z=" << cameraPos.z << std::endl;
-			hal::dout << "Target Position: X=" << targetPos.x << ", Y=" << targetPos.y << ", Z=" << targetPos.z << std::endl;
-			//hal::dout << "Pitch: " << g_pitch << ", Yaw: " << g_yaw << std::endl;
-			hal::dout << "===================" << std::endl;
-		}
-
 		return; // チュートリアル中はゲーム更新停止
 	}
 
@@ -106,12 +82,10 @@ void Game_Update(void)
 	// ポーズメニュー更新
 	// ========================================================
 	UI_PauseMenu_Update();
-
 	if (UI_PauseMenu_IsPaused())
 	{
 		return; // ゲーム更新停止
 	}
-	// ========================================================
 
 	Ghost_Update();
 

@@ -23,6 +23,7 @@ bool ClickFont::HitTest(int mouseX, int mouseY) const
 	const float halfW = m_HitSize.x * 0.5f;
 	const float halfH = m_HitSize.y * 0.5f;
 
+	// 判定は常にGetPos()を中心に行う（UI毎の座標系差異をClickFont側で吸収しない）
 	return (mouseX >= (int)(pos.x - halfW) && mouseX <= (int)(pos.x + halfW)
 		&& mouseY >= (int)(pos.y - halfH) && mouseY <= (int)(pos.y + halfH));
 }
