@@ -11,6 +11,7 @@ using namespace DirectX;
 #include "define.h"
 #include "sound.h"
 #include "fade.h"
+#include "UI_Tutorial.h"
 #include <windows.h>
 #include <string>
 
@@ -18,13 +19,14 @@ using namespace DirectX;
 // ポーズ画面用の変数
 // ==========================================
 static bool g_IsPause = false;
-static int  g_PauseCursor = 0; // 0:ゲームに戻る, 1:音量, 2:マウス感度, 3:明るさ, 4:タイトル
+static int  g_PauseCursor = 0; // 0:ゲームに戻る, 1:音量, 2:マウス感度, 3:明るさ, 4:タイトル, 5:チュートリアル
 static Sprite* g_pPauseBG = nullptr;
 static FontRenderer* g_pResumeButtonFont = nullptr;
 static FontRenderer* g_pVolumeButtonFont = nullptr;
 static FontRenderer* g_pMouseSensitivityButtonFont = nullptr;
 static FontRenderer* g_pBrightnessButtonFont = nullptr;
 static FontRenderer* g_pTitleButtonFont = nullptr;
+static FontRenderer* g_pTutorialButtonFont = nullptr;
 
 // 左右矢印用フォント
 static FontRenderer* g_pLeftArrowFont = nullptr;
@@ -45,7 +47,7 @@ struct MenuButton {
 	int index;
 };
 
-static MenuButton g_MenuButtons[5] = {};
+static MenuButton g_MenuButtons[6] = {};
 
 // 矢印表示オフセット定数
 static const float ARROW_OFFSET_X = 150.0f; // 中央からの水平オフセット
@@ -107,6 +109,10 @@ void UI_PauseMenu_Initialize(ID3D11Device* pDevice, ID3D11DeviceContext* pContex
 	g_pTitleButtonFont = new FontRenderer({ bx, by + gap * 4 }, 40.0f, 0.0f, { 1,1,1,1 }, "タイトルへ戻る");
 	g_MenuButtons[4] = { bx - 180.0f, by + gap * 4 - 25.0f, 360.0f, 50.0f, 4 };
 
+	// Tutorial
+	g_pTutorialButtonFont = new FontRenderer({ bx, by + gap * 5 }, 40.0f, 0.0f, { 1,1,1,1 }, "チュートリアルを見る");
+	g_MenuButtons[5] = { bx - 240.0f, by + gap * 5 - 25.0f, 480.0f, 50.0f, 5 };
+
 	// 左右矢印フォント（初期は透明）
 	g_pLeftArrowFont = new FontRenderer({ bx - ARROW_OFFSET_X, by + gap }, 70.0f, 0.0f, { 1,1,1,0 }, "←");
 	g_pRightArrowFont = new FontRenderer({ bx + ARROW_OFFSET_X, by + gap },70.0f, 0.0f, { 1,1,1,0 }, "→");
@@ -142,6 +148,11 @@ void UI_PauseMenu_Finalize(void)
 	if (g_pTitleButtonFont) {
 		delete g_pTitleButtonFont;
 		g_pTitleButtonFont = nullptr;
+	}
+
+	if (g_pTutorialButtonFont) {
+		delete g_pTutorialButtonFont;
+		g_pTutorialButtonFont = nullptr;
 	}
 
 	// 左右矢印フォント
@@ -208,7 +219,7 @@ void UI_PauseMenu_Update(void)
 	// マウスホバーで選択状態を変更（キーボード操作後の無視期間中は無視）
 	if (!g_KeyboardUsed)
 	{
-		for (int i = 0; i < 5; i++)
+		for (int i = 0; i < 6; i++)
 		{
 			if (IsMouseInButton(g_MenuButtons[i], mouseState))
 			{
@@ -222,7 +233,7 @@ void UI_PauseMenu_Update(void)
 	if (mouseState.leftButton && !g_KeyboardUsed)
 	{
 		// 各メニューボタンのクリック判定
-		for (int i = 0; i < 5; i++)
+		for (int i = 0; i < 6; i++)
 		{
 			if (IsMouseInButton(g_MenuButtons[i], mouseState))
 			{
@@ -240,6 +251,11 @@ void UI_PauseMenu_Update(void)
 				{
 					g_IsPause = false;
 					StartFade(SCENE_TITLE);
+				}
+				else if (i == 5) // Tutorial
+				{
+					g_IsPause = false;
+					UI_Tutorial_SetActive(true);
 				}
 				break;
 			}
@@ -329,8 +345,8 @@ void UI_PauseMenu_Update(void)
 		g_KeyboardUsed = true;
 		g_KeyboardIgnoreTimer = KEYBOARD_IGNORE_DURATION;
 	}
-	if (g_PauseCursor < 0) g_PauseCursor = 4;
-	if (g_PauseCursor > 4) g_PauseCursor = 0;
+	if (g_PauseCursor < 0) g_PauseCursor = 5;
+	if (g_PauseCursor > 5) g_PauseCursor = 0;
 
 	// 左右キーで値変更（音量・マウス感度・明るさ）
 	if (g_PauseCursor == 1) // Volume
@@ -427,6 +443,12 @@ void UI_PauseMenu_Update(void)
 			g_IsPause = false;
 			StartFade(SCENE_TITLE);
 		}
+		if (g_PauseCursor == 5)
+		{
+			// Tutorial
+			g_IsPause = false;
+			UI_Tutorial_SetActive(true);
+		}
 	}
 
 	// テキスト更新（マウスクリック後の反映）
@@ -466,6 +488,9 @@ void UI_PauseMenu_Update(void)
 	}
 	if (g_pTitleButtonFont) {
 		g_pTitleButtonFont->SetColor({ 1,1,1,1 });
+	}
+	if (g_pTutorialButtonFont) {
+		g_pTutorialButtonFont->SetColor({ 1,1,1,1 });
 	}
 
 	XMFLOAT4 selColor = { 1.0f, 1.0f, 0.5f, 1.0f }; // 選択色（黄色）
@@ -557,6 +582,11 @@ void UI_PauseMenu_Update(void)
 			g_pTitleButtonFont->SetColor(selColor);
 		}
 		break;
+	case 5:
+		if (g_pTutorialButtonFont) {
+			g_pTutorialButtonFont->SetColor(selColor);
+		}
+		break;
 	}
 }
 
@@ -570,6 +600,7 @@ void UI_PauseMenu_Draw(void)
 	if (g_pMouseSensitivityButtonFont) g_pMouseSensitivityButtonFont->Draw();
 	if (g_pBrightnessButtonFont) g_pBrightnessButtonFont->Draw();
 	if (g_pTitleButtonFont) g_pTitleButtonFont->Draw();
+	if (g_pTutorialButtonFont) g_pTutorialButtonFont->Draw();
 
 	// 左右矢印（音量・マウス感度・明るさ変更用）
 	if (g_PauseCursor == 1 || g_PauseCursor == 2 || g_PauseCursor == 3)

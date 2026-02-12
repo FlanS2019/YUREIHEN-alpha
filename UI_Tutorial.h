@@ -2,7 +2,7 @@
 
 #include <d3d11.h>
 #include <DirectXMath.h>
-#include "sprite.h"
+#include "HoleSprite.h"
 #include "font.h"
 using namespace DirectX;
 
@@ -16,4 +16,7 @@ void UI_Tutorial_Update(void);
 void UI_Tutorial_Draw(void);
 
 bool UI_Tutorial_IsActive(void);
+
+// ポーズメニュー等からチュートリアルを開閉する
+void UI_Tutorial_SetActive(bool active);
 

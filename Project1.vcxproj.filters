@@ -38,6 +38,7 @@
     <ClCompile Include="light.cpp" />
     <ClCompile Include="UI_PauseMenu.cpp" />
     <ClCompile Include="UI_Tutorial.cpp" />
+    <ClCompile Include="shader_2d.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="animation.h" />
@@ -84,6 +85,8 @@
     <ClInclude Include="Floor3.h" />
     <ClInclude Include="UI_PauseMenu.h" />
     <ClInclude Include="UI_Tutorial.h" />
+    <ClInclude Include="shader_2d.h" />
+    <ClInclude Include="HoleSprite.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="convert_to_utf8bom.ps1" />
@@ -95,5 +98,6 @@
     <FxCompile Include="shader_pixel_2d.hlsl" />
     <FxCompile Include="shader_vertex_2d.hlsl" />
     <FxCompile Include="shader_field_instance.hlsl" />
+    <FxCompile Include="shader_pixel_2d_hole.hlsl" />
   </ItemGroup>
 </Project>
