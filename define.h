@@ -12,7 +12,7 @@
 #define FPS (60)
 
 //=== Tutorial 関連定数 ===
-#define TUTORIAL_SKIP_FRAME (1) // シーン遷移後、このフレーム数だけ通常更新してからチュートリアルを開始
+#define TUTORIAL_SKIP_FRAME (2) // シーン遷移後、このフレーム数だけ通常更新してからチュートリアルを開始
 
 #if defined(_DEBUG)
 //=== デバッグ関連定数 ===
