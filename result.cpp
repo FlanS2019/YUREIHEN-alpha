@@ -20,7 +20,7 @@ void Result_Initialize(ID3D11Device* pDevice, ID3D11DeviceContext* pContext)
 		0.0f,											//回転（度）
 		{ 1.0f, 1.0f, 1.0f, 1.0f },						//RGBA
 		BLENDSTATE_NONE,								//BlendState
-		L"asset\\texture\\result.png"					//テクスチャパス
+		L"asset\\yureihen\\Alpha_Tex\\karirizaruto.png"					//テクスチャパス
 	);
 }
 
@@ -29,7 +29,7 @@ void Result_Update(void)
 	// ③適当な処理　アニメーションなどもここで
 	if (Keyboard_IsKeyDown(KK_ENTER))
 	{
-		StartFade(SCENE_ANM_LOGO);
+		StartFade(SCENE_TITLE);
 	}
 }
 
