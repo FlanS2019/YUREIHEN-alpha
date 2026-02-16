@@ -21,6 +21,10 @@ static bool g_IsTutorial = false;
 static bool g_IsPreTutorial = true;
 static HoleSprite* g_pTutorialBG = nullptr;
 
+// フロア変更（シーン遷移）後、指定フレームだけ開始を遅らせる
+static int g_TutorialDelayFrames = 0;
+
+
 namespace {
 	// ページ管理
 	std::vector<TutorialPage> g_Pages;
@@ -34,13 +38,72 @@ namespace {
 	};
 	TutorialState g_State = TutorialState::FadeIn;
 	float g_FadeAlpha = 0.0f;
+
+	// スキップ機能
+	float g_SkipHoldTime = 0.0f;
+	const float SKIP_HOLD_REQUIRED = 1.5f; // 1.5秒長押しでスキップ
 }
 
 // ページ案内用テキスト（共通）
 static FontRenderer* g_pGuideFont = nullptr;
 
-// フロア変更（シーン遷移）後、指定フレームだけ開始を遅らせる
-static int g_TutorialDelayFrames = 0;
+// スキップ案内テキスト
+static FontRenderer* g_pSkipGuideFont = nullptr;
+
+// スキップバー背景・前景
+static Sprite* g_pSkipBarBG = nullptr;
+static Sprite* g_pSkipBarFG = nullptr;
+
+static void InitSkipUI()
+{
+	// スキップバー背景
+	if (!g_pSkipBarBG) {
+		g_pSkipBarBG = new Sprite(
+			{ SCREEN_WIDTH / 2.0f, SCREEN_HEIGHT - 80.0f },
+			{ 300.0f, 10.0f },
+			0,
+			{ 0.3f, 0.3f, 0.3f, 0.6f },
+			BLENDSTATE_ALFA,
+			L"asset/texture/fade.png"
+		);
+	}
+	// スキップバー前景（ゲージ）
+	if (!g_pSkipBarFG) {
+		g_pSkipBarFG = new Sprite(
+			{ SCREEN_WIDTH / 2.0f, SCREEN_HEIGHT - 80.0f },
+			{ 300.0f, 10.0f },
+			0,
+			{ 1.0f, 0.85f, 0.2f, 0.9f },
+			BLENDSTATE_ALFA,
+			L"asset/texture/fade.png"
+		);
+	}
+
+	// スキップ案内テキスト
+	if (!g_pSkipGuideFont) {
+		g_pSkipGuideFont = new FontRenderer(
+			{ SCREEN_WIDTH / 2.0f, SCREEN_HEIGHT - 110.0f },
+			25.0f, 0.0f, { 1.0f, 0.85f, 0.2f, 1.0f },
+			"[SPACE長押し] スキップ"
+		);
+	}
+}
+
+static void FinalizeSkipUI()
+{
+	if (g_pSkipBarBG) {
+		delete g_pSkipBarBG;
+		g_pSkipBarBG = nullptr;
+	}
+	if (g_pSkipBarFG) {
+		delete g_pSkipBarFG;
+		g_pSkipBarFG = nullptr;
+	}
+	if (g_pSkipGuideFont) {
+		delete g_pSkipGuideFont;
+		g_pSkipGuideFont = nullptr;
+	}
+}
 
 // ==========================================
 // ページデータ初期化
@@ -167,6 +230,9 @@ void UI_Tutorial_Initialize(ID3D11Device* pDevice, ID3D11DeviceContext* pContext
 		"[SPACE] 次へ"
 	);
 
+	// スキップUI初期化
+	InitSkipUI();
+
 	// 初期ページの穴位置を適用
 	ApplyPageHole();
 }
@@ -174,6 +240,7 @@ void UI_Tutorial_Initialize(ID3D11Device* pDevice, ID3D11DeviceContext* pContext
 void UI_Tutorial_Finalize(void)
 {
 	FinalizePages();
+	FinalizeSkipUI();
 
 	if (g_pTutorialBG) {
 		delete g_pTutorialBG;
@@ -217,9 +284,26 @@ void UI_Tutorial_Update(void)
 		break;
 
 	case TutorialState::Active:
-		if (Keyboard_IsKeyDownTrigger(KK_SPACE))
+		// スキップ機能：スペース長押しでチュートリアル全体をスキップ
+		if (Keyboard_IsKeyDown(KK_SPACE))
 		{
-			g_State = TutorialState::FadeOut;
+			g_SkipHoldTime += 1.0f / FPS;
+			if (g_SkipHoldTime >= SKIP_HOLD_REQUIRED)
+			{
+				// チュートリアル全体をスキップ
+				UI_Tutorial_End();
+				return;
+			}
+		}
+		else
+		{
+			// スペースを離したとき
+			if (g_SkipHoldTime > 0.0f && g_SkipHoldTime < 0.2f)
+			{
+				// 短押し → 次のページへ
+				g_State = TutorialState::FadeOut;
+			}
+			g_SkipHoldTime = 0.0f;
 		}
 		break;
 
@@ -308,6 +392,57 @@ void UI_Tutorial_Draw(void)
 			g_pGuideFont->Draw();
 			g_pGuideFont->SetColor(col);
 		}
+
+		// スキップUI描画
+		if (g_IsTutorial && g_pSkipBarBG && g_pSkipBarFG && g_pSkipGuideFont)
+		{
+			// スキップバー背景
+			{
+				XMFLOAT4 col = g_pSkipBarBG->GetColor();
+				XMFLOAT4 drawCol = { col.x, col.y, col.z, col.w * g_FadeAlpha };
+				g_pSkipBarBG->SetColor(drawCol);
+				g_pSkipBarBG->Draw();
+				g_pSkipBarBG->SetColor(col);
+			}
+
+			// スキップゲージ（幅をスキップ進捗に応じて変更）
+			{
+				float skipRatio = g_SkipHoldTime / SKIP_HOLD_REQUIRED;
+				if (skipRatio > 1.0f) skipRatio = 1.0f;
+				float barFullWidth = 300.0f;
+				float barWidth = barFullWidth * skipRatio;
+
+				XMFLOAT4 col = g_pSkipBarFG->GetColor();
+				XMFLOAT4 drawCol = { col.x, col.y, col.z, col.w * g_FadeAlpha };
+				g_pSkipBarFG->SetColor(drawCol);
+
+				// 幅と位置を調整（左端を基準に伸ばす）
+				XMFLOAT2 origSize = g_pSkipBarFG->GetScale();
+				XMFLOAT2 origPos = g_pSkipBarFG->GetPos();
+				float leftEdge = SCREEN_WIDTH / 2.0f - barFullWidth / 2.0f;
+				g_pSkipBarFG->SetSize({ barWidth, origSize.y });
+				g_pSkipBarFG->SetPos({ leftEdge + barWidth / 2.0f, origPos.y });
+
+				if (barWidth > 0.1f)
+				{
+					g_pSkipBarFG->Draw();
+				}
+
+				// 元に戻す
+				g_pSkipBarFG->SetSize(origSize);
+				g_pSkipBarFG->SetPos(origPos);
+				g_pSkipBarFG->SetColor(col);
+			}
+
+			// スキップ案内テキスト
+			{
+				XMFLOAT4 col = g_pSkipGuideFont->GetColor();
+				XMFLOAT4 drawCol = { col.x, col.y, col.z, g_FadeAlpha };
+				g_pSkipGuideFont->SetColor(drawCol);
+				g_pSkipGuideFont->Draw();
+				g_pSkipGuideFont->SetColor(col);
+			}
+		}
 	}
 }
 
@@ -324,8 +459,12 @@ void UI_Tutorial_Start()
 	g_CurrentPage = 0;
 	g_TutorialDelayFrames = TUTORIAL_SKIP_FRAME;
 
-	ApplyPageHole();
+	// フェード状態をリセット
+	g_State = TutorialState::FadeIn;
+	g_FadeAlpha = 0.0f;
+	g_SkipHoldTime = 0.0f;
 
+	ApplyPageHole();
 	Mouse_SetMode(MOUSE_POSITION_MODE_ABSOLUTE);
 	Mouse_SetVisible(true);
 }
