@@ -1,6 +1,7 @@
 ﻿//sprite.cpp
 #include "sprite.h"
 #include "shader.h"
+#include "shader_2d.h"
 #include "texture.h"
 #include "light.h"
 #include "define.h"
@@ -54,19 +55,22 @@ void Sprite_BeginDraw2D()
 	g_pDevice = Direct3D_GetDevice();
 	g_pContext = Direct3D_GetDeviceContext();
 
-	// シェーダー開始（一度だけ）
+	// 2D専用シェーダー（存在する場合はこちらを優先）
+	static bool s_Shader2DInitialized = false;
+	if (!s_Shader2DInitialized)
+	{
+		Shader2D_Initialize(g_pDevice, g_pContext);
+		s_Shader2DInitialized = true;
+	}
+
+	Shader2D_BeginDefault();
+	Shader2D_SetProjectionMatrix(XMMatrixOrthographicOffCenterLH(0.0f, SCREEN_WIDTH, SCREEN_HEIGHT, 0.0f, 0.0f, 1.0f));
+
+	// 既存Spriteの動作互換のため、共通シェーダー側も従来通り設定
 	Shader_Begin();
-
-	// スクリーン座標用の射影行列を設定
 	Shader_SetMatrix(XMMatrixOrthographicOffCenterLH(0.0f, SCREEN_WIDTH, SCREEN_HEIGHT, 0.0f, 0.0f, 1.0f));
-
-	// 2D描画用にワールド行列を単位行列にリセット
 	Shader_SetWorldMatrix(XMMatrixIdentity());
-
-	// 2D描画用にマテリアル色を白に設定
 	Shader_SetMaterialColor({ 1.0f, 1.0f, 1.0f, 1.0f });
-
-	// 2D描画時はライティングを完全にフラット化
 	Shader_SetAmbientLight(&g_SpriteAmbientLight);
 	Shader_SetPointLight(nullptr);
 
@@ -242,4 +246,91 @@ void Sprite_Split_Draw(XMFLOAT2 pos, XMFLOAT2 size, float rot, XMFLOAT4 color, B
 	g_pContext->IASetVertexBuffers(0, 1, &g_pVertexBuffer, &stride, &offset);
 	g_pContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
 	g_pContext->Draw(4, 0);
+}
+
+//----------------------------
+//単一穴あきスプライト描画
+//----------------------------
+void Sprite_Single_DrawHole(XMFLOAT2 pos, XMFLOAT2 size, float rot, XMFLOAT4 color, BLENDSTATE bstate,
+	ID3D11ShaderResourceView* texture, XMFLOAT2 holeCenterPx, float holeRadiusPx, float holeSoftnessPx,
+	FLIPTYPE2D flipType)
+{
+	g_pDevice = Direct3D_GetDevice();
+	g_pContext = Direct3D_GetDeviceContext();
+
+	// 2D専用シェーダーをセット（穴あき）
+	static bool s_Shader2DInitialized = false;
+	if (!s_Shader2DInitialized)
+	{
+		Shader2D_Initialize(g_pDevice, g_pContext);
+		s_Shader2DInitialized = true;
+	}
+
+	// ここで穴あきPSを有効化（他の2D描画に影響させないため、最後に必ず戻す）
+	Shader2D_SetUseHolePS(true);
+
+	Shader2D_SetProjectionMatrix(XMMatrixOrthographicOffCenterLH(0.0f, SCREEN_WIDTH, SCREEN_HEIGHT, 0.0f, 0.0f, 1.0f));
+	Shader2D_HoleParams hp{};
+	hp.centerPx = holeCenterPx;
+	hp.radiusPx = holeRadiusPx;
+	hp.softnessPx = holeSoftnessPx;
+	Shader2D_SetHoleParams(hp);
+
+	// テクスチャ設定＆ブレンド
+	ID3D11ShaderResourceView* tex = texture;
+	g_pContext->PSSetShaderResources(0, 1, &tex);
+	SetBlendState(bstate);
+
+	// 以降の頂点生成は通常描画と同じ
+	D3D11_MAPPED_SUBRESOURCE msr;
+	g_pContext->Map(g_pVertexBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &msr);
+	Vertex* v = (Vertex*)msr.pData;
+
+	float halfX = size.x * 0.5f;
+	float halfY = size.y * 0.5f;
+
+	float rad = XMConvertToRadians(rot);
+	float co = cosf(rad);
+	float si = sinf(rad);
+
+	float lx[4] = { -halfX, halfX, -halfX, halfX };
+	float ly[4] = { -halfY, -halfY, halfY, halfY };
+
+	for (int i = 0; i < 4; ++i) {
+		float rx = lx[i] * co - ly[i] * si;
+		float ry = lx[i] * si + ly[i] * co;
+		v[i].position = { rx + pos.x, ry + pos.y, 0.0f };
+		v[i].normal = { 0.0f, 0.0f, -1.0f };
+		v[i].color = color;
+	}
+
+	float texCoordU[2] = { 0.0f, 1.0f };
+	float texCoordV[2] = { 0.0f, 1.0f };
+
+	if (static_cast<unsigned char>(flipType) & static_cast<unsigned char>(FLIPTYPE2D::FLIPTYPE2D_HORIZONTAL))
+	{
+		texCoordU[0] = 1.0f;
+		texCoordU[1] = 0.0f;
+	}
+	if (static_cast<unsigned char>(flipType) & static_cast<unsigned char>(FLIPTYPE2D::FLIPTYPE2D_VERTICAL))
+	{
+		texCoordV[0] = 1.0f;
+		texCoordV[1] = 0.0f;
+	}
+
+	v[0].texCoord = { texCoordU[0], texCoordV[0] };
+	v[1].texCoord = { texCoordU[1], texCoordV[0] };
+	v[2].texCoord = { texCoordU[0], texCoordV[1] };
+	v[3].texCoord = { texCoordU[1], texCoordV[1] };
+
+	g_pContext->Unmap(g_pVertexBuffer, 0);
+
+	UINT stride = sizeof(Vertex);
+	UINT offset = 0;
+	g_pContext->IASetVertexBuffers(0, 1, &g_pVertexBuffer, &stride, &offset);
+	g_pContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
+	g_pContext->Draw(4, 0);
+
+	// 重要：穴あきPSを無効化して戻す（他Spriteを消さない）
+	Shader2D_SetUseHolePS(false);
 }

@@ -33,6 +33,11 @@ void Sprite_EndDraw2D(void);
 void Sprite_Single_Draw(XMFLOAT2 pos, XMFLOAT2 size, float rot, XMFLOAT4 color, BLENDSTATE bstate, ID3D11ShaderResourceView* texture, FLIPTYPE2D flipType = FLIPTYPE2D::FLIPTYPE2D_NONE);
 void Sprite_Split_Draw(XMFLOAT2 pos, XMFLOAT2 size, float rot, XMFLOAT4 color, BLENDSTATE bstate, ID3D11ShaderResourceView* texture, int divideX, int divideY, int textureNumber);
 
+// 円形くり抜き（暗幕スプライト用）
+void Sprite_Single_DrawHole(XMFLOAT2 pos, XMFLOAT2 size, float rot, XMFLOAT4 color, BLENDSTATE bstate,
+	ID3D11ShaderResourceView* texture, XMFLOAT2 holeCenterPx, float holeRadiusPx, float holeSoftnessPx,
+	FLIPTYPE2D flipType = FLIPTYPE2D::FLIPTYPE2D_NONE);
+
 // Sprite クラス 2D 用 Transform2D に組む
 class Sprite : public Transform2D
 {
@@ -71,6 +76,12 @@ public:
 	void Draw()
 	{
 		Sprite_Single_Draw(m_Position, m_Scale, m_Rotation, m_Color, m_BlendState, m_Texture, m_FlipType);
+	}
+
+	void DrawHole(const XMFLOAT2& holeCenterPx, float holeRadiusPx, float holeSoftnessPx = 0.0f)
+	{
+		Sprite_Single_DrawHole(m_Position, m_Scale, m_Rotation, m_Color, m_BlendState, m_Texture,
+			holeCenterPx, holeRadiusPx, holeSoftnessPx, m_FlipType);
 	}
 };
 

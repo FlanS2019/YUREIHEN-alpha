@@ -175,7 +175,7 @@ static void UpdateLureFurnitureMovement()
 void Ghost_Initialize(ID3D11Device* pDevice, ID3D11DeviceContext* pContext)
 {
 	g_Ghost = new Ghost(
-		{ -3.0f, Ghost::GetGhostPosY(), -10.0f },
+		GetGhostStartPos(),
 		{ 1.0f, 1.0f, 1.0f },
 		{ 0.0f, 180.0f, 0.0f },
 		"asset\\model\\ghost.fbx"
@@ -211,6 +211,9 @@ void Ghost_Initialize(ID3D11Device* pDevice, ID3D11DeviceContext* pContext)
 			g_Ghost->m_pRangeCircle->SetColor(0.0f, 1.0f, 0.0f, 0.5f);
 		}
 	}
+
+	Camera_SetTargetPos(g_Ghost->GetPos());
+
 }
 
 void Ghost_Update(void)
@@ -642,4 +645,19 @@ void Ghost::ResetPos(void)
 Ghost* GetGhost(void)
 {
 	return g_Ghost;
+}
+
+XMFLOAT3 GetGhostStartPos(void)
+{
+	switch (START_FLOOR - 1)
+	{
+	case 0:
+		return { GHOST_START_POS_FLOOR1_X, GHOST_POS_Y, GHOST_START_POS_FLOOR1_Z };
+	case 1:
+		return { GHOST_START_POS_FLOOR2_X, GHOST_POS_Y, GHOST_START_POS_FLOOR2_Z };
+	case 2:
+		return { GHOST_START_POS_FLOOR3_X, GHOST_POS_Y, GHOST_START_POS_FLOOR3_Z };
+	default:
+		return { GHOST_START_POS_FLOOR1_X, GHOST_POS_Y, GHOST_START_POS_FLOOR1_Z };
+	}
 }

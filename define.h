@@ -11,6 +11,9 @@
 #define WIN32_LEAN_AND_MEAN	//32bitアプリには不要な情報を無視
 #define FPS (60)
 
+//=== Tutorial 関連定数 ===
+#define TUTORIAL_SKIP_FRAME (2) // シーン遷移後、このフレーム数だけ通常更新してからチュートリアルを開始
+
 #if defined(_DEBUG)
 //=== デバッグ関連定数 ===
 #define STOP_TIMER_BUSTER (false) //trueならタイマーとバスターズのupdateを停止させる
@@ -46,9 +49,9 @@
 
 //=== Busters 関連定数 ===
 #define BUSTERS_PATROL_SPEED (0.001f)    // パトロール速度
-#define BUSTERS_MOVE_SPEED_SEARCH    (0.04f) // 探索速度
-#define BUSTERS_MOVE_SPEED_SUSPICION (0.06f) // 警戒速度
-#define BUSTERS_MOVE_SPEED_CHASE     (0.08f) // 追跡速度
+#define BUSTERS_MOVE_SPEED_SEARCH    (0.05f) // 探索速度
+#define BUSTERS_MOVE_SPEED_SUSPICION (0.10f) // 警戒速度
+#define BUSTERS_MOVE_SPEED_CHASE     (0.15f) // 追跡速度
 
 #define MAP_MIN_X (-20.0f)
 #define MAP_MAX_X (20.0f)
@@ -64,6 +67,8 @@
 #define KEEP_STATE_TIME (120)		 // 発見状態を維持する時間
 #define BUSTERS_LURE_STAY_FRAMES (300)
 #define BUSTERS_STOP_RANGE (5.0f)
+#define BUSTERS_FOV_ANGLE 60.0f  // 視野角（度）
+#define BUSTERS_FOV_COS   0.5f   
 
 //=== Ghost 関連定数 ===
 #define SCARE_RANGE (12.0f)		// 恐怖範囲
@@ -76,6 +81,12 @@
 #define FLOOR_COOLDOWN_TIME (2.0f) // 階層移動のクールダウン時間（秒）
 #define GHOST_POS_Y (0.5f)
 #define LURE_POSSESSED_SPEED_RATIO (0.5f)
+#define GHOST_START_POS_FLOOR1_X (-3.0f)
+#define GHOST_START_POS_FLOOR1_Z (-10.0f)
+#define GHOST_START_POS_FLOOR2_X (-3.0f)
+#define GHOST_START_POS_FLOOR2_Z (-10.0f)
+#define GHOST_START_POS_FLOOR3_X (-4.0f)
+#define GHOST_START_POS_FLOOR3_Z (-13.0f)
 
 //=== Minimap 関連定数 ===
 #define MINIMAP_POS_OFFSET   (150.0f) 

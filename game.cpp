@@ -13,6 +13,7 @@ using namespace DirectX;
 #include "sprite.h"
 #include "UI.h"
 #include "UI_PauseMenu.h"
+#include "UI_Tutorial.h"
 #include "ghost.h"
 #include "furniture.h"
 #include "fade.h"
@@ -35,8 +36,6 @@ static int g_NextFloorID = -1;
 
 void Game_Initialize(ID3D11Device* pDevice, ID3D11DeviceContext* pContext)
 {
-	if (!pDevice || !pContext) return;
-
 	g_pAmbientLight = new AmbientLight(XMFLOAT4(0.3f, 0.3f, 0.3f, 1.0f));
 
 	Camera_Initialize();
@@ -56,6 +55,7 @@ void Game_Initialize(ID3D11Device* pDevice, ID3D11DeviceContext* pContext)
 
 	// ポーズメニュー初期化
 	UI_PauseMenu_Initialize(pDevice, pContext);
+	UI_Tutorial_Initialize(pDevice, pContext);
 }
 
 void Game_Update(void)
@@ -74,15 +74,22 @@ void Game_Update(void)
 	if (fadeState != FADE_NONE) return;
 
 	// ========================================================
+	// チュートリアル更新
+	// ========================================================
+	UI_Tutorial_Update();
+	if (UI_Tutorial_IsActive())
+	{
+		return; // チュートリアル中はゲーム更新停止
+	}
+
+	// ========================================================
 	// ポーズメニュー更新
 	// ========================================================
 	UI_PauseMenu_Update();
-
 	if (UI_PauseMenu_IsPaused())
 	{
 		return; // ゲーム更新停止
 	}
-	// ========================================================
 
 	Ghost_Update();
 
@@ -136,6 +143,7 @@ void Game_Draw(void)
 
 	// ポーズメニュー描画
 	UI_PauseMenu_Draw();
+	UI_Tutorial_Draw();
 
 	Sprite_EndDraw2D();
 }
@@ -154,6 +162,7 @@ void Game_Finalize(void)
 	}
 
 	UI_PauseMenu_Finalize();
+	UI_Tutorial_Finalize();
 
 	Camera_Finalize();
 	Ghost_Finalize();

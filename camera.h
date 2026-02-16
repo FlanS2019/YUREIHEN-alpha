@@ -18,6 +18,13 @@ protected:
 	float m_Near;//近くの限界値
 	float m_Far;//遠くの限界値
 
+	float m_pitch;
+	float m_yaw;
+	float m_lastPitch;
+	float m_lastYaw;
+	XMFLOAT3 m_targetPos;
+	float m_sensitivity;
+
 public:
 	Camera(
 		XMFLOAT3 pos = XMFLOAT3(0.0f, 0.0f, -5.0f),
@@ -28,7 +35,9 @@ public:
 		float near_ = 0.2f,//アンダーバーは定数回避
 		float far_ = 100.0f)
 		:m_Pos(pos), m_AtPos(atpos), m_UpVec(upvec),
-		m_Fov(fov), m_Aspect(aspect), m_Near(near_), m_Far(far_)
+		m_Fov(fov), m_Aspect(aspect), m_Near(near_), m_Far(far_),
+		m_pitch(0.0f), m_yaw(0.0f), m_lastPitch(0.0f), m_lastYaw(0.0f),
+		m_targetPos(0.0f, 0.0f, 0.0f), m_sensitivity(0.1f)
 	{
 		m_View = XMMatrixLookAtLH(
 			XMVectorSet(m_Pos.x, m_Pos.y, m_Pos.z, 0.0f),
@@ -43,6 +52,8 @@ public:
 			m_Far
 		);
 	}
+
+	void Update();
 
 	void UpdateView(
 		XMFLOAT3 pos,
@@ -61,6 +72,11 @@ public:
 	XMFLOAT3 GetAtPos(void) const { return m_AtPos; }
 	XMMATRIX GetView(void) const { return m_View; }
 	XMMATRIX GetProjection(void) const { return m_Projection; }
+	
+	void SetTargetPos(XMFLOAT3 targetPos);
+	float GetYaw(void) const { return m_yaw; }
+	void SetSensitivity(float sensitivity) { m_sensitivity = sensitivity; }
+	float GetSensitivity() const { return m_sensitivity; }
 };
 
 // 注視対象を設定する関数（汎用化）
