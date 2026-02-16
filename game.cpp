@@ -17,6 +17,7 @@ using namespace DirectX;
 #include "furniture.h"
 #include "fade.h"
 #include "busters.h"
+#include "Tutorial_Bustars.h"
 #include "debugdraw.h"
 #include "sound.h"
 #include "minimap.h"
@@ -46,6 +47,9 @@ void Game_Initialize(ID3D11Device* pDevice, ID3D11DeviceContext* pContext)
 	Busters_Initialize();
 	Minimap_Initialize();
 	DebugDraw_Initialize();
+
+	// チュートリアル用バスターズを3階に配置
+	TutorialBusters_Initialize({ 0.0f, PATROL_HEIGHT, 0.0f });
 
 	g_pBGM = LoadMP3("asset/sound/bgm/HauntedHalloween.mp3");
 	if (g_pBGM) PlaySound(g_pBGM, true);
@@ -90,6 +94,13 @@ void Game_Update(void)
 #if !STOP_TIMER_BUSTER
 	Busters_Update();
 #endif
+
+	// チュートリアル用バスターズの更新（3階にいるときのみ）
+	if (Field_GetCurrentFloor() == 2)
+	{
+		TutorialBusters_Update();
+	}
+
 	DebugDraw_Update();
 }
 
@@ -106,6 +117,13 @@ void Game_Draw(void)
 
 	Field_Draw();
 	Busters_Draw();
+
+	// チュートリアル用バスターズの描画（3階にいるときのみ）
+	if (Field_GetCurrentFloor() == 2)
+	{
+		TutorialBusters_Draw();
+	}
+
 	Furniture_Draw();
 	Ghost_Draw();
 	DebugDraw_Draw();
@@ -145,4 +163,6 @@ void Game_Finalize(void)
 	Minimap_Finalize();
 	Busters_Finalize();
 	DebugDraw_Finalize();
+
+	TutorialBusters_Finalize();
 }

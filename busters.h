@@ -14,11 +14,11 @@ using namespace DirectX;
 
 enum BUSTERS_STATE
 {
-	BUSTERS_SEARCH,    // 家具を探して移動（探索）
-	BUSTERS_SUSPICION, // 怪しんで近づく（警戒）
-	BUSTERS_CHASE,      // 幽霊を見つけて追跡（確定）
-	BUSTERS_STUN,		//気絶中
-	BUSTERS_LURED		// 誘引中
+	BUSTERS_SEARCH,    // �Ƌ��T���Ĉړ��i�T���j
+	BUSTERS_SUSPICION, // ������ŋ߂Â��i�x���j
+	BUSTERS_CHASE,      // �H�������ĒǐՁi�m��j
+	BUSTERS_STUN,		//�C�⒆
+	BUSTERS_LURED		// �U����
 };
 
 class Busters : public Sprite3D, public Jump
@@ -45,6 +45,7 @@ private:
 	bool m_HasLureTarget;
 	int m_LureStayTimer;
 	bool m_IsGhostDiscover;
+	bool m_IsTutorial;
 
 public:
 	Busters(const XMFLOAT3& pos, const XMFLOAT3& scale, const XMFLOAT3& rot, const char* pass);
@@ -60,6 +61,8 @@ public:
 	
 	PointLight* GetHeadlight(void) const { return m_pHeadlight; }
 	void SetIsGhostDiscover(bool discover);
+	void SetTutorial(bool tutorial) { m_IsTutorial = tutorial; }
+	bool IsTutorial(void) const { return m_IsTutorial; }
 };
 
 void Busters_Initialize(void);
@@ -72,5 +75,5 @@ void BustersScare(void);
 void BustersLured(const XMFLOAT3& pos, float radius);
 void BustersStopped(void);
 void Busters_CheckGaugeEvent(void);
-void Busters_UpdateFloorChangeSequence(void);
+
 void Busters_SetLight(void);

@@ -46,7 +46,8 @@ Busters::Busters(const XMFLOAT3& pos, const XMFLOAT3& scale, const XMFLOAT3& rot
 	m_LureTargetPos(pos),
 	m_HasLureTarget(false),
 	m_LureStayTimer(0),
-	m_IsGhostDiscover(false)
+	m_IsGhostDiscover(false),
+	m_IsTutorial(false)
 {
 	m_Icon = new Billboard();
 
@@ -331,6 +332,11 @@ void Busters::Update(void)
 
 void Busters::CheckState(void)
 {
+	if (m_IsTutorial)
+	{
+		return;
+	}
+
 	if (m_State == BUSTERS_LURED)
 	{
 		return;
@@ -636,15 +642,8 @@ void Busters_Initialize(void)
 		}
 	}
 
-	// 3階 (Floor 2)
-	{
-		XMFLOAT3 pos = GetRandomBusterPos(2);
-		Busters* b = new Busters(pos, { 1.0f, 1.0f, 1.0f }, { 0.0f, 0.0f, 0.0f }, "asset\\model\\Busters_karikansei_3.fbx");
-		if (b) {
-			b->SetGroundLevel(PATROL_HEIGHT);
-			g_BustersList[2].push_back(b);
-		}
-	}
+	// 3階 (Floor 2) - チュートリアル用バスターズのみ（TutorialBustersで別管理）
+	// 通常バスターズは配置しない
 }
 
 void Busters_Update(void)
