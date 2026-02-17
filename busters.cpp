@@ -86,6 +86,7 @@ void Busters::Update(void)
 {
 	JumpUpdate(*(Transform3D*)this);
 
+
 	if (m_DetectionGraceTimer > 0)
 	{
 		m_DetectionGraceTimer--;
@@ -94,6 +95,20 @@ void Busters::Update(void)
 	if (m_ReactionCooldown > 0)
 	{
 		m_ReactionCooldown--;
+	}
+
+	Ghost* ghost = GetGhost();
+	// 幽霊が無敵でなく、かつ変身中(家具の中)でない場合のみライトを当てる
+	if (ghost && !ghost->IsInvincible() &&
+		ghost->GetState() != GS_TRANSFORM && ghost->GetState() != GS_SCARE)
+	{
+		bool hasWall = Field_CheckWallBetween(m_Position, ghost->GetPos());
+		bool inFOV = IsTargetInFOV(ghost->GetPos(), BUSTERS_SUSPICION_RANGE);
+
+		if (!hasWall && inFOV)
+		{
+			ghost->SetIsIlluminated(true);
+		}
 	}
 
 	// ヘッドライトの位置を頭部に追従させる
@@ -191,7 +206,7 @@ void Busters::Update(void)
 					float dx = target->GetPos().x - m_Position.x;
 					float dz = target->GetPos().z - m_Position.z;
 					float deg = XMConvertToDegrees(atan2f(dx, dz));
-					SetRotY(deg);
+					SetRotY(deg + 180.0f);
 				}
 			}
 
@@ -201,7 +216,7 @@ void Busters::Update(void)
 				float dx = ghost->GetPos().x - m_Position.x;
 				float dz = ghost->GetPos().z - m_Position.z;
 				float deg = XMConvertToDegrees(atan2f(dx, dz));
-				SetRotY(deg);
+				SetRotY(deg + 180.0f);
 			}
 		}
 		return;
@@ -359,7 +374,7 @@ void Busters::Update(void)
 				float fdx = target->GetPos().x - m_Position.x;
 				float fdz = target->GetPos().z - m_Position.z;
 
-				if (fdx * fdx + fdz * fdz < 1.2f * 1.2f)
+				if (fdx * fdx + fdz * fdz < 1.5f * 1.5f)
 				{
 					forceArrive = true;
 				}
@@ -423,6 +438,7 @@ void Busters::Update(void)
 				m_PathList.clear(); // 経路破棄して再計算へ
 				m_StuckTimer = 0;
 				m_TargetFurnitureIndex = -1; // ターゲットを変える（諦める）
+				m_WaitTimer = 120;
 			}
 		}
 		else
@@ -441,14 +457,80 @@ void Busters::Update(void)
 		float dz = gPos.z - m_Position.z;
 		float dist = sqrtf(dx * dx + dy * dy + dz * dz);
 
-		if (dist < 1.0f)
+		if (dist < 1.0f && !GetGhost()->IsInvincible() && GetGhost()->GetState() != GS_CAUGHT)
 		{
-			StartFade(SCENE_ANM_LOSE);
+
+			GetGhost()->SetState(GS_CAUGHT);
+
+			m_PathList.clear();
 		}
 	}
-}void
+}
 
-Busters::CheckState(void)
+int GetBlockIDFromWorldPos(float x, float z)
+{
+	// ワールド座標 -> グリッド座標(gx, gz) への変換
+	// GetRandomBusterPos の逆算: gx = wx + MAP_WIDTH / 2.0f
+	// 四捨五入するために +0.5f して int にキャスト
+	int gx = (int)(x + MAP_WIDTH / 2.0f + 0.5f);
+	int gz = (int)(MAP_LENGTH / 2.0f - z + 0.5f);
+
+	// 配列外参照防止
+	if (gx < 0 || gx >= MAP_WIDTH || gz < 0 || gz >= MAP_LENGTH) return 1; // 範囲外は壁扱い
+
+	int floor = Field_GetCurrentFloor();
+
+	// Y=1 (壁レイヤー) の情報を参照
+	switch (floor)
+	{
+	case 0: return Floor1[1][gz][gx];
+	case 1: return Floor2[1][gz][gx];
+	case 2: return Floor3[1][gz][gx];
+	default: return 1;
+	}
+}
+
+// 壁かどうか判定 (0以外は壁)
+bool IsWallBlock(float x, float z)
+{
+	return GetBlockIDFromWorldPos(x, z) != 0;
+}
+
+bool CanPassLine(const XMFLOAT3& start, const XMFLOAT3& end, float radius)
+{
+	float dx = end.x - start.x;
+	float dz = end.z - start.z;
+	float len = sqrtf(dx * dx + dz * dz);
+
+	if (len <= 0.001f) return true;
+
+	// 正規化
+	float ndx = dx / len;
+	float ndz = dz / len;
+
+	// チェックする間隔（0.5mごとにチェック）
+	int steps = (int)(len / 0.5f) + 1;
+
+	for (int i = 0; i <= steps; i++)
+	{
+		float t = (float)i / steps;
+		float px = start.x + dx * t;
+		float pz = start.z + dz * t;
+
+		// その地点での「中心」「右端」「左端」が壁でないか確認
+		// 右・左のオフセットベクトル
+		float offX = -ndz * radius;
+		float offZ = ndx * radius;
+
+		// 3点チェック (中心、右、左)
+		if (IsWallBlock(px, pz)) return false;
+		if (IsWallBlock(px + offX, pz + offZ)) return false;
+		if (IsWallBlock(px - offX, pz - offZ)) return false;
+	}
+	return true;
+}
+
+void Busters::CheckState(void)
 {
 	if (m_State == BUSTERS_LURED)
 	{
@@ -457,6 +539,21 @@ Busters::CheckState(void)
 
 	Ghost* ghost = GetGhost();
 	if (!ghost) return;
+
+	if (ghost->IsInvincible())
+	{
+		if (m_State != BUSTERS_SEARCH && m_State != BUSTERS_LURED)
+		{
+			m_State = BUSTERS_SEARCH;
+			this->ResetColor();
+			ghost->SetIsDetectedByBuster(false);
+			m_TargetFurnitureIndex = -1;
+			m_PathList.clear();
+			m_WaitTimer = 60;
+		}
+		return;
+	}
+
 	if (m_DetectionGraceTimer > 0) return;
 
 	// 変身中は見つからない処理
@@ -471,6 +568,8 @@ Busters::CheckState(void)
 			m_TargetFurnitureIndex = -1;
 			m_PathList.clear();
 			m_WaitTimer = 60;
+
+			ghost->SetInvincible(300);
 		}
 		return;
 	}
@@ -572,30 +671,79 @@ void Busters::MoveTo(XMFLOAT3 targetPos)
 {
 	if (GetIsJumping()) return;
 
-	float dx = targetPos.x - m_Position.x;
-	float dz = targetPos.z - m_Position.z;
+	// ▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼
+	// ★Unity風ナビゲーション (Path Smoothing / String Pulling)
+	// 「目の前のマス」ではなく「行ける限り奥のマス」を目指すことで、
+	// 曲線的でスムーズな移動を実現し、壁への衝突自体を回避します。
+	// ▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼
 
-	if (fabsf(dx) < m_MoveSpeed && fabsf(dz) < m_MoveSpeed) return;
+	XMFLOAT3 finalTarget = targetPos; // デフォルトは引数の場所
 
-	float len = sqrtf(dx * dx + dz * dz);
-	if (len > 0)
+	// パスリストがある場合、ショートカットを試みる
+	if (!m_PathList.empty())
 	{
-		dx /= len;
-		dz /= len;
+		// 「現在の目的地(Path[0])」のさらに先(Path[1], Path[2]...)が見えるか確認
+		// 見えるなら、手前のパスはもう不要なので消して、奥を目指す
+
+		// 最大3つ先までチェック（あまり遠くを見ると壁抜けのリスクがあるため）
+		int lookAheadMax = 3;
+		int checkCount = 0;
+
+		// リストの先頭から順に「現在地から直接行けるか？」をチェック
+		while (!m_PathList.empty() && checkCount < lookAheadMax)
+		{
+			// 次のパスが「最終目的地」そのものなら、リストを空にしてそこへ直行
+			if (m_PathList.size() == 1)
+			{
+				finalTarget = m_PathList[0];
+				break;
+			}
+
+			// パスの2つ先(Path[1])が存在するか？
+			if (m_PathList.size() >= 2)
+			{
+				XMFLOAT3 nextNode = m_PathList[1];
+				// 現在地から、1つ飛ばした先(Path[1])へ、半径0.3mの幅で直線移動できるか？
+				if (CanPassLine(m_Position, nextNode, 0.3f))
+				{
+					// 行ける！ -> Path[0]（手前のマス）は邪魔なので削除してショートカット
+					m_PathList.erase(m_PathList.begin());
+					// 削除したので、今の先頭はさっきのPath[1]になる。
+					// ループしてさらにその奥(Path[2])が見えるか再チェックする
+					continue;
+				}
+			}
+
+			// ショートカットできない、またはリストの末尾に来た
+			finalTarget = m_PathList[0];
+			break;
+		}
 	}
 
-	// 向き変更
+	// -------------------------------------------------------------
+	// 移動処理 (Steering)
+	// -------------------------------------------------------------
+	float dx = finalTarget.x - m_Position.x;
+	float dz = finalTarget.z - m_Position.z;
+
+	// 目的地に近いなら停止
+	if (fabsf(dx) < m_MoveSpeed && fabsf(dz) < m_MoveSpeed) return;
+
+	// 正規化
+	float len = sqrtf(dx * dx + dz * dz);
+	if (len > 0) { dx /= len; dz /= len; }
+
+	// 向き変更（スムーズに）
 	float angle = atan2f(dx, dz);
 	float deg = XMConvertToDegrees(angle);
 	SetRotY(deg + 180.0f);
 
-	// 当たり判定付き移動（スライド移動）
+	// 移動（単純な移動でも、CanPassLineで安全確認済みなので壁には当たらないはず）
+	// 万が一の「埋まり防止」のために、最小限の壁チェックだけ残す
 	auto checkWall = [&](float nx, float nz) -> bool {
-		float r = 0.2f;
-		return (Field_IsWall(nx + r, m_Position.y, nz + r) ||
-			Field_IsWall(nx + r, m_Position.y, nz - r) ||
-			Field_IsWall(nx - r, m_Position.y, nz + r) ||
-			Field_IsWall(nx - r, m_Position.y, nz - r));
+		float r = 0.25f;
+		return (IsWallBlock(nx + r, nz + r) || IsWallBlock(nx + r, nz - r) ||
+			IsWallBlock(nx - r, nz + r) || IsWallBlock(nx - r, nz - r));
 		};
 
 	float nextX = m_Position.x + dx * m_MoveSpeed;
@@ -778,7 +926,7 @@ void DrawDebugFan(const XMFLOAT3& center, float rotY, float fovAngle, float rang
 		};
 
 		// 中心から外周への線
-		if (i == 0 || i == segments) // 両端のみ描画（全部描くとくどいため）
+		if (i == 0 || i == segments) // 両端のみ描画
 		{
 			vertices.push_back({ startPos, color });
 			vertices.push_back({ endPos, color });
@@ -810,8 +958,7 @@ void DrawDebugFan(const XMFLOAT3& center, float rotY, float fovAngle, float rang
 	ID3D11Buffer* pVertexBuffer = nullptr;
 	if (SUCCEEDED(pDevice->CreateBuffer(&bd, &initData, &pVertexBuffer)))
 	{
-		// シェーダー設定（既存の3D描画用設定を利用すると仮定）
-		// 本来は専用シェーダーを使うべきですが、ここでは色情報を含む頂点として描画
+		// シェーダー設定
 		UINT stride = sizeof(DebugVertex);
 		UINT offset = 0;
 		pContext->IASetVertexBuffers(0, 1, &pVertexBuffer, &stride, &offset);
@@ -1074,6 +1221,7 @@ void Busters::Draw(void)
 	}
 
 }
+
 
 // =================================================================
 // バスターズのライト設定

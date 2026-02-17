@@ -34,7 +34,6 @@ private:
 	int m_ReactionCooldown;
 	int m_PathUpdateTimer;
 
-
 	std::vector<XMFLOAT3> m_PathList;
 
 	XMFLOAT3 m_Velocity;

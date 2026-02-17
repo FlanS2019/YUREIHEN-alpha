@@ -30,7 +30,7 @@
 
 //=== フィールド関連定数 ===
 #define MAP_FLOORS (3)
-#define START_FLOOR (3)// 階の数字をそのまま入れる（使用時に-1）
+#define START_FLOOR (1)// 階の数字をそのまま入れる（使用時に-1）
 #define END_FLOOR (3) // この階で恐怖ゲージMAXでクリア
 
 //=== Camera 関連定数 ===

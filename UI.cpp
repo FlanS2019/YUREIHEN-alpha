@@ -516,3 +516,13 @@ float UI_GetScareGauge(void)
 	}
 	return 0.0f;
 }
+
+void UI_DecreaseRemainingTime(float penaltySeconds)
+{
+	if (g_Clock)
+	{
+		// 現在の経過時間を取得して、ペナルティ分を加算
+		float currentTime = g_Clock->GetTime();
+		g_Clock->SetTime(currentTime + penaltySeconds);
+	}
+}

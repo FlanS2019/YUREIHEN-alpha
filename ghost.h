@@ -5,6 +5,7 @@
 #include "sprite3d.h"
 #include "define.h"
 #include "light.h"
+#include <vector>
 using namespace DirectX;
 
 enum GHOST_STATE
@@ -13,6 +14,7 @@ enum GHOST_STATE
 	GS_FURNITURE_FOUND,	// 家具発見
 	GS_TRANSFORM,		// 変身中
 	GS_SCARE,			// 驚かし中
+	GS_CAUGHT,
 };
 
 // Ghost クラス
@@ -30,6 +32,19 @@ public:
 	bool m_IsDraw;				// 描画フラグ
 	bool m_HasIncreasedMultiplier; // 倍率を加算したか
 
+	bool m_IsIlluminated;     // 現在ライトに照らされているか
+	bool m_PrevIsIlluminated; // 前フレームで照らされていたか
+
+	int m_EscapeTapCount;      // SPACEキーを連打した回数
+	int m_CaughtPenaltyTimer;  // 毎秒ペナルティを与えるためのタイマー
+
+	void SetIsIlluminated(bool isIlluminated) { m_IsIlluminated = isIlluminated; }
+
+	std::vector<int> m_InRangeFurnitureList; // 範囲内にある家具のリスト
+	int m_SelectedFurnitureListIndex;        // リストの中で現在選んでいる番号
+	bool m_PrevQ;                            // Qキーが前回押されていたか
+	bool m_PrevE;							 // Eキーが前回押されていたか
+
 	Sprite3D* m_pRangeCircle;
 	PointLight* m_pLight;
 
@@ -40,12 +55,15 @@ public:
 		m_InRangeFurnitureNum(-1),
 		m_IsTransformed(false),
 		m_IsDetectedByBuster(false),
-		m_DetectionTimer(0.0f),
+		m_InvincibleTimer(0),
 		m_FloorCooldown(),
 		m_State(GS_MOVING),
 		m_IsDraw(true),
 		m_HasIncreasedMultiplier(false),
-
+		m_IsIlluminated(false),
+		m_PrevIsIlluminated(false),
+		m_EscapeTapCount(0),
+		m_CaughtPenaltyTimer(0),
 		m_pRangeCircle(nullptr),
 		m_pLight(nullptr)
 	{
