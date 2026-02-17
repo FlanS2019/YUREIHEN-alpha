@@ -93,7 +93,7 @@ FontRenderer::FontRenderer(XMFLOAT2 pos, float fontSize, float rotation,
 		return;
 	}
 
-	OutputDebugStringA("FontRenderer: Initialized successfully\n");
+	//OutputDebugStringA("FontRenderer: Initialized successfully\n");
 }
 
 FontRenderer::~FontRenderer() {
@@ -139,7 +139,7 @@ bool FontRenderer::BakeAtlas() {
 	// フォントメトリクスを取得
 	stbtt_GetFontVMetrics(m_pFontInfo, &m_FontAscender, &m_FontDescender, nullptr);
 
-	OutputDebugStringA("FontRenderer::BakeAtlas: Font kerning information not found - use FontRendererFT2 for kerning support\n");
+	//OutputDebugStringA("FontRenderer::BakeAtlas: Font kerning information not found - use FontRendererFT2 for kerning support\n");
 
 	// アトラステクスチャ作成（動的グリフキャッシング用に大きめ）
 	m_AtlasWidth = FONT_ATLAS_WIDTH;
@@ -252,7 +252,7 @@ bool FontRenderer::BakeAtlas() {
 
 	m_VertexCount = 4;
 
-	OutputDebugStringA("FontRenderer::BakeAtlas: Success\n");
+	//OutputDebugStringA("FontRenderer::BakeAtlas: Success\n");
 	free(atlasRGBA);
 
 	return true;

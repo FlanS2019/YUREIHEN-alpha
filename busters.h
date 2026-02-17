@@ -46,6 +46,7 @@ private:
 	bool m_HasLureTarget;
 	int m_LureStayTimer;
 	bool m_IsGhostDiscover;
+	bool m_IsTutorial;
 
 	XMFLOAT3 m_LastPathCalcGhostPos;
 	XMFLOAT3 m_PrevPos; // 前フレームの座標
@@ -66,6 +67,8 @@ public:
 	PointLight* GetHeadlight(void) const { return m_pHeadlight; }
 	void SetIsGhostDiscover(bool discover);
 	bool IsTargetInFOV(const XMFLOAT3& targetPos, float range);
+	void SetTutorial(bool tutorial) { m_IsTutorial = tutorial; }
+	bool IsTutorial(void) const { return m_IsTutorial; }
 };
 
 void Busters_Initialize(void);
@@ -78,5 +81,5 @@ void BustersScare(void);
 void BustersLured(const XMFLOAT3& pos, float radius);
 void BustersStopped(void);
 void Busters_CheckGaugeEvent(void);
-void Busters_UpdateFloorChangeSequence(void);
+
 void Busters_SetLight(void);

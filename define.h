@@ -11,11 +11,14 @@
 #define WIN32_LEAN_AND_MEAN	//32bitアプリには不要な情報を無視
 #define FPS (60)
 
+//=== Tutorial 関連定数 ===
+#define TUTORIAL_SKIP_FRAME (2) // シーン遷移後、このフレーム数だけ通常更新してからチュートリアルを開始
+
 #if defined(_DEBUG)
 //=== デバッグ関連定数 ===
 #define STOP_TIMER_BUSTER (false) //trueならタイマーとバスターズのupdateを停止させる
 #define DIRECT_START (true) //trueならgameシーンから直接開始する
-#define DEBUG_DRAW (false) //trueならdebugdraw機能を有効にする
+#define DEBUG_DRAW (true) //trueならdebugdraw機能を有効にする
 #else
 //==================================
 //          ここは触らない

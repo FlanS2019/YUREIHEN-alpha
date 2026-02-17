@@ -18,13 +18,26 @@ using namespace DirectX;
 static std::unordered_map<std::string, MODEL*> g_ModelCache;
 
 // Assimpの行列をDirectXMath形式に変換
+// 両方とも行優先(row-major)だが、Assimpは列ベクトル方式(v' = M*v)で平行移動が4列目、
+// DirectXMathは行ベクトル方式(v' = v*M)で平行移動が4行目なので転置が必要
 XMMATRIX AiMatrixToXMMatrix(const aiMatrix4x4& mat)
 {
+	// aiMatrix4x4 は row-major で以下のレイアウト:
+	//   a1 a2 a3 a4     (a4=tx)
+	//   b1 b2 b3 b4     (b4=ty)
+	//   c1 c2 c3 c4     (c4=tz)
+	//   d1 d2 d3 d4     (d4=1)
+	// DirectXMath の XMMATRIX は row-major で行ベクトル方式:
+	//   _11 _12 _13 _14
+	//   _21 _22 _23 _24
+	//   _31 _32 _33 _34
+	//   tx  ty  tz  1.0
+	// そのまま転置してコピーする
 	return XMMATRIX(
-		mat.a1, mat.a2, mat.a3, mat.a4,
-		mat.b1, mat.b2, mat.b3, mat.b4,
-		mat.c1, mat.c2, mat.c3, mat.c4,
-		mat.d1, mat.d2, mat.d3, mat.d4
+		mat.a1, mat.b1, mat.c1, mat.d1,
+		mat.a2, mat.b2, mat.c2, mat.d2,
+		mat.a3, mat.b3, mat.c3, mat.d3,
+		mat.a4, mat.b4, mat.c4, mat.d4
 	);
 }
 
@@ -114,7 +127,7 @@ void RenderNode(MODEL* model, aiNode* node, XMMATRIX parentTransform, const XMFL
 // アニメーション対応のノード描画関数（ノード変換適用版）
 void RenderNodeAnimation(MODEL* model, aiNode* node, XMMATRIX parentTransform, const BoneMatrices& boneMatrices, const XMFLOAT4& color, bool useColorReplace, XMMATRIX worldTransform, XMMATRIX viewProjection)
 {
-	// このノードのローカル変換行列と親の変換を組み合わせ
+	//このノードのローカル変換行列と親の変換を組み合わせ
 	XMMATRIX currentTransform = AiMatrixToXMMatrix(node->mTransformation) * parentTransform;
 
 
@@ -244,8 +257,8 @@ MODEL* ModelLoad(const char* FileName)
 		aiProcess_ConvertToLeftHanded |
 		aiProcess_Triangulate |              // 四角形以上を三角形化
 		aiProcess_GenSmoothNormals |         // スムーズ法線生成
-		aiProcess_JoinIdenticalVertices |    // 重複頂点削除
-		aiProcess_OptimizeGraph              // グラフ最適化
+		aiProcess_JoinIdenticalVertices      // 重複頂点削除
+		// aiProcess_OptimizeGraph は除外（アニメーション対象ノードが消える可能性がある）
 	);
 
 	if (!model->AiScene)
@@ -277,8 +290,40 @@ MODEL* ModelLoad(const char* FileName)
 
 	model->VertexBuffer = new ID3D11Buffer * [model->AiScene->mNumMeshes];
 	model->IndexBuffer = new ID3D11Buffer * [model->AiScene->mNumMeshes];
+	model->SkinnedVertexBuffer = new ID3D11Buffer * [model->AiScene->mNumMeshes];
 	model->MeshIndexCounts = new unsigned int[model->AiScene->mNumMeshes];
 	model->MeshMaterials = new MODEL::MeshMaterial[model->AiScene->mNumMeshes];
+
+	// スキニング用ボーン情報の収集（全メッシュを横断して一意なボーンリストを作成）
+	model->HasSkinning = false;
+	model->TotalBoneCount = 0;
+
+	// ルートノードのグローバル逆変換行列を計算（スキニングの座標系補正に必要）
+	{
+		XMMATRIX rootTransform = AiMatrixToXMMatrix(model->AiScene->mRootNode->mTransformation);
+		XMVECTOR det;
+		model->GlobalInverseTransform = XMMatrixInverse(&det, rootTransform);
+	}
+
+	for (unsigned int m = 0; m < model->AiScene->mNumMeshes; m++)
+	{
+		aiMesh* mesh = model->AiScene->mMeshes[m];
+		if (mesh->mNumBones > 0) model->HasSkinning = true;
+		for (unsigned int b = 0; b < mesh->mNumBones; b++)
+		{
+			std::string boneName = mesh->mBones[b]->mName.data;
+			if (model->BoneNameToIndex.find(boneName) == model->BoneNameToIndex.end())
+			{
+				unsigned int idx = model->TotalBoneCount++;
+				model->BoneNameToIndex[boneName] = idx;
+				model->BoneOffsetMatrices.push_back(AiMatrixToXMMatrix(mesh->mBones[b]->mOffsetMatrix));
+			}
+		}
+	}
+	if (model->HasSkinning)
+	{
+		hal::dout << "  Skinning: " << model->TotalBoneCount << " unique bones found" << std::endl;
+	}
 
 	for (unsigned int m = 0; m < model->AiScene->mNumMeshes; m++)
 	{
@@ -390,6 +435,82 @@ MODEL* ModelLoad(const char* FileName)
 					  << (mesh->HasNormals() ? "WITH" : "WITHOUT") << " normals, "
 					  << (mesh->HasTextureCoords(0) ? "WITH" : "WITHOUT") << " UVs"
 					  << (mesh->HasBones() ? ", WITH bones" : "") << std::endl;
+		}
+
+		// ===== スキニング用頂点バッファ生成 =====
+		if (model->HasSkinning)
+		{
+			VertexSkinned* skinVertex = new VertexSkinned[mesh->mNumVertices];
+
+			for (unsigned int v = 0; v < mesh->mNumVertices; v++)
+			{
+				skinVertex[v].position = XMFLOAT3(mesh->mVertices[v].x, mesh->mVertices[v].y, mesh->mVertices[v].z);
+				
+				if (mesh->HasTextureCoords(0))
+					skinVertex[v].texCoord = XMFLOAT2(mesh->mTextureCoords[0][v].x, mesh->mTextureCoords[0][v].y);
+				else
+					skinVertex[v].texCoord = XMFLOAT2(0.5f, 0.5f);
+
+				skinVertex[v].color = XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f);
+
+				if (mesh->HasNormals())
+					skinVertex[v].normal = XMFLOAT3(mesh->mNormals[v].x, mesh->mNormals[v].y, mesh->mNormals[v].z);
+				else
+					skinVertex[v].normal = XMFLOAT3(0.57735f, 0.57735f, 0.57735f);
+
+				for (int bi = 0; bi < 4; bi++)
+				{
+					skinVertex[v].boneIndex[bi] = 0;
+					skinVertex[v].boneWeight[bi] = 0.0f;
+				}
+			}
+
+			// ボーンウェイト情報を頂点に書き込み
+			for (unsigned int b = 0; b < mesh->mNumBones; b++)
+			{
+				aiBone* bone = mesh->mBones[b];
+				unsigned int globalBoneIdx = model->BoneNameToIndex[bone->mName.data];
+
+				for (unsigned int w = 0; w < bone->mNumWeights; w++)
+				{
+					unsigned int vertexId = bone->mWeights[w].mVertexId;
+					float weight = bone->mWeights[w].mWeight;
+
+					// 空いているスロットにウェイトを追加（最大4つ）
+					for (int slot = 0; slot < 4; slot++)
+					{
+						if (skinVertex[vertexId].boneWeight[slot] == 0.0f)
+						{
+							skinVertex[vertexId].boneIndex[slot] = globalBoneIdx;
+							skinVertex[vertexId].boneWeight[slot] = weight;
+							break;
+						}
+					}
+				}
+			}
+
+			D3D11_BUFFER_DESC bd;
+			ZeroMemory(&bd, sizeof(bd));
+			bd.Usage = D3D11_USAGE_DEFAULT;
+			bd.ByteWidth = sizeof(VertexSkinned) * mesh->mNumVertices;
+			bd.BindFlags = D3D11_BIND_VERTEX_BUFFER;
+			bd.CPUAccessFlags = 0;
+
+			D3D11_SUBRESOURCE_DATA sd;
+			ZeroMemory(&sd, sizeof(sd));
+			sd.pSysMem = skinVertex;
+
+			HRESULT hr = Direct3D_GetDevice()->CreateBuffer(&bd, &sd, &model->SkinnedVertexBuffer[m]);
+			if (FAILED(hr))
+			{
+				hal::dout << "ERROR: Failed to create skinned vertex buffer for mesh " << m << std::endl;
+			}
+
+			delete[] skinVertex;
+		}
+		else
+		{
+			model->SkinnedVertexBuffer[m] = nullptr;
 		}
 
 		// ===== インデックスバッファ生成 =====
@@ -559,7 +680,7 @@ MODEL* ModelLoad(const char* FileName)
 			else
 			{
 				hal::dout << "ERROR: Invalid embedded raw texture data: " 
-						  << (aitexture->mFilename.data ? aitexture->mFilename.data : "(unknown)") << std::endl;
+					  << (aitexture->mFilename.data ? aitexture->mFilename.data : "(unknown)") << std::endl;
 			}
 		}
 
@@ -569,9 +690,8 @@ MODEL* ModelLoad(const char* FileName)
 		}
 		else
 		{
-			// 失敗した場合はログのみ。モデルのテクスチャマップへ登録しない（後でデフォルトテクスチャを使う）
 			hal::dout << "WARN: Embedded texture skipped: " 
-					  << (aitexture->mFilename.data ? aitexture->mFilename.data : "(unknown)") << std::endl;
+				  << (aitexture->mFilename.data ? aitexture->mFilename.data : "(unknown)") << std::endl;
 		}
 	}
 
@@ -595,7 +715,7 @@ MODEL* ModelLoad(const char* FileName)
 		}
 	}
 
-	// アニメーションチャンネルのマッピングを作成（RenderNodeAnimationで使用）
+	// アニメーションチャンネルのマッピングを作成
 	if (model->AiScene->mNumAnimations > 0)
 	{
 		aiAnimation* anim = model->AiScene->mAnimations[0];
@@ -610,7 +730,6 @@ MODEL* ModelLoad(const char* FileName)
 	hal::dout << "<< Model Loading Complete: " << FileName << std::endl;
 	hal::dout << "========================================" << std::endl;
 
-	// モデル情報サマリー
 	XMFLOAT3 modelSize = ModelGetSize(model);
 	XMFLOAT4 avgColor = ModelGetAverageMaterialColor(model);
 	hal::dout << "  Model Size: (" << modelSize.x << ", " << modelSize.y << ", " << modelSize.z << ")" << std::endl;
@@ -641,10 +760,13 @@ void ModelRelease(MODEL* model)
 			model->VertexBuffer[m]->Release();
 		if (model->IndexBuffer[m])
 			model->IndexBuffer[m]->Release();
+		if (model->SkinnedVertexBuffer && model->SkinnedVertexBuffer[m])
+			model->SkinnedVertexBuffer[m]->Release();
 	}
 
 	delete[] model->VertexBuffer;
 	delete[] model->IndexBuffer;
+	delete[] model->SkinnedVertexBuffer;
 	delete[] model->MeshIndexCounts;
 	delete[] model->MeshMaterials;
 
@@ -667,63 +789,11 @@ void ModelDraw(MODEL* model, XMFLOAT3 pos, XMFLOAT3 rot, XMFLOAT3 scale, const X
 {
 	if (!model) return;
 
-	// カメラ取得
 	Camera* pCamera = GetCamera();
 	if (!pCamera) return;
 
-	// ビュー・プロジェクション行列の取得
 	XMMATRIX View = pCamera->GetView();
 	XMMATRIX Projection = pCamera->GetProjection();
-
-	// モデルの変換行列
-	XMMATRIX TranslationMatrix = XMMatrixTranslation(pos.x,pos.y,pos.z);
-	XMMATRIX RotationMatrix = XMMatrixRotationRollPitchYaw(
-		XMConvertToRadians(rot.x),
-		XMConvertToRadians(rot.y),
-		XMConvertToRadians(rot.z));
-	XMMATRIX ScalingMatrix = XMMatrixScaling(scale.x, scale.y, scale.z);
-
-	// ワールド行列の計算(スケール → 回転 → 移動の順)
-	XMMATRIX World = ScalingMatrix * RotationMatrix * TranslationMatrix;
-
-	// WVP行列の計算
-	XMMATRIX WVP = World * View * Projection;
-
-	// シェーダーに行列を設定
-	Shader_SetMatrix(WVP);           // WVP行列を設定
-	Shader_SetWorldMatrix(World);    // ワールド行列を設定
-
-	// シェーダーを使用してパイプラインを設定
-	Shader_Begin();
-
-	// プリミティブ・トポロジーを設定
-	Direct3D_GetDeviceContext()->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-
-	// ルートノードから再帰的に描画開始(変換はスケール行列)
-	// colorが渡されなかった場合（デフォルト）は白色を確保
-	XMFLOAT4 finalColor = color;
-	
-	// カラー変更を使用していないなら白に固定
-	if (!useColorReplace)
-	{
-		finalColor = XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f);
-	}
-	
-	XMMATRIX identity = XMMatrixIdentity();
-	RenderNode(model, model->AiScene->mRootNode, identity, finalColor, useColorReplace);
-}
-
-void ModelAnimationDraw(MODEL* model, XMFLOAT3 pos, XMFLOAT3 rot, XMFLOAT3 scale, const BoneMatrices& boneMatrices, const XMFLOAT4& color, bool useColorReplace)
-{
-	if (!model) return;
-
-	// カメラ情報の取得（一度だけ行う）
-	Camera* pCamera = GetCamera();
-	if (!pCamera) return;
-
-	XMMATRIX viewProjection = pCamera->GetView() * pCamera->GetProjection();
-
-	// モデルの変換行列（位置、回転、スケール）
 
 	XMMATRIX TranslationMatrix = XMMatrixTranslation(pos.x, pos.y, pos.z);
 	XMMATRIX RotationMatrix = XMMatrixRotationRollPitchYaw(
@@ -732,27 +802,116 @@ void ModelAnimationDraw(MODEL* model, XMFLOAT3 pos, XMFLOAT3 rot, XMFLOAT3 scale
 		XMConvertToRadians(rot.z));
 	XMMATRIX ScalingMatrix = XMMatrixScaling(scale.x, scale.y, scale.z);
 
-	// ワールド行列の計算(スケール → 回転 → 移動の順)
-	XMMATRIX worldMatrix = ScalingMatrix * RotationMatrix * TranslationMatrix;
+	XMMATRIX World = ScalingMatrix * RotationMatrix * TranslationMatrix;
+	XMMATRIX WVP = World * View * Projection;
 
-	// シェーダーを使用してパイプラインを設定
+	Shader_SetMatrix(WVP);
+	Shader_SetWorldMatrix(World);
 	Shader_Begin();
 
-	// プリミティブ・トポロジーを設定
 	Direct3D_GetDeviceContext()->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 
-	// ルートノードから再帰的に描画開始
 	XMFLOAT4 finalColor = color;
-	
 	if (!useColorReplace)
 	{
 		finalColor = XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f);
 	}
-	
+
 	XMMATRIX identity = XMMatrixIdentity();
-	RenderNodeAnimation(model, model->AiScene->mRootNode, identity, boneMatrices, finalColor, useColorReplace, worldMatrix, viewProjection);
+	RenderNode(model, model->AiScene->mRootNode, identity, finalColor, useColorReplace);
 }
 
+void ModelAnimationDraw(MODEL* model, XMFLOAT3 pos, XMFLOAT3 rot, XMFLOAT3 scale, const BoneMatrices& boneMatrices, const XMFLOAT4& color, bool useColorReplace)
+{
+	if (!model) return;
+
+	Camera* pCamera = GetCamera();
+	if (!pCamera) return;
+
+	XMMATRIX View = pCamera->GetView();
+	XMMATRIX Projection = pCamera->GetProjection();
+
+	XMMATRIX TranslationMatrix = XMMatrixTranslation(pos.x, pos.y, pos.z);
+	XMMATRIX RotationMatrix = XMMatrixRotationRollPitchYaw(
+		XMConvertToRadians(rot.x),
+		XMConvertToRadians(rot.y),
+		XMConvertToRadians(rot.z));
+	XMMATRIX ScalingMatrix = XMMatrixScaling(scale.x, scale.y, scale.z);
+
+	XMMATRIX worldMatrix = ScalingMatrix * RotationMatrix * TranslationMatrix;
+	XMMATRIX WVP = worldMatrix * View * Projection;
+
+	Shader_SetMatrix(WVP);
+	Shader_SetWorldMatrix(worldMatrix);
+
+	if (model->HasSkinning)
+	{
+		Shader_SetBoneMatrices(boneMatrices.matrices, boneMatrices.boneCount > 0 ? boneMatrices.boneCount : BoneMatrices::MAX_BONES);
+		Shader_BeginSkinning();
+	}
+	else
+	{
+		Shader_Begin();
+	}
+
+	Direct3D_GetDeviceContext()->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+
+	XMFLOAT4 finalColor = color;
+	if (!useColorReplace)
+	{
+		finalColor = XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f);
+	}
+
+	for (unsigned int m = 0; m < model->AiScene->mNumMeshes; m++)
+	{
+		XMFLOAT4 meshFinalColor;
+		if (useColorReplace)
+		{
+			meshFinalColor = finalColor;
+		}
+		else
+		{
+			if (m < model->AiScene->mNumMeshes && model->MeshMaterials)
+			{
+				XMFLOAT4 meshColor = model->MeshMaterials[m].diffuseColor;
+				if (meshColor.x == 0.0f && meshColor.y == 0.0f && meshColor.z == 0.0f)
+					meshColor = XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f);
+				meshFinalColor = XMFLOAT4(
+					meshColor.x * finalColor.x, meshColor.y * finalColor.y,
+					meshColor.z * finalColor.z, meshColor.w * finalColor.w);
+			}
+			else
+			{
+				meshFinalColor = finalColor;
+			}
+		}
+		Shader_SetMaterialColor(meshFinalColor);
+
+		ID3D11ShaderResourceView* textureToSet = model->MeshMaterials[m].textureView;
+		Direct3D_GetDeviceContext()->PSSetShaderResources(0, 1, &textureToSet);
+
+		if (model->HasSkinning && model->SkinnedVertexBuffer[m])
+		{
+			UINT stride = sizeof(VertexSkinned);
+			UINT offset = 0;
+			Direct3D_GetDeviceContext()->IASetVertexBuffers(0, 1, &model->SkinnedVertexBuffer[m], &stride, &offset);
+		}
+		else
+		{
+			UINT stride = sizeof(Vertex3D);
+			UINT offset = 0;
+			Direct3D_GetDeviceContext()->IASetVertexBuffers(0, 1, &model->VertexBuffer[m], &stride, &offset);
+		}
+
+		Direct3D_GetDeviceContext()->IASetIndexBuffer(model->IndexBuffer[m], DXGI_FORMAT_R32_UINT, 0);
+
+		unsigned int indexCount = model->MeshIndexCounts[m];
+		if (indexCount > 0)
+		{
+			Direct3D_GetDeviceContext()->DrawIndexed(indexCount, 0, 0);
+		}
+	}
+}
 
 XMFLOAT3 ModelGetSize(MODEL* model)
 {

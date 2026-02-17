@@ -28,6 +28,8 @@ void Shader_SetMaterialColor(const DirectX::XMFLOAT4& color);
 void Shader_SetCameraPos(const DirectX::XMFLOAT3& pos);
 
 void Shader_Begin();
+void Shader_BeginSkinning(); // スキニングアニメーション描画専用
+void Shader_SetBoneMatrices(const DirectX::XMMATRIX* matrices, unsigned int count);
 void Shader_BeginInstance(); // インスタンス描画専用
 void Shader_RefreshState();  // シェーダーの状態をリセット（毎フレーム呼ぶ）
 

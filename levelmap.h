@@ -1,4 +1,4 @@
-#ifndef LEVELMAP_H
+﻿#ifndef LEVELMAP_H
 #define LEVELMAP_H
 
 #define MAP_LENGTH 31

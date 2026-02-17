@@ -23,9 +23,6 @@ void Camera_Initialize(void)
 		1.0f,
 		50.0f
 	);
-
-	Mouse_SetMode(MOUSE_POSITION_MODE_RELATIVE);
-	Mouse_SetVisible(false);
 }
 
 void Camera_Finalize(void)
@@ -75,15 +72,16 @@ void Camera::Update()
 	Mouse_State mouseState;
 	Mouse_GetState(&mouseState);
 
-	if (mouseState.positionMode == MOUSE_POSITION_MODE_ABSOLUTE)
-	{
-		if (mouseState.leftButton)
-		{
-			Mouse_SetMode(MOUSE_POSITION_MODE_RELATIVE);
-			Mouse_SetVisible(false);
-		}
-		return;
-	}
+	//なにこれ
+	//if (mouseState.positionMode == MOUSE_POSITION_MODE_ABSOLUTE)
+	//{
+	//	if (mouseState.leftButton)
+	//	{
+	//		Mouse_SetMode(MOUSE_POSITION_MODE_RELATIVE);
+	//		Mouse_SetVisible(false);
+	//	}
+	//	return;
+	//}
 
 	m_yaw += static_cast<float>(mouseState.x) * MOUSE_SENSITIVITY * m_sensitivity * 2;
 	m_pitch -= static_cast<float>(mouseState.y) * MOUSE_SENSITIVITY * m_sensitivity * 2;

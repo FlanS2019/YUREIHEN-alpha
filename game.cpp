@@ -18,6 +18,7 @@ using namespace DirectX;
 #include "furniture.h"
 #include "fade.h"
 #include "busters.h"
+#include "Tutorial_Bustars.h"
 #include "debugdraw.h"
 #include "sound.h"
 #include "minimap.h"
@@ -35,27 +36,19 @@ static int g_NextFloorID = -1;
 
 void Game_Initialize(ID3D11Device* pDevice, ID3D11DeviceContext* pContext)
 {
-	if (!pDevice || !pContext) return;
-
 	g_pAmbientLight = new AmbientLight(XMFLOAT4(0.3f, 0.3f, 0.3f, 1.0f));
-
 
 	Camera_Initialize();
 	Ghost_Initialize(pDevice, pContext);
-	XMFLOAT3 cameraPos = GetCamera()->GetPos();
-	XMFLOAT3 targetPos = GetCamera()->GetAtPos();
-	hal::dout << "=== Camera Info ===" << std::endl;
-	hal::dout << "Camera Position: X=" << cameraPos.x << ", Y=" << cameraPos.y << ", Z=" << cameraPos.z << std::endl;
-	hal::dout << "Target Position: X=" << targetPos.x << ", Y=" << targetPos.y << ", Z=" << targetPos.z << std::endl;
-	//hal::dout << "Pitch: " << g_pitch << ", Yaw: " << g_yaw << std::endl;
-	hal::dout << "===================" << std::endl;
-
 	Field_Initialize(pDevice, pContext);
 	UI_Initialize();
 	Furniture_Initialize();
 	Busters_Initialize();
 	Minimap_Initialize();
 	DebugDraw_Initialize();
+
+	// チュートリアル用バスターズを3階に配置
+	TutorialBusters_Initialize({ 0.0f, PATROL_HEIGHT, 0.0f });
 
 	g_pBGM = LoadMP3("asset/sound/bgm/HauntedHalloween.mp3");
 	if (g_pBGM) PlaySound(g_pBGM, true);
@@ -86,19 +79,6 @@ void Game_Update(void)
 	UI_Tutorial_Update();
 	if (UI_Tutorial_IsActive())
 	{
-
-		// Oキーでカメラ情報をデバッグ出力
-		if (Keyboard_IsKeyDownTrigger(KK_O))
-		{
-			XMFLOAT3 cameraPos = GetCamera()->GetPos();
-			XMFLOAT3 targetPos = GetCamera()->GetAtPos();
-			hal::dout << "=== Camera Info ===" << std::endl;
-			hal::dout << "Camera Position: X=" << cameraPos.x << ", Y=" << cameraPos.y << ", Z=" << cameraPos.z << std::endl;
-			hal::dout << "Target Position: X=" << targetPos.x << ", Y=" << targetPos.y << ", Z=" << targetPos.z << std::endl;
-			//hal::dout << "Pitch: " << g_pitch << ", Yaw: " << g_yaw << std::endl;
-			hal::dout << "===================" << std::endl;
-		}
-
 		return; // チュートリアル中はゲーム更新停止
 	}
 
@@ -106,12 +86,10 @@ void Game_Update(void)
 	// ポーズメニュー更新
 	// ========================================================
 	UI_PauseMenu_Update();
-
 	if (UI_PauseMenu_IsPaused())
 	{
 		return; // ゲーム更新停止
 	}
-	// ========================================================
 
 
 
@@ -124,6 +102,13 @@ void Game_Update(void)
 #if !STOP_TIMER_BUSTER
 	Busters_Update();
 #endif
+
+	// チュートリアル用バスターズの更新（3階にいるときのみ）
+	if (Field_GetCurrentFloor() == 2)
+	{
+		TutorialBusters_Update();
+	}
+
 	DebugDraw_Update();
 }
 
@@ -140,6 +125,13 @@ void Game_Draw(void)
 
 	Field_Draw();
 	Busters_Draw();
+
+	// チュートリアル用バスターズの描画（3階にいるときのみ）
+	if (Field_GetCurrentFloor() == 2)
+	{
+		TutorialBusters_Draw();
+	}
+
 	Furniture_Draw();
 	Ghost_Draw();
 	DebugDraw_Draw();
@@ -181,4 +173,6 @@ void Game_Finalize(void)
 	Minimap_Finalize();
 	Busters_Finalize();
 	DebugDraw_Finalize();
+
+	TutorialBusters_Finalize();
 }

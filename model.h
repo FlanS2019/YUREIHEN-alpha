@@ -18,7 +18,7 @@ using namespace DirectX;
 // ボーン行列情報構造体
 struct BoneMatrices
 {
-	static const unsigned int MAX_BONES = 256;  // 最大ボーン数
+	static const unsigned int MAX_BONES = 256;  // 最大ボーン数（HLSL側と一致）
 	XMMATRIX matrices[MAX_BONES];               // ボーン行列配列
 	unsigned int boneCount = 0;                 // 実際のボーン数
 
@@ -38,6 +38,19 @@ struct MODEL
 
 	ID3D11Buffer** VertexBuffer;
 	ID3D11Buffer** IndexBuffer;
+
+	// スキニング用頂点バッファ（ボーン情報付き）
+	ID3D11Buffer** SkinnedVertexBuffer;
+	bool HasSkinning = false;	// スキニングメッシュを持つかどうか
+
+	// ボーン名からグローバルボーンインデックスへのマッピング
+	std::unordered_map<std::string, unsigned int> BoneNameToIndex;
+	// ボーンオフセット行列（メッシュ空間→ボーン空間への逆バインドポーズ行列）
+	std::vector<XMMATRIX> BoneOffsetMatrices;
+	unsigned int TotalBoneCount = 0;
+
+	// ルートノードのグローバル逆変換行列（座標系変換の補正用）
+	XMMATRIX GlobalInverseTransform;
 
 	std::unordered_map<std::string, ID3D11ShaderResourceView*> Texture;
 
