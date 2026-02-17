@@ -12,7 +12,7 @@
 #include <queue>
 #include <map>
 #include <cmath> 
-#include <algorithm> // sort用に必要
+#include <algorithm>
 #include "keyboard.h"
 #include "Floor1.h"
 #include "Floor2.h"
@@ -122,20 +122,43 @@ void LoadMapData(int floor)
 				if (mcID == 0) continue;
 
 				FIELD_TYPE type = ConvertMapID(mcID);
-				if (type == FIELD_NONE) continue;
+				auto isFaceVisible = [&](int myID, int targetY, int targetZ, int targetX) -> bool {
+					int neighborID = GetMapBlockID(floor, targetY, targetZ, targetX);
 
-				bool isVisible = false;
+					if (neighborID == 0) return true; // 隣が空気なら絶対に面を描画する
 
-				if (GetMapBlockID(floor, y + 1, z, x) == 0) isVisible = true;
-				else if (GetMapBlockID(floor, y - 1, z, x) == 0) isVisible = true;
-				else if (GetMapBlockID(floor, y, z + 1, x) == 0) isVisible = true;
-				else if (GetMapBlockID(floor, y, z - 1, x) == 0) isVisible = true;
-				else if (GetMapBlockID(floor, y, z, x + 1) == 0) isVisible = true;
-				else if (GetMapBlockID(floor, y, z, x - 1) == 0) isVisible = true;
+					// 透過ブロック(ガラス等)を並べた時、隣が同じブロックなら接合面を消す
+					if (myID == neighborID) return false;
 
-				if (!isVisible) continue;
+					// 自分が不透明ブロックで、隣が透過ブロックの場合は面を描画する
+					// 他に透過ブロックIDがあれば || neighborID == XX を追加
+					if (myID != 18 && neighborID == 18) return true;
+
+					// それ以外（隣が別の不透明ブロックなど）は完全に埋もれるので面を消す
+					return false;
+					};
 
 				MAPDATA data;
+
+				// 各方向の面が見えるかチェック
+
+				data.drawFace[0] = isFaceVisible(mcID, y, z - 1, x);// 手前
+
+				data.drawFace[1] = isFaceVisible(mcID, y, z, x + 1);// 右
+
+				data.drawFace[2] = isFaceVisible(mcID, y - 1, z, x);// 下
+
+				data.drawFace[3] = isFaceVisible(mcID, y, z + 1, x);// 奥
+
+				data.drawFace[4] = isFaceVisible(mcID, y, z, x - 1);// 左
+
+				data.drawFace[5] = isFaceVisible(mcID, y + 1, z, x);// 上
+
+				// 6面すべて見えないなら、ブロック自体を描画リストから除外
+				data.isHidden = !(data.drawFace[0] || data.drawFace[1] || data.drawFace[2] ||
+					data.drawFace[3] || data.drawFace[4] || data.drawFace[5]);
+
+				if (data.isHidden) continue;
 
 				data.pos = XMFLOAT3(
 					(x - offsetX),
@@ -331,33 +354,43 @@ void Field_Draw(void)
 	bool hasBaseRot = (rotateBox.x != 0.0f || rotateBox.y != 0.0f || rotateBox.z != 0.0f);
 	XMMATRIX baseRotMtx = hasBaseRot ? XMMatrixRotationRollPitchYaw(radX, radY, radZ) : XMMatrixIdentity();
 
-	static std::vector<XMFLOAT4X4> batchList;
-	batchList.clear();
-	if (batchList.capacity() < MAX_INSTANCES) batchList.reserve(MAX_INSTANCES);
+	// 面ごとのバッチリスト (6面分)
+	static std::vector<XMFLOAT4X4> batchListFace[6];
+	for (int i = 0; i < 6; i++) {
+		batchListFace[i].clear();
+		if (batchListFace[i].capacity() < MAX_INSTANCES) batchListFace[i].reserve(MAX_INSTANCES);
+	}
 
 	ID3D11ShaderResourceView* currentSRV = nullptr;
 
 	auto FlushBatch = [&](void) {
-		if (batchList.empty() || currentSRV == nullptr) return;
+		if (currentSRV == nullptr) return;
 
-		D3D11_MAPPED_SUBRESOURCE msr;
-		if (SUCCEEDED(g_pContext->Map(g_InstanceBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &msr))) {
-			memcpy(msr.pData, batchList.data(), sizeof(XMFLOAT4X4) * batchList.size());
-			g_pContext->Unmap(g_InstanceBuffer, 0);
+		for (int face = 0; face < 6; face++) {
+			if (batchListFace[face].empty()) continue;
+
+			D3D11_MAPPED_SUBRESOURCE msr;
+			if (SUCCEEDED(g_pContext->Map(g_InstanceBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &msr))) {
+				memcpy(msr.pData, batchListFace[face].data(), sizeof(XMFLOAT4X4) * batchListFace[face].size());
+				g_pContext->Unmap(g_InstanceBuffer, 0);
+			}
+
+			UINT strides[2] = { sizeof(Vertex3D), sizeof(XMFLOAT4X4) };
+			UINT offsets[2] = { 0, 0 };
+			ID3D11Buffer* vbs[2] = { g_VertexBuffer, g_InstanceBuffer };
+
+			g_pContext->IASetVertexBuffers(0, 2, vbs, strides, offsets);
+			g_pContext->IASetIndexBuffer(g_IndexBuffer, DXGI_FORMAT_R32_UINT, 0);
+			g_pContext->PSSetShaderResources(0, 1, &currentSRV);
+
+			UINT startIndex = face * 6;
+			g_pContext->DrawIndexedInstanced(6, (UINT)batchListFace[face].size(), startIndex, 0, 0);
+
+			batchListFace[face].clear();
 		}
-
-		UINT strides[2] = { sizeof(Vertex3D), sizeof(XMFLOAT4X4) };
-		UINT offsets[2] = { 0, 0 };
-		ID3D11Buffer* vbs[2] = { g_VertexBuffer, g_InstanceBuffer };
-
-		g_pContext->IASetVertexBuffers(0, 2, vbs, strides, offsets);
-		g_pContext->IASetIndexBuffer(g_IndexBuffer, DXGI_FORMAT_R32_UINT, 0);
-		g_pContext->PSSetShaderResources(0, 1, &currentSRV);
-
-		g_pContext->DrawIndexedInstanced(36, (UINT)batchList.size(), 0, 0, 0);
-
-		batchList.clear();
 		};
+
+
 
 	for (const auto& mapData : g_MapList)
 	{
@@ -410,7 +443,13 @@ void Field_Draw(void)
 			else nextSRV = g_BlockTextures[id];
 		}
 
-		if (nextSRV != currentSRV || batchList.size() >= MAX_INSTANCES)
+		// MAX_INSTANCES を超えそうならフラッシュ
+		bool overLimit = false;
+		for (int i = 0; i < 6; i++) {
+			if (batchListFace[i].size() >= MAX_INSTANCES - 1) overLimit = true;
+		}
+
+		if (nextSRV != currentSRV || overLimit)
 		{
 			FlushBatch();
 			currentSRV = nextSRV;
@@ -424,7 +463,13 @@ void Field_Draw(void)
 
 		XMFLOAT4X4 m;
 		XMStoreFloat4x4(&m, XMMatrixTranspose(world));
-		batchList.push_back(m);
+
+		// 見えている面だけをそれぞれのバッチに登録
+		for (int i = 0; i < 6; i++) {
+			if (mapData.drawFace[i]) {
+				batchListFace[i].push_back(m);
+			}
+		}
 	}
 	FlushBatch();
 }
