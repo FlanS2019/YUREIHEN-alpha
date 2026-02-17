@@ -220,6 +220,21 @@ void Ghost_Update(void)
 {
 	if (!g_Ghost) return;
 
+	if (g_Ghost->m_InvincibleTimer > 0)
+	{
+		g_Ghost->m_InvincibleTimer--;
+	}
+
+	// 「前フレームで照らされていて、今フレームは照らされていない」＝ 脱出成功
+	//if (g_Ghost->m_PrevIsIlluminated && !g_Ghost->m_IsIlluminated)
+	//{
+	//	g_Ghost->m_InvincibleTimer = 300; // 5秒間無敵 (60FPS × 5秒)
+	//}
+
+	// 状態を保存し、今のフラグをリセット（バスターズ側で毎フレーム判定してtrueにするため）
+	g_Ghost->m_PrevIsIlluminated = g_Ghost->m_IsIlluminated;
+	g_Ghost->m_IsIlluminated = false;
+
 	switch (g_Ghost->GetState())
 	{
 	case GS_MOVING:
@@ -292,6 +307,44 @@ void Ghost_Update(void)
 			g_Ghost->ResetPos();
 			g_Ghost->SetState(GS_MOVING);
 		}
+		break;
+
+	case GS_CAUGHT:
+		g_Ghost->SetIsDraw(true);
+
+		// 移動も家具検知もさせない（完全に行動不能）
+
+		// --- 毎秒のペナルティ処理 ---
+		g_Ghost->m_CaughtPenaltyTimer++;
+		if (g_Ghost->m_CaughtPenaltyTimer >= 60) // 1秒(60フレーム)経過
+		{
+			g_Ghost->m_CaughtPenaltyTimer = 0;
+
+			AddScareGauge(-5.0f);
+		}
+
+		// --- 連打脱出の処理 ---
+		if (Keyboard_IsKeyDownTrigger(KK_SPACE))
+		{
+			g_Ghost->m_EscapeTapCount++;
+
+			// 10回連打したら脱出成功！
+			if (g_Ghost->m_EscapeTapCount >= 10)
+			{
+				g_Ghost->m_EscapeTapCount = 0;
+				g_Ghost->m_CaughtPenaltyTimer = 0;
+
+				// 脱出ボーナス: 5秒間無敵にする
+				g_Ghost->SetInvincible(300);
+
+				// ペナルティ: 残り時間 -10秒
+				UI_DecreaseRemainingTime(10.0f);
+
+				// 移動状態に戻る
+				g_Ghost->SetState(GS_MOVING);
+			}
+		}
+
 		break;
 
 	default:
@@ -465,8 +518,18 @@ void Ghost::ScareStart(void)
 
 void Ghost::FurnitureSearch(void)
 {
-	float tempDistance = 999999.0f;
-	int tempInRangeNum = -1;
+
+	if (m_IsIlluminated)
+	{
+		m_InRangeFurnitureList.clear();
+		m_InRangeFurnitureNum = -1;
+		m_SelectedFurnitureListIndex = 0;
+		this->SetState(GS_MOVING);
+		return;
+	}
+
+	// 範囲内にある全ての家具のインデックスをリストアップする
+	std::vector<int> currentList;
 
 	for (int i = 0; i < FURNITURE_NUM; i++)
 	{
@@ -474,32 +537,77 @@ void Ghost::FurnitureSearch(void)
 		if (pFurniture)
 		{
 			if (pFurniture->IsCoolingDown()) continue;
-			pFurniture->ResetColor();
 			if (pFurniture->GetActionType() == ACTION_NONE) continue;
 
-			if (pFurniture->GetDistanceToGhost() <= FURNITURE_DETECTION_RANGE &&
-				pFurniture->GetDistanceToGhost() < tempDistance)
+			// 範囲内にいればリストに追加
+			if (pFurniture->GetDistanceToGhost() <= FURNITURE_DETECTION_RANGE)
 			{
-				tempDistance = pFurniture->GetDistanceToGhost();
-				tempInRangeNum = i;
+				currentList.push_back(i);
 			}
 		}
 	}
 
-	if (tempInRangeNum != -1)
+	// リストが空（範囲内に家具がない）場合
+	if (currentList.empty())
 	{
-		m_InRangeFurnitureNum = tempInRangeNum;
-		Furniture* pFurniture = GetFurniture(m_InRangeFurnitureNum);
-		if (pFurniture)
-		{
-			pFurniture->SetColor(1.0f, 1.0f, 0.0f, 1.0f);
-			this->SetState(GS_FURNITURE_FOUND);
-		}
+		m_InRangeFurnitureList.clear();
+		m_InRangeFurnitureNum = -1;
+		m_SelectedFurnitureListIndex = 0;
+		this->SetState(GS_MOVING);
 	}
 	else
 	{
-		m_InRangeFurnitureNum = -1;
-		this->SetState(GS_MOVING);
+		// リストが更新された場合、今まで選んでいた家具が新しいリストにもあるか探す
+		int newSelectedIndex = 0; // デフォルトは先頭の家具
+		if (m_InRangeFurnitureNum != -1)
+		{
+			for (size_t i = 0; i < currentList.size(); i++)
+			{
+				if (currentList[i] == m_InRangeFurnitureNum)
+				{
+					newSelectedIndex = (int)i; // 同じ家具があれば、その位置をキープ
+					break;
+				}
+			}
+		}
+
+		m_InRangeFurnitureList = currentList;
+		m_SelectedFurnitureListIndex = newSelectedIndex;
+
+		// Q・Eキー入力で選択を切り替える (長押し防止のトリガー判定)
+		bool currentQ = (GetAsyncKeyState('Q') & 0x8000) != 0;
+		bool currentE = (GetAsyncKeyState('E') & 0x8000) != 0;
+
+		if (currentQ && !m_PrevQ) // Qキーが押された瞬間（左へ）
+		{
+			m_SelectedFurnitureListIndex--;
+			if (m_SelectedFurnitureListIndex < 0)
+			{
+				m_SelectedFurnitureListIndex = (int)m_InRangeFurnitureList.size() - 1; // ループする
+			}
+		}
+		if (currentE && !m_PrevE) // Eキーが押された瞬間（右へ）
+		{
+			m_SelectedFurnitureListIndex++;
+			if (m_SelectedFurnitureListIndex >= (int)m_InRangeFurnitureList.size())
+			{
+				m_SelectedFurnitureListIndex = 0; // ループする
+			}
+		}
+
+		// 次のフレームのためにキー状態を保存
+		m_PrevQ = currentQ;
+		m_PrevE = currentE;
+
+		// 選択された家具のインデックスを確定し、フラグを立てる
+		m_InRangeFurnitureNum = m_InRangeFurnitureList[m_SelectedFurnitureListIndex];
+
+		Furniture* pFurniture = GetFurniture(m_InRangeFurnitureNum);
+		if (pFurniture)
+		{
+			pFurniture->SetIsGhostTarget(true); // 対象の家具を光らせる
+			this->SetState(GS_FURNITURE_FOUND);
+		}
 	}
 }
 

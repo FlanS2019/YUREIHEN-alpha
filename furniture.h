@@ -11,7 +11,7 @@
 #include <string>
 using namespace DirectX;
 
-// �A�N�V�����̎��
+// アクションの種類
 enum FURNITURE_ACTION
 {
 	ACTION_SCARE,	//驚かせ
@@ -27,28 +27,34 @@ protected:
 	//ghostとの距離を保持する変数
 	float m_DistanceToGhost;
 
-	// ANVp
+	// アクション用パラメータ
 	FURNITURE_ACTION m_ActionType;
 	bool m_IsActing;
 	float m_ActionTimer;
 	float m_CooldownTimer; // クールタイムタイマー
-	XMFLOAT3 m_BasePos; // UAj[Vp
+	XMFLOAT3 m_BasePos; // ベースポジション
 	int m_BlockID;     // ブロックIDを保持
 
 	Billboard m_Billboard; // 近接時に表示するアイコン
 
+	// ターゲットフラグ
+	bool m_IsTargeted;    // バスターズ用
+	bool m_IsGhostTarget; // 幽霊用
+
 public:
-	// RXgN^ actionType ǉ
+	// コンストラクタ
 	Furniture(const XMFLOAT3& pos, const XMFLOAT3& scale, const XMFLOAT3& rot, const char* pass, FURNITURE_ACTION actionType = ACTION_SCARE, int blockID = 0)
 		: Sprite3D(pos, scale, rot, pass),
-		Jump(0.01f, 0.2f, pos.y), // nʂ̍YWƂ
+		Jump(0.01f, 0.2f, pos.y), // 地面の高さyで初期化
 		m_DistanceToGhost(0.0f),
 		m_ActionType(actionType),
 		m_IsActing(false),
 		m_ActionTimer(0.0f),
 		m_CooldownTimer(0.0f),
 		m_BasePos(pos),
-		m_BlockID(blockID)
+		m_BlockID(blockID),
+		m_IsTargeted(false),
+		m_IsGhostTarget(false)
 	{
 		// ビルボードの初期化 (サイズを大きくし、位置は後でUpdateで調整する)
 		m_Billboard.Initialize({ pos.x, pos.y + 1.0f, pos.z }, { 1.0f, 1.0f }, { 0,0,0 });
@@ -61,10 +67,10 @@ public:
 	void Update(void);
 	void Draw(void) override;
 
-	// ANVJn
+	// アクション開始
 	void StartAction(void);
 
-	// Qb^[
+	// ゲッター
 	float GetDistanceToGhost(void) const { return m_DistanceToGhost; }
 	FURNITURE_ACTION GetActionType(void) const { return m_ActionType; }
 	bool GetIsActing(void) const { return m_IsActing || GetIsJumping(); }
@@ -72,6 +78,14 @@ public:
 	float GetCooldownTimer(void) const { return m_CooldownTimer; }
 	int GetBlockID(void) const { return m_BlockID; }
 	void SetBasePos(const XMFLOAT3& pos) { m_BasePos = pos; }
+
+	// セッターとゲッター（ターゲット関連）
+	void SetIsTargeted(bool targeted) { m_IsTargeted = targeted; }
+	bool GetIsTargeted(void) const { return m_IsTargeted; }
+
+	// 幽霊用のセッターとゲッター
+	void SetIsGhostTarget(bool targeted) { m_IsGhostTarget = targeted; }
+	bool GetIsGhostTarget(void) const { return m_IsGhostTarget; }
 };
 
 void Furniture_Initialize(void);

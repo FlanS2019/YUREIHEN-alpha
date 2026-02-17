@@ -41,6 +41,8 @@ static int g_TutorialLastFloor = -1;
 static Sprite* g_pTutorialBG = nullptr;
 static FontRenderer* g_pTutorialFont = nullptr;
 
+static std::string g_LastPossessGuideText = "";//文字列記憶
+
 // 各階層のゲージ値を保存する配列
 static float g_FloorGaugeValues[MAP_FLOORS];
 // 前フレームの階層を記憶しておく変数
@@ -345,7 +347,12 @@ void UI_Update(void)
 
 	if (g_PossessGuideFont)
 	{
-		g_PossessGuideFont->SetText(g_PossessGuideText);
+		// 前回と違う文字列になったときだけ更新処理を行う
+		if (g_PossessGuideText != g_LastPossessGuideText)
+		{
+			g_PossessGuideFont->SetText(g_PossessGuideText);
+			g_LastPossessGuideText = g_PossessGuideText; // 記憶更新
+		}
 	}
 
 	// --- 階段ガイドの制御 ---
@@ -508,4 +515,14 @@ float UI_GetScareGauge(void)
 		return g_ScareGauge->GetValue();
 	}
 	return 0.0f;
+}
+
+void UI_DecreaseRemainingTime(float penaltySeconds)
+{
+	if (g_Clock)
+	{
+		// 現在の経過時間を取得して、ペナルティ分を加算
+		float currentTime = g_Clock->GetTime();
+		g_Clock->SetTime(currentTime + penaltySeconds);
+	}
 }

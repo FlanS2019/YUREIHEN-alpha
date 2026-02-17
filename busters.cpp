@@ -50,8 +50,11 @@ Busters::Busters(const XMFLOAT3& pos, const XMFLOAT3& scale, const XMFLOAT3& rot
 	m_IsTutorial(false)
 {
 	m_Icon = new Billboard();
-
+	m_LastPathCalcGhostPos = { -999.0f, 0.0f, -999.0f }; 
 	m_Icon->Initialize({ 0.0f, 0.0f, 0.0f }, { 0.7f, 0.7f }, { 0.0f, 0.0f, 0.0f }, true);
+	m_PathUpdateTimer = rand() % 15;
+	m_PrevPos = pos;
+	m_StuckTimer = 0;
 
 	// ヘッドライト初期化
 	m_pHeadlight = new PointLight(
@@ -83,6 +86,7 @@ void Busters::Update(void)
 {
 	JumpUpdate(*(Transform3D*)this);
 
+
 	if (m_DetectionGraceTimer > 0)
 	{
 		m_DetectionGraceTimer--;
@@ -93,53 +97,98 @@ void Busters::Update(void)
 		m_ReactionCooldown--;
 	}
 
+	Ghost* ghost = GetGhost();
+	// 幽霊が無敵でなく、かつ変身中(家具の中)でない場合のみライトを当てる
+	if (ghost && !ghost->IsInvincible() &&
+		ghost->GetState() != GS_TRANSFORM && ghost->GetState() != GS_SCARE)
+	{
+		bool hasWall = Field_CheckWallBetween(m_Position, ghost->GetPos());
+		bool inFOV = IsTargetInFOV(ghost->GetPos(), BUSTERS_SUSPICION_RANGE);
+
+		if (!hasWall && inFOV)
+		{
+			ghost->SetIsIlluminated(true);
+		}
+	}
+
 	// ヘッドライトの位置を頭部に追従させる
 	if (m_pHeadlight)
 	{
 		XMFLOAT3 headPos = m_Position;
 		headPos.y += 2.0f;	// 頭部の高さ
 
-		// バスターズの向き（Y軸回転）を考慮して前方にオフセット
 		float rotY = GetRot().y;
 		float radY = XMConvertToRadians(rotY);
-		float forwardOffsetX = sinf(radY) * 0.8f;	// 前方X方向オフセット
-		float forwardOffsetZ = cosf(radY) * 0.8f;	// 前方Z方向オフセット
 
-		headPos.x += -forwardOffsetX;
-		headPos.z += -forwardOffsetZ;
+		// 方向計算 (モデルに合わせて調整)
+		float dirX = sinf(radY);
+		float dirZ = cosf(radY);
+
+		// 位置オフセット
+		headPos.x += dirX * 0.8f;
+		headPos.z += dirZ * 0.8f;
 
 		m_pHeadlight->SetPosition(headPos.x, headPos.y, headPos.z);
+
+		m_pHeadlight->SetDirection(XMFLOAT4(dirX, -0.3f, dirZ, 0.0f));
+
+		float range = 10.0f;
+		XMFLOAT4 color = { 1.0f, 1.0f, 0.95f, 1.0f }; // 固定色（白）
+
+		switch (m_State)
+		{
+		case BUSTERS_SEARCH:    // 探索
+			range = 15.0f;
+			break;
+
+		case BUSTERS_SUSPICION: // 警戒
+			range = BUSTERS_SUSPICION_RANGE;
+			break;
+
+		case BUSTERS_CHASE:     // 追跡
+			range = BUSTERS_PATROL_RANGH;
+			break;
+
+		case BUSTERS_LURED:     // 誘引
+			range = BUSTERS_SUSPICION_RANGE;
+			break;
+
+		case BUSTERS_STUN:      // 気絶
+			range = 5.0f;
+			break;
+		}
+
+		m_pHeadlight->SetRange(range);
+		m_pHeadlight->SetDiffuse(color);
 	}
 
 	// アイコンの状態更新
 	if (m_Icon)
 	{
-		// 状態に合わせてアイコンを一発切り替え
 		switch (m_State)
 		{
-		case BUSTERS_SEARCH:    // 探索中
-			m_Icon->SetIcon(BILLBOARD_ICON::NONE); // 何も出さない
-			break;
+		case BUSTERS_SEARCH:
 
-		case BUSTERS_SUSPICION: // 警戒中（？）
-		case BUSTERS_LURED:		// 誘引中もハテナ
-			m_Icon->SetIcon(BILLBOARD_ICON::QUESTION);
-			break;
+			if (m_WaitTimer > 0)
+			{
+				// 調査中（tyousa.png）
+				m_Icon->SetIcon(BILLBOARD_ICON::CHECK);
 
-		case BUSTERS_CHASE:     // 追跡中（！）
-			m_Icon->SetIcon(BILLBOARD_ICON::ALERT);
-			break;
+			}
+			else
+			{
+				// 探索中（tansaku.png）
+				m_Icon->SetIcon(BILLBOARD_ICON::SEARCH);
+			}
+		break;		case BUSTERS_SUSPICION: m_Icon->SetIcon(BILLBOARD_ICON::QUESTION); break;
+		case BUSTERS_LURED:		m_Icon->SetIcon(BILLBOARD_ICON::QUESTION); break;
+		case BUSTERS_CHASE:     m_Icon->SetIcon(BILLBOARD_ICON::ALERT); break;
+		case BUSTERS_STUN:      m_Icon->SetIcon(BILLBOARD_ICON::STUN); break;
 
-		case BUSTERS_STUN:      // 気絶中ならSTUNアイコン
-			m_Icon->SetIcon(BILLBOARD_ICON::STUN);
-			break;
 		}
 
-		// 位置合わせ（頭上）
 		XMFLOAT3 iconPos = m_Position;
-
 		iconPos.y += 3.25f;
-
 		m_Icon->SetPos(iconPos);
 		m_Icon->Update();
 	}
@@ -147,25 +196,29 @@ void Busters::Update(void)
 	if (m_WaitTimer > 0)
 	{
 		m_WaitTimer--;
-
-		// 警戒(SUSPICION) または 追跡(CHASE) の硬直中は、プレイヤーの方へ振り向く
 		if (m_State == BUSTERS_SUSPICION || m_State == BUSTERS_CHASE)
 		{
+			if (m_State == BUSTERS_SEARCH && m_TargetFurnitureIndex != -1)
+			{
+				Furniture* target = GetFurniture(m_TargetFurnitureIndex);
+				if (target)
+				{
+					float dx = target->GetPos().x - m_Position.x;
+					float dz = target->GetPos().z - m_Position.z;
+					float deg = XMConvertToDegrees(atan2f(dx, dz));
+					SetRotY(deg + 180.0f);
+				}
+			}
+
 			Ghost* ghost = GetGhost();
 			if (ghost)
 			{
 				float dx = ghost->GetPos().x - m_Position.x;
 				float dz = ghost->GetPos().z - m_Position.z;
-
-				// 向きの計算 (MoveToと同じ計算式)
-				float angle = atan2f(dx, dz);
-				float deg = XMConvertToDegrees(angle);
-
-
+				float deg = XMConvertToDegrees(atan2f(dx, dz));
 				SetRotY(deg + 180.0f);
 			}
 		}
-
 		return;
 	}
 
@@ -182,22 +235,28 @@ void Busters::Update(void)
 			Furniture* targetFurniture = GetFurniture(m_TargetFurnitureIndex);
 			if (targetFurniture)
 			{
-				m_PathList = Field_FindPath(m_Position, targetFurniture->GetPos());
+				XMFLOAT3 targetPos = targetFurniture->GetPos();
 
-				// 経路が見つかった場合は反転（ゴール->スタートで返ってくるため）
-				if (!m_PathList.empty())
+				// 現在地から家具への方向ベクトル
+				float dx = targetPos.x - m_Position.x;
+				float dz = targetPos.z - m_Position.z;
+				float dist = sqrtf(dx * dx + dz * dz);
+
+				if (dist > 0.0f)
 				{
-					std::reverse(m_PathList.begin(), m_PathList.end());
-					m_PathList.erase(m_PathList.begin()); // 現在地のタイルをスキップ
+					// 0.8m手前を目的地にする（家具の半径＋バスターズの半径分）
+					float offset = 0.6f;
+					targetPos.x -= (dx / dist) * offset;
+					targetPos.z -= (dz / dist) * offset;
 				}
+
+				m_PathList = Field_FindPath(m_Position, targetPos);
 
 				if (m_PathList.empty() && targetFurniture)
 				{
-					// 同一タイル内の場合はそのまま目的地とする
 					m_PathList.push_back(targetFurniture->GetPos());
 				}
 
-				// それでも空なら失敗
 				if (m_PathList.empty())
 				{
 					m_TargetFurnitureIndex = -1;
@@ -221,105 +280,123 @@ void Busters::Update(void)
 				m_LureStayTimer--;
 				return;
 			}
-
 			m_State = BUSTERS_SEARCH;
 			m_TargetFurnitureIndex = -1;
 			m_WaitTimer = 0;
 			m_PathList.clear();
 			break;
 		}
-
 		nextStepPos = m_LureTargetPos;
 		break;
 
 	case BUSTERS_SUSPICION: // 警戒
+	case BUSTERS_CHASE:     // 追跡
 		if (GetGhost())
 		{
+			float dx = GetGhost()->GetPos().x - m_Position.x;
+			float dz = GetGhost()->GetPos().z - m_Position.z;
+			float dist = sqrtf(dx * dx + dz * dz);
 			bool hasWall = Field_CheckWallBetween(m_Position, GetGhost()->GetPos());
 
-			if (!hasWall)
+			// 壁がなく、かつ距離が近い場合
+			if (!hasWall && dist < 0.5f)
 			{
-				// 壁がない -> 直線移動
 				m_PathList.clear();
 				nextStepPos = GetGhost()->GetPos();
 			}
 			else
 			{
-				// 壁がある -> 経路探索を使用
+
+				m_PathUpdateTimer++;
+
+				// 現在のゴーストの位置
+				XMFLOAT3 ghostPos = GetGhost()->GetPos();
+
+				// ターゲット（ゴースト）が前回計算時からどれくらい動いたか？
+				float dxG = ghostPos.x - m_LastPathCalcGhostPos.x;
+				float dzG = ghostPos.z - m_LastPathCalcGhostPos.z;
+				float distGhostMovedSq = dxG * dxG + dzG * dzG;
+
+				// 自分とゴーストの距離に応じて、更新頻度（インターバル）を変える
+				int updateInterval = 15;
+				if (dist > 20.0f) updateInterval = 60;      // 20m以上離れていれば1秒に1回
+				else if (dist > 10.0f) updateInterval = 30; // 10m以上なら0.5秒に1回
+
+				// 計算するかどうかの判定
+				// 「経路がない」または「インターバル経過 かつ 敵が一定以上動いた」場合のみ
+				bool shouldUpdate = false;
 				if (m_PathList.empty())
 				{
-					// 経路がない場合のみ再検索
-					m_PathList = Field_FindPath(m_Position, GetGhost()->GetPos());
+					shouldUpdate = true;
+				}
+				else if (m_PathUpdateTimer > updateInterval && distGhostMovedSq > 0.5f * 0.5f)
+				{
+					shouldUpdate = true;
+				}
+
+				if (shouldUpdate)
+				{
+					m_PathUpdateTimer = 0; // タイマーリセット
+					m_LastPathCalcGhostPos = ghostPos; // 計算位置を記憶
+
+					m_PathList = Field_FindPath(m_Position, ghostPos);
+
 					if (!m_PathList.empty()) {
 						std::reverse(m_PathList.begin(), m_PathList.end());
+
 						if (m_PathList.size() > 0) m_PathList.erase(m_PathList.begin());
 					}
 				}
-
 			}
 		}
-		m_MoveSpeed = BUSTERS_MOVE_SPEED_SUSPICION;
-		break;
 
-	case BUSTERS_CHASE: // 追跡
-		if (GetGhost())
-		{
-
-			bool hasWall = Field_CheckWallBetween(m_Position, GetGhost()->GetPos());
-
-			if (!hasWall)
-			{
-				// 壁がない -> 直線追跡
-				m_PathList.clear();
-				nextStepPos = GetGhost()->GetPos();
-			}
-			else
-			{
-				// 壁がある -> 経路探索
-
-				if (m_PathList.empty())
-				{
-					m_PathList = Field_FindPath(m_Position, GetGhost()->GetPos());
-					if (!m_PathList.empty()) {
-						std::reverse(m_PathList.begin(), m_PathList.end());
-						if (m_PathList.size() > 0) m_PathList.erase(m_PathList.begin());
-					}
-				}
-
-			}
-		}
-		m_MoveSpeed = BUSTERS_MOVE_SPEED_CHASE;
+		m_MoveSpeed = (m_State == BUSTERS_CHASE) ? BUSTERS_MOVE_SPEED_CHASE : BUSTERS_MOVE_SPEED_SUSPICION;
 		break;
 	}
 
-	// 経路リストがある場合は、その先頭を次の目的地にする
-	// (壁ごしの直線移動よりもこちらが優先される)
+	// 経路移動
 	if (!m_PathList.empty())
 	{
 		nextStepPos = m_PathList[0];
-
 		float dx = nextStepPos.x - m_Position.x;
 		float dz = nextStepPos.z - m_Position.z;
 		float distSq = dx * dx + dz * dz;
 
-		// ノードに到達したらリストから削除
-		if (distSq < 0.2f * 0.2f)
+		float arriveThreshold = 0.5f;
+		if (m_PathList.size() == 1) arriveThreshold = 1.0f;
+
+		bool forceArrive = false;
+		if (m_State == BUSTERS_SEARCH && m_TargetFurnitureIndex != -1)
+		{
+			Furniture* target = GetFurniture(m_TargetFurnitureIndex);
+			if (target)
+			{
+				float fdx = target->GetPos().x - m_Position.x;
+				float fdz = target->GetPos().z - m_Position.z;
+
+				if (fdx * fdx + fdz * fdz < 1.5f * 1.5f)
+				{
+					forceArrive = true;
+				}
+			}
+		}
+
+		if (distSq < arriveThreshold * arriveThreshold || forceArrive)
 		{
 			m_PathList.erase(m_PathList.begin());
-			// 目的地（リスト末尾）に到達した場合の処理
-			if (m_PathList.empty())
+
+			if (m_PathList.empty() || forceArrive)
 			{
 				if (m_State == BUSTERS_SEARCH || m_State == BUSTERS_LURED)
 				{
 					m_State = BUSTERS_SEARCH;
-					m_TargetFurnitureIndex = -1;
-					m_WaitTimer = 120;
+					m_TargetFurnitureIndex = -1; // ターゲット解除
+					m_WaitTimer = 300;           // 調査（待機）開始
+					m_PathList.clear();          // 残りのパスも消す
 				}
 			}
 		}
 	}
-
-	MoveTo(nextStepPos);
 
 	if (m_State == BUSTERS_LURED && m_HasLureTarget)
 	{
@@ -332,6 +409,159 @@ void Busters::Update(void)
 			m_LureStayTimer = BUSTERS_LURE_STAY_FRAMES;
 		}
 	}
+
+	MoveTo(nextStepPos);
+
+	if (m_State == BUSTERS_SEARCH && m_TargetFurnitureIndex != -1)
+	{
+		Furniture* target = GetFurniture(m_TargetFurnitureIndex);
+		if (target)
+		{
+			// フラグを立てる
+			target->SetIsTargeted(true);
+		}
+	}
+
+	if (m_State == BUSTERS_SEARCH && !m_PathList.empty())
+	{
+		float dx = m_Position.x - m_PrevPos.x;
+		float dz = m_Position.z - m_PrevPos.z;
+		float movedDistSq = dx * dx + dz * dz;
+
+		// ほとんど動いていない (0.01cm以下)
+		if (movedDistSq < 0.0001f)
+		{
+			m_StuckTimer++;
+			// 60フレーム（約1秒）以上動けなかったらスタックとみなす
+			if (m_StuckTimer > 120)
+			{
+				m_PathList.clear(); // 経路破棄して再計算へ
+				m_StuckTimer = 0;
+				m_TargetFurnitureIndex = -1; // ターゲットを変える（諦める）
+				m_WaitTimer = 120;
+			}
+		}
+		else
+		{
+			m_StuckTimer = 0;
+		}
+	}
+	m_PrevPos = m_Position;
+
+	// 捕獲判定
+	if (m_State == BUSTERS_CHASE && GetGhost())
+	{
+		XMFLOAT3 gPos = GetGhost()->GetPos();
+		float dx = gPos.x - m_Position.x;
+		float dy = gPos.y - m_Position.y;
+		float dz = gPos.z - m_Position.z;
+		float dist = sqrtf(dx * dx + dy * dy + dz * dz);
+
+		GHOST_STATE ghostState = GetGhost()->GetState();
+
+		if (dist < 1.0f && !GetGhost()->IsInvincible() &&
+			ghostState != GS_CAUGHT &&
+			ghostState != GS_TRANSFORM &&
+			ghostState != GS_SCARE)
+		{
+			GetGhost()->SetState(GS_CAUGHT);
+			m_PathList.clear();
+		}
+	}
+}
+
+int GetBlockIDFromWorldPos(float x, float z)
+{
+	// ワールド座標 -> グリッド座標(gx, gz) への変換
+	// GetRandomBusterPos の逆算: gx = wx + MAP_WIDTH / 2.0f
+	// 四捨五入するために +0.5f して int にキャスト
+	int gx = (int)(x + MAP_WIDTH / 2.0f + 0.5f);
+	int gz = (int)(MAP_LENGTH / 2.0f - z + 0.5f);
+
+	// 配列外参照防止
+	if (gx < 0 || gx >= MAP_WIDTH || gz < 0 || gz >= MAP_LENGTH) return 1; // 範囲外は壁扱い
+
+	int floor = Field_GetCurrentFloor();
+
+	// Y=1 (壁レイヤー) の情報を参照
+	switch (floor)
+	{
+	case 0: return Floor1[1][gz][gx];
+	case 1: return Floor2[1][gz][gx];
+	case 2: return Floor3[1][gz][gx];
+	default: return 1;
+	}
+}
+
+// 壁かどうか判定 (0以外は壁)
+bool IsWallBlock(float x, float z)
+{
+	return GetBlockIDFromWorldPos(x, z) != 0;
+}
+
+bool IsObstacle(float x, float z, float radius, int ignoreFurnitureIndex = -1)
+{
+	// 1. 壁の判定 (中心と4隅をチェックしてめり込みを防ぐ)
+	float checkR = radius * 0.7f;
+	if (IsWallBlock(x, z) ||
+		IsWallBlock(x + checkR, z + checkR) ||
+		IsWallBlock(x + checkR, z - checkR) ||
+		IsWallBlock(x - checkR, z + checkR) ||
+		IsWallBlock(x - checkR, z - checkR))
+	{
+		return true;
+	}
+
+	// 2. 家具の判定
+	for (int i = 0; i < FURNITURE_NUM; i++)
+	{
+		if (i == ignoreFurnitureIndex) continue; // ターゲット家具は通り抜けてOK
+
+		Furniture* pFurn = GetFurniture(i);
+		if (!pFurn) continue;
+
+		XMFLOAT3 fPos = pFurn->GetPos();
+		float dx = fPos.x - x;
+		float dz = fPos.z - z;
+		float distSq = dx * dx + dz * dz;
+
+		// 家具の半径を0.6f程度と仮定。キャラの半径と合わせて判定
+		float sumR = 0.6f + radius;
+
+		if (distSq < sumR * sumR)
+		{
+			return true; // 家具にぶつかる！
+		}
+	}
+	return false;
+}
+
+
+bool CanPassLine(const XMFLOAT3& start, const XMFLOAT3& end, float radius, int ignoreFurnitureIndex = -1)
+{
+	float dx = end.x - start.x;
+	float dz = end.z - start.z;
+	float len = sqrtf(dx * dx + dz * dz);
+
+	if (len <= 0.001f) return true;
+
+	float ndx = dx / len;
+	float ndz = dz / len;
+	int steps = (int)(len / 0.5f) + 1;
+
+	for (int i = 0; i <= steps; i++)
+	{
+		float t = (float)i / steps;
+		float px = start.x + dx * t;
+		float pz = start.z + dz * t;
+
+		// IsWallBlock ではなく IsObstacle を使う
+		if (IsObstacle(px, pz, radius, ignoreFurnitureIndex))
+		{
+			return false;
+		}
+	}
+	return true;
 }
 
 void Busters::CheckState(void)
@@ -348,9 +578,24 @@ void Busters::CheckState(void)
 
 	Ghost* ghost = GetGhost();
 	if (!ghost) return;
+
+	if (ghost->IsInvincible())
+	{
+		if (m_State != BUSTERS_SEARCH && m_State != BUSTERS_LURED)
+		{
+			m_State = BUSTERS_SEARCH;
+			this->ResetColor();
+			ghost->SetIsDetectedByBuster(false);
+			m_TargetFurnitureIndex = -1;
+			m_PathList.clear();
+			m_WaitTimer = 60;
+		}
+		return;
+	}
+
 	if (m_DetectionGraceTimer > 0) return;
 
-	// 変身中（憑依中）は見つからない処理
+	// 変身中は見つからない処理
 	if (ghost->GetState() == GS_TRANSFORM || ghost->GetState() == GS_SCARE)
 	{
 		// 見失う
@@ -362,6 +607,8 @@ void Busters::CheckState(void)
 			m_TargetFurnitureIndex = -1;
 			m_PathList.clear();
 			m_WaitTimer = 60;
+
+			ghost->SetInvincible(300);
 		}
 		return;
 	}
@@ -458,48 +705,87 @@ void Busters::CheckState(void)
 		}
 	}
 }
+
 void Busters::MoveTo(XMFLOAT3 targetPos)
 {
 	if (GetIsJumping()) return;
 
-	float dx = targetPos.x - m_Position.x;
-	float dz = targetPos.z - m_Position.z;
+	XMFLOAT3 finalTarget = targetPos;
 
-	// 到着判定を移動速度に合わせて調整
+	// 探索中なら、ターゲットしている家具の判定を無効化する
+	int ignoreFurnIdx = -1;
+	if (m_State == BUSTERS_SEARCH)
+	{
+		ignoreFurnIdx = m_TargetFurnitureIndex;
+	}
+
+	// ストリング・プリング（経路のショートカット）
+	if (!m_PathList.empty())
+	{
+		int lookAheadMax = 3;
+		int checkCount = 0;
+
+		while (!m_PathList.empty() && checkCount < lookAheadMax)
+		{
+			if (m_PathList.size() == 1)
+			{
+				finalTarget = m_PathList[0];
+				break;
+			}
+
+			if (m_PathList.size() >= 2)
+			{
+				XMFLOAT3 nextNode = m_PathList[1];
+				// 半径0.3fで家具も壁も考慮してチェック
+				if (CanPassLine(m_Position, nextNode, 0.3f, ignoreFurnIdx))
+				{
+					m_PathList.erase(m_PathList.begin());
+					continue;
+				}
+			}
+
+			finalTarget = m_PathList[0];
+			break;
+		}
+	}
+
+	// 移動ベクトルの計算
+	float dx = finalTarget.x - m_Position.x;
+	float dz = finalTarget.z - m_Position.z;
+
 	if (fabsf(dx) < m_MoveSpeed && fabsf(dz) < m_MoveSpeed) return;
 
 	float len = sqrtf(dx * dx + dz * dz);
-	if (len > 0)
-	{
-		dx /= len;
-		dz /= len;
-	}
+	if (len > 0) { dx /= len; dz /= len; }
 
+	// 向き変更
 	float angle = atan2f(dx, dz);
 	float deg = XMConvertToDegrees(angle);
 	SetRotY(deg + 180.0f);
 
-	auto checkWallCollision = [&](float nx, float nz) -> bool {
-		float r = 0.4f; // 当たり判定半径
-		return (Field_IsWall(nx + r, m_Position.y, nz + r) ||
-			Field_IsWall(nx + r, m_Position.y, nz - r) ||
-			Field_IsWall(nx - r, m_Position.y, nz + r) ||
-			Field_IsWall(nx - r, m_Position.y, nz - r));
-		};
+	float nextPosX = m_Position.x + dx * m_MoveSpeed;
+	float nextPosZ = m_Position.z + dz * m_MoveSpeed;
+	float bodyRadius = 0.25f; // バスターズの当たり判定サイズ
 
-	// --- X軸移動 ---
-	float nextX = m_Position.x + dx * m_MoveSpeed;
-	if (!checkWallCollision(nextX, m_Position.z))
+	// X軸とZ軸で独立して「進めるか」を判定
+	bool hitX = IsObstacle(nextPosX, m_Position.z, bodyRadius, ignoreFurnIdx);
+	bool hitZ = IsObstacle(m_Position.x, nextPosZ, bodyRadius, ignoreFurnIdx);
+
+	// 斜めに入った角でのめり込み防止
+	if (!hitX && !hitZ)
 	{
-		m_Position.x = nextX;
+		// 両方単体なら行けるが、斜めに合わさると角にぶつかる場合
+		if (IsObstacle(nextPosX, nextPosZ, bodyRadius, ignoreFurnIdx))
+		{
+			// 移動成分が大きい方（より進みたい方向）を優先して滑らせる
+			if (fabsf(dx) > fabsf(dz)) hitZ = true;
+			else hitX = true;
+		}
 	}
 
-	// --- Z軸移動 ---
-	float nextZ = m_Position.z + dz * m_MoveSpeed;
-	if (!checkWallCollision(m_Position.x, nextZ)) // 同じ関数を再利用！
-	{
-		m_Position.z = nextZ;
-	}
+	// 障害物がなければ座標を更新（hitしていればその軸は移動しない＝滑る）
+	if (!hitX) m_Position.x = nextPosX;
+	if (!hitZ) m_Position.z = nextPosZ;
 }
 
 void Busters::OnScared(void)
@@ -546,8 +832,7 @@ void Busters::SetIsGhostDiscover(bool discover)
     if (discover)
     {
         m_IsGhostDiscover = true;
-        this->SetColor(0.0f, 1.0f, 0.0f, 1.0f);
-    }
+	}
     else if (m_IsGhostDiscover)
     {
         m_IsGhostDiscover = false;
@@ -675,7 +960,7 @@ void DrawDebugFan(const XMFLOAT3& center, float rotY, float fovAngle, float rang
 		};
 
 		// 中心から外周への線
-		if (i == 0 || i == segments) // 両端のみ描画（全部描くとくどいため）
+		if (i == 0 || i == segments) // 両端のみ描画
 		{
 			vertices.push_back({ startPos, color });
 			vertices.push_back({ endPos, color });
@@ -707,8 +992,7 @@ void DrawDebugFan(const XMFLOAT3& center, float rotY, float fovAngle, float rang
 	ID3D11Buffer* pVertexBuffer = nullptr;
 	if (SUCCEEDED(pDevice->CreateBuffer(&bd, &initData, &pVertexBuffer)))
 	{
-		// シェーダー設定（既存の3D描画用設定を利用すると仮定）
-		// 本来は専用シェーダーを使うべきですが、ここでは色情報を含む頂点として描画
+		// シェーダー設定
 		UINT stride = sizeof(DebugVertex);
 		UINT offset = 0;
 		pContext->IASetVertexBuffers(0, 1, &pVertexBuffer, &stride, &offset);
@@ -963,6 +1247,7 @@ void Busters::Draw(void)
 	}
 
 }
+
 
 // =================================================================
 // バスターズのライト設定

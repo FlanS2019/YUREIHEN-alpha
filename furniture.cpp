@@ -287,16 +287,6 @@ void Furniture_Initialize(void)
 			}
 		}
 	}
-
-	// =========================================================
-	// 手動配置（基本使わない）
-	// =========================================================
-
-	//// 1: ロッキングチェア
-	//CreateFurniture(
-	//	{ -5.0f, 0.0f, -5.0f }, { 1.0f, 1.0f, 1.0f }, { 0.0f, 45.0f, 0.0f },
-	//	"asset\\model\\rockingchair.fbx", ACTION_SCARE
-	//);
 }
 
 // =========================================================
@@ -326,12 +316,12 @@ void Furniture::Update(void)
 	{
 		XMFLOAT3 ghostPos = pGhost->GetPos();
 		XMFLOAT3 furniturePos = GetPos();
-		
+
 		// Y軸を除いた水平面での距離計算
 		float dx = furniturePos.x - ghostPos.x;
 		float dz = furniturePos.z - ghostPos.z;
 		m_DistanceToGhost = sqrtf(dx * dx + dz * dz);
-		
+
 		// Y軸方向の距離制限チェック
 		float dy = fabsf(furniturePos.y - ghostPos.y);
 		if (dy > 50.0f)
@@ -431,11 +421,34 @@ void Furniture::Update(void)
 
 void Furniture::Draw(void)
 {
+
+
+	if (m_CooldownTimer > 0.0f)
+	{
+		// クールタイム中は青
+		SetColor(0.0f, 0.0f, 1.0f, 1.0f);
+	}
+	else if (m_IsTargeted)
+	{
+		// バスターズが狙っているなら赤
+		SetColor(1.0f, 0.0f, 0.0f, 1.0f);
+	}
+	else if (m_IsGhostTarget)
+	{
+		// 幽霊が変身できるなら緑
+		SetColor(0.0f, 1.0f, 0.0f, 1.0f);
+	}
+	else
+	{
+		// それ以外は元の色
+		ResetColor();
+	}
+
 	Sprite3D::Draw();
-	
+
 	// シェーダーの状態をリセット（Billboard 描画の前に必要）
 	Shader_RefreshState();
-	
+
 	m_Billboard.Draw();
 }
 
@@ -475,9 +488,17 @@ void CreateFurniture(XMFLOAT3 pos, XMFLOAT3 scale, XMFLOAT3 rot, const char* mod
 // グローバル関数の実装
 // =========================================================
 
-// Game_Update から呼ばれ全ての家具の更新処理
 void Furniture_Update(void)
 {
+	for (int i = 0; i < FURNITURE_NUM; i++)
+	{
+		if (g_Furniture[i])
+		{
+			g_Furniture[i]->SetIsTargeted(false);
+			g_Furniture[i]->SetIsGhostTarget(false);
+		}
+	}
+
 	for (int i = 0; i < FURNITURE_NUM; i++)
 	{
 		if (g_Furniture[i]) g_Furniture[i]->Update();
@@ -516,7 +537,7 @@ void Furniture_Draw(void)
 			g_Furniture[i]->Draw();
 		}
 	}
-	
+
 	// 全家具の描画完了後、シェーダーの状態をリセット
 	Shader_RefreshState();
 }

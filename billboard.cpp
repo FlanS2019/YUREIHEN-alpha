@@ -82,6 +82,16 @@ void Billboard::SetIcon(BILLBOARD_ICON type)
 		SetTexture("asset\\texture\\icon_ghost.png");
 		break;
 
+	case BILLBOARD_ICON::SEARCH:
+	// 「探索」画像のパス
+		SetTexture("asset\\texture\\tansaku.png");
+		break;
+
+	case BILLBOARD_ICON::CHECK:
+	// 「チェック」画像のパス
+		SetTexture("asset\\texture\\tyousa.png");
+		break;
+
 	default:
 		m_Texture = nullptr;
 		break;

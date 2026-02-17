@@ -278,3 +278,5 @@ void UI_Update(void);
 
 // UI描画
 void UI_Draw(void);
+
+void UI_DecreaseRemainingTime(float penaltySeconds);

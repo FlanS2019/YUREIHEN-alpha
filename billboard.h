@@ -13,6 +13,8 @@ enum class BILLBOARD_ICON
 	QUESTION,	// ？ (警戒・不審)
 	STUN,		// 星 (気絶)
 	GHOST,		// お化けマーク (プレイヤー位置など)
+	SEARCH,
+	CHECK
 	
 };
 

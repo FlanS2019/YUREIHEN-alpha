@@ -63,8 +63,12 @@ static const float PAUSEMENU_GAP = 70.0f;
 
 void UI_PauseMenu_Initialize(ID3D11Device* pDevice, ID3D11DeviceContext* pContext)
 {
-	if (!pDevice || !pContext) return;
+	if (g_pResumeButtonFont != nullptr) {
+		return; // 既にフォントがあるなら何もしない
+	}
 
+	if (!pDevice || !pContext) return;
+	
 	// ポーズ用初期化
 	g_IsPause = false;
 	g_PauseCursor = 0;
