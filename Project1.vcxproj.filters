@@ -103,5 +103,6 @@
     <FxCompile Include="shader_vertex_2d.hlsl" />
     <FxCompile Include="shader_field_instance.hlsl" />
     <FxCompile Include="shader_pixel_2d_hole.hlsl" />
+    <FxCompile Include="shader_vertex_skinning.hlsl" />
   </ItemGroup>
 </Project>

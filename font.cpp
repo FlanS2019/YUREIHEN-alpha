@@ -93,7 +93,7 @@ FontRenderer::FontRenderer(XMFLOAT2 pos, float fontSize, float rotation,
 		return;
 	}
 
-	OutputDebugStringA("FontRenderer: Initialized successfully\n");
+	//OutputDebugStringA("FontRenderer: Initialized successfully\n");
 }
 
 FontRenderer::~FontRenderer() {

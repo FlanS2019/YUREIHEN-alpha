@@ -24,6 +24,110 @@ static XMMATRIX QuatToMatrix(const XMFLOAT4& q)
 	return XMMatrixRotationQuaternion(quat);
 }
 
+// $AssimpFbx$ ノードのベース名を抽出する（例: "chara_bone:Root_M_$AssimpFbx$_Rotation" → "chara_bone:Root_M"）
+static std::string GetAssimpFbxBaseName(const std::string& nodeName)
+{
+	static const char* suffixes[] = {
+		"_$AssimpFbx$_Translation",
+		"_$AssimpFbx$_Rotation",
+		"_$AssimpFbx$_Scaling",
+		"_$AssimpFbx$_PreRotation",
+		"_$AssimpFbx$_PostRotation",
+		"_$AssimpFbx$_RotationPivot",
+		"_$AssimpFbx$_RotationPivotInverse",
+		"_$AssimpFbx$_ScalingPivot",
+		"_$AssimpFbx$_ScalingPivotInverse",
+		"_$AssimpFbx$_RotationOffset",
+		"_$AssimpFbx$_ScalingOffset",
+		"_$AssimpFbx$_GeometricTranslation",
+		"_$AssimpFbx$_GeometricRotation",
+		"_$AssimpFbx$_GeometricScaling",
+	};
+	for (const char* suffix : suffixes)
+	{
+		size_t suffixLen = strlen(suffix);
+		if (nodeName.size() > suffixLen &&
+			nodeName.compare(nodeName.size() - suffixLen, suffixLen, suffix) == 0)
+		{
+			return nodeName.substr(0, nodeName.size() - suffixLen);
+		}
+	}
+	return "";
+}
+
+// ノード階層を再帰的に走査してボーン最終行列を計算する内部関数
+static void CalcBoneMatricesRecursive(
+	const aiNode* node,
+	XMMATRIX parentTransform,
+	const AnimationClip& clip,
+	double time,
+	const std::unordered_map<std::string, int>& nodeToAnimIndex,
+	MODEL* model,
+	BoneMatrices& outMatrices)
+{
+	std::string nodeName = node->mName.data;
+
+	// このノードのローカル変換（デフォルトはノードのバインドポーズ変換）
+	XMMATRIX nodeTransform = AiMatrixToXMMatrix(node->mTransformation);
+
+	// $AssimpFbx$ ノードの処理:
+	// Assimpは FBX のノード変換を Translation/Rotation/Scaling 等の複数ノードに分解する。
+	// アニメーションチャンネルは元のノード名（分解前）に対してS*R*Tを統合した値を持つため、
+	// $AssimpFbx$ ノードの変換をそのまま残すと二重変換になる。
+	// 対応するアニメーションチャンネルが存在する場合、$AssimpFbx$ ノードの変換を単位行列に置き換える。
+	std::string baseName = GetAssimpFbxBaseName(nodeName);
+	if (!baseName.empty())
+	{
+		// このノードは $AssimpFbx$ 分解ノード
+		// 対応する元ノードにアニメーションチャンネルが存在する場合は変換を無視
+		if (nodeToAnimIndex.find(baseName) != nodeToAnimIndex.end())
+		{
+			nodeTransform = XMMatrixIdentity();
+		}
+	}
+
+	// アニメーションチャンネルがあれば補間値で上書き
+	auto it = nodeToAnimIndex.find(nodeName);
+	if (it != nodeToAnimIndex.end())
+	{
+		int trackIdx = it->second;
+		if (trackIdx >= 0 && trackIdx < (int)clip.tracks.size())
+		{
+			const BoneKeyframes& kf = clip.tracks[trackIdx];
+
+			XMFLOAT3 trans = AnimSprite3D::InterpolateVec3(kf.trans, time);
+			XMFLOAT4 rot = AnimSprite3D::InterpolateQuat(kf.rot, time);
+			XMFLOAT3 scale = AnimSprite3D::InterpolateVec3(kf.scale, time);
+			if (kf.scale.empty()) scale = XMFLOAT3(1.0f, 1.0f, 1.0f);
+
+			XMMATRIX S = XMMatrixScaling(scale.x, scale.y, scale.z);
+			XMMATRIX R = QuatToMatrix(rot);
+			XMMATRIX T = XMMatrixTranslation(trans.x, trans.y, trans.z);
+
+			nodeTransform = S * R * T;
+		}
+	}
+
+	XMMATRIX globalTransform = nodeTransform * parentTransform;
+
+	// このノードがボーンならば最終行列を計算
+	auto boneIt = model->BoneNameToIndex.find(nodeName);
+	if (boneIt != model->BoneNameToIndex.end())
+	{
+		unsigned int boneIdx = boneIt->second;
+		if (boneIdx < BoneMatrices::MAX_BONES)
+		{
+			outMatrices.matrices[boneIdx] = model->BoneOffsetMatrices[boneIdx] * globalTransform * model->GlobalInverseTransform;
+		}
+	}
+
+	// 子ノードを再帰
+	for (unsigned int i = 0; i < node->mNumChildren; i++)
+	{
+		CalcBoneMatricesRecursive(node->mChildren[i], globalTransform, clip, time, nodeToAnimIndex, model, outMatrices);
+	}
+}
+
 void AnimSprite3D::InitializeBones()
 {
 	if (!m_Model || !m_Model->AiScene)
@@ -32,49 +136,15 @@ void AnimSprite3D::InitializeBones()
 		return;
 	}
 
-	m_BoneCount = 0;
-	m_AiBones.clear();
-	m_BoneOffsetMatrices.clear();
+	m_BoneCount = m_Model->TotalBoneCount;
 
-	hal::dout << "InitializeBones: mNumMeshes=" << m_Model->AiScene->mNumMeshes << std::endl;
+	hal::dout << "AnimSprite3D: Initialized " << m_BoneCount << " bones (from model)" << std::endl;
 
-	for (unsigned int m = 0; m < m_Model->AiScene->mNumMeshes; m++)
-	{
-		aiMesh* mesh = m_Model->AiScene->mMeshes[m];
-		hal::dout << "  Mesh " << m << ": mNumBones=" << mesh->mNumBones << std::endl;
-		
-		for (unsigned int b = 0; b < mesh->mNumBones; b++)
-		{
-			aiBone* bone = mesh->mBones[b];
-			
-			bool found = false;
-			for (const auto& existingBone : m_AiBones)
-			{
-				if (strcmp(existingBone->mName.data, bone->mName.data) == 0)
-				{
-					found = true;
-					break;
-				}
-			}
-
-			if (!found && m_BoneCount < BoneMatrices::MAX_BONES)
-			{
-				m_AiBones.push_back(bone);
-				m_BoneCount++;
-				hal::dout << "    Added bone: " << bone->mName.data << std::endl;
-			}
-		}
-	}
-
-	hal::dout << "AnimSprite3D: Initialized " << m_BoneCount << " bones" << std::endl;
-
-	// 実際のトラック数に制限してパフォーマンス向上
-		int maxTrack = (int)m_BlendState.targetClip.tracks.size();
-		if (maxTrack > BoneMatrices::MAX_BONES) maxTrack = BoneMatrices::MAX_BONES;
-		for (int i = 0; i < maxTrack; i++)
+	for (unsigned int i = 0; i < BoneMatrices::MAX_BONES; i++)
 	{
 		m_BoneMatrices.matrices[i] = XMMatrixIdentity();
 	}
+	m_BoneMatrices.boneCount = m_BoneCount;
 }
 
 XMFLOAT3 AnimSprite3D::InterpolateVec3(const std::vector<KeyVec3>& keys, double time)
@@ -239,86 +309,61 @@ void AnimSprite3D::UpdateAnimation(float dt)
 
 void AnimSprite3D::UpdateBoneMatrices()
 {
+	if (!m_Model || !m_Model->AiScene || !m_Model->HasSkinning)
+		return;
+
 	// ブレンド中の場合は特別処理
 	if (m_BlendState.isBlending)
 	{
 		double blendT = (m_BlendState.blendDuration > 0.0) ? (m_BlendState.blendElapsed / m_BlendState.blendDuration) : 1.0;
 		if (blendT > 1.0) blendT = 1.0;
 		
-		// 前のアニメーション状態から骨行列を計算
 		UpdateBoneMatricesForState(m_BlendState.previousState, m_BoneMatrices);
 		
-		// 新しいアニメーション状態から骨行列を計算
 		BoneMatrices targetMatrices;
 		AnimationState tempState;
 		tempState.clip = &m_BlendState.targetClip;
-		tempState.time = 0.0;  // 新しいアニメーションは開始位置から
+		tempState.time = 0.0;
 		UpdateBoneMatricesForState(tempState, targetMatrices);
 		
-		// 2つの行列をブレンド（各成分を線形補間）
 		float blendF = (float)blendT;
-		// 実際のボーン数分だけブレンドを行う（最適化）
-		// 実際のトラック数に制限してパフォーマンス向上
-		int maxTrack = (int)m_BlendState.targetClip.tracks.size();
-		if (maxTrack > BoneMatrices::MAX_BONES) maxTrack = BoneMatrices::MAX_BONES;
-		for (int i = 0; i < maxTrack; i++)
+		for (unsigned int i = 0; i < m_Model->TotalBoneCount && i < BoneMatrices::MAX_BONES; i++)
 		{
-			// 両方がアイデンティティならスキップ（さらに最適化の余地ありだが、まずは安全に）
-			XMMATRIX from = m_BoneMatrices.matrices[i];
-			XMMATRIX to = targetMatrices.matrices[i];
-			
-			// 行列を浮動小数点配列に変換
 			XMFLOAT4X4 fromM, toM;
-			XMStoreFloat4x4(&fromM, from);
-			XMStoreFloat4x4(&toM, to);
+			XMStoreFloat4x4(&fromM, m_BoneMatrices.matrices[i]);
+			XMStoreFloat4x4(&toM, targetMatrices.matrices[i]);
 			
-			// 各成分を線形補間
 			XMFLOAT4X4 blendM;
 			float* pf = (float*)&fromM;
 			float* pt = (float*)&toM;
 			float* pb = (float*)&blendM;
 			for (int j = 0; j < 16; j++)
-			{
 				pb[j] = pf[j] * (1.0f - blendF) + pt[j] * blendF;
-			}
 			
-			// ブレンド結果を行列に戻す
 			m_BoneMatrices.matrices[i] = XMLoadFloat4x4(&blendM);
 		}
 		return;
 	}
 
 	if (!m_AnimState.clip || m_AnimState.clip->tracks.empty())
-	{
 		return;
-	}
 
 	const AnimationClip& clip = *m_AnimState.clip;
 	double time = m_AnimState.time;
-
-	// 時間の範囲チェック
 	if (time < 0.0) time = 0.0;
 	if (time > clip.duration) time = clip.duration;
 
-	// トラックのサイズ分だけ行列を更新
-	int trackSize = (int)clip.tracks.size();
-for (int i = 0; i < trackSize && i < (int)BoneMatrices::MAX_BONES; i++)
-	{
-		const BoneKeyframes& keyframes = clip.tracks[i];
+	// ノード階層走査を開始（ルートノードから）
+	CalcBoneMatricesRecursive(
+		m_Model->AiScene->mRootNode,
+		XMMatrixIdentity(),
+		clip, time,
+		m_Model->NodeToAnimIndex,
+		m_Model,
+		m_BoneMatrices
+	);
 
-		XMFLOAT3 trans = InterpolateVec3(keyframes.trans, time);
-		XMFLOAT4 rot = InterpolateQuat(keyframes.rot, time);
-		XMFLOAT3 scale = InterpolateVec3(keyframes.scale, time);
-
-		// スケールが空の場合、デフォルトで1.0にする
-		if (keyframes.scale.empty()) scale = XMFLOAT3(1.0f, 1.0f, 1.0f);
-
-		XMMATRIX scaleMat = XMMatrixScaling(scale.x, scale.y, scale.z);
-		XMMATRIX rotMat = QuatToMatrix(rot);
-		XMMATRIX transMat = XMMatrixTranslation(trans.x, trans.y, trans.z);
-
-		m_BoneMatrices.matrices[i] = scaleMat * rotMat * transMat;
-	}
+	m_BoneMatrices.boneCount = m_Model->TotalBoneCount;
 }
 
 void AnimSprite3D::Draw(void)
@@ -331,11 +376,11 @@ void AnimSprite3D::Draw(void)
 		// デバッグ：アニメーション状態を確認
 		//static int drawCount = 0;
 		//if (++drawCount % 300 == 0)  // 5秒ごと（60FPS*5）
- 	//	{
-		//	hal::dout << "Draw: play=" << m_AnimState.play 
-		//			  << " time=" << m_AnimState.time
-		//			  << " boneCount=" << m_BoneCount << std::endl;
- 	//	}
+		// 		{
+		// 			hal::dout << "Draw: play=" << m_AnimState.play 
+		// 				  << " time=" << m_AnimState.time
+		// 				  << " boneCount=" << m_BoneCount << std::endl;
+		// 		}
 
 		// アニメーション対応描画関数を使用
 		ModelAnimationDraw(
@@ -372,33 +417,15 @@ AnimationClip AnimSprite3D::ExtractAnimationFromAssimp(const aiAnimation* aiAnim
               << " numChannels=" << aiAnim->mNumChannels 
               << " boneCount=" << m_BoneCount << std::endl;
     
-    // ボーン情報がない場合、チャネル情報から動的にトラックを作成
-    int maxBoneIndex = m_BoneCount;
+    // チャンネルインデックスをそのままトラックインデックスとして使用
+    // RenderNodeAnimationのNodeToAnimIndex（ノード名→チャンネルインデックス）と一致させる
+    clip.tracks.resize(aiAnim->mNumChannels);
     
-    // チャネル情報からボーンインデックスを探索
     for (unsigned int c = 0; c < aiAnim->mNumChannels; c++)
     {
         aiNodeAnim* nodeAnim = aiAnim->mChannels[c];
-        int boneIndex = FindBoneIndex(nodeAnim->mNodeName.data);
         
-        // ボーンインデックスが見つからない場合、チャネルインデックスを使用
-        if (boneIndex < 0)
-        {
-            boneIndex = c;
-        }
-        
-        // トラックサイズを動的に拡張
-        if (boneIndex >= (int)clip.tracks.size())
-        {
-            clip.tracks.resize(boneIndex + 1);
-        }
-        
-        if (boneIndex >= maxBoneIndex)
-        {
-            maxBoneIndex = boneIndex + 1;
-        }
-        
-        BoneKeyframes& keyframes = clip.tracks[boneIndex];
+        BoneKeyframes& keyframes = clip.tracks[c];
         
         // 位置キーフレーム
         keyframes.trans.resize(nodeAnim->mNumPositionKeys);
@@ -426,12 +453,6 @@ AnimationClip AnimSprite3D::ExtractAnimationFromAssimp(const aiAnimation* aiAnim
             keyframes.scale[k].time = key.mTime;
             keyframes.scale[k].value = XMFLOAT3(key.mValue.x, key.mValue.y, key.mValue.z);
         }
-        
-        hal::dout << "  Channel " << c << ": '" << nodeAnim->mNodeName.data 
-                  << "' -> boneIndex=" << boneIndex
-                  << " pos=" << nodeAnim->mNumPositionKeys
-                  << " rot=" << nodeAnim->mNumRotationKeys
-                  << " scale=" << nodeAnim->mNumScalingKeys << std::endl;
     }
     
     hal::dout << "  Final trackSize=" << clip.tracks.size() << std::endl;
@@ -467,7 +488,7 @@ int AnimSprite3D::FindBoneIndex(const char* boneName)
 
 // ============================================================
 // 複数アニメーション対応: FBX内のアニメーションを名前で直接再生
-// ============================================================
+// =============================================================
 
 bool AnimSprite3D::PlayAnimationByName(const char* animName, bool loop)
 {
@@ -480,13 +501,15 @@ bool AnimSprite3D::PlayAnimationByName(const char* animName, bool loop)
     // 現在再生中のアニメーションと同じ名前の場合は無視
     if (m_AnimState.play && m_AnimState.currentAnimName == animName)
     {
-        //hal::dout << "PlayAnimationByName: Animation '" << animName << "' is already playing, ignoring call" << std::endl;
         return true;  // 既に再生中なので成功として扱う
     }
 
     hal::dout << "PlayAnimationByName: Looking for '" << animName << "', numAnimations=" << m_Model->AiScene->mNumAnimations << std::endl;
 
-    // FBX内から名前でアニメーションを検索
+    // FBX内から名前でアニメーションを検索（完全一致 → 部分一致の順）
+    aiAnimation* foundAnim = nullptr;
+
+    // まず完全一致で検索
     for (unsigned int i = 0; i < m_Model->AiScene->mNumAnimations; i++)
     {
         aiAnimation* aiAnim = m_Model->AiScene->mAnimations[i];
@@ -496,35 +519,69 @@ bool AnimSprite3D::PlayAnimationByName(const char* animName, bool loop)
         
         if (strcmp(aiAnim->mName.data, animName) == 0)
         {
-            // アニメーションが見つかった
-            AnimationClip clip = ExtractAnimationFromAssimp(aiAnim);
-            hal::dout << "  -> Extracted: tps=" << clip.tps << " duration=" << clip.duration << " tracks=" << clip.tracks.size() << std::endl;
-            
-            // 別のアニメーションが再生中の場合、ブレンド遷移を開始
-            if (m_AnimState.play && m_AnimState.currentAnimName != animName)
-            {
-                hal::dout << "Animation: Blending from '" << m_AnimState.currentAnimName << "' to '" << animName << "'" << std::endl;
-                
-                // 現在の状態をスナップショット
-                m_BlendState.previousState = m_AnimState;
-                m_BlendState.targetClip = clip;
-                m_BlendState.isBlending = true;
-                m_BlendState.blendElapsed = 0.0;
-                m_BlendState.blendDuration = 0.3;  // 0.3秒でブレンド
-            }
-            else
-            {
-                // 初回起動時は通常の再生開始
-                SetAnimationClip(clip);
-                PlayAnimation(loop);
-            }
-            
-            m_AnimState.currentAnimName = animName;  // 現在再生中のアニメーション名を保存
-            m_AnimState.loop = loop;
-            
-            hal::dout << "Animation '" << animName << "' started" << std::endl;
-            return true;
+            foundAnim = aiAnim;
+            break;
         }
+    }
+
+    // 完全一致が見つからなかった場合、部分一致で検索
+    if (!foundAnim)
+    {
+        for (unsigned int i = 0; i < m_Model->AiScene->mNumAnimations; i++)
+        {
+            aiAnimation* aiAnim = m_Model->AiScene->mAnimations[i];
+            std::string name = aiAnim->mName.data;
+            if (name.find(animName) != std::string::npos)
+            {
+                hal::dout << "  -> Partial match found: '" << name << "'" << std::endl;
+                foundAnim = aiAnim;
+                break;
+            }
+        }
+    }
+
+    // アニメーションが1つだけの場合はそれを使用（名前不一致でも）
+    if (!foundAnim && m_Model->AiScene->mNumAnimations == 1)
+    {
+        foundAnim = m_Model->AiScene->mAnimations[0];
+        hal::dout << "  -> Only one animation available, using: '" << foundAnim->mName.data << "'" << std::endl;
+    }
+
+    if (foundAnim)
+    {
+        // NodeToAnimIndexを再生対象のアニメーションのチャンネルから再構築
+        m_Model->NodeToAnimIndex.clear();
+        for (unsigned int c = 0; c < foundAnim->mNumChannels; c++)
+        {
+            m_Model->NodeToAnimIndex[foundAnim->mChannels[c]->mNodeName.data] = c;
+        }
+
+        AnimationClip clip = ExtractAnimationFromAssimp(foundAnim);
+        hal::dout << "  -> Extracted: tps=" << clip.tps << " duration=" << clip.duration << " tracks=" << clip.tracks.size() << std::endl;
+        
+        // 別のアニメーションが再生中の場合、ブレンド遷移を開始
+        if (m_AnimState.play && m_AnimState.currentAnimName != animName)
+        {
+            hal::dout << "Animation: Blending from '" << m_AnimState.currentAnimName << "' to '" << animName << "'" << std::endl;
+            
+            m_BlendState.previousState = m_AnimState;
+            m_BlendState.targetClip = clip;
+            m_BlendState.isBlending = true;
+            m_BlendState.blendElapsed = 0.0;
+            m_BlendState.blendDuration = 0.3;
+        }
+        else
+        {
+            // 初回起動時は通常の再生開始
+            SetAnimationClip(clip);
+            PlayAnimation(loop);
+        }
+        
+        m_AnimState.currentAnimName = animName;
+        m_AnimState.loop = loop;
+        
+        hal::dout << "Animation '" << animName << "' started" << std::endl;
+        return true;
     }
 
     hal::dout << "Animation '" << animName << "' not found" << std::endl;
@@ -558,10 +615,18 @@ bool AnimSprite3D::PlayAnimationByIndex(unsigned int index, bool loop)
     }
 
     aiAnimation* aiAnim = m_Model->AiScene->mAnimations[index];
+
+    // NodeToAnimIndexを再生対象のアニメーションのチャンネルから再構築
+    m_Model->NodeToAnimIndex.clear();
+    for (unsigned int c = 0; c < aiAnim->mNumChannels; c++)
+    {
+        m_Model->NodeToAnimIndex[aiAnim->mChannels[c]->mNodeName.data] = c;
+    }
+
     AnimationClip clip = ExtractAnimationFromAssimp(aiAnim);
     SetAnimationClip(clip);
     PlayAnimation(loop);
-    m_AnimState.currentAnimName = aiAnim->mName.data;  // アニメーション名を保存
+    m_AnimState.currentAnimName = aiAnim->mName.data;
 
     hal::dout << "AnimSprite3D::PlayAnimationByIndex() - Playing animation at index " << index 
               << " (name: " << aiAnim->mName.data << ")" << std::endl;
@@ -574,46 +639,33 @@ bool AnimSprite3D::PlayAnimationByIndex(unsigned int index, bool loop)
 
 void AnimSprite3D::UpdateBoneMatricesForState(const AnimationState& state, BoneMatrices& outMatrices)
 {
+	if (!m_Model || !m_Model->AiScene || !m_Model->HasSkinning)
+	{
+		for (unsigned int i = 0; i < BoneMatrices::MAX_BONES; i++)
+			outMatrices.matrices[i] = XMMatrixIdentity();
+		return;
+	}
+
 	if (!state.clip || state.clip->tracks.empty())
 	{
-		// アニメーションがない場合はアイデンティティ行列で初期化
-		// 実際のトラック数に制限してパフォーマンス向上
-		int maxTrack = (int)m_BlendState.targetClip.tracks.size();
-		if (maxTrack > BoneMatrices::MAX_BONES) maxTrack = BoneMatrices::MAX_BONES;
-		for (int i = 0; i < maxTrack; i++)
-		{
+		for (unsigned int i = 0; i < BoneMatrices::MAX_BONES; i++)
 			outMatrices.matrices[i] = XMMatrixIdentity();
-		}
 		return;
 	}
 
 	const AnimationClip& clip = *state.clip;
 	double time = state.time;
-
-	// 時間の範囲チェック
 	if (time < 0.0) time = 0.0;
 	if (time > clip.duration) time = clip.duration;
 
-	// トラックのサイズ分だけ行列を更新
-	int trackSize = (int)clip.tracks.size();
-	for (int i = 0; i < trackSize && i < BoneMatrices::MAX_BONES; i++)
-	{
-		const BoneKeyframes& keyframes = clip.tracks[i];
+	CalcBoneMatricesRecursive(
+		m_Model->AiScene->mRootNode,
+		XMMatrixIdentity(),
+		clip, time,
+		m_Model->NodeToAnimIndex,
+		m_Model,
+		outMatrices
+	);
 
-		XMFLOAT3 trans = InterpolateVec3(keyframes.trans, time);
-		XMFLOAT4 rot = InterpolateQuat(keyframes.rot, time);
-		XMFLOAT3 scale = InterpolateVec3(keyframes.scale, time);
-
-		XMMATRIX scaleMat = XMMatrixScaling(scale.x, scale.y, scale.z);
-		XMMATRIX rotMat = QuatToMatrix(rot);
-		XMMATRIX transMat = XMMatrixTranslation(trans.x, trans.y, trans.z);
-
-		outMatrices.matrices[i] = scaleMat * rotMat * transMat;
-	}
-
-	// 未使用のボーン行列はアイデンティティで初期化
-	for (int i = trackSize; i < BoneMatrices::MAX_BONES; i++)
-	{
-		outMatrices.matrices[i] = XMMatrixIdentity();
-	}
+	outMatrices.boneCount = m_Model->TotalBoneCount;
 }

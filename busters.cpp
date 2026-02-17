@@ -759,8 +759,7 @@ void Busters_Initialize(void)
 		}
 	}
 
-	// 3階 (Floor 2) - チュートリアル用バスターズのみ（TutorialBustersで別管理）
-	// 通常バスターズは配置しない
+	// 3階 (Floor 2) - チュートリアル用バスターズはTutorial_Bustarsで管理
 }
 
 void Busters_Update(void)

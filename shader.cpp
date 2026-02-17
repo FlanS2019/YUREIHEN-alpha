@@ -22,6 +22,11 @@ static ID3D11InputLayout* g_pInputLayout = nullptr;//頂点レイアウト
 static ID3D11VertexShader* g_pInstanceVertexShader = nullptr;
 static ID3D11InputLayout* g_pInstanceInputLayout = nullptr;
 
+// スキニングアニメーション用
+static ID3D11VertexShader* g_pSkinningVertexShader = nullptr;
+static ID3D11InputLayout* g_pSkinningInputLayout = nullptr;
+static ID3D11Buffer* g_pBoneConstantBuffer = nullptr;
+
 ID3D11Buffer* g_pVSConstantBuffer = nullptr;//定数バッファ1個
 static ID3D11PixelShader* g_pPixelShader = nullptr;//ピクセルシェーダー
 
@@ -36,7 +41,8 @@ static LightData g_CurrentLightData;
 enum SHADER_TYPE {
 	SHADER_TYPE_NONE,
 	SHADER_TYPE_DEFAULT,
-	SHADER_TYPE_INSTANCE
+	SHADER_TYPE_INSTANCE,
+	SHADER_TYPE_SKINNING
 };
 static SHADER_TYPE g_CurrentShaderType = SHADER_TYPE_NONE;
 
@@ -199,6 +205,47 @@ bool Shader_Initialize(ID3D11Device* pDevice, ID3D11DeviceContext* pContext)
 		delete[] ivs_pointer;
 	}
 
+	// --- スキニングアニメーション用シェーダーの読み込み ---
+	std::ifstream ifs_skin("shader_vertex_skinning.cso", std::ios::binary);
+	if (ifs_skin) {
+		ifs_skin.seekg(0, std::ios::end);
+		std::streamsize skin_filesize = ifs_skin.tellg();
+		ifs_skin.seekg(0, std::ios::beg);
+		unsigned char* skin_pointer = new unsigned char[skin_filesize];
+		ifs_skin.read((char*)skin_pointer, skin_filesize);
+		ifs_skin.close();
+
+		hr = g_pDevice->CreateVertexShader(skin_pointer, skin_filesize, nullptr, &g_pSkinningVertexShader);
+
+		if (SUCCEEDED(hr)) {
+			D3D11_INPUT_ELEMENT_DESC skinLayout[] = {
+				{ "POSITION",     0, DXGI_FORMAT_R32G32B32_FLOAT,    0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0 },
+				{ "NORMAL",       0, DXGI_FORMAT_R32G32B32_FLOAT,    0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0 },
+				{ "COLOR",        0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0 },
+				{ "TEXCOORD",     0, DXGI_FORMAT_R32G32_FLOAT,       0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0 },
+				{ "BLENDINDICES", 0, DXGI_FORMAT_R32G32B32A32_UINT,  0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0 },
+				{ "BLENDWEIGHT",  0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0 },
+			};
+			hr = g_pDevice->CreateInputLayout(skinLayout, ARRAYSIZE(skinLayout), skin_pointer, skin_filesize, &g_pSkinningInputLayout);
+			if (FAILED(hr)) {
+				hal::dout << "Shader_Initialize() : スキニング頂点レイアウトの作成に失敗" << std::endl;
+			}
+		} else {
+			hal::dout << "Shader_Initialize() : スキニング頂点シェーダーの作成に失敗" << std::endl;
+		}
+		delete[] skin_pointer;
+
+		// ボーン行列用定数バッファの作成（256 * sizeof(XMFLOAT4X4) = 256 * 64 = 16384 bytes）
+		D3D11_BUFFER_DESC boneBufDesc{};
+		boneBufDesc.Usage = D3D11_USAGE_DYNAMIC;
+		boneBufDesc.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
+		boneBufDesc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
+		boneBufDesc.ByteWidth = sizeof(XMFLOAT4X4) * 256;
+		g_pDevice->CreateBuffer(&boneBufDesc, nullptr, &g_pBoneConstantBuffer);
+	} else {
+		hal::dout << "Shader_Initialize() : shader_vertex_skinning.cso が見つかりません" << std::endl;
+	}
+
 	return true;
 }
 
@@ -211,6 +258,10 @@ void Shader_Finalize()
 
 	SAFE_RELEASE(g_pInstanceVertexShader);
 	SAFE_RELEASE(g_pInstanceInputLayout);
+
+	SAFE_RELEASE(g_pSkinningVertexShader);
+	SAFE_RELEASE(g_pSkinningInputLayout);
+	SAFE_RELEASE(g_pBoneConstantBuffer);
 
 	SAFE_RELEASE(g_pWorldConstantBuffer);
 	SAFE_RELEASE(g_pLightConstantBuffer);
@@ -329,6 +380,46 @@ void Shader_Begin()
 	g_pContext->PSSetConstantBuffers(2, 1, &g_pLightConstantBuffer);
 	g_pContext->PSSetConstantBuffers(3, 1, &g_pMaterialColorBuffer);
 	g_pContext->PSSetConstantBuffers(4, 1, &g_pCameraPositionBuffer);
+}
+
+// スキニングアニメーション描画開始
+void Shader_BeginSkinning()
+{
+	if (g_CurrentShaderType == SHADER_TYPE_SKINNING) return;
+	g_CurrentShaderType = SHADER_TYPE_SKINNING;
+
+	if (!g_pSkinningVertexShader) { Shader_Begin(); return; }
+
+	g_pContext->VSSetShader(g_pSkinningVertexShader, nullptr, 0);
+	g_pContext->PSSetShader(g_pPixelShader, nullptr, 0);
+	g_pContext->IASetInputLayout(g_pSkinningInputLayout);
+
+	g_pContext->VSSetConstantBuffers(0, 1, &g_pVSConstantBuffer);
+	g_pContext->VSSetConstantBuffers(1, 1, &g_pWorldConstantBuffer);
+	g_pContext->VSSetConstantBuffers(2, 1, &g_pLightConstantBuffer);
+	g_pContext->VSSetConstantBuffers(5, 1, &g_pBoneConstantBuffer);
+
+	g_pContext->PSSetConstantBuffers(2, 1, &g_pLightConstantBuffer);
+	g_pContext->PSSetConstantBuffers(3, 1, &g_pMaterialColorBuffer);
+	g_pContext->PSSetConstantBuffers(4, 1, &g_pCameraPositionBuffer);
+}
+
+void Shader_SetBoneMatrices(const DirectX::XMMATRIX* matrices, unsigned int count)
+{
+	if (!g_pBoneConstantBuffer || !g_pContext || !matrices) return;
+	if (count > 256) count = 256;
+
+	D3D11_MAPPED_SUBRESOURCE msr;
+	if (SUCCEEDED(g_pContext->Map(g_pBoneConstantBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &msr))) {
+		XMFLOAT4X4* dest = (XMFLOAT4X4*)msr.pData;
+		for (unsigned int i = 0; i < count; i++) {
+			XMStoreFloat4x4(&dest[i], XMMatrixTranspose(matrices[i]));
+		}
+		for (unsigned int i = count; i < 256; i++) {
+			XMStoreFloat4x4(&dest[i], XMMatrixIdentity());
+		}
+		g_pContext->Unmap(g_pBoneConstantBuffer, 0);
+	}
 }
 
 // フィールド専用インスタンス描画開始

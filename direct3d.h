@@ -80,4 +80,15 @@ struct Vertex3D
 	XMFLOAT2 texCoord;	//テクスチャ座標
 };
 
+// スキニング用頂点構造体（ボーンインデックス+ウェイト付き）
+struct VertexSkinned
+{
+	XMFLOAT3 position;
+	XMFLOAT3 normal;
+	XMFLOAT4 color;
+	XMFLOAT2 texCoord;
+	unsigned int boneIndex[4];	// 影響するボーンのインデックス（最大4つ）
+	float boneWeight[4];		// 各ボーンのウェイト
+};
+
 #endif // DIRECT3D_H
