@@ -18,7 +18,7 @@
 //=== デバッグ関連定数 ===
 #define STOP_TIMER_BUSTER (false) //trueならタイマーとバスターズのupdateを停止させる
 #define DIRECT_START (true) //trueならgameシーンから直接開始する
-#define DEBUG_DRAW (true) //trueならdebugdraw機能を有効にする
+#define DEBUG_DRAW (false) //trueならdebugdraw機能を有効にする
 #else
 //==================================
 //          ここは触らない
@@ -33,7 +33,7 @@
 
 //=== フィールド関連定数 ===
 #define MAP_FLOORS (3)
-#define START_FLOOR (1)// 階の数字をそのまま入れる（使用時に-1）
+#define START_FLOOR (3)// 階の数字をそのまま入れる（使用時に-1）
 #define END_FLOOR (3) // この階で恐怖ゲージMAXでクリア
 
 //=== Camera 関連定数 ===
