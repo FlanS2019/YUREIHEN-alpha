@@ -9,3 +9,5 @@ void Animation_Lose_Update(void);
 void Animation_Lose_Draw(void);
 void Animation_Lose_Finalize(void);
 
+// 敗北アニメーション時の経過時間を取得
+float Animation_Lose_GetElapsedTime(void);
