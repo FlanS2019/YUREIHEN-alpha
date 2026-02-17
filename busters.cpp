@@ -433,7 +433,7 @@ void Busters::Update(void)
 		{
 			m_StuckTimer++;
 			// 60フレーム（約1秒）以上動けなかったらスタックとみなす
-			if (m_StuckTimer > 60)
+			if (m_StuckTimer > 120)
 			{
 				m_PathList.clear(); // 経路破棄して再計算へ
 				m_StuckTimer = 0;
@@ -457,11 +457,14 @@ void Busters::Update(void)
 		float dz = gPos.z - m_Position.z;
 		float dist = sqrtf(dx * dx + dy * dy + dz * dz);
 
-		if (dist < 1.0f && !GetGhost()->IsInvincible() && GetGhost()->GetState() != GS_CAUGHT)
+		GHOST_STATE ghostState = GetGhost()->GetState();
+
+		if (dist < 1.0f && !GetGhost()->IsInvincible() &&
+			ghostState != GS_CAUGHT &&
+			ghostState != GS_TRANSFORM &&
+			ghostState != GS_SCARE)
 		{
-
 			GetGhost()->SetState(GS_CAUGHT);
-
 			m_PathList.clear();
 		}
 	}
@@ -496,7 +499,45 @@ bool IsWallBlock(float x, float z)
 	return GetBlockIDFromWorldPos(x, z) != 0;
 }
 
-bool CanPassLine(const XMFLOAT3& start, const XMFLOAT3& end, float radius)
+bool IsObstacle(float x, float z, float radius, int ignoreFurnitureIndex = -1)
+{
+	// 1. 壁の判定 (中心と4隅をチェックしてめり込みを防ぐ)
+	float checkR = radius * 0.7f;
+	if (IsWallBlock(x, z) ||
+		IsWallBlock(x + checkR, z + checkR) ||
+		IsWallBlock(x + checkR, z - checkR) ||
+		IsWallBlock(x - checkR, z + checkR) ||
+		IsWallBlock(x - checkR, z - checkR))
+	{
+		return true;
+	}
+
+	// 2. 家具の判定
+	for (int i = 0; i < FURNITURE_NUM; i++)
+	{
+		if (i == ignoreFurnitureIndex) continue; // ターゲット家具は通り抜けてOK
+
+		Furniture* pFurn = GetFurniture(i);
+		if (!pFurn) continue;
+
+		XMFLOAT3 fPos = pFurn->GetPos();
+		float dx = fPos.x - x;
+		float dz = fPos.z - z;
+		float distSq = dx * dx + dz * dz;
+
+		// 家具の半径を0.6f程度と仮定。キャラの半径と合わせて判定
+		float sumR = 0.6f + radius;
+
+		if (distSq < sumR * sumR)
+		{
+			return true; // 家具にぶつかる！
+		}
+	}
+	return false;
+}
+
+
+bool CanPassLine(const XMFLOAT3& start, const XMFLOAT3& end, float radius, int ignoreFurnitureIndex = -1)
 {
 	float dx = end.x - start.x;
 	float dz = end.z - start.z;
@@ -504,11 +545,8 @@ bool CanPassLine(const XMFLOAT3& start, const XMFLOAT3& end, float radius)
 
 	if (len <= 0.001f) return true;
 
-	// 正規化
 	float ndx = dx / len;
 	float ndz = dz / len;
-
-	// チェックする間隔（0.5mごとにチェック）
 	int steps = (int)(len / 0.5f) + 1;
 
 	for (int i = 0; i <= steps; i++)
@@ -517,15 +555,11 @@ bool CanPassLine(const XMFLOAT3& start, const XMFLOAT3& end, float radius)
 		float px = start.x + dx * t;
 		float pz = start.z + dz * t;
 
-		// その地点での「中心」「右端」「左端」が壁でないか確認
-		// 右・左のオフセットベクトル
-		float offX = -ndz * radius;
-		float offZ = ndx * radius;
-
-		// 3点チェック (中心、右、左)
-		if (IsWallBlock(px, pz)) return false;
-		if (IsWallBlock(px + offX, pz + offZ)) return false;
-		if (IsWallBlock(px - offX, pz - offZ)) return false;
+		// IsWallBlock ではなく IsObstacle を使う
+		if (IsObstacle(px, pz, radius, ignoreFurnitureIndex))
+		{
+			return false;
+		}
 	}
 	return true;
 }
@@ -671,86 +705,82 @@ void Busters::MoveTo(XMFLOAT3 targetPos)
 {
 	if (GetIsJumping()) return;
 
-	// ▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼
-	// ★Unity風ナビゲーション (Path Smoothing / String Pulling)
-	// 「目の前のマス」ではなく「行ける限り奥のマス」を目指すことで、
-	// 曲線的でスムーズな移動を実現し、壁への衝突自体を回避します。
-	// ▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼
+	XMFLOAT3 finalTarget = targetPos;
 
-	XMFLOAT3 finalTarget = targetPos; // デフォルトは引数の場所
+	// 探索中なら、ターゲットしている家具の判定を無効化する
+	int ignoreFurnIdx = -1;
+	if (m_State == BUSTERS_SEARCH)
+	{
+		ignoreFurnIdx = m_TargetFurnitureIndex;
+	}
 
-	// パスリストがある場合、ショートカットを試みる
+	// ストリング・プリング（経路のショートカット）
 	if (!m_PathList.empty())
 	{
-		// 「現在の目的地(Path[0])」のさらに先(Path[1], Path[2]...)が見えるか確認
-		// 見えるなら、手前のパスはもう不要なので消して、奥を目指す
-
-		// 最大3つ先までチェック（あまり遠くを見ると壁抜けのリスクがあるため）
 		int lookAheadMax = 3;
 		int checkCount = 0;
 
-		// リストの先頭から順に「現在地から直接行けるか？」をチェック
 		while (!m_PathList.empty() && checkCount < lookAheadMax)
 		{
-			// 次のパスが「最終目的地」そのものなら、リストを空にしてそこへ直行
 			if (m_PathList.size() == 1)
 			{
 				finalTarget = m_PathList[0];
 				break;
 			}
 
-			// パスの2つ先(Path[1])が存在するか？
 			if (m_PathList.size() >= 2)
 			{
 				XMFLOAT3 nextNode = m_PathList[1];
-				// 現在地から、1つ飛ばした先(Path[1])へ、半径0.3mの幅で直線移動できるか？
-				if (CanPassLine(m_Position, nextNode, 0.3f))
+				// 半径0.3fで家具も壁も考慮してチェック
+				if (CanPassLine(m_Position, nextNode, 0.3f, ignoreFurnIdx))
 				{
-					// 行ける！ -> Path[0]（手前のマス）は邪魔なので削除してショートカット
 					m_PathList.erase(m_PathList.begin());
-					// 削除したので、今の先頭はさっきのPath[1]になる。
-					// ループしてさらにその奥(Path[2])が見えるか再チェックする
 					continue;
 				}
 			}
 
-			// ショートカットできない、またはリストの末尾に来た
 			finalTarget = m_PathList[0];
 			break;
 		}
 	}
 
-	// -------------------------------------------------------------
-	// 移動処理 (Steering)
-	// -------------------------------------------------------------
+	// 移動ベクトルの計算
 	float dx = finalTarget.x - m_Position.x;
 	float dz = finalTarget.z - m_Position.z;
 
-	// 目的地に近いなら停止
 	if (fabsf(dx) < m_MoveSpeed && fabsf(dz) < m_MoveSpeed) return;
 
-	// 正規化
 	float len = sqrtf(dx * dx + dz * dz);
 	if (len > 0) { dx /= len; dz /= len; }
 
-	// 向き変更（スムーズに）
+	// 向き変更
 	float angle = atan2f(dx, dz);
 	float deg = XMConvertToDegrees(angle);
 	SetRotY(deg + 180.0f);
 
-	// 移動（単純な移動でも、CanPassLineで安全確認済みなので壁には当たらないはず）
-	// 万が一の「埋まり防止」のために、最小限の壁チェックだけ残す
-	auto checkWall = [&](float nx, float nz) -> bool {
-		float r = 0.25f;
-		return (IsWallBlock(nx + r, nz + r) || IsWallBlock(nx + r, nz - r) ||
-			IsWallBlock(nx - r, nz + r) || IsWallBlock(nx - r, nz - r));
-		};
+	float nextPosX = m_Position.x + dx * m_MoveSpeed;
+	float nextPosZ = m_Position.z + dz * m_MoveSpeed;
+	float bodyRadius = 0.25f; // バスターズの当たり判定サイズ
 
-	float nextX = m_Position.x + dx * m_MoveSpeed;
-	if (!checkWall(nextX, m_Position.z)) m_Position.x = nextX;
+	// X軸とZ軸で独立して「進めるか」を判定
+	bool hitX = IsObstacle(nextPosX, m_Position.z, bodyRadius, ignoreFurnIdx);
+	bool hitZ = IsObstacle(m_Position.x, nextPosZ, bodyRadius, ignoreFurnIdx);
 
-	float nextZ = m_Position.z + dz * m_MoveSpeed;
-	if (!checkWall(m_Position.x, nextZ)) m_Position.z = nextZ;
+	// 斜めに入った角でのめり込み防止
+	if (!hitX && !hitZ)
+	{
+		// 両方単体なら行けるが、斜めに合わさると角にぶつかる場合
+		if (IsObstacle(nextPosX, nextPosZ, bodyRadius, ignoreFurnIdx))
+		{
+			// 移動成分が大きい方（より進みたい方向）を優先して滑らせる
+			if (fabsf(dx) > fabsf(dz)) hitZ = true;
+			else hitX = true;
+		}
+	}
+
+	// 障害物がなければ座標を更新（hitしていればその軸は移動しない＝滑る）
+	if (!hitX) m_Position.x = nextPosX;
+	if (!hitZ) m_Position.z = nextPosZ;
 }
 
 void Busters::OnScared(void)
@@ -797,7 +827,6 @@ void Busters::SetIsGhostDiscover(bool discover)
     if (discover)
     {
         m_IsGhostDiscover = true;
-		this->SetColor(1.0f, 0.0f, 0.0f, 1.0f);
 	}
     else if (m_IsGhostDiscover)
     {
