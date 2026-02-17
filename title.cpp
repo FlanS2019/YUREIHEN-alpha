@@ -206,6 +206,12 @@ void Title_Update(void)
 	{
 		StartFade(SCENE_ANM_OP);
 	}
+
+	// ③適当な処理　アニメーションなどもここで
+	if (Keyboard_IsKeyDownTrigger(KK_X))
+	{
+		StartFade(SCENE_RESULT);
+	}
 }
 
 void Title_Draw(void)

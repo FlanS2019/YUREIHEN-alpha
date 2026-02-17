@@ -12,6 +12,7 @@
 #include "ghost.h"
 #include "font.h"
 #include "furniture.h"
+#include "result.h"
 
 // グローバル変数
 static Timer* g_Clock = nullptr;
@@ -259,12 +260,18 @@ void UI_Update(void)
 	bool timeEnded = g_Clock->Update();
 #endif
 
-
 	if (timeEnded || g_ScareGauge->GetValue() <= 0.0f)
 	{
 		hal::dout << "敗北条件を満たしました" << std::endl;
+		// タイマー結果をリザルト画面に渡す
+		Result_SetTimerValue(g_Clock->GetTime());
 		StartFade(SCENE_ANM_LOSE);
 	}
+	//if (timeEnded || g_ScareGauge->GetValue() <= 0.0f)
+	//{
+	//	hal::dout << "敗北条件を満たしました" << std::endl;
+	//	StartFade(SCENE_ANM_LOSE);
+	//}
 
 	UI_ScareCombo_Update();
 	

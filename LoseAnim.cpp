@@ -43,6 +43,15 @@ static float g_LoseInkTopY = 0.0f;
 
 static SoundData* g_pBGM = nullptr;
 
+float Animation_Lose_GetElapsedTime(void)
+{
+	if (g_LoseStartTime == 0) return 0.0f;
+
+	DWORD currentTime = timeGetTime();
+	DWORD elapsedTime = currentTime - g_LoseStartTime;
+	return elapsedTime / 1000.0f;  // ミリ秒から秒に変換
+}
+
 void Animation_Lose_Initialize(ID3D11Device* pDevice, ID3D11DeviceContext* pContext)
 {
 	// 背景スプライト
@@ -229,10 +238,14 @@ void Animation_Lose_Update(void)
 		}
 	}
 
-	// ENTERキーでゲームへ戻る
+	if(elapsedSeconds >= 3.0f)	// 3秒経過後に入力受付開始
+	{
+		StartFade(SCENE_RESULT);
+	}
+	// ENTERキーでスキップ
 	if (Keyboard_IsKeyDownTrigger(KK_ENTER))
 	{
-		StartFade(SCENE_TITLE);
+		StartFade(SCENE_RESULT);
 	}
 
 	// ENTERキーでゲームへ戻る
