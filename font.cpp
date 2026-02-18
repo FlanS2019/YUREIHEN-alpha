@@ -378,6 +378,79 @@ bool FontRenderer::AddGlyphToAtlas(int glyphIndex) {
 	return true;
 }
 
+// アトラスにグリフを追加（テクスチャ更新なし版：バッチ用）
+bool FontRenderer::AddGlyphToAtlasBatch(int glyphIndex) {
+	if (!m_pFontInfo) {
+		return false;
+	}
+
+	// キャッシュに既に存在する場合
+	if (m_CharCache.find(glyphIndex) != m_CharCache.end()) {
+		return false;
+	}
+
+	// キャッシュ満杯時は LRU グリフを削除
+	if ((int)m_CharCache.size() >= FONT_MAX_CACHE_GLYPHS) {
+		EvictLRUGlyph();
+	}
+
+	// グリフのバウンディングボックスを取得
+	int x0, y0, x1, y1;
+	stbtt_GetGlyphBitmapBox(m_pFontInfo, glyphIndex, stbtt_ScaleForPixelHeight(m_pFontInfo, m_FontSize), stbtt_ScaleForPixelHeight(m_pFontInfo, m_FontSize), &x0, &y0, &x1, &y1);
+
+	int glyph_width = x1 - x0;
+	int glyph_height = y1 - y0;
+
+	if (glyph_width == 0 || glyph_height == 0) {
+		CharInfo info = { 0, 0, 0, 0, 0, glyphIndex };
+		m_CharCache[glyphIndex] = info;
+		m_CacheLRU.push_back(glyphIndex);
+		return false; // 空グリフなのでテクスチャ更新不要
+	}
+
+	if (m_AtlasNextX + glyph_width > m_AtlasWidth) {
+		m_AtlasNextX = 0;
+		m_AtlasNextY += m_AtlasRowHeight;
+		m_AtlasRowHeight = 0;
+	}
+
+	if (m_AtlasNextY + glyph_height > m_AtlasHeight) {
+		return false;
+	}
+
+	float scale = stbtt_ScaleForPixelHeight(m_pFontInfo, m_FontSize);
+	unsigned char* glyph_bitmap = (unsigned char*)malloc(glyph_width * glyph_height);
+	stbtt_MakeGlyphBitmap(m_pFontInfo, glyph_bitmap, glyph_width, glyph_height, glyph_width, scale, scale, glyphIndex);
+
+	for (int y = 0; y < glyph_height; y++) {
+		for (int x = 0; x < glyph_width; x++) {
+			int atlas_idx = (m_AtlasNextY + y) * m_AtlasWidth + (m_AtlasNextX + x);
+			m_pAtlasData[atlas_idx] = glyph_bitmap[y * glyph_width + x];
+		}
+	}
+
+	CharInfo info;
+	info.x0 = (float)m_AtlasNextX;
+	info.y0 = (float)m_AtlasNextY;
+	info.x1 = (float)(m_AtlasNextX + glyph_width);
+	info.y1 = (float)(m_AtlasNextY + glyph_height);
+
+	int advance_width, left_side_bearing;
+	stbtt_GetGlyphHMetrics(m_pFontInfo, glyphIndex, &advance_width, &left_side_bearing);
+	info.xadvance = (float)advance_width * scale;
+	info.glyphIndex = glyphIndex;
+
+	m_CharCache[glyphIndex] = info;
+	m_CacheLRU.push_back(glyphIndex);
+
+	m_AtlasNextX += glyph_width;
+	m_AtlasRowHeight = (std::max)(m_AtlasRowHeight, glyph_height);
+
+	free(glyph_bitmap);
+
+	return true; // テクスチャ更新が必要
+}
+
 // LRU グリフを削除
 void FontRenderer::EvictLRUGlyph() {
 	if (m_CacheLRU.empty()) {
@@ -639,4 +712,32 @@ void FontRenderer::SetText(const std::string& text) {
 	m_Text = text;
 	// テキスト変更時は再度グリフをキャッシュに登録する必要がある
 	// Draw() 時に自動的に処理される
+}
+
+void FontRenderer::PreCacheGlyphs() {
+	if (!m_pFontInfo) return;
+
+	bool atlasUpdated = false;
+	size_t idx = 0;
+	while (idx < m_Text.length()) {
+		int codepoint = UTF8ToCodePoint(m_Text, idx);
+		if (codepoint <= 0) continue;
+		if (codepoint == 0x0020 || codepoint == 0x3000) continue;
+
+		int glyph_index = stbtt_FindGlyphIndex(m_pFontInfo, codepoint);
+		if (glyph_index < 0) continue;
+
+		// キャッシュに既に存在する場合はスキップ
+		if (m_CharCache.find(glyph_index) != m_CharCache.end()) continue;
+
+		// テクスチャ更新なしでアトラスにグリフを追加
+		if (AddGlyphToAtlasBatch(glyph_index)) {
+			atlasUpdated = true;
+		}
+	}
+
+	// まとめて1回だけテクスチャ更新
+	if (atlasUpdated) {
+		UpdateAtlasTexture();
+	}
 }

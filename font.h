@@ -53,6 +53,9 @@ public:
 	void SetText(const std::string& text);
 	XMFLOAT4 GetColor() const { return m_Color; }
 
+	// テキスト中のグリフを事前にアトラスへ登録（描画時のスタッター防止）
+	void PreCacheGlyphs();
+
 private:
 	ID3D11Texture2D* m_pTexture;
 	ID3D11ShaderResourceView* m_pSRV;
@@ -81,6 +84,7 @@ private:
 	bool CreateShaders();
 	bool BakeAtlas();
 	bool AddGlyphToAtlas(int glyphIndex);
+	bool AddGlyphToAtlasBatch(int glyphIndex); // テクスチャ更新なし版
 	void EvictLRUGlyph();
 	int UTF8ToCodePoint(const std::string& text, size_t& index);
 	void UpdateAtlasTexture();
