@@ -18,7 +18,7 @@
 //=== デバッグ関連定数 ===
 #define STOP_TIMER_BUSTER (false) //trueならタイマーとバスターズのupdateを停止させる
 #define DIRECT_START (true) //trueならgameシーンから直接開始する
-#define DEBUG_DRAW (true) //trueならdebugdraw機能を有効にする
+#define DEBUG_DRAW (false) //trueならdebugdraw機能を有効にする
 #else
 //==================================
 //          ここは触らない
