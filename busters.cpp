@@ -231,8 +231,23 @@ void Busters::Update(void)
 	case BUSTERS_SEARCH: // 探索
 		if (m_TargetFurnitureIndex == -1)
 		{
-			m_TargetFurnitureIndex = rand() % FURNITURE_NUM;
-			Furniture* targetFurniture = GetFurniture(m_TargetFurnitureIndex);
+
+			Furniture* targetFurniture = nullptr;
+			int loopCount = 0;
+
+			while (loopCount < 100) // 無限ループ防止
+			{
+				m_TargetFurnitureIndex = rand() % FURNITURE_NUM;
+				targetFurniture = GetFurniture(m_TargetFurnitureIndex);
+
+				// 家具が存在し、かつ「ドア(ID:13)」ではないならターゲット決定！
+				if (targetFurniture && targetFurniture->GetBlockID() != 13 && targetFurniture->GetBlockID() != 68 && targetFurniture->GetBlockID() != 69)
+				{
+					break;
+				}
+				loopCount++;
+			}
+
 			if (targetFurniture)
 			{
 				XMFLOAT3 targetPos = targetFurniture->GetPos();
@@ -833,6 +848,7 @@ void Busters::MoveTo(XMFLOAT3 targetPos)
 	if (!hitX) m_Position.x = nextPosX;
 	if (!hitZ) m_Position.z = nextPosZ;
 }
+
 void Busters::OnScared(void)
 {
 	JumpStart();
@@ -1276,6 +1292,7 @@ void Busters_CheckGaugeEvent(void)
 		StartFade(SCENE_ANM_WIN);
 	}
 }
+
 void Busters::Draw(void)
 {
 	// バスターズ（ボーンあり）を描画
