@@ -212,7 +212,7 @@ void Furniture_Initialize(void)
 						{ wx, wy, wz },          // 場所
 						{ 1.0f, 1.0f, 1.0f },      // サイズ
 						{ 0.0f, rotY, 0.0f },      // 回転
-						"asset\\model\\cube.fbx", // モデル
+						"asset\\model\\sink.fbx", // モデル
 						ACTION_SCARE,                // アクション
 						id
 					);
@@ -234,7 +234,7 @@ void Furniture_Initialize(void)
 						{ wx, wy, wz },          // 場所
 						{ 1.0f, 1.0f, 1.0f },      // サイズ
 						{ 0.0f, rotY, 0.0f },      // 回転
-						"asset\\model\\cube.fbx", // モデル
+						"asset\\model\\huntingtrophy.fbx", // モデル
 						ACTION_SCARE,                // アクション
 						id
 					);
@@ -256,7 +256,7 @@ void Furniture_Initialize(void)
 						{ wx, wy, wz },          // 場所
 						{ 1.0f, 1.0f, 1.0f },      // サイズ
 						{ 0.0f, rotY, 0.0f },      // 回転
-						"asset\\model\\cube.fbx", // モデル
+						"asset\\model\\grandfather_clock.fbx", // モデル
 						ACTION_LURE,               // アクション
 						id
 					);
