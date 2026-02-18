@@ -122,10 +122,15 @@ void LoadMapData(int floor)
 				if (mcID == 0) continue;
 
 				FIELD_TYPE type = ConvertMapID(mcID);
+
+				if (type == FIELD_NONE) continue;
+
 				auto isFaceVisible = [&](int myID, int targetY, int targetZ, int targetX) -> bool {
 					int neighborID = GetMapBlockID(floor, targetY, targetZ, targetX);
 
 					if (neighborID == 0) return true; // 隣が空気なら絶対に面を描画する
+
+					if (ConvertMapID(neighborID) == FIELD_NONE) return true;
 
 					// 透過ブロック(ガラス等)を並べた時、隣が同じブロックなら接合面を消す
 					if (myID == neighborID) return false;
@@ -142,17 +147,12 @@ void LoadMapData(int floor)
 
 				// 各方向の面が見えるかチェック
 
-				data.drawFace[0] = isFaceVisible(mcID, y, z - 1, x);// 手前
-
-				data.drawFace[1] = isFaceVisible(mcID, y, z, x + 1);// 右
-
-				data.drawFace[2] = isFaceVisible(mcID, y - 1, z, x);// 下
-
-				data.drawFace[3] = isFaceVisible(mcID, y, z + 1, x);// 奥
-
-				data.drawFace[4] = isFaceVisible(mcID, y, z, x - 1);// 左
-
-				data.drawFace[5] = isFaceVisible(mcID, y + 1, z, x);// 上
+				data.drawFace[0] = isFaceVisible(mcID, y, z + 1, x); // 0: 手前 (Z座標反転のため z+1)
+				data.drawFace[1] = isFaceVisible(mcID, y, z, x + 1); // 1: 右   (x+1)
+				data.drawFace[2] = isFaceVisible(mcID, y - 1, z, x); // 2: 下   (y-1)
+				data.drawFace[3] = isFaceVisible(mcID, y, z - 1, x); // 3: 奥   (Z座標反転のため z-1)
+				data.drawFace[4] = isFaceVisible(mcID, y, z, x - 1); // 4: 左   (x-1)
+				data.drawFace[5] = isFaceVisible(mcID, y + 1, z, x); // 5: 上   (y+1)
 
 				// 6面すべて見えないなら、ブロック自体を描画リストから除外
 				data.isHidden = !(data.drawFace[0] || data.drawFace[1] || data.drawFace[2] ||
