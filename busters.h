@@ -69,6 +69,7 @@ public:
 	bool IsTargetInFOV(const XMFLOAT3& targetPos, float range);
 	void SetTutorial(bool tutorial) { m_IsTutorial = tutorial; }
 	bool IsTutorial(void) const { return m_IsTutorial; }
+
 };
 
 void Busters_Initialize(void);

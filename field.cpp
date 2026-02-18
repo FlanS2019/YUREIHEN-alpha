@@ -77,7 +77,6 @@ FIELD_TYPE ConvertMapID(int minecraftID)
 	case 2:  // ダークオークの原木
 	case 3:  // ダークオークの板材
 	case 4:  // シラカバの板材
-	case 13: // ドア（仮で壁扱い）
 	case 14: // ダークオークフェンス
 	case 15: // オークフェンス
 	case 16: // ダイアモンド
@@ -92,7 +91,8 @@ FIELD_TYPE ConvertMapID(int minecraftID)
 
 	case 9: case 10: case 11: case 12: // 上付き階段
 		return FIELD_STAIRS_DOWN;
-	case 98:
+
+	case 98: case 13:
 	case 50: case 51: case 52:case 53:case 54:case 55:case 56:case 57:case 58:case 59: //家具
 	case 60: case 61: case 62:case 63:case 64:case 65:case 66:case 67:case 68:case 69: //家具
 		return FIELD_NONE;

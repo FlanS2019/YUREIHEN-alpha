@@ -499,6 +499,24 @@ bool IsWallBlock(float x, float z)
 	return GetBlockIDFromWorldPos(x, z) != 0;
 }
 
+bool IsChokePoint(float x, float z)
+{
+	// 1マス(1.0f)の周囲の壁をチェック
+	bool wallL = IsWallBlock(x - 1.0f, z);
+	bool wallR = IsWallBlock(x + 1.0f, z);
+	bool wallU = IsWallBlock(x, z + 1.0f);
+	bool wallD = IsWallBlock(x, z - 1.0f);
+
+	// 左右が壁、または上下が壁（ドアや細い通路）
+	if (wallL && wallR) return true;
+	if (wallU && wallD) return true;
+
+	// L字の角（曲がり角）
+	if ((wallL || wallR) && (wallU || wallD)) return true;
+
+	return false;
+}
+
 bool IsObstacle(float x, float z, float radius, int ignoreFurnitureIndex = -1)
 {
 	// 1. 壁の判定 (中心と4隅をチェックしてめり込みを防ぐ)
@@ -719,10 +737,15 @@ void Busters::MoveTo(XMFLOAT3 targetPos)
 		ignoreFurnIdx = m_TargetFurnitureIndex;
 	}
 
+	bool isNextChoke = false;
+	if (!m_PathList.empty()) {
+		isNextChoke = IsChokePoint(m_PathList[0].x, m_PathList[0].z);
+	}
+
 	// ストリング・プリング（経路のショートカット）
 	if (!m_PathList.empty())
 	{
-		int lookAheadMax = 3;
+		int lookAheadMax = isNextChoke ? 0 : 3;
 		int checkCount = 0;
 
 		while (!m_PathList.empty() && checkCount < lookAheadMax)
@@ -736,8 +759,8 @@ void Busters::MoveTo(XMFLOAT3 targetPos)
 			if (m_PathList.size() >= 2)
 			{
 				XMFLOAT3 nextNode = m_PathList[1];
-				// 半径0.3fで家具も壁も考慮してチェック
-				if (CanPassLine(m_Position, nextNode, 0.3f, ignoreFurnIdx))
+
+				if (CanPassLine(m_Position, nextNode, 0.6f, ignoreFurnIdx))
 				{
 					m_PathList.erase(m_PathList.begin());
 					continue;
@@ -748,6 +771,29 @@ void Busters::MoveTo(XMFLOAT3 targetPos)
 			break;
 		}
 	}
+
+	if (isNextChoke) {
+		float distToTargetX = finalTarget.x - m_Position.x;
+		float distToTargetZ = finalTarget.z - m_Position.z;
+		if (distToTargetX * distToTargetX + distToTargetZ * distToTargetZ < 0.2f * 0.2f) {
+			// 中心の 0.2m 以内に入ったら、はじめて次の経路を解放する（実質的な Threshold の上書き）
+			if (!m_PathList.empty()) m_PathList.erase(m_PathList.begin());
+		}
+	}
+
+	float checkDist = 0.8f; // チェックする距離（壁からのマージン）
+	XMFLOAT3 avoidVector = { 0.0f, 0.0f, 0.0f };
+
+	// 4方向の壁をチェックし、壁があれば逆方向に反発力を生む
+	if (IsWallBlock(m_Position.x + checkDist, m_Position.z)) avoidVector.x -= 1.0f; // 右に壁→左へ
+	if (IsWallBlock(m_Position.x - checkDist, m_Position.z)) avoidVector.x += 1.0f; // 左に壁→右へ
+	if (IsWallBlock(m_Position.x, m_Position.z + checkDist)) avoidVector.z -= 1.0f; // 奥に壁→手前へ
+	if (IsWallBlock(m_Position.x, m_Position.z - checkDist)) avoidVector.z += 1.0f; // 手前に壁→奥へ
+
+	// 反発ベクトルを目標地点に足す（壁から遠ざかるようにターゲットを膨らませる）
+	float avoidStrength = 0.5f; // 反発の強さ
+	finalTarget.x += avoidVector.x * avoidStrength;
+	finalTarget.z += avoidVector.z * avoidStrength;
 
 	// 移動ベクトルの計算
 	float dx = finalTarget.x - m_Position.x;
@@ -787,7 +833,6 @@ void Busters::MoveTo(XMFLOAT3 targetPos)
 	if (!hitX) m_Position.x = nextPosX;
 	if (!hitZ) m_Position.z = nextPosZ;
 }
-
 void Busters::OnScared(void)
 {
 	JumpStart();
