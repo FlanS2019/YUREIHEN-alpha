@@ -557,55 +557,27 @@ void Ghost::FurnitureSearch(void)
 	}
 	else
 	{
-		// リストが更新された場合、今まで選んでいた家具が新しいリストにもあるか探す
-		int newSelectedIndex = 0; // デフォルトは先頭の家具
-		if (m_InRangeFurnitureNum != -1)
+		// 最も近い家具を選択
+		int nearestIndex = currentList[0];
+		float nearestDist = FLT_MAX;
+		for (size_t i = 0; i < currentList.size(); i++)
 		{
-			for (size_t i = 0; i < currentList.size(); i++)
+			Furniture* pF = GetFurniture(currentList[i]);
+			if (pF && pF->GetDistanceToGhost() < nearestDist)
 			{
-				if (currentList[i] == m_InRangeFurnitureNum)
-				{
-					newSelectedIndex = (int)i; // 同じ家具があれば、その位置をキープ
-					break;
-				}
+				nearestDist = pF->GetDistanceToGhost();
+				nearestIndex = currentList[i];
 			}
 		}
 
 		m_InRangeFurnitureList = currentList;
-		m_SelectedFurnitureListIndex = newSelectedIndex;
-
-		// Q・Eキー入力で選択を切り替える (長押し防止のトリガー判定)
-		bool currentQ = (GetAsyncKeyState('Q') & 0x8000) != 0;
-		bool currentE = (GetAsyncKeyState('E') & 0x8000) != 0;
-
-		if (currentQ && !m_PrevQ) // Qキーが押された瞬間（左へ）
-		{
-			m_SelectedFurnitureListIndex--;
-			if (m_SelectedFurnitureListIndex < 0)
-			{
-				m_SelectedFurnitureListIndex = (int)m_InRangeFurnitureList.size() - 1; // ループする
-			}
-		}
-		if (currentE && !m_PrevE) // Eキーが押された瞬間（右へ）
-		{
-			m_SelectedFurnitureListIndex++;
-			if (m_SelectedFurnitureListIndex >= (int)m_InRangeFurnitureList.size())
-			{
-				m_SelectedFurnitureListIndex = 0; // ループする
-			}
-		}
-
-		// 次のフレームのためにキー状態を保存
-		m_PrevQ = currentQ;
-		m_PrevE = currentE;
-
-		// 選択された家具のインデックスを確定し、フラグを立てる
-		m_InRangeFurnitureNum = m_InRangeFurnitureList[m_SelectedFurnitureListIndex];
+		m_InRangeFurnitureNum = nearestIndex;
+		m_SelectedFurnitureListIndex = 0;
 
 		Furniture* pFurniture = GetFurniture(m_InRangeFurnitureNum);
 		if (pFurniture)
 		{
-			pFurniture->SetIsGhostTarget(true); // 対象の家具を光らせる
+			pFurniture->SetIsGhostTarget(true);
 			this->SetState(GS_FURNITURE_FOUND);
 		}
 	}

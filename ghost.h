@@ -42,8 +42,6 @@ public:
 
 	std::vector<int> m_InRangeFurnitureList; // 範囲内にある家具のリスト
 	int m_SelectedFurnitureListIndex;        // リストの中で現在選んでいる番号
-	bool m_PrevQ;                            // Qキーが前回押されていたか
-	bool m_PrevE;							 // Eキーが前回押されていたか
 
 	Sprite3D* m_pRangeCircle;
 	PointLight* m_pLight;
