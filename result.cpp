@@ -11,7 +11,6 @@
 #include <iomanip>
 using namespace DirectX;
 
-
 // ①Spriteのインスタンス、ポインタ用意
 static Sprite* g_pResultSprite = nullptr;
 static Sprite* g_pPlus = nullptr;
