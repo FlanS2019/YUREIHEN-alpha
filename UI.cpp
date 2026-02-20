@@ -159,7 +159,7 @@ void UI_Initialize(void)
 		BLENDSTATE_ALFA,
 		L"asset\\texture\\kanban.png"
 	);
-
+	
 	g_FloorNumber = new Number(
 		{ CLOCK_POS_X - 30.0f, CLOCK_POS_Y + 240.0f },
 		{ 60.0f, 60.0f },
@@ -263,8 +263,9 @@ void UI_Update(void)
 	if (timeEnded || g_ScareGauge->GetValue() <= 0.0f)
 	{
 		hal::dout << "敗北条件を満たしました" << std::endl;
-		// タイマー結果をリザルト画面に渡す
 		Result_SetTimerValue(g_Clock->GetTime());
+		//Result_SetFloor(currentFloor + 1);
+		Result_SetCombo(UI_ScareCombo_GetNumber());  // 連鎖数を追加
 		StartFade(SCENE_ANM_LOSE);
 	}
 	//if (timeEnded || g_ScareGauge->GetValue() <= 0.0f)
