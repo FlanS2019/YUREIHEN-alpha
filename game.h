@@ -21,4 +21,7 @@ void Game_Finalize(void);
 void Game_Update(void);
 void Game_Draw(void);
 
+// チュートリアル用：円盤接触フラグのポインタを返す
+bool* Game_GetEnbanTouchedPtr(void);
+
 #endif // GAME_H
