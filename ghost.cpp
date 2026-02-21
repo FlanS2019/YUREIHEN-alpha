@@ -357,7 +357,7 @@ void Ghost_Update(void)
 		if (g_Ghost)
 		{
 			XMFLOAT3 pos = g_Ghost->GetPos();
-			hal::dout << "Ghost Position: X=" << pos.x << ", Y=" << pos.y << ", Z=" << pos.z << std::endl;
+			hal::dout << "Ghost Position: { " << pos.x << "f, " << pos.y << "f, " << pos.z << "f }" << std::endl;
 		}
 	}
 

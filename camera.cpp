@@ -83,22 +83,25 @@ void Camera::Update()
 	//	return;
 	//}
 
-	m_yaw += static_cast<float>(mouseState.x) * MOUSE_SENSITIVITY * m_sensitivity * 2;
-	m_pitch -= static_cast<float>(mouseState.y) * MOUSE_SENSITIVITY * m_sensitivity * 2;
+	if (mouseState.positionMode == MOUSE_POSITION_MODE_RELATIVE)
+	{
+		m_yaw += static_cast<float>(mouseState.x) * MOUSE_SENSITIVITY * m_sensitivity * 2;
+		m_pitch -= static_cast<float>(mouseState.y) * MOUSE_SENSITIVITY * m_sensitivity * 2;
 
-	if (m_pitch > PITCH_LIMIT_LOOK_UP)
-	{
-		m_pitch = PITCH_LIMIT_LOOK_UP;
-	}
-	else if (m_pitch < PITCH_LIMIT_LOOK_DOWN)
-	{
-		m_pitch = PITCH_LIMIT_LOOK_DOWN;
-	}
+		if (m_pitch > PITCH_LIMIT_LOOK_UP)
+		{
+			m_pitch = PITCH_LIMIT_LOOK_UP;
+		}
+		else if (m_pitch < PITCH_LIMIT_LOOK_DOWN)
+		{
+			m_pitch = PITCH_LIMIT_LOOK_DOWN;
+		}
 
-	if (m_pitch != m_lastPitch || m_yaw != m_lastYaw)
-	{
-		m_lastPitch = m_pitch;
-		m_lastYaw = m_yaw;
+		if (m_pitch != m_lastPitch || m_yaw != m_lastYaw)
+		{
+			m_lastPitch = m_pitch;
+			m_lastYaw = m_yaw;
+		}
 	}
 
 	XMVECTOR targetVec = XMLoadFloat3(&m_targetPos);

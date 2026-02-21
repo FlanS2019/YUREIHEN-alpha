@@ -86,7 +86,7 @@
 #define GHOST_START_POS_FLOOR2_X (-3.0f)
 #define GHOST_START_POS_FLOOR2_Z (-10.0f)
 #define GHOST_START_POS_FLOOR3_X (-4.0f)
-#define GHOST_START_POS_FLOOR3_Z (-15.0f)
+#define GHOST_START_POS_FLOOR3_Z (4.0f)
 
 //=== Minimap 関連定数 ===
 #define MINIMAP_POS_OFFSET   (150.0f) 

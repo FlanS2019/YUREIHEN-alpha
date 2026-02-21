@@ -24,6 +24,11 @@ struct TutorialPage
 	//   条件が true を返したとき自動的に次ページへ進む。
 	std::function<bool()> waitCondition;
 	bool autoWait = false; // trueのとき、ページ表示と同時に自動でテストプレイ開始
+
+	// カメラ移動ページ用
+	bool      cameraOverride = false;  // trueのとき指定カメラ位置に移動
+	XMFLOAT3  cameraPos;               // 目標カメラ位置
+	XMFLOAT3  cameraAt;                // 目標注視点
 };
 
 // ==========================================

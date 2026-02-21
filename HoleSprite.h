@@ -43,7 +43,7 @@ public:
 
 	void Draw()
 	{
-		if (m_EnableHole)
+		if (m_EnableHole && m_RadiusPx > 0.0f)
 		{
 			Sprite::DrawHole(m_CenterPx, m_RadiusPx, m_SoftnessPx);
 		}

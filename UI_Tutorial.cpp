@@ -12,7 +12,7 @@ using namespace DirectX;
 #include "define.h"
 #include "ghost.h"
 #include "camera.h"
-#include "game.h"
+#include "Tutorial_Object.h"
 #include <windows.h>
 #include "debug_ostream.h"
 
@@ -32,6 +32,18 @@ static float g_VignetteRadius    = 0.0f;   // 現在の穴半径
 static bool  g_VignetteFadingOut = false;  // true=縮小中（チュートリアル再開前）
 static const float VIGNETTE_RADIUS_TARGET = 500.0f;
 static const float VIGNETTE_ANIM_SPEED    = 20.0f; // 1フレームあたりの変化量
+
+// カメラオーバーライド用：元のカメラ位置/注視点を退避
+static bool     g_CameraOverrideActive = false;
+static XMFLOAT3 g_SavedCameraPos = { 0,0,0 };
+static XMFLOAT3 g_SavedCameraAt  = { 0,0,0 };
+
+// カメラ滑らか移動用
+static bool     g_IsCameraTransitioning = false;
+static XMFLOAT3 g_CamStartPos = { 0,0,0 };
+static XMFLOAT3 g_CamStartAt  = { 0,0,0 };
+static XMFLOAT3 g_CamEndPos   = { 0,0,0 };
+static XMFLOAT3 g_CamEndAt    = { 0,0,0 };
 
 
 namespace {
@@ -104,16 +116,6 @@ static void InitSkipUI()
 			"[SPACE長押し] スキップ"
 		);
 	}
-
-	// テストプレイ中の操作ヒント（左下）
-	if (!g_pPlayHintFont) {
-		g_pPlayHintFont = new FontRenderer(
-			{ SCREEN_WIDTH / 2.0f, SCREEN_HEIGHT - 30.0f },
-			50.0f, 0.0f, { 1.0f, 1.0f, 1.0f, 1.0f },
-			"[W][A][S][D] 移動  [マウス] 視点"
-		);
-		g_pPlayHintFont->PreCacheGlyphs();
-	}
 }
 
 static void FinalizeSkipUI()
@@ -141,7 +143,10 @@ static void FinalizeSkipUI()
 // ==========================================}
 
 // 通常ページ追加
-static void AddPage(const XMFLOAT2& holeCenter, float holeRadius, const std::vector<std::string>& texts)
+static void AddPage(const XMFLOAT2& holeCenter, float holeRadius,
+	const std::vector<std::string>& texts,
+	XMFLOAT2 textPos = { SCREEN_WIDTH * 0.5f, SCREEN_HEIGHT * 0.5f },
+	float fontSize = 40.0f)
 {
 	g_Pages.emplace_back();
 	TutorialPage& page = g_Pages.back();
@@ -152,10 +157,10 @@ static void AddPage(const XMFLOAT2& holeCenter, float holeRadius, const std::vec
 	for (const auto& text : texts)
 	{
 		page.fonts.push_back(new FontRenderer(
-			{ SCREEN_WIDTH * 0.5f, SCREEN_HEIGHT * 0.5f + yOffset },
-			40.0f, 0.0f, { 1,1,1,1 }, text
+			{ textPos.x, textPos.y + yOffset },
+			fontSize, 0.0f, { 1,1,1,1 }, text
 		));
-		yOffset += 50.0f;
+		yOffset += fontSize + 10.0f;
 	}
 	// waitCondition は nullptr（SPACEで次へ）
 	page.waitCondition = nullptr;
@@ -172,21 +177,95 @@ static void AddPageWithWait(const XMFLOAT2& holeCenter, float holeRadius,
 	g_Pages.back().waitCondition = cond;
 }
 
+// カメラ移動ページ追加：
+//   ページ表示中はカメラを targetPos/targetAt へ移動し、
+//   次ページへ進むときに元のカメラ位置へ戻す
+static void AddPageCamera(const XMFLOAT2& holeCenter, float holeRadius,
+	const std::vector<std::string>& texts,
+	const XMFLOAT3& targetPos, const XMFLOAT3& targetAt,
+	XMFLOAT2 textPos = { SCREEN_WIDTH * 0.5f, SCREEN_HEIGHT * 0.5f },
+	float fontSize = 40.0f)
+{
+	AddPage(holeCenter, holeRadius, texts, textPos, fontSize);
+	TutorialPage& page = g_Pages.back();
+	page.cameraOverride = true;
+	page.cameraPos      = targetPos;
+	page.cameraAt       = targetAt;
+}
+
 // テストプレイページ追加：
 //   ページが表示された瞬間に自動でテストプレイ開始し、
 //   *pFlag が true になったら自動で次ページへ進む
-static void AddTestPlay(const std::vector<std::string>& texts, bool* pFlag)
+static void AddTestPlay(const std::vector<std::string>& texts, bool* pFlag,
+	XMFLOAT2 textPos = { SCREEN_WIDTH * 0.5f, SCREEN_HEIGHT * 0.5f },
+	float fontSize = 40.0f)
 {
-	AddPage({ SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2 }, 0.0f, texts);
-	g_Pages.back().waitCondition = [pFlag]() -> bool {
+	g_Pages.emplace_back();
+	TutorialPage& page = g_Pages.back();
+	page.holeCenter = { SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2 };
+	page.holeRadius = 0.0f;
+
+	float yOffset = 0.0f;
+	for (const auto& text : texts)
+	{
+		page.fonts.push_back(new FontRenderer(
+			{ textPos.x, textPos.y + yOffset },
+			fontSize, 0.0f, { 1,1,1,1 }, text
+		));
+		yOffset += fontSize + 10.0f;
+	}
+	page.waitCondition = [pFlag]() -> bool {
 		return pFlag && *pFlag;
 	};
-	g_Pages.back().autoWait = true;
+	page.autoWait = true;
 }
 
 // ==========================================
 // 条件待機から次ページへ進む内部処理
 // ==========================================
+
+// ページ遷移時のカメラ処理：toPage が cameraOverride なら移動、
+// fromPage が cameraOverride で toPage がそうでなければ元に戻す
+static void SetupCameraTransition(int fromPage, int toPage)
+{
+	Camera* cam = GetCamera();
+	if (!cam) return;
+
+	bool toOverride   = (toPage   >= 0 && toPage   < (int)g_Pages.size() && g_Pages[toPage].cameraOverride);
+	bool fromOverride = (fromPage >= 0 && fromPage < (int)g_Pages.size() && g_Pages[fromPage].cameraOverride);
+
+	if (toOverride || fromOverride)
+	{
+		g_IsCameraTransitioning = true;
+		g_CamStartPos = cam->GetPos();
+		g_CamStartAt  = cam->GetAtPos();
+
+		if (toOverride)
+		{
+			// 初めてオーバーライドするときだけ現在位置を保存
+			if (!g_CameraOverrideActive)
+			{
+				g_SavedCameraPos       = cam->GetPos();
+				g_SavedCameraAt        = cam->GetAtPos();
+				g_CameraOverrideActive = true;
+			}
+			const TutorialPage& p = g_Pages[toPage];
+			g_CamEndPos = p.cameraPos;
+			g_CamEndAt  = p.cameraAt;
+		}
+		else if (fromOverride && g_CameraOverrideActive)
+		{
+			// カメラを元の位置へ戻す
+			g_CamEndPos = g_SavedCameraPos;
+			g_CamEndAt  = g_SavedCameraAt;
+		}
+	}
+	else
+	{
+		g_IsCameraTransitioning = false;
+	}
+}
+
 static void AdvanceToNextPage()
 {
 	int nextPage = g_CurrentPage + 1;
@@ -195,6 +274,7 @@ static void AdvanceToNextPage()
 		UI_Tutorial_End();
 		return;
 	}
+	SetupCameraTransition(g_CurrentPage, nextPage);
 	g_NextPage = nextPage;
 	g_State    = TutorialState::CrossFade;
 	g_CrossFadeProgress = 0.0f;
@@ -209,12 +289,42 @@ static void InitPages()
 		"遊んでくれてありがとう！「幽霊変」の遊び方を説明していくね！"
 	});
 
-	// --- 1 : キー操作説明 ---
-	AddTestPlay({
+	AddPage({ SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2 }, 0.0f, {
 		"まずは操作説明！",
 		"[W][A][S][D] で移動、マウスで視点を動かせるよ",
 		"前に進んで円盤に触れてみよう！"
-	}, Game_GetEnbanTouchedPtr());
+	});
+
+	// ---移動操作説明 ---
+	AddTestPlay(
+		{"[W][A][S][D] 移動、マウスで視点"}, 
+		TutorialObject_GetEnbanTouchedPtr(),
+		{ SCREEN_WIDTH / 2, SCREEN_HEIGHT - 100.0f }
+	);
+
+	AddPage({ SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2 }, 0.0f, {
+		"移動は完璧！",
+		"次はゲームの目的、「敵を驚かせて追い払う！」について説明するね。"
+		});
+
+	AddPageCamera({ SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2 }, 300.0f, 
+		{"これが家具の一つのピアノ。"
+		"[スペースキー]で憑依だよ！" }, 
+		{ -15.0f, 3.0f, 16.5f }, { -24.5f, 0.5f, 16.5f }, 
+		{ SCREEN_WIDTH / 2, SCREEN_HEIGHT - 100.0f }
+	);
+
+	//ここにピアノに憑依するまでのAddTestPlayを入れる
+	AddTestPlay(
+		{ "[W][A][S][D] 移動 [マウス]視点 [スペースキー]憑依" },
+		TutorialObject_GetPianoPossessedPtr(),
+		{ SCREEN_WIDTH / 2, SCREEN_HEIGHT - 100.0f }
+	);
+
+	AddPage({ SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2 }, 0.0f, {
+		"憑依できたね！ おや？この影は？"
+		});
+
 
 	AddPage({ 120.0f, 120.0f }, 150.0f, {
 		"まずはタイマー！",
@@ -477,6 +587,7 @@ void UI_Tutorial_Update(void)
 							UI_Tutorial_End();
 							return;
 						}
+						SetupCameraTransition(g_CurrentPage, g_NextPage);
 						g_State = TutorialState::CrossFade;
 						g_CrossFadeProgress = 0.0f;
 					}
@@ -494,7 +605,38 @@ void UI_Tutorial_Update(void)
 				g_CurrentPage = g_NextPage;
 				g_NextPage    = -1;
 				g_State       = TutorialState::Active;
+				g_IsCameraTransitioning = false;
+
+				// 現在のページがカメラオーバーライドでなければ、オーバーライド状態を解除
+				if (g_CurrentPage >= 0 && g_CurrentPage < (int)g_Pages.size() && !g_Pages[g_CurrentPage].cameraOverride)
+				{
+					g_CameraOverrideActive = false;
+				}
 			}
+
+			// カメラの滑らかな移動（Smoothstep補間）
+			if (g_IsCameraTransitioning)
+			{
+				Camera* cam = GetCamera();
+				if (cam)
+				{
+					float t = g_CrossFadeProgress;
+					float smoothT = t * t * (3.0f - 2.0f * t);
+
+					XMFLOAT3 pos;
+					pos.x = g_CamStartPos.x + (g_CamEndPos.x - g_CamStartPos.x) * smoothT;
+					pos.y = g_CamStartPos.y + (g_CamEndPos.y - g_CamStartPos.y) * smoothT;
+					pos.z = g_CamStartPos.z + (g_CamEndPos.z - g_CamStartPos.z) * smoothT;
+
+					XMFLOAT3 at;
+					at.x = g_CamStartAt.x + (g_CamEndAt.x - g_CamStartAt.x) * smoothT;
+					at.y = g_CamStartAt.y + (g_CamEndAt.y - g_CamStartAt.y) * smoothT;
+					at.z = g_CamStartAt.z + (g_CamEndAt.z - g_CamStartAt.z) * smoothT;
+
+					cam->UpdateView(pos, at);
+				}
+			}
+
 			ApplyPageHole();
 			break;
 		}
@@ -714,7 +856,7 @@ bool UI_Tutorial_IsWaiting(void)
 	return g_IsWaiting;
 }
 
-// 条件待機中に外部から「条件達成」を通知して次ページへ進む
+// 条件_WAIT中に外部から「条件達成」を通知して次ページへ進む
 void UI_Tutorial_ResumeFromWait(void)
 {
 	if (!g_IsWaiting) return;
@@ -743,6 +885,15 @@ void UI_Tutorial_Start()
 
 void UI_Tutorial_End()
 {
+	// カメラオーバーライド中なら元に戻す
+	if (g_CameraOverrideActive)
+	{
+		Camera* cam = GetCamera();
+		if (cam) cam->UpdateView(g_SavedCameraPos, g_SavedCameraAt);
+		g_CameraOverrideActive = false;
+	}
+	g_IsCameraTransitioning = false;
+
 	g_IsTutorial    = false;
 	g_IsPreTutorial = false;
 	g_IsWaiting     = false;

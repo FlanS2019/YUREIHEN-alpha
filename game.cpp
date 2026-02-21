@@ -20,6 +20,7 @@ using namespace DirectX;
 #include "fade.h"
 #include "busters.h"
 #include "Tutorial_Bustars.h"
+#include "Tutorial_Object.h"
 #include "debugdraw.h"
 #include "sound.h"
 #include "minimap.h"
@@ -35,72 +36,10 @@ static SoundData* g_pBGM = nullptr;
 
 static int g_NextFloorID = -1;
 
-// ==========================================
-// チュートリアル用 enban (円盤) モデル
-// ==========================================
-static MODEL* g_pEnbanModel = nullptr;
-static bool     g_EnbanTouched = false;  // 既に触れたか（一度だけ通知）
-
-// 配置位置
-static const XMFLOAT3 ENBAN_POS = { -5.0f, 0.5f, -10.0f };
-static const XMFLOAT3 ENBAN_ROT = { 0.0f, 0.0f,   0.0f };
-static const XMFLOAT3 ENBAN_SCALE = { 1.0f, 1.0f,   1.0f };
-static const float    ENBAN_TOUCH_RADIUS = 0.8f; // プレイヤーが円盤に触れたとみなす距離
-
-static void Enban_Initialize()
-{
-	g_pEnbanModel = ModelLoad("asset\\model\\enban.fbx");
-	g_EnbanTouched = false;
-}
-
-static void Enban_Finalize()
-{
-	if (g_pEnbanModel)
-	{
-		ModelRelease(g_pEnbanModel);
-		g_pEnbanModel = nullptr;
-	}
-	g_EnbanTouched = false;
-}
-
 bool* Game_GetEnbanTouchedPtr(void)
 {
-	return &g_EnbanTouched;
+	return TutorialObject_GetEnbanTouchedPtr();
 }
-
-// 毎フレーム：プレイヤー（Ghost）と円盤の距離を判定
-static void Enban_Update()
-{
-	if (!g_pEnbanModel) return;
-	if (g_EnbanTouched) return;
-	// 待機中のときだけ判定する
-	if (!UI_Tutorial_IsWaiting()) return;
-
-	Ghost* pGhost = GetGhost();
-	if (!pGhost) return;
-
-	XMFLOAT3 gPos = pGhost->GetPos();
-	float dx = gPos.x - ENBAN_POS.x;
-	float dz = gPos.z - ENBAN_POS.z;
-	float dist = sqrtf(dx * dx + dz * dz);
-
-	if (dist <= ENBAN_TOUCH_RADIUS)
-	{
-		g_EnbanTouched = true;
-		// UI_Tutorial_ResumeFromWait() は不要（AddTestPlayがフラグを直接監視）
-	}
-}
-
-static void Enban_Draw()
-{
-	if (!g_pEnbanModel) return;
-	// チュートリアル3階（フロアインデックス2）にいるときだけ描画
-	if (Field_GetCurrentFloor() != 2) return;
-
-	ModelDraw(g_pEnbanModel, ENBAN_POS, ENBAN_ROT, ENBAN_SCALE);
-}
-
-// ==========================================
 
 void Game_Initialize(ID3D11Device* pDevice, ID3D11DeviceContext* pContext)
 {
@@ -116,9 +55,7 @@ void Game_Initialize(ID3D11Device* pDevice, ID3D11DeviceContext* pContext)
 	DebugDraw_Initialize();
 
 	TutorialBusters_Initialize({ 0.0f, PATROL_HEIGHT, 0.0f });
-
-	// チュートリアル円盤の初期化
-	Enban_Initialize();
+	TutorialObject_Initialize();
 
 	g_pBGM = LoadMP3("asset/sound/bgm/HauntedHalloween.mp3");
 	if (g_pBGM) PlaySound(g_pBGM, true);
@@ -142,36 +79,29 @@ void Game_Update(void)
 	}
 	if (fadeState != FADE_NONE) return;
 
-	// ========================================================
-// ポーズメニュー更新
-// ========================================================
 	UI_PauseMenu_Update();
 	if (UI_PauseMenu_IsPaused())
 	{
 		return;
 	}
 
-
-	// ========================================================
-	// チュートリアル更新（IsWaiting中も Update を通す）
-	// ========================================================
 	UI_Tutorial_Update();
 
-	// 条件待機中：ゲームは動かすが円盤判定のみ行う
 	if (UI_Tutorial_IsWaiting())
 	{
 		Camera_Update();
 		Shader_SetCameraPos(GetCamera()->GetPos());
+		Field_Update();
 		Ghost_Update();
-		Enban_Update();
+		Furniture_Update();
+		TutorialObject_Update();
 		return;
 	}
 
 	if (UI_Tutorial_IsActive())
 	{
-		return; // チュートリアルUI表示中はゲーム更新停止
+		return;
 	}
-
 
 	Camera_Update();
 	Shader_SetCameraPos(GetCamera()->GetPos());
@@ -208,8 +138,7 @@ void Game_Draw(void)
 		TutorialBusters_Draw();
 	}
 
-	// チュートリアル円盤の描画
-	Enban_Draw();
+	TutorialObject_Draw();
 
 	Furniture_Draw();
 	Ghost_Draw();
@@ -253,5 +182,5 @@ void Game_Finalize(void)
 	DebugDraw_Finalize();
 
 	TutorialBusters_Finalize();
-	Enban_Finalize();
+	TutorialObject_Finalize();
 }

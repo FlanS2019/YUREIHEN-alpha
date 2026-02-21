@@ -41,6 +41,7 @@
     <ClCompile Include="UI_Tutorial.cpp" />
     <ClCompile Include="shader_2d.cpp" />
     <ClCompile Include="ClickFont.cpp" />
+    <ClCompile Include="Tutorial_Object.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="animation.h" />
@@ -91,6 +92,7 @@
     <ClInclude Include="shader_2d.h" />
     <ClInclude Include="HoleSprite.h" />
     <ClInclude Include="ClickFont.h" />
+    <ClInclude Include="Tutorial_Object.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="convert_to_utf8bom.ps1" />
