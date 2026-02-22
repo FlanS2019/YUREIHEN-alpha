@@ -283,3 +283,5 @@ void UI_DecreaseRemainingTime(float penaltySeconds);
 
 // 現在の階層を取得（看板用）
 int UI_GetCurrentFloor(void);
+
+bool UI_CheckWinCondition(void);
