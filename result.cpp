@@ -16,6 +16,9 @@ using namespace DirectX;
 static Sprite* g_pResultSprite = nullptr;
 static Sprite* g_pPlus = nullptr;
 static Sprite* g_pEqual = nullptr;
+static Sprite* g_pkyou1 = nullptr;
+static Sprite* g_pkyou2 = nullptr;
+static Sprite* g_pkyou3 = nullptr;
 // 数字表示用のNumberクラスに変更
 static Number* g_pTimeNum = nullptr;
 //static Number* g_pFloorNum = nullptr;
@@ -31,6 +34,12 @@ static int g_pResultCombo = 1;  // 連鎖数
 //sound
 static SoundData* g_pBGM = nullptr;
 
+// スコアに応じた画像表示用ヘルパー関数
+static int GetResultScore(void)
+{
+	return static_cast<int>(g_pResultTime) * g_pResultCombo;
+}
+
 void Result_Initialize(ID3D11Device* pDevice, ID3D11DeviceContext* pContext)
 {
 	hal::dout << "Result Initialize Called" << std::endl;
@@ -45,7 +54,7 @@ void Result_Initialize(ID3D11Device* pDevice, ID3D11DeviceContext* pContext)
 	);
 
 	g_pPlus = new Sprite(
-		{ SCREEN_WIDTH / 2.0f - 100, SCREEN_HEIGHT / 2.0f - 25 },		//位置
+		{ SCREEN_WIDTH / 2.0f - 500, SCREEN_HEIGHT / 2.0f - 25 },		//位置
 		{ 130.0f , 130.0f },	//サイズ
 		0.0f,											//回転（度）
 		{ 1.0f, 1.0f, 1.0f, 1.0f },						//RGBA
@@ -54,7 +63,7 @@ void Result_Initialize(ID3D11Device* pDevice, ID3D11DeviceContext* pContext)
 	);
 
 	g_pEqual = new Sprite(
-		{ SCREEN_WIDTH / 2.0f + 100, SCREEN_HEIGHT / 2.0f - 25 },		//位置
+		{ SCREEN_WIDTH / 2.0f - 400.0f, SCREEN_HEIGHT / 2.0f - 25 },		//位置
 		{ 130.0f , 130.0f },	//サイズ
 		0.0f,											//回転（度）
 		{ 1.0f, 1.0f, 1.0f, 1.0f },						//RGBA
@@ -68,7 +77,7 @@ void Result_Initialize(ID3D11Device* pDevice, ID3D11DeviceContext* pContext)
 	// タイム表示用数字スプライト
 	// num.pngが0-9の数字を横に並べた画像と仮定（横10分割、縦1分割）
 	g_pTimeNum = new Number(
-		{ SCREEN_WIDTH / 2.0f + 45.0f, SCREEN_HEIGHT / 2.0f - 100.0f },	// 位置
+		{ SCREEN_WIDTH / 2.0f - 340.0f, SCREEN_HEIGHT / 2.0f - 100.0f },	// 位置
 		{ 60.0f, 60.0f },	// 1桁のサイズ
 		{ 1.0f, 1.0f, 1.0f, 1.0f },	// 色（白）
 		BLENDSTATE_ALFA,
@@ -90,7 +99,7 @@ void Result_Initialize(ID3D11Device* pDevice, ID3D11DeviceContext* pContext)
 
 	// 連鎖(コンボ)表示用数字スプライト（x付き）
 	g_pComboNum = new Number(
-		{ SCREEN_WIDTH / 2.0f + 35, SCREEN_HEIGHT / 2.0f + 50 },	// 位置
+		{ SCREEN_WIDTH / 2.0f - 350, SCREEN_HEIGHT / 2.0f + 40 },	// 位置
 		{ 60.0f, 60.0f },	// 1桁のサイズ
 		{ 1.0f, 1.0f, 1.0f, 1.0f },	// 色（白）
 		BLENDSTATE_ALFA,
@@ -102,7 +111,7 @@ void Result_Initialize(ID3D11Device* pDevice, ID3D11DeviceContext* pContext)
 
 	// 結果スコア表示用数字スプライト（equal.pngの右側）
 	g_pResultNum = new Number(
-		{ SCREEN_WIDTH / 2.0f + 250.0f, SCREEN_HEIGHT / 2.0f - 25.0f },	// equal.pngの右側
+		{ SCREEN_WIDTH / 2.0f - 270.0f, SCREEN_HEIGHT / 2.0f - 25.0f },	// equal.pngの右側
 		{ 60.0f, 60.0f },	// 1桁のサイズ
 		{ 1.0f, 1.0f, 1.0f, 1.0f },	// 色（白）
 		BLENDSTATE_ALFA,
@@ -113,7 +122,7 @@ void Result_Initialize(ID3D11Device* pDevice, ID3D11DeviceContext* pContext)
 
 	// タイマーラベル表示用フォント
 	g_pTimeLabelFont = new FontRenderer(
-		{ SCREEN_WIDTH / 2.0f - 100.0f, SCREEN_HEIGHT / 2.0f - 100.0f },	// 位置
+		{ SCREEN_WIDTH / 2.0f - 500.0f, SCREEN_HEIGHT / 2.0f - 100.0f },	// 位置
 		60.0f,		// フォントサイズ
 		0.0f,		// 回転
 		{ 1.0f, 1.0f, 1.0f, 1.0f },	// 色（白）
@@ -131,15 +140,42 @@ void Result_Initialize(ID3D11Device* pDevice, ID3D11DeviceContext* pContext)
 
 	// 連鎖ラベル表示用フォント
 	g_pComboLabelFont = new FontRenderer(
-		{ SCREEN_WIDTH / 2.0f - 100.f, SCREEN_HEIGHT / 2.0f + 50 },	// 位置
+		{ SCREEN_WIDTH / 2.0f - 500.f, SCREEN_HEIGHT / 2.0f + 50 },	// 位置
 		60.0f,		// フォントサイズ
 		0.0f,		// 回転
 		{ 1.0f, 1.0f, 1.0f, 1.0f },	// 色（白）
 		"Combo:"
 	);
+
+	// 凶、恐、虚の絵
+	g_pkyou1 = new Sprite(//凶
+		{ SCREEN_WIDTH / 2.0f, SCREEN_HEIGHT / 2.0f },		//位置
+		{ 500,500 },	//サイズ
+		0.0f,											//回転（度）
+		{ 1.0f, 1.0f, 1.0f, 1.0f },						//RGBA
+		BLENDSTATE_ALFA,								//BlendState
+		L"asset\\yureihen\\kyou1.png"					//テクスチャパス
+	);
+	g_pkyou2 = new Sprite(//恐
+		{ SCREEN_WIDTH / 2.0f + 140, SCREEN_HEIGHT / 2.0f },		//位置
+		{ 500,500 },	//サイズ
+		0.0f,											//回転（度）
+		{ 1.0f, 1.0f, 1.0f, 1.0f },						//RGBA
+		BLENDSTATE_ALFA,								//BlendState
+		L"asset\\yureihen\\kyou2.png"					//テクスチャパス
+	);
+	g_pkyou3 = new Sprite(//虚
+		{ SCREEN_WIDTH / 2.0f + 240, SCREEN_HEIGHT / 2.0f },		//位置
+		{ 500,500 },	//サイズ
+		0.0f,											//回転（度）
+		{ 1.0f, 1.0f, 1.0f, 1.0f },						//RGBA
+		BLENDSTATE_ALFA,								//BlendState
+		L"asset\\yureihen\\kyou3.png"					//テクスチャパス
+	);
+
 	// サウンド再生
 	g_pBGM = LoadMP3("asset/sound/bgm/HauntedHalloween.mp3");
-	if (g_pBGM) 
+	if (g_pBGM)
 	{
 		PlaySound(g_pBGM, true);
 	}
@@ -168,7 +204,7 @@ void Result_Initialize(ID3D11Device* pDevice, ID3D11DeviceContext* pContext)
 	// 結果スコア（時間×コンボ）を計算して設定
 	if (g_pResultNum)
 	{
-		int resultScore = static_cast<int>(g_pResultTime) * g_pResultCombo;  // 小数点以下切り捨て
+		int resultScore = GetResultScore();
 		g_pResultNum->SetNumber(resultScore);
 	}
 }
@@ -188,6 +224,24 @@ void Result_Draw(void)
 	g_pResultSprite->Draw();
 	g_pPlus->Draw();
 	g_pEqual->Draw();
+
+	// スコアに応じた画像を表示（0-200：凶、201-400：恐、401-600：虚）
+	int resultScore = GetResultScore();
+	if (resultScore >= 0 && resultScore <= 200)
+	{
+		if (g_pkyou1)
+			g_pkyou1->Draw();
+	}
+	else if (resultScore >= 201 && resultScore <= 400)
+	{
+		if (g_pkyou2)
+			g_pkyou2->Draw();
+	}
+	else if (resultScore >= 401 && resultScore <= 600)
+	{
+		if (g_pkyou3)
+			g_pkyou3->Draw();
+	}
 
 	// タイマーラベルを描画
 	if (g_pTimeLabelFont)
@@ -254,6 +308,20 @@ void Result_Finalize(void)
 		g_pEqual = nullptr;
 	}
 
+	if (g_pkyou1) {
+		delete g_pkyou1;
+		g_pkyou1 = nullptr;
+	}
+	if (g_pkyou2) {
+		delete g_pkyou2;
+		g_pkyou2 = nullptr;
+	}
+
+	if (g_pkyou3) {
+		delete g_pkyou3;
+		g_pkyou3 = nullptr;
+	}
+
 	if (g_pTimeNum) {
 		delete g_pTimeNum;
 		g_pTimeNum = nullptr;
@@ -284,7 +352,7 @@ void Result_Finalize(void)
 		g_pResultNum = nullptr;
 	}
 	// BGM解放
-	if (g_pBGM) 
+	if (g_pBGM)
 	{
 		StopSound(g_pBGM);
 		UnloadSound(g_pBGM);
@@ -308,7 +376,7 @@ void Result_SetTimerValue(float time)
 	// 時間が更新されたら、結果スコアを再計算
 	if (g_pResultNum)
 	{
-		int resultScore = static_cast<int>(g_pResultTime) * g_pResultCombo;  // 小数点以下切り捨て
+		int resultScore = GetResultScore();
 		g_pResultNum->SetNumber(resultScore);
 	}
 }
@@ -337,7 +405,7 @@ void Result_SetCombo(int combo)
 	// コンボが更新されたら、結果スコアを再計算
 	if (g_pResultNum)
 	{
-		int resultScore = static_cast<int>(g_pResultTime) * g_pResultCombo;  // 小数点以下切り捨て
+		int resultScore = GetResultScore();
 		g_pResultNum->SetNumber(resultScore);
 	}
 }
