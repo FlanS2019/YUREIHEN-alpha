@@ -8,3 +8,4 @@ void Animation_Win_Initialize(ID3D11Device* pDevice, ID3D11DeviceContext* pConte
 void Animation_Win_Update(void);
 void Animation_Win_Draw(void);
 void Animation_Win_Finalize(void);
+void WinAnim_SetResultData(float time, int combo);
