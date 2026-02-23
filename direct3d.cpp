@@ -25,6 +25,10 @@ static ID3D11DepthStencilView* g_pDepthStencilView = nullptr;
 static D3D11_TEXTURE2D_DESC g_BackBufferDesc{};
 static D3D11_VIEWPORT g_Viewport{};////////////////追加
 
+// ウィンドウのクライアントサイズ（描画先となる実ピクセル数）
+static float g_ClientWidth  = DRAW_SCREEN_WIDTH;
+static float g_ClientHeight = DRAW_SCREEN_HEIGHT;
+
 static bool configureBackBuffer(); // バックバッファの設定・生成
 static void releaseBackBuffer(); // バックバッファの解放
 
@@ -185,20 +189,12 @@ void	SetDepthTest(bool flg)
 	if (flg == true)
 	{
 		g_pDeviceContext->OMSetDepthStencilState(g_DepthStateEnable, NULL);
+		Direct3D_SetViewport3D(); // 3D描画：アスペクト比を保ったビューポート
 	}
 	else
 	{
 		g_pDeviceContext->OMSetDepthStencilState(g_DepthStateDisable, NULL);
-		// 2D描画用に必要な状態をプリセット
-		// ビューポート設定をリセット（画面全体を対象にする）
-		D3D11_VIEWPORT viewport;
-		viewport.TopLeftX = 0.0f;
-		viewport.TopLeftY = 0.0f;
-		viewport.Width = static_cast<float>(Direct3D_GetBackBufferWidth());
-		viewport.Height = static_cast<float>(Direct3D_GetBackBufferHeight());
-		viewport.MinDepth = 0.0f;
-		viewport.MaxDepth = 1.0f;
-		g_pDeviceContext->RSSetViewports(1, &viewport);
+		Direct3D_SetViewport2D(); // 2D描画：バックバッファ全体
 	}
 }
 
@@ -279,6 +275,68 @@ unsigned int Direct3D_GetBackBufferHeight()
 	return g_BackBufferDesc.Height;
 }
 
+// ウィンドウのクライアントサイズが変わったときに呼ぶ
+void Direct3D_ResizeWindow(unsigned int clientW, unsigned int clientH)
+{
+	g_ClientWidth  = (clientW  > 0) ? static_cast<float>(clientW)  : 1.0f;
+	g_ClientHeight = (clientH > 0) ? static_cast<float>(clientH) : 1.0f;
+}
+
+// 3D描画用：DRAW_SCREEN の縦横比を保ったレターボックス/ピラーボックスビューポートを設定
+void Direct3D_SetViewport3D()
+{
+	const float targetAspect = DRAW_SCREEN_WIDTH / DRAW_SCREEN_HEIGHT;
+	const float windowAspect = g_ClientWidth / g_ClientHeight;
+
+	float vpW, vpH, vpX, vpY;
+
+	if (windowAspect > targetAspect)
+	{
+		// ウィンドウが横長 → 縦に合わせて横をトリミング（ピラーボックス）
+		// ウィンドウが横長なので縦が見切れずに収まり、横が余る…
+		// 指示：「ウィンドウが横長→縦を見切れ」= 縦方向にはみ出させる
+		// つまり横を画面幅いっぱいに使い、縦がはみ出す（縦の上下が見えない）
+		vpW = g_ClientWidth;
+		vpH = g_ClientWidth / targetAspect;
+		vpX = 0.0f;
+		vpY = (g_ClientHeight - vpH) * 0.5f;
+	}
+	else
+	{
+		// ウィンドウが縦長 → 横を見切れにする
+		// 横方向にはみ出させる（横の左右が見えない）
+		vpH = g_ClientHeight;
+		vpW = g_ClientHeight * targetAspect;
+		vpX = (g_ClientWidth - vpW) * 0.5f;
+		vpY = 0.0f;
+	}
+
+	// バックバッファ座標系に変換（バックバッファは DRAW_SCREEN_WIDTH x DRAW_SCREEN_HEIGHT）
+	float scaleX = static_cast<float>(g_BackBufferDesc.Width)  / g_ClientWidth;
+	float scaleY = static_cast<float>(g_BackBufferDesc.Height) / g_ClientHeight;
+
+	D3D11_VIEWPORT vp;
+	vp.TopLeftX = vpX * scaleX;
+	vp.TopLeftY = vpY * scaleY;
+	vp.Width    = vpW * scaleX;
+	vp.Height   = vpH * scaleY;
+	vp.MinDepth = 0.0f;
+	vp.MaxDepth = 1.0f;
+	g_pDeviceContext->RSSetViewports(1, &vp);
+}
+
+// 2D描画用：バックバッファ全体をビューポートに設定
+void Direct3D_SetViewport2D()
+{
+	D3D11_VIEWPORT vp;
+	vp.TopLeftX = 0.0f;
+	vp.TopLeftY = 0.0f;
+	vp.Width    = static_cast<float>(g_BackBufferDesc.Width);
+	vp.Height   = static_cast<float>(g_BackBufferDesc.Height);
+	vp.MinDepth = 0.0f;
+	vp.MaxDepth = 1.0f;
+	g_pDeviceContext->RSSetViewports(1, &vp);
+}
 
 ////////////////////////////////////////////////////////
 
@@ -385,4 +443,24 @@ void SetBlendState(BLENDSTATE blend)
 
 	g_pDeviceContext->OMSetBlendState(bState[blend], bFactor, 0xffffffff);
 
+}
+
+void Direct3D_Resize(UINT width, UINT height)
+{
+	// 新しい幅と高さを設定
+	g_BackBufferDesc.Width = width;
+	g_BackBufferDesc.Height = height;
+
+	// バックバッファとデプスステンシルバッファを再設定
+	releaseBackBuffer();
+	configureBackBuffer();
+
+	// ビューポートの設定
+	g_Viewport.TopLeftX = 0.0f;
+	g_Viewport.TopLeftY = 0.0f;
+	g_Viewport.Width = static_cast<FLOAT>(width);
+	g_Viewport.Height = static_cast<FLOAT>(height);
+	g_Viewport.MinDepth = 0.0f;
+	g_Viewport.MaxDepth = 1.0f;
+	g_pDeviceContext->RSSetViewports(1, &g_Viewport);
 }

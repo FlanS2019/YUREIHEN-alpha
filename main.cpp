@@ -76,13 +76,13 @@ int APIENTRY WinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance,
 	wc.hInstance = hInstance;//このアプリのこと
 	wc.hCursor = LoadCursor(NULL, IDC_ARROW);//cursorの種類
 	wc.hbrBackground = (HBRUSH)(COLOR_BACKGROUND);//背景色
-	RegisterClass(&wc);//構構造体をwindowsにセット
+	RegisterClass(&wc);//構構体をwindowsにセット
 
 	//ウィンドウサイズの調整
 	//クライアント領域（描画領域）のサイズを表す矩形
 	RECT window_rect = { 0, 0, (LONG)DRAW_SCREEN_WIDTH, (LONG)DRAW_SCREEN_HEIGHT };
 	//ウィンドウスタイルの設定
-	DWORD window_style = WS_OVERLAPPEDWINDOW ^ WS_THICKFRAME;
+	DWORD window_style = WS_OVERLAPPEDWINDOW;
 	//指定のクライアント領域＋ウィンドウスタイルでの全体のサイズを計算
 	AdjustWindowRect(&window_rect, window_style, FALSE);
 	//矩形の横と縦のサイズを計算
@@ -99,10 +99,10 @@ int APIENTRY WinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance,
 
 	//ウィンドウの作成
 	HWND hWnd = CreateWindow(
-		CLASS_NAME,		//作りたいウィンドウ
-		WINDOW_CAPTION,	//ウィンドウに表示するタイトル
-		window_style,//標準的なサイズのウィンドウ　サイズ変更禁止
-		CW_USEDEFAULT,	//以下default
+		CLASS_NAME,
+		WINDOW_CAPTION,
+		window_style, // リサイズ可能なウィンドウ
+		CW_USEDEFAULT,
 		CW_USEDEFAULT,
 		window_width,//ウィンドウの幅
 		window_height,//ウィンドウの高さ
@@ -117,6 +117,13 @@ int APIENTRY WinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance,
 	//ウィンドウ内部の更新要求
 	UpdateWindow(hWnd);
 	Direct3D_Initialize(hWnd);
+
+	// 初期ウィンドウクライアントサイズをDirect3Dに通知
+	{
+		RECT cr;
+		GetClientRect(hWnd, &cr);
+		Direct3D_ResizeWindow(cr.right - cr.left, cr.bottom - cr.top);
+	}
 
 	// 全画面・ウィンドウ切替用のキー入力を受け取るために Direct3D_Initialize の後に行う
 	// (スワップチェーンへのアクセスが必要な場合があるため)
@@ -180,6 +187,45 @@ int APIENTRY WinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance,
 						// ここでは一旦 Direct3D_Initialize 時の状態に任せるか、
 						// DXGI の機能を利用する。
 						// 既存のコードでは swap_chain_desc.Windowed = TRUE; で初期化されている。
+					}
+				}
+
+				// F11キーでボーダレスウィンドウ切り替え
+				if (Keyboard_IsKeyDownTrigger(KK_F11))
+				{
+					static bool isBorderless = false;
+					static RECT prevWindowRect = {};
+					isBorderless = !isBorderless;
+
+					if (isBorderless)
+					{
+						// 現在のウィンドウ位置・サイズを保存
+						GetWindowRect(hWnd, &prevWindowRect);
+
+						// モニターのサイズを取得
+						HMONITOR hMonitor = MonitorFromWindow(hWnd, MONITOR_DEFAULTTONEAREST);
+						MONITORINFO mi = {};
+						mi.cbSize = sizeof(mi);
+						GetMonitorInfo(hMonitor, &mi);
+
+						// ボーダレス（フレームなし）スタイルに変更
+						SetWindowLong(hWnd, GWL_STYLE, WS_POPUP | WS_VISIBLE);
+						SetWindowPos(hWnd, HWND_TOP,
+							mi.rcMonitor.left, mi.rcMonitor.top,
+							mi.rcMonitor.right - mi.rcMonitor.left,
+							mi.rcMonitor.bottom - mi.rcMonitor.top,
+							SWP_FRAMECHANGED);
+					}
+					else
+					{
+						// 通常ウィンドウスタイルに戻す
+						DWORD restored_style = WS_OVERLAPPEDWINDOW;
+						SetWindowLong(hWnd, GWL_STYLE, restored_style | WS_VISIBLE);
+						SetWindowPos(hWnd, HWND_TOP,
+							prevWindowRect.left, prevWindowRect.top,
+							prevWindowRect.right - prevWindowRect.left,
+							prevWindowRect.bottom - prevWindowRect.top,
+							SWP_FRAMECHANGED);
 					}
 				}
 
@@ -268,9 +314,9 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 		// ウィンドウサイズが変更された（全画面化など）場合にバックバッファを再構成する
 		if (wParam != SIZE_MINIMIZED)
 		{
-			// Direct3D 側のバックバッファサイズ更新処理を呼び出す必要がある
-			// 現状の Direct3D_Initialize 等では対応していないため、
-			// 必要に応じて ResizeBuffer などを実装する。
+			unsigned int newW = LOWORD(lParam);
+			unsigned int newH = HIWORD(lParam);
+			Direct3D_ResizeWindow(newW, newH);
 		}
 		break;
 	case WM_SYSKEYDOWN:

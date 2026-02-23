@@ -299,19 +299,19 @@ bool FontRenderer::AddGlyphToAtlas(int glyphIndex) {
 		return false;
 	}
 
-	// キャッシュに既に存在する場合
 	if (m_CharCache.find(glyphIndex) != m_CharCache.end()) {
 		return true;
 	}
 
-	// キャッシュ満杯時は LRU グリフを削除
 	if ((int)m_CharCache.size() >= FONT_MAX_CACHE_GLYPHS) {
 		EvictLRUGlyph();
 	}
 
-	// グリフのバウンディングボックスを取得
+	// スケールをDRAW_SCALE_X倍にして4K解像度でラスタライズ
+	float scale = stbtt_ScaleForPixelHeight(m_pFontInfo, m_FontSize * DRAW_SCALE_X);
+
 	int x0, y0, x1, y1;
-	stbtt_GetGlyphBitmapBox(m_pFontInfo, glyphIndex, stbtt_ScaleForPixelHeight(m_pFontInfo, m_FontSize), stbtt_ScaleForPixelHeight(m_pFontInfo, m_FontSize), &x0, &y0, &x1, &y1);
+	stbtt_GetGlyphBitmapBox(m_pFontInfo, glyphIndex, scale, scale, &x0, &y0, &x1, &y1);
 
 	int glyph_width = x1 - x0;
 	int glyph_height = y1 - y0;
@@ -338,7 +338,6 @@ bool FontRenderer::AddGlyphToAtlas(int glyphIndex) {
 	}
 
 	// グリフをビットマップにレンダリング
-	float scale = stbtt_ScaleForPixelHeight(m_pFontInfo, m_FontSize);
 	unsigned char* glyph_bitmap = (unsigned char*)malloc(glyph_width * glyph_height);
 	stbtt_MakeGlyphBitmap(m_pFontInfo, glyph_bitmap, glyph_width, glyph_height, glyph_width, scale, scale, glyphIndex);
 
@@ -384,19 +383,19 @@ bool FontRenderer::AddGlyphToAtlasBatch(int glyphIndex) {
 		return false;
 	}
 
-	// キャッシュに既に存在する場合
 	if (m_CharCache.find(glyphIndex) != m_CharCache.end()) {
 		return false;
 	}
 
-	// キャッシュ満杯時は LRU グリフを削除
 	if ((int)m_CharCache.size() >= FONT_MAX_CACHE_GLYPHS) {
 		EvictLRUGlyph();
 	}
 
-	// グリフのバウンディングボックスを取得
+	// スケールをDRAW_SCALE_X倍にして4K解像度でラスタライズ
+	float scale = stbtt_ScaleForPixelHeight(m_pFontInfo, m_FontSize * DRAW_SCALE_X);
+
 	int x0, y0, x1, y1;
-	stbtt_GetGlyphBitmapBox(m_pFontInfo, glyphIndex, stbtt_ScaleForPixelHeight(m_pFontInfo, m_FontSize), stbtt_ScaleForPixelHeight(m_pFontInfo, m_FontSize), &x0, &y0, &x1, &y1);
+	stbtt_GetGlyphBitmapBox(m_pFontInfo, glyphIndex, scale, scale, &x0, &y0, &x1, &y1);
 
 	int glyph_width = x1 - x0;
 	int glyph_height = y1 - y0;
@@ -405,7 +404,7 @@ bool FontRenderer::AddGlyphToAtlasBatch(int glyphIndex) {
 		CharInfo info = { 0, 0, 0, 0, 0, glyphIndex };
 		m_CharCache[glyphIndex] = info;
 		m_CacheLRU.push_back(glyphIndex);
-		return false; // 空グリフなのでテクスチャ更新不要
+		return false;
 	}
 
 	if (m_AtlasNextX + glyph_width > m_AtlasWidth) {
@@ -418,7 +417,6 @@ bool FontRenderer::AddGlyphToAtlasBatch(int glyphIndex) {
 		return false;
 	}
 
-	float scale = stbtt_ScaleForPixelHeight(m_pFontInfo, m_FontSize);
 	unsigned char* glyph_bitmap = (unsigned char*)malloc(glyph_width * glyph_height);
 	stbtt_MakeGlyphBitmap(m_pFontInfo, glyph_bitmap, glyph_width, glyph_height, glyph_width, scale, scale, glyphIndex);
 
@@ -448,7 +446,7 @@ bool FontRenderer::AddGlyphToAtlasBatch(int glyphIndex) {
 
 	free(glyph_bitmap);
 
-	return true; // テクスチャ更新が必要
+	return true;
 }
 
 // LRU グリフを削除
@@ -497,9 +495,7 @@ void FontRenderer::Draw() {
 
 	Shader_Begin();
 
-	// 描画解像度に合わせた射影行列
 	Shader_SetMatrix(XMMatrixOrthographicOffCenterLH(0.0f, DRAW_SCREEN_WIDTH, DRAW_SCREEN_HEIGHT, 0.0f, 0.0f, 1.0f));
-
 	Shader_SetWorldMatrix(XMMatrixIdentity());
 	Shader_SetMaterialColor(m_Color);
 	Shader_SetPointLight(nullptr);
@@ -507,9 +503,10 @@ void FontRenderer::Draw() {
 	pContext->PSSetShaderResources(0, 1, &m_pSRV);
 	SetBlendState(BLENDSTATE_ALFA);
 
-	float scale = stbtt_ScaleForPixelHeight(m_pFontInfo, m_FontSize);
+	// グリフは m_FontSize * DRAW_SCALE_X でラスタライズ済みなので同じスケールで計算する
+	float scale = stbtt_ScaleForPixelHeight(m_pFontInfo, m_FontSize * DRAW_SCALE_X);
 
-	// テキスト全体の幅を計算
+	// テキスト全体の幅を計算（4K単位）
 	float text_width = 0.0f;
 	size_t temp_i = 0;
 	int prev_glyph = -1;
@@ -545,8 +542,8 @@ void FontRenderer::Draw() {
 		prev_glyph = glyph_index;
 	}
 
-	// HD論理座標→描画解像度へスケーリング
-	float draw_start_x = m_Position.x * DRAW_SCALE_X - (text_width * DRAW_SCALE_X) / 2.0f;
+	// HD論理座標→描画解像度へスケーリング（幅はすでに4K単位なので中心オフセットのみ調整）
+	float draw_start_x = m_Position.x * DRAW_SCALE_X - text_width / 2.0f;
 	float draw_current_x = draw_start_x;
 	float draw_current_y = m_Position.y * DRAW_SCALE_Y;
 
@@ -563,14 +560,14 @@ void FontRenderer::Draw() {
 		if (codepoint == 0x0020) {
 			int advance_width, left_side_bearing;
 			stbtt_GetGlyphHMetrics(m_pFontInfo, glyph_index, &advance_width, &left_side_bearing);
-			draw_current_x += (float)advance_width * scale * DRAW_SCALE_X;
+			draw_current_x += (float)advance_width * scale;
 			prev_glyph_draw = glyph_index;
 			continue;
 		}
 		if (codepoint == 0x3000) {
 			int advance_width, left_side_bearing;
 			stbtt_GetGlyphHMetrics(m_pFontInfo, glyph_index, &advance_width, &left_side_bearing);
-			draw_current_x += (float)advance_width * scale * DRAW_SCALE_X;
+			draw_current_x += (float)advance_width * scale;
 			prev_glyph_draw = glyph_index;
 			continue;
 		}
@@ -588,8 +585,9 @@ void FontRenderer::Draw() {
 		int x0, y0, x1, y1;
 		stbtt_GetGlyphBitmapBox(m_pFontInfo, glyph_index, scale, scale, &x0, &y0, &x1, &y1);
 
-		float actual_glyph_width  = (float)(x1 - x0);
-		float actual_glyph_height = (float)(y1 - y0);
+		// グリフサイズはすでに4Kピクセル（ラスタライズ済みサイズ＝アトラス上のサイズ）
+		float actual_glyph_width  = info.x1 - info.x0;
+		float actual_glyph_height = info.y1 - info.y0;
 		float margin = actual_glyph_width * FONT_MARGIN_RATIO;
 
 		float u0 = info.x0 / (float)m_AtlasWidth;
@@ -597,12 +595,12 @@ void FontRenderer::Draw() {
 		float u1 = info.x1 / (float)m_AtlasWidth;
 		float v1 = info.y1 / (float)m_AtlasHeight;
 
-		// Y オフセットもスケーリング
-		float y_offset = draw_current_y + (float)y0 * DRAW_SCALE_Y + m_FontSize * FONT_OFFSET_Y * DRAW_SCALE_Y;
+		// y0はすでに4Kスケール（scaleがDRAW_SCALE_X倍済み）
+		float y_offset = draw_current_y + (float)y0 + m_FontSize * FONT_OFFSET_Y * DRAW_SCALE_Y;
 
-		// グリフサイズも倍率をかけて描画
-		float char_pixel_width  = actual_glyph_width  * DRAW_SCALE_X;
-		float char_pixel_height = actual_glyph_height * DRAW_SCALE_Y;
+		// グリフサイズはすでに4Kピクセルなのでそのまま使う
+		float char_pixel_width  = actual_glyph_width;
+		float char_pixel_height = actual_glyph_height;
 
 		D3D11_MAPPED_SUBRESOURCE msr;
 		pContext->Map(m_pVertexBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &msr);
@@ -644,7 +642,7 @@ void FontRenderer::Draw() {
 		pContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
 		pContext->Draw(m_VertexCount, 0);
 
-		draw_current_x += ((float)advance_width * scale + (float)kerning * scale + margin) * DRAW_SCALE_X;
+		draw_current_x += ((float)advance_width * scale + (float)kerning * scale + margin);
 		prev_glyph_draw = glyph_index;
 		char_count++;
 	}

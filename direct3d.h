@@ -39,6 +39,9 @@ ID3D11DeviceContext* Direct3D_GetDeviceContext(); // デバイスコンテキス
 unsigned int Direct3D_GetBackBufferWidth(); // バックバッファの幅を取得
 unsigned int Direct3D_GetBackBufferHeight(); // バックバッファの高さを取得
 
+void Direct3D_ResizeWindow(unsigned int clientW, unsigned int clientH); // ウィンドウリサイズ時の通知
+void Direct3D_SetViewport3D();  // 3D描画用：アスペクト比を保ったビューポートを設定
+void Direct3D_SetViewport2D();  // 2D描画用：バックバッファ全体をビューポートに設定
 
 void	SetDepthTest(bool flg);	//深度テスト切り替え
 void	SetDepthWrite(bool flg); // 深度書き込み切り替え
