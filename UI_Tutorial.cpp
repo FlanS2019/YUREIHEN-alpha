@@ -83,13 +83,16 @@ static Sprite* g_pSkipBarFG = nullptr;
 // テストプレイ中の操作ヒント
 static FontRenderer* g_pPlayHintFont = nullptr;
 
+// ページ数表示テキスト
+static FontRenderer* g_pPageCountFont = nullptr;
+
 static void InitSkipUI()
 {
 	// スキップバー背景
 	if (!g_pSkipBarBG) {
 		g_pSkipBarBG = new Sprite(
-			{ SCREEN_WIDTH / 2.0f, SCREEN_HEIGHT - 80.0f },
-			{ 300.0f, 10.0f },
+			{ TUT_SKIPBAR_CENTER_X, TUT_SKIPBAR_CENTER_Y },
+			{ TUT_SKIPBAR_WIDTH, TUT_SKIPBAR_HEIGHT },
 			0,
 			{ 0.3f, 0.3f, 0.3f, 0.6f },
 			BLENDSTATE_ALFA,
@@ -99,19 +102,18 @@ static void InitSkipUI()
 	// スキップバー前景（ゲージ）
 	if (!g_pSkipBarFG) {
 		g_pSkipBarFG = new Sprite(
-			{ SCREEN_WIDTH / 2.0f, SCREEN_HEIGHT - 80.0f },
-			{ 300.0f, 10.0f },
+			{ TUT_SKIPBAR_CENTER_X, TUT_SKIPBAR_CENTER_Y },
+			{ TUT_SKIPBAR_WIDTH, TUT_SKIPBAR_HEIGHT },
 			0,
 			{ 1.0f, 0.85f, 0.2f, 0.9f },
 			BLENDSTATE_ALFA,
 			L"asset/texture/fade.png"
 		);
 	}
-
-	// スキップ案内テキスト
+	// スキップ案内テキスト（バーの上）
 	if (!g_pSkipGuideFont) {
 		g_pSkipGuideFont = new FontRenderer(
-			{ SCREEN_WIDTH / 2.0f, SCREEN_HEIGHT - 110.0f },
+			{ TUT_SKIPBAR_CENTER_X, TUT_SKIPBAR_CENTER_Y + TUT_SKIP_LABEL_OFFSET_Y },
 			25.0f, 0.0f, { 1.0f, 0.85f, 0.2f, 1.0f },
 			"[SPACE長押し] スキップ"
 		);
@@ -135,6 +137,10 @@ static void FinalizeSkipUI()
 	if (g_pPlayHintFont) {
 		delete g_pPlayHintFont;
 		g_pPlayHintFont = nullptr;
+	}
+	if (g_pPageCountFont) {
+		delete g_pPageCountFont;
+		g_pPageCountFont = nullptr;
 	}
 }
 
@@ -433,9 +439,16 @@ void UI_Tutorial_Initialize(ID3D11Device* pDevice, ID3D11DeviceContext* pContext
 	InitPages();
 
 	g_pGuideFont = new FontRenderer(
-		{ SCREEN_WIDTH / 2.0f, SCREEN_HEIGHT - 40.0f },
+		{ TUT_SKIPBAR_CENTER_X, TUT_SKIPBAR_CENTER_Y + TUT_GUIDE_OFFSET_Y },
 		30.0f, 0.0f, { 1.0f, 0.85f, 0.2f, 1.0f },
 		"[SPACE] 次へ"
+	);
+
+	// ページ数表示（バーのさらに上）
+	g_pPageCountFont = new FontRenderer(
+		{ TUT_SKIPBAR_CENTER_X, TUT_SKIPBAR_CENTER_Y + TUT_PAGECOUNT_OFFSET_Y },
+		22.0f, 0.0f, { 1.0f, 0.85f, 0.2f, 1.0f },
+		"ページ 1 / 1"
 	);
 
 	InitSkipUI();
@@ -547,6 +560,7 @@ void UI_Tutorial_Update(void)
 				g_IsWaiting         = true;
 				g_VignetteRadius    = 0.0f;
 				g_VignetteFadingOut = false;
+				g_FadeAlpha         = 0.0f; // テキストをHoleと同時にフェードインさせる
 				return;
 			}
 
@@ -604,7 +618,6 @@ void UI_Tutorial_Update(void)
 				// 遷移完了：新ページをカレントに
 				g_CurrentPage = g_NextPage;
 				g_NextPage    = -1;
-				g_State       = TutorialState::Active;
 				g_IsCameraTransitioning = false;
 
 				// 現在のページがカメラオーバーライドでなければ、オーバーライド状態を解除
@@ -612,6 +625,21 @@ void UI_Tutorial_Update(void)
 				{
 					g_CameraOverrideActive = false;
 				}
+
+				// autoWaitページならActiveを経由せず即Waiting遷移（テキストのちかちき防止）
+				if (g_CurrentPage >= 0 && g_CurrentPage < (int)g_Pages.size() &&
+					g_Pages[g_CurrentPage].autoWait)
+				{
+					g_IsTutorial        = false;
+					g_IsWaiting         = true;
+					g_VignetteRadius    = 0.0f;
+					g_VignetteFadingOut = false;
+					g_FadeAlpha         = 0.0f;
+					g_State             = TutorialState::Active; // 復帰後のためにActiveにしておく
+					return;
+				}
+
+				g_State = TutorialState::Active;
 			}
 
 			// カメラの滑らかな移動（Smoothstep補間）
@@ -694,8 +722,8 @@ void UI_Tutorial_Draw(void)
 			}
 		}
 
-		// 操作ヒントをビネット拡大完了後に表示（アルファをビネット進行に合わせる）
-		if (g_pPlayHintFont && !g_VignetteFadingOut)
+		// 操作ヒントをビネット進行に合わせて表示・フェードアウト
+		if (g_pPlayHintFont)
 		{
 			float hintAlpha = g_VignetteRadius / VIGNETTE_RADIUS_TARGET * 0.85f;
 			XMFLOAT4 col = g_pPlayHintFont->GetColor();
@@ -738,9 +766,11 @@ void UI_Tutorial_Draw(void)
 			}
 		}
 
-		// 新ページ描画（フェードイン）
+		// 新ページ描画（フェードイン）- autoWaitページのテキストはここでは描画しない
 		{
 			const TutorialPage& newPage = g_Pages[g_NextPage];
+			bool newPageIsAutoWait = newPage.autoWait;
+
 			for (auto* s : newPage.sprites) {
 				if (s) {
 					XMFLOAT4 col = s->GetColor();
@@ -749,12 +779,15 @@ void UI_Tutorial_Draw(void)
 					s->SetColor(col);
 				}
 			}
-			for (auto* f : newPage.fonts) {
-				if (f) {
-					XMFLOAT4 col = f->GetColor();
-					f->SetColor({ col.x, col.y, col.z, newAlpha });
-					f->Draw();
-					f->SetColor(col);
+			if (!newPageIsAutoWait)
+			{
+				for (auto* f : newPage.fonts) {
+					if (f) {
+						XMFLOAT4 col = f->GetColor();
+						f->SetColor({ col.x, col.y, col.z, newAlpha });
+						f->Draw();
+						f->SetColor(col);
+					}
 				}
 			}
 		}
@@ -789,8 +822,13 @@ void UI_Tutorial_Draw(void)
 		}
 	}
 
-	// 案内テキスト
-	if (g_pGuideFont) {
+	// 案内テキスト（autoWaitページへのクロスフェード中は非表示）
+	bool crossFadingToAutoWait = (g_State == TutorialState::CrossFade &&
+		g_NextPage >= 0 && g_NextPage < (int)g_Pages.size() &&
+		g_Pages[g_NextPage].autoWait);
+
+	if (g_pGuideFont && !crossFadingToAutoWait) {
+
 		// 条件待機ページのときは案内テキストを変える
 		bool isWaitPage = (g_CurrentPage >= 0 && g_CurrentPage < (int)g_Pages.size() &&
 			g_Pages[g_CurrentPage].waitCondition != nullptr);
@@ -816,17 +854,16 @@ void UI_Tutorial_Draw(void)
 		}
 		// スキップゲージ（幅をスキップ進捗に応じて変更）
 		{
-			float skipRatio = g_SkipHoldTime / SKIP_HOLD_REQUIRED;
+			float skipRatio   = g_SkipHoldTime / SKIP_HOLD_REQUIRED;
 			if (skipRatio > 1.0f) skipRatio = 1.0f;
-			float barFullWidth = 300.0f;
-			float barWidth     = barFullWidth * skipRatio;
+			float barWidth    = TUT_SKIPBAR_WIDTH * skipRatio;
 
 			XMFLOAT4 col = g_pSkipBarFG->GetColor();
 			g_pSkipBarFG->SetColor({ col.x, col.y, col.z, col.w * g_FadeAlpha });
 
 			XMFLOAT2 origSize = g_pSkipBarFG->GetScale();
 			XMFLOAT2 origPos  = g_pSkipBarFG->GetPos();
-			float leftEdge = SCREEN_WIDTH / 2.0f - barFullWidth / 2.0f;
+			float leftEdge    = TUT_SKIPBAR_CENTER_X - TUT_SKIPBAR_WIDTH / 2.0f;
 			g_pSkipBarFG->SetSize({ barWidth, origSize.y });
 			g_pSkipBarFG->SetPos({ leftEdge + barWidth / 2.0f, origPos.y });
 
@@ -843,6 +880,26 @@ void UI_Tutorial_Draw(void)
 			g_pSkipGuideFont->Draw();
 			g_pSkipGuideFont->SetColor(col);
 		}
+	}
+
+	// ページ数表示
+	if (g_pPageCountFont && !crossFadingToAutoWait)
+	{
+		int displayPage  = g_CurrentPage + 1;
+		int displayTotal = (int)g_Pages.size();
+
+		// クロスフェード中は遷移先ページ番号を表示
+		if (g_State == TutorialState::CrossFade && g_NextPage >= 0)
+			displayPage = g_NextPage + 1;
+
+		char pageText[64];
+		sprintf_s(pageText, "%d / %d ページ", displayPage, displayTotal);
+		g_pPageCountFont->SetText(pageText);
+
+		XMFLOAT4 col = g_pPageCountFont->GetColor();
+		g_pPageCountFont->SetColor({ col.x, col.y, col.z, g_FadeAlpha });
+		g_pPageCountFont->Draw();
+		g_pPageCountFont->SetColor(col);
 	}
 }
 

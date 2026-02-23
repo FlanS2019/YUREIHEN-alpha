@@ -11,9 +11,6 @@
 #define WIN32_LEAN_AND_MEAN	//32bitアプリには不要な情報を無視
 #define FPS (60)
 
-//=== Tutorial 関連定数 ===
-#define TUTORIAL_SKIP_FRAME (2) // シーン遷移後、このフレーム数だけ通常更新してからチュートリアルを開始
-
 #if defined(_DEBUG)
 //=== デバッグ関連定数 ===
 #define STOP_TIMER_BUSTER (false) //trueならタイマーとバスターズのupdateを停止させる
@@ -31,9 +28,21 @@
 //==================================
 #endif
 
+//=== Tutorial 関連定数 ===
+#define TUTORIAL_SKIP_FRAME (2) // シーン遷移後、このフレーム数だけ通常更新してからチュートリアルを開始
+
+//=== Tutorial スキップバー関連定数 ===
+#define TUT_SKIPBAR_CENTER_X  (SCREEN_WIDTH  - 120.0f) // バー中心X（右下基準）
+#define TUT_SKIPBAR_CENTER_Y  (SCREEN_HEIGHT -  80.0f) // バー中心Y
+#define TUT_SKIPBAR_WIDTH     (150.0f)                  // バーの全幅
+#define TUT_SKIPBAR_HEIGHT    (10.0f)                   // バーの高さ
+#define TUT_SKIP_LABEL_OFFSET_Y (-30.0f)                // バーからラベルへのYオフセット
+#define TUT_GUIDE_OFFSET_Y     ( 35.0f)                 // バーから[SPACE]案内へのYオフセット
+#define TUT_PAGECOUNT_OFFSET_Y (-65.0f)                 // バーからページ数表示へのYオフセット
+
 //=== フィールド関連定数 ===
 #define MAP_FLOORS (3)
-#define START_FLOOR (2)// 階の数字をそのまま入れる（使用時に-1）
+#define START_FLOOR (3)// 階の数字をそのまま入れる（使用時に-1）
 #define END_FLOOR (3) // この階で恐怖ゲージMAXでクリア
 
 //=== Camera 関連定数 ===
