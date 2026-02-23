@@ -19,76 +19,68 @@ using namespace DirectX;
 // ==========================================
 // チュートリアル画面用の変数
 // ==========================================
-static bool g_IsTutorial    = false;
+static bool g_IsTutorial = false;
 static bool g_IsPreTutorial = true;
-static bool g_IsWaiting     = false; // 条件待機中（ゲームに制御を返している）
+static bool g_IsWaiting = false;
 static HoleSprite* g_pTutorialBG = nullptr;
 
-// フロア変更（シーン遷移）後、指定フレームだけ開始を遅らせる
 static int g_TutorialDelayFrames = 0;
 
-// 待機中ビネットのアニメーション
-static float g_VignetteRadius    = 0.0f;   // 現在の穴半径
-static bool  g_VignetteFadingOut = false;  // true=縮小中（チュートリアル再開前）
+static float g_VignetteRadius = 0.0f;
+static bool  g_VignetteFadingOut = false;
 static const float VIGNETTE_RADIUS_TARGET = 500.0f;
-static const float VIGNETTE_ANIM_SPEED    = 20.0f; // 1フレームあたりの変化量
+static const float VIGNETTE_ANIM_SPEED = 20.0f;
 
-// カメラオーバーライド用：元のカメラ位置/注視点を退避
 static bool     g_CameraOverrideActive = false;
 static XMFLOAT3 g_SavedCameraPos = { 0,0,0 };
-static XMFLOAT3 g_SavedCameraAt  = { 0,0,0 };
+static XMFLOAT3 g_SavedCameraAt = { 0,0,0 };
 
-// カメラ滑らか移動用
 static bool     g_IsCameraTransitioning = false;
 static XMFLOAT3 g_CamStartPos = { 0,0,0 };
-static XMFLOAT3 g_CamStartAt  = { 0,0,0 };
-static XMFLOAT3 g_CamEndPos   = { 0,0,0 };
-static XMFLOAT3 g_CamEndAt    = { 0,0,0 };
+static XMFLOAT3 g_CamStartAt = { 0,0,0 };
+static XMFLOAT3 g_CamEndPos = { 0,0,0 };
+static XMFLOAT3 g_CamEndAt = { 0,0,0 };
 
+static int g_TotalPageCount = 0;
 
 namespace {
-	// ページ管理
 	std::vector<TutorialPage> g_Pages;
-	int g_CurrentPage = 0;
-	int g_NextPage = -1; // クロスフェード先ページ
+	int g_CurrentPage = 0; // 通し番号（内部用）
+	int g_NextPage = -1;
 
-	// フェード状態
 	enum class TutorialState {
 		FadeIn,
 		Active,
-		CrossFade // クロスフェード中（旧ページ→新ページ）
+		CrossFade
 	};
 	TutorialState g_State = TutorialState::FadeIn;
 	float g_FadeAlpha = 0.0f;
-	float g_CrossFadeProgress = 0.0f; // 0.0=旧ページ, 1.0=新ページ
+	float g_CrossFadeProgress = 0.0f;
 
-	// スキップ機能
 	float g_SkipHoldTime = 0.0f;
-	const float SKIP_HOLD_REQUIRED = 1.5f; // 1.5秒長押しでスキップ
+	const float SKIP_HOLD_REQUIRED = 1.5f;
 
-	// クロスフェード速度（1フレームあたりの進行量）
-	const float CROSSFADE_SPEED = 0.04f; // 25フレーム（約0.4秒）でクロスフェード完了
+	const float CROSSFADE_SPEED = 0.04f;
+
+	// ページ番号カウンター（InitPages内でリセット）
+	int s_PageCounter = 0;
 }
 
-// ページ案内用テキスト（共通）
+// テキストガイド用フォント
 static FontRenderer* g_pGuideFont = nullptr;
 
-// スキップ案内テキスト
+// スキップバー関連
 static FontRenderer* g_pSkipGuideFont = nullptr;
-
-// スキップバー背景・前景
 static Sprite* g_pSkipBarBG = nullptr;
 static Sprite* g_pSkipBarFG = nullptr;
 
-// テストプレイ中の操作ヒント
+// プレイヒント用フォント
 static FontRenderer* g_pPlayHintFont = nullptr;
-
-// ページ数表示テキスト
+// ページ番号表示用フォント
 static FontRenderer* g_pPageCountFont = nullptr;
 
 static void InitSkipUI()
 {
-	// スキップバー背景
 	if (!g_pSkipBarBG) {
 		g_pSkipBarBG = new Sprite(
 			{ TUT_SKIPBAR_CENTER_X, TUT_SKIPBAR_CENTER_Y },
@@ -99,7 +91,6 @@ static void InitSkipUI()
 			L"asset/texture/fade.png"
 		);
 	}
-	// スキップバー前景（ゲージ）
 	if (!g_pSkipBarFG) {
 		g_pSkipBarFG = new Sprite(
 			{ TUT_SKIPBAR_CENTER_X, TUT_SKIPBAR_CENTER_Y },
@@ -110,7 +101,6 @@ static void InitSkipUI()
 			L"asset/texture/fade.png"
 		);
 	}
-	// スキップ案内テキスト（バーの上）
 	if (!g_pSkipGuideFont) {
 		g_pSkipGuideFont = new FontRenderer(
 			{ TUT_SKIPBAR_CENTER_X, TUT_SKIPBAR_CENTER_Y + TUT_SKIP_LABEL_OFFSET_Y },
@@ -122,31 +112,16 @@ static void InitSkipUI()
 
 static void FinalizeSkipUI()
 {
-	if (g_pSkipBarBG) {
-		delete g_pSkipBarBG;
-		g_pSkipBarBG = nullptr;
-	}
-	if (g_pSkipBarFG) {
-		delete g_pSkipBarFG;
-		g_pSkipBarFG = nullptr;
-	}
-	if (g_pSkipGuideFont) {
-		delete g_pSkipGuideFont;
-		g_pSkipGuideFont = nullptr;
-	}
-	if (g_pPlayHintFont) {
-		delete g_pPlayHintFont;
-		g_pPlayHintFont = nullptr;
-	}
-	if (g_pPageCountFont) {
-		delete g_pPageCountFont;
-		g_pPageCountFont = nullptr;
-	}
+	if (g_pSkipBarBG) { delete g_pSkipBarBG;    g_pSkipBarBG = nullptr; }
+	if (g_pSkipBarFG) { delete g_pSkipBarFG;    g_pSkipBarFG = nullptr; }
+	if (g_pSkipGuideFont) { delete g_pSkipGuideFont; g_pSkipGuideFont = nullptr; }
+	if (g_pPlayHintFont) { delete g_pPlayHintFont;  g_pPlayHintFont = nullptr; }
+	if (g_pPageCountFont) { delete g_pPageCountFont; g_pPageCountFont = nullptr; }
 }
 
 // ==========================================
-// ページデータ初期化
-// ==========================================}
+// ページデータ初期化用ヘルパー
+// ==========================================
 
 // 通常ページ追加
 static void AddPage(const XMFLOAT2& holeCenter, float holeRadius,
@@ -158,6 +133,8 @@ static void AddPage(const XMFLOAT2& holeCenter, float holeRadius,
 	TutorialPage& page = g_Pages.back();
 	page.holeCenter = holeCenter;
 	page.holeRadius = holeRadius;
+	page.isPageType = true;
+	page.pageNumber = ++s_PageCounter;
 
 	float yOffset = 0.0f;
 	for (const auto& text : texts)
@@ -168,50 +145,20 @@ static void AddPage(const XMFLOAT2& holeCenter, float holeRadius,
 		));
 		yOffset += fontSize + 10.0f;
 	}
-	// waitCondition は nullptr（SPACEで次へ）
 	page.waitCondition = nullptr;
 }
 
-// 条件待機ページ追加：
-//   ページが表示された後 SPACE 押下でチュートリアルを一時停止し、
-//   cond() が true を返したら自動で次ページへ進む
-static void AddPageWithWait(const XMFLOAT2& holeCenter, float holeRadius,
-	const std::vector<std::string>& texts,
-	std::function<bool()> cond)
-{
-	AddPage(holeCenter, holeRadius, texts);
-	g_Pages.back().waitCondition = cond;
-}
-
-// カメラ移動ページ追加：
-//   ページ表示中はカメラを targetPos/targetAt へ移動し、
-//   次ページへ進むときに元のカメラ位置へ戻す
-static void AddPage_Camera(const XMFLOAT2& holeCenter, float holeRadius,
-	const std::vector<std::string>& texts,
-	const XMFLOAT3& targetPos, const XMFLOAT3& targetAt,
-	XMFLOAT2 textPos = { SCREEN_WIDTH * 0.5f, SCREEN_HEIGHT * 0.5f },
-	float fontSize = 40.0f)
-{
-	AddPage(holeCenter, holeRadius, texts, textPos, fontSize);
-	TutorialPage& page = g_Pages.back();
-	page.cameraOverride = true;
-	page.cameraPos      = targetPos;
-	page.cameraAt       = targetAt;
-}
-
-// テストプレイページ追加：
-//   ページが表示された瞬間に自動でテストプレイ開始し、
-//   *pFlag が true になったら自動で次ページへ進む
+// テストプレイページ追加（AddPage_Play → ページ番号カウント対象）
 static void AddPage_Play(const std::vector<std::string>& texts, bool* pFlag,
 	XMFLOAT2 textPos = { SCREEN_WIDTH * 0.5f, SCREEN_HEIGHT * 0.5f },
-	float fontSize = 40.0f,
-	std::function<void()> onWaitStart = nullptr,
-	std::function<void()> onWaitEnd   = nullptr)
+	float fontSize = 40.0f)
 {
 	g_Pages.emplace_back();
 	TutorialPage& page = g_Pages.back();
 	page.holeCenter = { SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2 };
 	page.holeRadius = 0.0f;
+	page.isPageType = true;
+	page.pageNumber = ++s_PageCounter;
 
 	float yOffset = 0.0f;
 	for (const auto& text : texts)
@@ -224,50 +171,109 @@ static void AddPage_Play(const std::vector<std::string>& texts, bool* pFlag,
 	}
 	page.waitCondition = [pFlag]() -> bool {
 		return pFlag && *pFlag;
-	};
-	page.autoWait      = true;
-	page.onWaitStart   = onWaitStart;
-	page.onWaitEnd     = onWaitEnd;
+		};
+	page.autoWait = true;
+}
+
+// カメラ移動ページ追加（ページ番号カウント対象）
+static void AddPage_Camera(const XMFLOAT2& holeCenter, float holeRadius,
+	const std::vector<std::string>& texts,
+	const XMFLOAT3& targetPos, const XMFLOAT3& targetAt,
+	XMFLOAT2 textPos = { SCREEN_WIDTH * 0.5f, SCREEN_HEIGHT * 0.5f },
+	float fontSize = 40.0f)
+{
+	AddPage(holeCenter, holeRadius, texts, textPos, fontSize);
+	TutorialPage& page = g_Pages.back();
+	page.cameraOverride = true;
+	page.cameraPos = targetPos;
+	page.cameraAt = targetAt;
+}
+
+// カメラの注視点を変える（通し番号カウント対象、ページ番号はカウントしない）
+static void SetCameraFocusPoint(const XMFLOAT3& pos)
+{
+	g_Pages.emplace_back();
+	TutorialPage& page = g_Pages.back();
+	page.holeCenter = { SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2 };
+	page.holeRadius = 0.0f;
+	page.isPageType = false; // ページ番号カウントしない
+	page.cameraOverride = true;
+	page.cameraPos = pos;
+	page.cameraAt = pos; // 注視点として使用
+
+	// このページはテキストなし・自動で即次へ…ではなく
+	// カメラオーバーライドエントリとして機能させるため autoWait=false, waitCondition=nullptr
+	// （実際にはAddPage_Playの前段として登録し、そちらにカメラを委ねる設計）
+	page.waitCondition = nullptr;
+	page.autoWait = false;
+}
+
+// チュートリアルマーカーの表示・非表示と位置を設定（通し番号カウント対象、ページ番号はカウントしない）
+static void SetTutorialMarker(bool use, const XMFLOAT3& pos = { 0.0f, 0.0f, 0.0f })
+{
+	TutorialMarker* m = GetTutorialMarker();
+	if (!m) return;
+	if (use)
+	{
+		m->SetPos(pos);
+		m->SetVisible(true);
+	}
+	else
+	{
+		m->SetVisible(false);
+	}
+}
+
+// チュートリアルバスターズの表示・非表示と位置を設定
+static void SetTutorialBuster(bool use, const XMFLOAT3& pos = { 0.0f, 0.0f, 0.0f })
+{
+	TutorialBusters* b = GetTutorialBusters();
+	if (!b) return;
+	if (use)
+	{
+		b->SetPos(pos);
+		TutorialObject_SetBustersVisible(true);
+	}
+	else
+	{
+		TutorialObject_SetBustersVisible(false);
+	}
 }
 
 // ==========================================
-// 条件待機から次ページへ進む内部処理
+// ページ遷移・カメラ処理
 // ==========================================
 
-// ページ遷移時のカメラ処理：toPage が cameraOverride なら移動、
-// fromPage が cameraOverride で toPage がそうでなければ元に戻す
 static void SetupCameraTransition(int fromPage, int toPage)
 {
 	Camera* cam = GetCamera();
 	if (!cam) return;
 
-	bool toOverride   = (toPage   >= 0 && toPage   < (int)g_Pages.size() && g_Pages[toPage].cameraOverride);
+	bool toOverride = (toPage >= 0 && toPage < (int)g_Pages.size() && g_Pages[toPage].cameraOverride);
 	bool fromOverride = (fromPage >= 0 && fromPage < (int)g_Pages.size() && g_Pages[fromPage].cameraOverride);
 
 	if (toOverride || fromOverride)
 	{
 		g_IsCameraTransitioning = true;
 		g_CamStartPos = cam->GetPos();
-		g_CamStartAt  = cam->GetAtPos();
+		g_CamStartAt = cam->GetAtPos();
 
 		if (toOverride)
 		{
-			// 初めてオーバーライドするときだけ現在位置を保存
 			if (!g_CameraOverrideActive)
 			{
-				g_SavedCameraPos       = cam->GetPos();
-				g_SavedCameraAt        = cam->GetAtPos();
+				g_SavedCameraPos = cam->GetPos();
+				g_SavedCameraAt = cam->GetAtPos();
 				g_CameraOverrideActive = true;
 			}
 			const TutorialPage& p = g_Pages[toPage];
 			g_CamEndPos = p.cameraPos;
-			g_CamEndAt  = p.cameraAt;
+			g_CamEndAt = p.cameraAt;
 		}
 		else if (fromOverride && g_CameraOverrideActive)
 		{
-			// カメラを元の位置へ戻す
 			g_CamEndPos = g_SavedCameraPos;
-			g_CamEndAt  = g_SavedCameraAt;
+			g_CamEndAt = g_SavedCameraAt;
 		}
 	}
 	else
@@ -286,80 +292,93 @@ static void AdvanceToNextPage()
 	}
 	SetupCameraTransition(g_CurrentPage, nextPage);
 	g_NextPage = nextPage;
-	g_State    = TutorialState::CrossFade;
+	g_State = TutorialState::CrossFade;
 	g_CrossFadeProgress = 0.0f;
+}
+
+// 現在の通し番号から表示ページ番号を取得
+static int GetDisplayPageNumber(int serialIndex)
+{
+	if (serialIndex < 0 || serialIndex >= (int)g_Pages.size()) return 0;
+	return g_Pages[serialIndex].pageNumber;
 }
 
 static void InitPages()
 {
 	g_Pages.clear();
+	s_PageCounter = 0;
+	g_TotalPageCount = 0;
 
-	// --- 0 : ウェルカムメッセージ ---
+	// --- ウェルカムメッセージ ---
 	AddPage({ SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2 }, 0.0f, {
 		"遊んでくれてありがとう！「幽霊変」の遊び方を説明していくね！"
-	});
+		});
 
 	AddPage({ SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2 }, 0.0f, {
 		"まずは操作説明！",
 		"[W][A][S][D] で移動、マウスで視点を動かせるよ",
 		"前に進んで円盤に触れてみよう！"
-	});
+		});
 
-	// ---移動操作説明 ---
+	// --- 移動操作テストプレイ ---
 	AddPage_Play(
-		{"[W][A][S][D] 移動、マウスで視点"}, 
+		{ "[W][A][S][D] 移動、マウスで視点" },
 		TutorialObject_GetEnbanTouchedPtr(),
-		{ SCREEN_WIDTH / 2, SCREEN_HEIGHT - 100.0f },
-		40.0f,
-		[]() {
-			TutorialMarker* m = GetTutorialMarker();
-			if (m) m->SetVisible(true);
-			TutorialObject_SetEnbanVisible(true);
-		},
-		[]() {
-			TutorialMarker* m = GetTutorialMarker();
-			if (m) m->SetVisible(false);
-			TutorialObject_SetEnbanVisible(false);
-		}
+		{ SCREEN_WIDTH / 2, SCREEN_HEIGHT - 100.0f }
 	);
+	// このページに入ったときマーカーと円盤を表示
+	g_Pages.back().onEnter = []() {
+		SetTutorialMarker(true, { -5.0f, 0.5f, 17.0f });
+		TutorialObject_SetEnbanVisible(true);
+	};
 
 	AddPage({ SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2 }, 0.0f, {
 		"移動は完璧！",
 		"次はゲームの目的、「敵を驚かせて追い払う！」について説明するね。"
 		});
+	// このページに入ったときマーカーと円盤を非表示
+	g_Pages.back().onEnter = []() {
+		SetTutorialMarker(false);
+		TutorialObject_SetEnbanVisible(false);
+	};
 
-	AddPage_Camera({ SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2 }, 300.0f, 
-		{"これが家具の一つのピアノ。"
-		"[スペースキー]で憑依だよ！" }, 
-		{ -15.0f, 3.0f, 16.5f }, { -24.5f, 0.5f, 16.5f }, 
+	AddPage_Camera({ SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2 }, 300.0f,
+		{ "これが家具の一つのピアノ。"
+		  "[スペースキー]で憑依だよ！" },
+		{ -15.0f, 3.0f, 16.5f }, { -24.5f, 0.5f, 16.5f },
 		{ SCREEN_WIDTH / 2, SCREEN_HEIGHT - 100.0f }
 	);
 
-	//ピアノへ憑依する
+	// --- ピアノ憑依テストプレイ ---
+	SetCameraFocusPoint({ -15.0f, 3.0f, 16.5f });
 	AddPage_Play(
-		{ "[W][A][S][D] 移動 [マウス]視点 [スペースキー]憑依" },
+		{ "[W][A][S][D]移動 [マウス]視点 [スペースキー]憑依" },
 		TutorialObject_GetPianoPossessedPtr(),
-		{ SCREEN_WIDTH / 2, SCREEN_HEIGHT - 100.0f },
-		40.0f,
-		[]() {
-			// テストプレイ開始時にカメラをピアノへ向ける
-			Camera* cam = GetCamera();
-			if (cam) cam->UpdateView({ -15.0f, 3.0f, 16.5f }, { -24.5f, 0.5f, 16.5f });
-		}
+		{ SCREEN_WIDTH / 2, SCREEN_HEIGHT - 100.0f }
 	);
-	// テストプレイ中もカメラをピアノへ向ける
-	g_Pages.back().cameraOverride = true;
-	g_Pages.back().cameraPos      = { -15.0f, 3.0f, 16.5f };
-	g_Pages.back().cameraAt       = { -24.5f, 0.5f, 16.5f };
 
 	AddPage({ SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2 }, 0.0f, {
 		"憑依できたね！ おや？この影は？"
 		});
 
+	SetTutorialBuster(true, { -23.0f, BUSTERS_HEIGHT, 5.0f });
+
+	AddPage_Camera({ SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2 }, 300.0f,
+		{ "うわっ！侵入者の「バスターず」だ！",
+		  "近づいてきたら、[スペースキー]で驚かせよう！" },
+		{ -23.0f, 2.0f, 15.0f }, { -23.0f, 2.0f, 5.0f },
+		{ SCREEN_WIDTH / 2, SCREEN_HEIGHT - 100.0f }
+	);
+
+	AddPage_Play(
+		{ "近づいてくるまで待ち、[スペースキー]驚かせ" },
+		TutorialObject_GetPianoPossessedPtr(),
+		{ SCREEN_WIDTH / 2, SCREEN_HEIGHT - 100.0f }
+	);
+
 
 	AddPage({ 120.0f, 120.0f }, 150.0f, {
-		"まずはタイマー！",
-		"制限時間は１階につき２分。過ぎると強制的に負けちゃうよ"
+		"制限時間はにつき２分。過ぎると強制的に負けちゃうよ"
 		});
 
 	AddPage({ 1023.0f, 83.0f }, 200.0f, {
@@ -378,6 +397,8 @@ static void InitPages()
 	AddPage({ SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2 }, 150.0f, {
 		"あとは実際にやってみるターンを作る。一旦ゲームスタート（仮テキスト）"
 		});
+
+	g_TotalPageCount = s_PageCounter;
 
 	for (auto& page : g_Pages)
 	{
@@ -402,6 +423,7 @@ static void FinalizePages()
 		page.fonts.clear();
 	}
 	g_Pages.clear();
+	g_TotalPageCount = 0;
 }
 
 // ==========================================
@@ -411,16 +433,14 @@ static void ApplyPageHole()
 {
 	if (!g_pTutorialBG) return;
 
-	// クロスフェード中は新旧ページの穴位置を補間
 	if (g_State == TutorialState::CrossFade &&
 		g_CurrentPage >= 0 && g_CurrentPage < (int)g_Pages.size() &&
-		g_NextPage    >= 0 && g_NextPage    < (int)g_Pages.size())
+		g_NextPage >= 0 && g_NextPage < (int)g_Pages.size())
 	{
 		const TutorialPage& oldPage = g_Pages[g_CurrentPage];
 		const TutorialPage& newPage = g_Pages[g_NextPage];
 		float t = g_CrossFadeProgress;
 
-		// 穴の位置と半径を線形補間
 		XMFLOAT2 center;
 		center.x = oldPage.holeCenter.x * (1.0f - t) + newPage.holeCenter.x * t;
 		center.y = oldPage.holeCenter.y * (1.0f - t) + newPage.holeCenter.y * t;
@@ -442,13 +462,13 @@ void UI_Tutorial_Initialize(ID3D11Device* pDevice, ID3D11DeviceContext* pContext
 {
 	if (!pDevice || !pContext) return;
 
-	g_IsTutorial    = false;
+	g_IsTutorial = false;
 	g_IsPreTutorial = true;
-	g_IsWaiting     = false;
-	g_CurrentPage   = 0;
+	g_IsWaiting = false;
+	g_CurrentPage = 0;
 	g_TutorialDelayFrames = TUTORIAL_SKIP_FRAME;
 
-	g_State    = TutorialState::FadeIn;
+	g_State = TutorialState::FadeIn;
 	g_FadeAlpha = 0.0f;
 
 	g_pTutorialBG = new HoleSprite(
@@ -469,7 +489,6 @@ void UI_Tutorial_Initialize(ID3D11Device* pDevice, ID3D11DeviceContext* pContext
 		"[SPACE] 次へ"
 	);
 
-	// ページ数表示（バーのさらに上）
 	g_pPageCountFont = new FontRenderer(
 		{ TUT_SKIPBAR_CENTER_X, TUT_SKIPBAR_CENTER_Y + TUT_PAGECOUNT_OFFSET_Y },
 		22.0f, 0.0f, { 1.0f, 0.85f, 0.2f, 1.0f },
@@ -486,60 +505,49 @@ void UI_Tutorial_Finalize(void)
 	FinalizeSkipUI();
 
 	if (g_pTutorialBG) { delete g_pTutorialBG; g_pTutorialBG = nullptr; }
-	if (g_pGuideFont)  { delete g_pGuideFont;  g_pGuideFont  = nullptr; }
+	if (g_pGuideFont) { delete g_pGuideFont;  g_pGuideFont = nullptr; }
 }
 
 void UI_Tutorial_Update(void)
 {
-	// 条件待機中は条件をポーリングするだけ
 	if (g_IsWaiting)
 	{
-		// ビネット半径アニメーション
 		if (g_VignetteFadingOut)
 		{
-			// 縮小（500→0）
 			g_VignetteRadius -= VIGNETTE_ANIM_SPEED;
 			if (g_VignetteRadius <= 0.0f)
 			{
 				g_VignetteRadius = 0.0f;
-				// アニメ完了→チュートリアル再開
-
-				// 待機終了コールバック
-				if (g_CurrentPage >= 0 && g_CurrentPage < (int)g_Pages.size())
-				{
-					if (g_Pages[g_CurrentPage].onWaitEnd) g_Pages[g_CurrentPage].onWaitEnd();
-				}
 
 				g_VignetteFadingOut = false;
-				g_IsWaiting  = false;
+				g_IsWaiting = false;
 				g_IsTutorial = true;
-				// クロスフェードを使わず直接次ページへ進めてFadeIn
 				g_CurrentPage = g_CurrentPage + 1;
 				if (g_CurrentPage >= (int)g_Pages.size())
 				{
 					UI_Tutorial_End();
 					return;
 				}
-				g_NextPage  = -1;
+				// ページ確定：onEnter を呼ぶ
+				if (g_Pages[g_CurrentPage].onEnter)
+					g_Pages[g_CurrentPage].onEnter();
+				g_NextPage = -1;
 				g_FadeAlpha = 0.0f;
-				g_State     = TutorialState::FadeIn;
+				g_State = TutorialState::FadeIn;
 				ApplyPageHole();
 				Mouse_SetMode(MOUSE_POSITION_MODE_ABSOLUTE);
-				ShowCursor(TRUE); // SetModeは次フレーム反映のため即時表示
+				ShowCursor(TRUE);
 				Mouse_SetVisible(true);
 			}
 		}
 		else
 		{
-			// 拡大（0→500）
 			g_VignetteRadius += VIGNETTE_ANIM_SPEED;
 			if (g_VignetteRadius > VIGNETTE_RADIUS_TARGET)
 				g_VignetteRadius = VIGNETTE_RADIUS_TARGET;
 
-			// 条件ポーリング（拡大完了後のみ判定）
 			if (g_VignetteRadius >= VIGNETTE_RADIUS_TARGET)
 			{
-				// 拡大完了：ここでマウスをロック＆非表示にしてプレイ開始
 				Mouse_SetMode(MOUSE_POSITION_MODE_RELATIVE);
 				Mouse_SetVisible(false);
 
@@ -571,145 +579,139 @@ void UI_Tutorial_Update(void)
 		}
 #endif
 
-		// フェード更新ステートマシン
-		switch (g_State)
-		{
-		case TutorialState::FadeIn:
-			g_FadeAlpha += 0.05f;
-			if (g_FadeAlpha >= 1.0f) {
-				g_FadeAlpha = 1.0f;
-				g_State = TutorialState::Active;
-			}
-			ApplyPageHole();
-			break;
+	switch (g_State)
+	{
+	case TutorialState::FadeIn:
+		g_FadeAlpha += 0.05f;
+		if (g_FadeAlpha >= 1.0f) {
+			g_FadeAlpha = 1.0f;
+			g_State = TutorialState::Active;
+		}
+		ApplyPageHole();
+		break;
 
-		case TutorialState::Active:
-			// autoWaitページはSPACEを押さずに即テストプレイ開始
+	case TutorialState::Active:
+		if (g_CurrentPage >= 0 && g_CurrentPage < (int)g_Pages.size() &&
+			g_Pages[g_CurrentPage].autoWait)
+		{
+			g_IsTutorial = false;
+			g_IsWaiting = true;
+			g_VignetteRadius = 0.0f;
+			g_VignetteFadingOut = false;
+			g_FadeAlpha = 0.0f;
+			return;
+		}
+
+		if (Keyboard_IsKeyDown(KK_SPACE))
+		{
+			g_SkipHoldTime += 1.0f / FPS;
+			if (g_SkipHoldTime >= SKIP_HOLD_REQUIRED)
+			{
+				UI_Tutorial_End();
+				return;
+			}
+		}
+		else
+		{
+			if (g_SkipHoldTime > 0.0f && g_SkipHoldTime < 0.2f)
+			{
+				if (g_CurrentPage >= 0 && g_CurrentPage < (int)g_Pages.size() &&
+					g_Pages[g_CurrentPage].waitCondition != nullptr)
+				{
+					g_IsTutorial = false;
+					g_IsWaiting = true;
+					g_VignetteRadius = 0.0f;
+					g_VignetteFadingOut = false;
+				}
+				else
+				{
+					g_NextPage = g_CurrentPage + 1;
+					if (g_NextPage >= (int)g_Pages.size())
+					{
+						UI_Tutorial_End();
+						return;
+					}
+					SetupCameraTransition(g_CurrentPage, g_NextPage);
+					g_State = TutorialState::CrossFade;
+					g_CrossFadeProgress = 0.0f;
+				}
+			}
+			g_SkipHoldTime = 0.0f;
+		}
+		break;
+
+	case TutorialState::CrossFade:
+		g_CrossFadeProgress += CROSSFADE_SPEED;
+		if (g_CrossFadeProgress >= 1.0f) {
+			g_CrossFadeProgress = 1.0f;
+
+			g_CurrentPage = g_NextPage;
+			g_NextPage = -1;
+			g_IsCameraTransitioning = false;
+
+			if (g_CurrentPage >= 0 && g_CurrentPage < (int)g_Pages.size() && !g_Pages[g_CurrentPage].cameraOverride)
+			{
+				g_CameraOverrideActive = false;
+			}
+
+			// ページ確定：onEnter を呼びる
+			if (g_CurrentPage >= 0 && g_CurrentPage < (int)g_Pages.size() &&
+				g_Pages[g_CurrentPage].onEnter)
+			{
+				g_Pages[g_CurrentPage].onEnter();
+			}
+
 			if (g_CurrentPage >= 0 && g_CurrentPage < (int)g_Pages.size() &&
 				g_Pages[g_CurrentPage].autoWait)
 			{
-				// 待機開始コールバック
-				if (g_Pages[g_CurrentPage].onWaitStart) g_Pages[g_CurrentPage].onWaitStart();
-
-				g_IsTutorial        = false;
-				g_IsWaiting         = true;
-				g_VignetteRadius    = 0.0f;
+				g_IsTutorial = false;
+				g_IsWaiting = true;
+				g_VignetteRadius = 0.0f;
 				g_VignetteFadingOut = false;
-				g_FadeAlpha         = 0.0f;
+				g_FadeAlpha = 0.0f;
+				g_State = TutorialState::Active;
 				return;
 			}
 
-			// スキップ機能：スペース長押しでチュートリアル全体をスキップ
-			if (Keyboard_IsKeyDown(KK_SPACE))
+			// isPageType=false（SetCameraFocusPointなど通過専用エントリ）は即次ページへ
+			if (g_CurrentPage >= 0 && g_CurrentPage < (int)g_Pages.size() &&
+				!g_Pages[g_CurrentPage].isPageType &&
+				!g_Pages[g_CurrentPage].autoWait &&
+				g_Pages[g_CurrentPage].waitCondition == nullptr)
 			{
-				g_SkipHoldTime += 1.0f / FPS;
-				if (g_SkipHoldTime >= SKIP_HOLD_REQUIRED)
-				{
-					// チュートリアル全体をスキップ
-					UI_Tutorial_End();
-					return;
-				}
-			}
-			else
-			{
-				// スペースを離したとき
-				if (g_SkipHoldTime > 0.0f && g_SkipHoldTime < 0.2f)
-				{
-					// 現在ページが条件待機ページか確認
-					if (g_CurrentPage >= 0 && g_CurrentPage < (int)g_Pages.size() &&
-						g_Pages[g_CurrentPage].waitCondition != nullptr)
-					{
-						// 待機開始コールバック
-						if (g_Pages[g_CurrentPage].onWaitStart) g_Pages[g_CurrentPage].onWaitStart();
-
-						// ゲームに制御を返す（一時停止解除）
-						g_IsTutorial        = false;
-						g_IsWaiting         = true;
-						g_VignetteRadius    = 0.0f;
-						g_VignetteFadingOut = false;
-					}
-					else
-					{
-						// 通常ページ → クロスフェードで次へ
-						g_NextPage = g_CurrentPage + 1;
-						if (g_NextPage >= (int)g_Pages.size())
-						{
-							// 最終ページ → ゲームに戻る
-							UI_Tutorial_End();
-							return;
-						}
-						SetupCameraTransition(g_CurrentPage, g_NextPage);
-						g_State = TutorialState::CrossFade;
-						g_CrossFadeProgress = 0.0f;
-					}
-				}
-				g_SkipHoldTime = 0.0f;
-			}
-			break;
-
-		case TutorialState::CrossFade:
-			g_CrossFadeProgress += CROSSFADE_SPEED;
-			if (g_CrossFadeProgress >= 1.0f) {
-				g_CrossFadeProgress = 1.0f;
-
-				// 遷移完了：新ページをカレントに
-				g_CurrentPage = g_NextPage;
-				g_NextPage    = -1;
-				g_IsCameraTransitioning = false;
-
-				// 現在のページがカメラオーバーライドでなければ、オーバーライド状態を解除
-				if (g_CurrentPage >= 0 && g_CurrentPage < (int)g_Pages.size() && !g_Pages[g_CurrentPage].cameraOverride)
-				{
-					g_CameraOverrideActive = false;
-				}
-
-				// autoWaitページならActiveを経由せず即Waiting遷移（テキストのちかちき防止）
-				if (g_CurrentPage >= 0 && g_CurrentPage < (int)g_Pages.size() &&
-					g_Pages[g_CurrentPage].autoWait)
-				{
-					// 待機開始コールバック
-					if (g_Pages[g_CurrentPage].onWaitStart) g_Pages[g_CurrentPage].onWaitStart();
-
-					g_IsTutorial        = false;
-					g_IsWaiting         = true;
-					g_VignetteRadius    = 0.0f;
-					g_VignetteFadingOut = false;
-					g_FadeAlpha         = 0.0f;
-					g_State             = TutorialState::Active;
-					return;
-				}
-
-				g_State = TutorialState::Active;
+				AdvanceToNextPage();
+				return;
 			}
 
-			// カメラの滑らかな移動（Smoothstep補間）
-			if (g_IsCameraTransitioning)
-			{
-				Camera* cam = GetCamera();
-				if (cam)
-				{
-					float t = g_CrossFadeProgress;
-					float smoothT = t * t * (3.0f - 2.0f * t);
-
-					XMFLOAT3 pos;
-					pos.x = g_CamStartPos.x + (g_CamEndPos.x - g_CamStartPos.x) * smoothT;
-					pos.y = g_CamStartPos.y + (g_CamEndPos.y - g_CamStartPos.y) * smoothT;
-					pos.z = g_CamStartPos.z + (g_CamEndPos.z - g_CamStartPos.z) * smoothT;
-
-					XMFLOAT3 at;
-					at.x = g_CamStartAt.x + (g_CamEndAt.x - g_CamStartAt.x) * smoothT;
-					at.y = g_CamStartAt.y + (g_CamEndAt.y - g_CamStartAt.y) * smoothT;
-					at.z = g_CamStartAt.z + (g_CamEndAt.z - g_CamStartAt.z) * smoothT;
-
-					cam->UpdateView(pos, at);
-				}
-			}
-
-			ApplyPageHole();
-			break;
+			g_State = TutorialState::Active;
 		}
+
+		if (g_IsCameraTransitioning)
+		{
+			Camera* cam = GetCamera();
+			if (cam)
+			{
+				float t = g_CrossFadeProgress;
+				float smoothT = t * t * (3.0f - 2.0f * t);
+
+				XMFLOAT3 pos;
+				pos.x = g_CamStartPos.x + (g_CamEndPos.x - g_CamStartPos.x) * smoothT;
+				pos.y = g_CamStartPos.y + (g_CamEndPos.y - g_CamStartPos.y) * smoothT;
+				pos.z = g_CamStartPos.z + (g_CamEndPos.z - g_CamStartPos.z) * smoothT;
+
+				XMFLOAT3 at;
+				at.x = g_CamStartAt.x + (g_CamEndAt.x - g_CamStartAt.x) * smoothT;
+				at.y = g_CamStartAt.y + (g_CamEndAt.y - g_CamStartAt.y) * smoothT;
+				at.z = g_CamStartAt.z + (g_CamEndAt.z - g_CamStartAt.z) * smoothT;
+
+				cam->UpdateView(pos, at);
+			}
+		}
+
+		ApplyPageHole();
+		break;
 	}
-	// チュートリアル開始後のカメラ初期化待ち
+	}
 	else if (g_IsPreTutorial)
 	{
 		g_TutorialDelayFrames--;
@@ -717,11 +719,14 @@ void UI_Tutorial_Update(void)
 		if (g_TutorialDelayFrames <= 0)
 		{
 			g_IsPreTutorial = false;
-			g_IsTutorial    = true;
-			g_CurrentPage   = 0;
+			g_IsTutorial = true;
+			g_CurrentPage = 0;
 
-			// チュートリアル開始時はフェードインから
-			g_State    = TutorialState::FadeIn;
+			// 最初のページの onEnter を呼ぶ
+			if (!g_Pages.empty() && g_Pages[0].onEnter)
+				g_Pages[0].onEnter();
+
+			g_State = TutorialState::FadeIn;
 			g_FadeAlpha = 0.0f;
 			ApplyPageHole();
 		}
@@ -730,10 +735,8 @@ void UI_Tutorial_Update(void)
 
 void UI_Tutorial_Draw(void)
 {
-	// 待機中もビネット表示するためg_IsWaitingを条件に追加
 	if (!g_IsPreTutorial && !g_IsTutorial && !g_IsWaiting) return;
 
-	// 待機中は真ん中に大きな穴のビネット表示
 	if (g_IsWaiting)
 	{
 		if (g_pTutorialBG)
@@ -743,7 +746,6 @@ void UI_Tutorial_Draw(void)
 			g_pTutorialBG->Draw();
 		}
 
-		// autoWaitページのテキストをビネットに重ねて表示
 		if (g_CurrentPage >= 0 && g_CurrentPage < (int)g_Pages.size() &&
 			g_Pages[g_CurrentPage].autoWait)
 		{
@@ -762,7 +764,6 @@ void UI_Tutorial_Draw(void)
 			}
 		}
 
-		// 操作ヒントをビネット進行に合わせて表示・フェードアウト
 		if (g_pPlayHintFont)
 		{
 			float hintAlpha = g_VignetteRadius / VIGNETTE_RADIUS_TARGET * 0.85f;
@@ -774,17 +775,14 @@ void UI_Tutorial_Draw(void)
 		return;
 	}
 
-	// 暗幕描画
 	if (g_pTutorialBG) g_pTutorialBG->Draw();
 
-	// クロスフェード中は旧ページと新ページを同時描画
 	if (g_State == TutorialState::CrossFade &&
 		g_NextPage >= 0 && g_NextPage < (int)g_Pages.size())
 	{
 		float oldAlpha = g_FadeAlpha * (1.0f - g_CrossFadeProgress);
 		float newAlpha = g_FadeAlpha * g_CrossFadeProgress;
 
-		// 旧ページ描画（フェードアウト）
 		if (g_CurrentPage >= 0 && g_CurrentPage < (int)g_Pages.size())
 		{
 			const TutorialPage& oldPage = g_Pages[g_CurrentPage];
@@ -806,7 +804,6 @@ void UI_Tutorial_Draw(void)
 			}
 		}
 
-		// 新ページ描画（フェードイン）- autoWaitページのテキストはここでは描画しない
 		{
 			const TutorialPage& newPage = g_Pages[g_NextPage];
 			bool newPageIsAutoWait = newPage.autoWait;
@@ -834,7 +831,6 @@ void UI_Tutorial_Draw(void)
 	}
 	else
 	{
-		// 通常描画（FadeIn/Active状態）
 		if (g_CurrentPage >= 0 && g_CurrentPage < (int)g_Pages.size())
 		{
 			const TutorialPage& page = g_Pages[g_CurrentPage];
@@ -862,14 +858,11 @@ void UI_Tutorial_Draw(void)
 		}
 	}
 
-	// 案内テキスト（autoWaitページへのクロスフェード中は非表示）
 	bool crossFadingToAutoWait = (g_State == TutorialState::CrossFade &&
 		g_NextPage >= 0 && g_NextPage < (int)g_Pages.size() &&
 		g_Pages[g_NextPage].autoWait);
 
 	if (g_pGuideFont && !crossFadingToAutoWait) {
-
-		// 条件待機ページのときは案内テキストを変える
 		bool isWaitPage = (g_CurrentPage >= 0 && g_CurrentPage < (int)g_Pages.size() &&
 			g_Pages[g_CurrentPage].waitCondition != nullptr);
 
@@ -882,28 +875,25 @@ void UI_Tutorial_Draw(void)
 		g_pGuideFont->SetColor(col);
 	}
 
-	// スキップUI描画
 	if (g_IsTutorial && g_pSkipBarBG && g_pSkipBarFG && g_pSkipGuideFont)
 	{
-		// スキップバー背景
 		{
 			XMFLOAT4 col = g_pSkipBarBG->GetColor();
 			g_pSkipBarBG->SetColor({ col.x, col.y, col.z, col.w * g_FadeAlpha });
 			g_pSkipBarBG->Draw();
 			g_pSkipBarBG->SetColor(col);
 		}
-		// スキップゲージ（幅をスキップ進捗に応じて変更）
 		{
-			float skipRatio   = g_SkipHoldTime / SKIP_HOLD_REQUIRED;
+			float skipRatio = g_SkipHoldTime / SKIP_HOLD_REQUIRED;
 			if (skipRatio > 1.0f) skipRatio = 1.0f;
-			float barWidth    = TUT_SKIPBAR_WIDTH * skipRatio;
+			float barWidth = TUT_SKIPBAR_WIDTH * skipRatio;
 
 			XMFLOAT4 col = g_pSkipBarFG->GetColor();
 			g_pSkipBarFG->SetColor({ col.x, col.y, col.z, col.w * g_FadeAlpha });
 
 			XMFLOAT2 origSize = g_pSkipBarFG->GetScale();
-			XMFLOAT2 origPos  = g_pSkipBarFG->GetPos();
-			float leftEdge    = TUT_SKIPBAR_CENTER_X - TUT_SKIPBAR_WIDTH / 2.0f;
+			XMFLOAT2 origPos = g_pSkipBarFG->GetPos();
+			float leftEdge = TUT_SKIPBAR_CENTER_X - TUT_SKIPBAR_WIDTH / 2.0f;
 			g_pSkipBarFG->SetSize({ barWidth, origSize.y });
 			g_pSkipBarFG->SetPos({ leftEdge + barWidth / 2.0f, origPos.y });
 
@@ -913,7 +903,6 @@ void UI_Tutorial_Draw(void)
 			g_pSkipBarFG->SetPos(origPos);
 			g_pSkipBarFG->SetColor(col);
 		}
-		// スキップ案内テキスト
 		{
 			XMFLOAT4 col = g_pSkipGuideFont->GetColor();
 			g_pSkipGuideFont->SetColor({ col.x, col.y, col.z, g_FadeAlpha });
@@ -922,18 +911,25 @@ void UI_Tutorial_Draw(void)
 		}
 	}
 
-	// ページ数表示
+	// ページ数表示（ページ番号ベース）
 	if (g_pPageCountFont && !crossFadingToAutoWait)
 	{
-		int displayPage  = g_CurrentPage + 1;
-		int displayTotal = (int)g_Pages.size();
+		// 表示するページ番号：クロスフェード中は遷移先を使用
+		int serialForDisplay = (g_State == TutorialState::CrossFade && g_NextPage >= 0)
+			? g_NextPage : g_CurrentPage;
+		int displayPage = GetDisplayPageNumber(serialForDisplay);
 
-		// クロスフェード中は遷移先ページ番号を表示
-		if (g_State == TutorialState::CrossFade && g_NextPage >= 0)
-			displayPage = g_NextPage + 1;
+		// isPageType=false のエントリは番号0扱いなので、直前の有効ページ番号を探す
+		if (displayPage == 0 && serialForDisplay > 0)
+		{
+			for (int i = serialForDisplay - 1; i >= 0; --i)
+			{
+				if (g_Pages[i].isPageType) { displayPage = g_Pages[i].pageNumber; break; }
+			}
+		}
 
 		char pageText[64];
-		sprintf_s(pageText, "%d / %d ページ", displayPage, displayTotal);
+		sprintf_s(pageText, "%d / %d ページ", displayPage, g_TotalPageCount);
 		g_pPageCountFont->SetText(pageText);
 
 		XMFLOAT4 col = g_pPageCountFont->GetColor();
@@ -953,12 +949,9 @@ bool UI_Tutorial_IsWaiting(void)
 	return g_IsWaiting;
 }
 
-// 条件_WAIT中に外部から「条件達成」を通知して次ページへ進む
 void UI_Tutorial_ResumeFromWait(void)
 {
 	if (!g_IsWaiting) return;
-
-	// 縮小アニメを開始（Update内で完了後に復帰する）
 	g_VignetteFadingOut = true;
 }
 
@@ -966,12 +959,12 @@ void UI_Tutorial_Start()
 {
 	if (g_IsTutorial || g_IsPreTutorial) return;
 
-	g_IsTutorial  = true;
-	g_IsWaiting   = false;
+	g_IsTutorial = true;
+	g_IsWaiting = false;
 	g_CurrentPage = 0;
 	g_TutorialDelayFrames = TUTORIAL_SKIP_FRAME;
 
-	g_State    = TutorialState::FadeIn;
+	g_State = TutorialState::FadeIn;
 	g_FadeAlpha = 0.0f;
 	g_SkipHoldTime = 0.0f;
 
@@ -982,7 +975,6 @@ void UI_Tutorial_Start()
 
 void UI_Tutorial_End()
 {
-	// カメラオーバーライド中なら元に戻す
 	if (g_CameraOverrideActive)
 	{
 		Camera* cam = GetCamera();
@@ -991,10 +983,10 @@ void UI_Tutorial_End()
 	}
 	g_IsCameraTransitioning = false;
 
-	g_IsTutorial    = false;
+	g_IsTutorial = false;
 	g_IsPreTutorial = false;
-	g_IsWaiting     = false;
-	g_CurrentPage   = 0;
+	g_IsWaiting = false;
+	g_CurrentPage = 0;
 	g_TutorialDelayFrames = TUTORIAL_SKIP_FRAME;
 
 	Mouse_SetMode(MOUSE_POSITION_MODE_RELATIVE);

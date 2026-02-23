@@ -25,15 +25,19 @@ struct TutorialPage
 	std::function<bool()> waitCondition;
 	bool autoWait = false; // trueのとき、ページ表示と同時に自動でテストプレイ開始
 
-	// 待機開始時に呼ばれるコールバック（マーカー表示などに使用）
-	std::function<void()> onWaitStart;
-	// 待機終了時に呼ばれるコールバック（マーカー非表示などに使用）
-	std::function<void()> onWaitEnd;
+	// ページに到達したときに一度だけ呼ばれるコールバック
+	std::function<void()> onEnter;
 
 	// カメラ移動ページ用
 	bool      cameraOverride = false;  // trueのとき指定カメラ位置に移動
 	XMFLOAT3  cameraPos;               // 目標カメラ位置
 	XMFLOAT3  cameraAt;                // 目標注視点
+
+	// ページ番号カウント対象か（AddPage系はtrue、SetCamera/SetMarkerはfalse）
+	bool isPageType = false;
+
+	// このページのページ番号（isPageType==true のページのみ有効）
+	int pageNumber = 0;
 };
 
 // ==========================================

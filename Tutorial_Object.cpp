@@ -19,6 +19,7 @@ static Sprite3D* g_pEnban      = nullptr;
 static bool      g_EnbanTouched   = false;
 static bool      g_EnbanVisible   = false; // 円盤の表示フラグ（コールバックで制御）
 static bool      g_PianoPossessed = false;
+static bool      g_BustersVisible = false; // バスターズの表示フラグ（コールバックで制御）
 
 // =================================================================
 // グローバル変数
@@ -277,7 +278,8 @@ void TutorialObject_Draw(void)
 {
 	if (Field_GetCurrentFloor() != 2) return;
 
-	if (g_pTutorialBusters)
+	// バスターズは表示フラグが立っているときだけ描画
+	if (g_pTutorialBusters && g_BustersVisible)
 	{
 		g_pTutorialBusters->Draw();
 	}
@@ -301,6 +303,7 @@ void TutorialObject_Finalize(void)
 	g_pEnban         = nullptr;
 	g_EnbanTouched   = false;
 	g_EnbanVisible   = false;
+	g_BustersVisible = false;
 	g_PianoPossessed = false;
 
 	if (g_pTutorialBusters)
@@ -324,6 +327,11 @@ bool* TutorialObject_GetEnbanTouchedPtr(void)
 void TutorialObject_SetEnbanVisible(bool visible)
 {
 	g_EnbanVisible = visible;
+}
+
+void TutorialObject_SetBustersVisible(bool visible)
+{
+	g_BustersVisible = visible;
 }
 
 bool* TutorialObject_GetPianoPossessedPtr(void)

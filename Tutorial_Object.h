@@ -84,6 +84,9 @@ bool* TutorialObject_GetEnbanTouchedPtr(void);
 // 円盤の表示フラグを設定する
 void TutorialObject_SetEnbanVisible(bool visible);
 
+// バスターズの表示フラグを設定する
+void TutorialObject_SetBustersVisible(bool visible);
+
 // ピアノ憑依フラグのポインタを返す
 bool* TutorialObject_GetPianoPossessedPtr(void);
 

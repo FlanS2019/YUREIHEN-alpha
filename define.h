@@ -76,6 +76,7 @@
 #define BUSTERS_PATROL_RANGH (5.0f)      // 恐怖感知範囲
 #define BUSTERS_SUSPICION_RANGE (10.0f)  // 怪しんで近づいてくる範囲
 #define PATROL_HEIGHT (0.0f)
+#define BUSTERS_HEIGHT (-0.5f)
 #define BUSTERS_DEFOURT_GAUGE (50.0f)
 #define WAIT_TIMER_DEFAULT (60)		     // 待機時間のデフォルト
 #define WAIT_TIMER_COOLDOWN (1800)		 // 待機のクールタイム
