@@ -14,8 +14,8 @@ enum class BILLBOARD_ICON
 	STUN,		// 星 (気絶)
 	GHOST,		// お化けマーク (プレイヤー位置など)
 	SEARCH,
-	CHECK
-	
+	CHECK,
+	DESTINATION,	// 目的地マーカー（下向き矢印）
 };
 
 class Billboard

@@ -40,6 +40,12 @@
 #define TUT_GUIDE_OFFSET_Y     ( 35.0f)                 // バーから[SPACE]案内へのYオフセット
 #define TUT_PAGECOUNT_OFFSET_Y (-65.0f)                 // バーからページ数表示へのYオフセット
 
+//=== TutorialMarker 関連定数 ===
+#define TUTORIAL_MARKER_SIZE        (2.4f)  // 矢印ビルボードのサイズ（幅・高さ）
+#define TUTORIAL_MARKER_BOB_AMP     (0.25f) // バウンス振幅（上下の振れ幅）
+#define TUTORIAL_MARKER_BOB_SPEED   (3.0f)  // バウンス速度（rad/s）
+#define TUTORIAL_MARKER_BASE_HEIGHT (2.0f)  // 地面からの基本高さ
+
 //=== フィールド関連定数 ===
 #define MAP_FLOORS (3)
 #define START_FLOOR (3)// 階の数字をそのまま入れる（使用時に-1）

@@ -7,6 +7,7 @@
 #include "sprite3d.h"
 #include "anim_sprite3d.h"
 #include "billboard.h"
+#include "define.h"
 using namespace DirectX;
 
 // =================================================================
@@ -42,6 +43,35 @@ public:
 	TUTORIAL_BUSTERS_STATE GetState(void) const { return m_State; }
 };
 
+// =================================================================
+// 目的地マーカークラス
+// 指定ワールド座標の頭上でビルボード（下向き矢印）がぴょんぴょんする
+// =================================================================
+class TutorialMarker
+{
+private:
+	XMFLOAT3 m_BasePos;     // マーカーのワールド座標（地面位置）
+	Billboard* m_Arrow;     // 下向き矢印ビルボード
+	float m_BobTimer;       // バウンスアニメーション用タイマー
+	bool  m_Visible;        // 表示フラグ
+
+	// 定数は define.h のマクロを使用
+	// TUTORIAL_MARKER_SIZE / TUTORIAL_MARKER_BOB_AMP
+	// TUTORIAL_MARKER_BOB_SPEED / TUTORIAL_MARKER_BASE_HEIGHT
+
+public:
+	TutorialMarker();
+	~TutorialMarker();
+
+	void Initialize(const XMFLOAT3& pos);
+	void Update(void);
+	void Draw(void);
+
+	void SetPos(const XMFLOAT3& pos);
+	void SetVisible(bool visible) { m_Visible = visible; }
+	bool GetVisible(void) const   { return m_Visible; }
+};
+
 // チュートリアル用オブジェクト（円盤等）の初期化・更新・描画・終了
 void TutorialObject_Initialize(void);
 void TutorialObject_Update(void);
@@ -51,7 +81,13 @@ void TutorialObject_Finalize(void);
 // 円盤接触フラグのポインタを返す
 bool* TutorialObject_GetEnbanTouchedPtr(void);
 
+// 円盤の表示フラグを設定する
+void TutorialObject_SetEnbanVisible(bool visible);
+
 // ピアノ憑依フラグのポインタを返す
 bool* TutorialObject_GetPianoPossessedPtr(void);
 
 TutorialBusters* GetTutorialBusters(void);
+
+// 目的地マーカーのゲッター
+TutorialMarker* GetTutorialMarker(void);

@@ -186,7 +186,7 @@ static void AddPageWithWait(const XMFLOAT2& holeCenter, float holeRadius,
 // カメラ移動ページ追加：
 //   ページ表示中はカメラを targetPos/targetAt へ移動し、
 //   次ページへ進むときに元のカメラ位置へ戻す
-static void AddPageCamera(const XMFLOAT2& holeCenter, float holeRadius,
+static void AddPage_Camera(const XMFLOAT2& holeCenter, float holeRadius,
 	const std::vector<std::string>& texts,
 	const XMFLOAT3& targetPos, const XMFLOAT3& targetAt,
 	XMFLOAT2 textPos = { SCREEN_WIDTH * 0.5f, SCREEN_HEIGHT * 0.5f },
@@ -202,9 +202,11 @@ static void AddPageCamera(const XMFLOAT2& holeCenter, float holeRadius,
 // テストプレイページ追加：
 //   ページが表示された瞬間に自動でテストプレイ開始し、
 //   *pFlag が true になったら自動で次ページへ進む
-static void AddTestPlay(const std::vector<std::string>& texts, bool* pFlag,
+static void AddPage_Play(const std::vector<std::string>& texts, bool* pFlag,
 	XMFLOAT2 textPos = { SCREEN_WIDTH * 0.5f, SCREEN_HEIGHT * 0.5f },
-	float fontSize = 40.0f)
+	float fontSize = 40.0f,
+	std::function<void()> onWaitStart = nullptr,
+	std::function<void()> onWaitEnd   = nullptr)
 {
 	g_Pages.emplace_back();
 	TutorialPage& page = g_Pages.back();
@@ -223,7 +225,9 @@ static void AddTestPlay(const std::vector<std::string>& texts, bool* pFlag,
 	page.waitCondition = [pFlag]() -> bool {
 		return pFlag && *pFlag;
 	};
-	page.autoWait = true;
+	page.autoWait      = true;
+	page.onWaitStart   = onWaitStart;
+	page.onWaitEnd     = onWaitEnd;
 }
 
 // ==========================================
@@ -302,10 +306,21 @@ static void InitPages()
 	});
 
 	// ---移動操作説明 ---
-	AddTestPlay(
+	AddPage_Play(
 		{"[W][A][S][D] 移動、マウスで視点"}, 
 		TutorialObject_GetEnbanTouchedPtr(),
-		{ SCREEN_WIDTH / 2, SCREEN_HEIGHT - 100.0f }
+		{ SCREEN_WIDTH / 2, SCREEN_HEIGHT - 100.0f },
+		40.0f,
+		[]() {
+			TutorialMarker* m = GetTutorialMarker();
+			if (m) m->SetVisible(true);
+			TutorialObject_SetEnbanVisible(true);
+		},
+		[]() {
+			TutorialMarker* m = GetTutorialMarker();
+			if (m) m->SetVisible(false);
+			TutorialObject_SetEnbanVisible(false);
+		}
 	);
 
 	AddPage({ SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2 }, 0.0f, {
@@ -313,19 +328,29 @@ static void InitPages()
 		"次はゲームの目的、「敵を驚かせて追い払う！」について説明するね。"
 		});
 
-	AddPageCamera({ SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2 }, 300.0f, 
+	AddPage_Camera({ SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2 }, 300.0f, 
 		{"これが家具の一つのピアノ。"
 		"[スペースキー]で憑依だよ！" }, 
 		{ -15.0f, 3.0f, 16.5f }, { -24.5f, 0.5f, 16.5f }, 
 		{ SCREEN_WIDTH / 2, SCREEN_HEIGHT - 100.0f }
 	);
 
-	//ここにピアノに憑依するまでのAddTestPlayを入れる
-	AddTestPlay(
+	//ピアノへ憑依する
+	AddPage_Play(
 		{ "[W][A][S][D] 移動 [マウス]視点 [スペースキー]憑依" },
 		TutorialObject_GetPianoPossessedPtr(),
-		{ SCREEN_WIDTH / 2, SCREEN_HEIGHT - 100.0f }
+		{ SCREEN_WIDTH / 2, SCREEN_HEIGHT - 100.0f },
+		40.0f,
+		[]() {
+			// テストプレイ開始時にカメラをピアノへ向ける
+			Camera* cam = GetCamera();
+			if (cam) cam->UpdateView({ -15.0f, 3.0f, 16.5f }, { -24.5f, 0.5f, 16.5f });
+		}
 	);
+	// テストプレイ中もカメラをピアノへ向ける
+	g_Pages.back().cameraOverride = true;
+	g_Pages.back().cameraPos      = { -15.0f, 3.0f, 16.5f };
+	g_Pages.back().cameraAt       = { -24.5f, 0.5f, 16.5f };
 
 	AddPage({ SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2 }, 0.0f, {
 		"憑依できたね！ おや？この影は？"
@@ -478,6 +503,13 @@ void UI_Tutorial_Update(void)
 			{
 				g_VignetteRadius = 0.0f;
 				// アニメ完了→チュートリアル再開
+
+				// 待機終了コールバック
+				if (g_CurrentPage >= 0 && g_CurrentPage < (int)g_Pages.size())
+				{
+					if (g_Pages[g_CurrentPage].onWaitEnd) g_Pages[g_CurrentPage].onWaitEnd();
+				}
+
 				g_VignetteFadingOut = false;
 				g_IsWaiting  = false;
 				g_IsTutorial = true;
@@ -556,11 +588,14 @@ void UI_Tutorial_Update(void)
 			if (g_CurrentPage >= 0 && g_CurrentPage < (int)g_Pages.size() &&
 				g_Pages[g_CurrentPage].autoWait)
 			{
+				// 待機開始コールバック
+				if (g_Pages[g_CurrentPage].onWaitStart) g_Pages[g_CurrentPage].onWaitStart();
+
 				g_IsTutorial        = false;
 				g_IsWaiting         = true;
 				g_VignetteRadius    = 0.0f;
 				g_VignetteFadingOut = false;
-				g_FadeAlpha         = 0.0f; // テキストをHoleと同時にフェードインさせる
+				g_FadeAlpha         = 0.0f;
 				return;
 			}
 
@@ -584,12 +619,14 @@ void UI_Tutorial_Update(void)
 					if (g_CurrentPage >= 0 && g_CurrentPage < (int)g_Pages.size() &&
 						g_Pages[g_CurrentPage].waitCondition != nullptr)
 					{
+						// 待機開始コールバック
+						if (g_Pages[g_CurrentPage].onWaitStart) g_Pages[g_CurrentPage].onWaitStart();
+
 						// ゲームに制御を返す（一時停止解除）
 						g_IsTutorial        = false;
 						g_IsWaiting         = true;
 						g_VignetteRadius    = 0.0f;
 						g_VignetteFadingOut = false;
-						// マウスロックはビネット拡大完了後に行う（下記else内）
 					}
 					else
 					{
@@ -630,12 +667,15 @@ void UI_Tutorial_Update(void)
 				if (g_CurrentPage >= 0 && g_CurrentPage < (int)g_Pages.size() &&
 					g_Pages[g_CurrentPage].autoWait)
 				{
+					// 待機開始コールバック
+					if (g_Pages[g_CurrentPage].onWaitStart) g_Pages[g_CurrentPage].onWaitStart();
+
 					g_IsTutorial        = false;
 					g_IsWaiting         = true;
 					g_VignetteRadius    = 0.0f;
 					g_VignetteFadingOut = false;
 					g_FadeAlpha         = 0.0f;
-					g_State             = TutorialState::Active; // 復帰後のためにActiveにしておく
+					g_State             = TutorialState::Active;
 					return;
 				}
 

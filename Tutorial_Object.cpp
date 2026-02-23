@@ -15,14 +15,90 @@ using namespace DirectX;
 // ==========================================
 // 円盤（enban）Sprite3D
 // ==========================================
-static Sprite3D* g_pEnban = nullptr;
-static bool      g_EnbanTouched = false;
+static Sprite3D* g_pEnban      = nullptr;
+static bool      g_EnbanTouched   = false;
+static bool      g_EnbanVisible   = false; // 円盤の表示フラグ（コールバックで制御）
 static bool      g_PianoPossessed = false;
 
 // =================================================================
 // グローバル変数
 // =================================================================
 static TutorialBusters* g_pTutorialBusters = nullptr;
+static TutorialMarker*  g_pTutorialMarker  = nullptr;
+
+// =================================================================
+// TutorialMarker 定数定義
+// =================================================================
+// define.h のマクロを使用（TUTORIAL_MARKER_SIZE / BOB_AMP / BOB_SPEED / BASE_HEIGHT）
+
+// =================================================================
+// TutorialMarker クラスメンバ関数の実装
+// =================================================================
+
+TutorialMarker::TutorialMarker()
+	: m_BasePos(0.0f, 0.0f, 0.0f)
+	, m_Arrow(nullptr)
+	, m_BobTimer(0.0f)
+	, m_Visible(true)
+{
+}
+
+TutorialMarker::~TutorialMarker()
+{
+	if (m_Arrow)
+	{
+		delete m_Arrow;
+		m_Arrow = nullptr;
+	}
+}
+
+void TutorialMarker::Initialize(const XMFLOAT3& pos)
+{
+	m_BasePos  = pos;
+	m_BobTimer = 0.0f;
+	m_Visible  = false; // コールバックで表示する
+
+	m_Arrow = new Billboard();
+	m_Arrow->Initialize(
+		{ m_BasePos.x, m_BasePos.y + TUTORIAL_MARKER_BASE_HEIGHT, m_BasePos.z },
+		{ TUTORIAL_MARKER_SIZE, TUTORIAL_MARKER_SIZE },
+		{ 0.0f, 0.0f, 0.0f },
+		true   // 両面描画
+	);
+	m_Arrow->SetIcon(BILLBOARD_ICON::DESTINATION);
+}
+
+void TutorialMarker::Update(void)
+{
+	if (!m_Arrow || !m_Visible) return;
+
+	// ぴょんぴょんアニメーション（サイン波で上下）
+	const float dt = 1.0f / 60.0f;
+	m_BobTimer += TUTORIAL_MARKER_BOB_SPEED * dt;
+
+	float offsetY = sinf(m_BobTimer) * TUTORIAL_MARKER_BOB_AMP;
+
+	XMFLOAT3 arrowPos = {
+		m_BasePos.x,
+		m_BasePos.y + TUTORIAL_MARKER_BASE_HEIGHT + offsetY,
+		m_BasePos.z
+	};
+	m_Arrow->SetPos(arrowPos);
+	m_Arrow->Update();
+}
+
+void TutorialMarker::Draw(void)
+{
+	if (!m_Arrow || !m_Visible) return;
+
+	Shader_Begin();
+	m_Arrow->Draw();
+}
+
+void TutorialMarker::SetPos(const XMFLOAT3& pos)
+{
+	m_BasePos = pos;
+}
 
 // =================================================================
 // TutorialBusters クラスメンバ関数の実装
@@ -125,7 +201,7 @@ void TutorialObject_Initialize(void)
 		"asset\\model\\enban.fbx"
 	);
 
-	g_EnbanTouched = false;
+	g_EnbanTouched   = false;
 	g_PianoPossessed = false;
 
 	if (g_pTutorialBusters)
@@ -140,16 +216,28 @@ void TutorialObject_Initialize(void)
 		{ 0.0f, 0.0f, 0.0f },
 		"asset\\model\\bustars_nocolor.fbx"
 	);
+
+	// 目的地マーカーを円盤の上に配置
+	if (g_pTutorialMarker)
+	{
+		delete g_pTutorialMarker;
+		g_pTutorialMarker = nullptr;
+	}
+	g_pTutorialMarker = new TutorialMarker();
+	g_pTutorialMarker->Initialize({ -5.0f, 0.5f, 17.0f });
 }
 
 void TutorialObject_Update(void)
 {
-
-
-
 	if (g_pTutorialBusters)
 	{
 		g_pTutorialBusters->Update();
+	}
+
+	// マーカーは表示中のみ Update
+	if (g_pTutorialMarker)
+	{
+		g_pTutorialMarker->Update();
 	}
 
 	if (!UI_Tutorial_IsWaiting()) return;
@@ -164,7 +252,8 @@ void TutorialObject_Update(void)
 		float dx = gPos.x - ePos.x;
 		float dz = gPos.z - ePos.z;
 
-		if (sqrtf(dx * dx + dz * dz) <= 0.8f)
+		float enbanRadius = g_pEnban->GetScale().x * 0.2f;
+		if (sqrtf(dx * dx + dz * dz) <= enbanRadius)
 		{
 			g_EnbanTouched = true;
 		}
@@ -176,7 +265,7 @@ void TutorialObject_Update(void)
 		{
 			int inRangeNum = pGhost->GetInRangeNum();
 			Furniture* pFurniture = GetFurniture(inRangeNum);
-			if (pFurniture && pFurniture->GetBlockID() == 62) // 62 is Piano
+			if (pFurniture && pFurniture->GetBlockID() == 62)
 			{
 				g_PianoPossessed = true;
 			}
@@ -193,15 +282,25 @@ void TutorialObject_Draw(void)
 		g_pTutorialBusters->Draw();
 	}
 
-	if (!g_pEnban) return;
-	g_pEnban->Draw();
+	// 目的地マーカー描画
+	if (g_pTutorialMarker)
+	{
+		g_pTutorialMarker->Draw();
+	}
+
+	// 円盤は表示フラグが立っているときだけ描画
+	if (g_pEnban && g_EnbanVisible)
+	{
+		g_pEnban->Draw();
+	}
 }
 
 void TutorialObject_Finalize(void)
 {
 	delete g_pEnban;
-	g_pEnban = nullptr;
-	g_EnbanTouched = false;
+	g_pEnban         = nullptr;
+	g_EnbanTouched   = false;
+	g_EnbanVisible   = false;
 	g_PianoPossessed = false;
 
 	if (g_pTutorialBusters)
@@ -209,11 +308,22 @@ void TutorialObject_Finalize(void)
 		delete g_pTutorialBusters;
 		g_pTutorialBusters = nullptr;
 	}
+
+	if (g_pTutorialMarker)
+	{
+		delete g_pTutorialMarker;
+		g_pTutorialMarker = nullptr;
+	}
 }
 
 bool* TutorialObject_GetEnbanTouchedPtr(void)
 {
 	return &g_EnbanTouched;
+}
+
+void TutorialObject_SetEnbanVisible(bool visible)
+{
+	g_EnbanVisible = visible;
 }
 
 bool* TutorialObject_GetPianoPossessedPtr(void)
@@ -224,4 +334,9 @@ bool* TutorialObject_GetPianoPossessedPtr(void)
 TutorialBusters* GetTutorialBusters(void)
 {
 	return g_pTutorialBusters;
+}
+
+TutorialMarker* GetTutorialMarker(void)
+{
+	return g_pTutorialMarker;
 }

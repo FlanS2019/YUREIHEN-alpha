@@ -92,6 +92,10 @@ void Billboard::SetIcon(BILLBOARD_ICON type)
 		SetTexture("asset\\texture\\tyousa.png");
 		break;
 
+	case BILLBOARD_ICON::DESTINATION:
+		SetTexture("asset\\texture\\icon_shitayazirusi.png");
+		break;
+
 	default:
 		m_Texture = nullptr;
 		break;
