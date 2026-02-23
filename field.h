@@ -28,6 +28,8 @@ public:
 	int blockID = 0;
 
 	float currentScale = 1.0f;
+
+	bool drawFace[6] = { true, true, true, true, true, true };
 };
 
 void Field_Initialize(ID3D11Device* pDevice, ID3D11DeviceContext* pContext);

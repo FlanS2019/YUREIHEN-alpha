@@ -86,7 +86,6 @@ void Busters::Update(void)
 {
 	JumpUpdate(*(Transform3D*)this);
 
-
 	if (m_DetectionGraceTimer > 0)
 	{
 		m_DetectionGraceTimer--;
@@ -229,38 +228,97 @@ void Busters::Update(void)
 	switch (m_State)
 	{
 	case BUSTERS_SEARCH: // 探索
-		if (m_TargetFurnitureIndex == -1)
+
+		if (m_TargetFurnitureIndex == -1 || m_PathList.empty())
 		{
-			m_TargetFurnitureIndex = rand() % FURNITURE_NUM;
+			if (m_TargetFurnitureIndex == -1)
+			{
+				Furniture* targetFurniture = nullptr;
+				int loopCount = 0;
+
+				while (loopCount < 100)
+				{
+					m_TargetFurnitureIndex = rand() % FURNITURE_NUM;
+					targetFurniture = GetFurniture(m_TargetFurnitureIndex);
+
+					// ドア(13)以外の家具を選ぶ
+					if (targetFurniture && targetFurniture->GetBlockID() != 13) break;
+					loopCount++;
+				}
+			}
+
 			Furniture* targetFurniture = GetFurniture(m_TargetFurnitureIndex);
-			if (targetFurniture)
+			if (targetFurniture && targetFurniture->GetBlockID() != 13)
 			{
 				XMFLOAT3 targetPos = targetFurniture->GetPos();
+				XMFLOAT3 destination = targetPos; // デフォルトは直接家具を目指す
 
-				// 現在地から家具への方向ベクトル
-				float dx = targetPos.x - m_Position.x;
-				float dz = targetPos.z - m_Position.z;
+				bool hasWall = Field_CheckWallBetween(m_Position, targetPos);
+
+				if (hasWall)
+				{
+					float minDist = 999999.0f;
+					int bestDoorIndex = -1;
+
+					for (int i = 0; i < FURNITURE_NUM; i++) {
+						Furniture* f = GetFurniture(i);
+
+						if (f && f->GetBlockID() == 13 && !IsIgnoredRelayDoor(i))
+						{
+							XMFLOAT3 dPos = f->GetPos();
+
+							float d1x = dPos.x - m_Position.x;
+							float d1z = dPos.z - m_Position.z;
+							float distToDoor = sqrtf(d1x * d1x + d1z * d1z); // 現在地〜ドアの距離
+
+							float d2x = targetPos.x - dPos.x;
+							float d2z = targetPos.z - dPos.z;
+							float distToTarget = sqrtf(d2x * d2x + d2z * d2z); // ドア〜目標の距離
+
+							float totalDist = distToDoor + distToTarget;
+
+							// 今いる部屋の中から行けるドアの優先度を上げる
+							if (!Field_CheckWallBetween(m_Position, dPos)) {
+								totalDist -= 10000.0f;
+							}
+
+							if (totalDist < minDist) {
+								minDist = totalDist;
+								bestDoorIndex = i;
+							}
+						}
+					}
+
+					if (bestDoorIndex != -1) {
+						// 最適なドアを中継地点に設定する
+						destination = GetFurniture(bestDoorIndex)->GetPos();
+
+						// このドアを次から中継地点にしない状態にする
+						AddIgnoreRelayDoor(bestDoorIndex);
+					}
+				}
+
+				float dx = destination.x - m_Position.x;
+				float dz = destination.z - m_Position.z;
 				float dist = sqrtf(dx * dx + dz * dz);
 
-				if (dist > 0.0f)
+				bool isTargetDoor = (destination.x != targetPos.x || destination.z != targetPos.z);
+
+				if (dist > 0.0f && !isTargetDoor)
 				{
-					// 0.8m手前を目的地にする（家具の半径＋バスターズの半径分）
+					// 本物の家具を目指す時だけ手前で止まる
 					float offset = 0.6f;
-					targetPos.x -= (dx / dist) * offset;
-					targetPos.z -= (dz / dist) * offset;
+					destination.x -= (dx / dist) * offset;
+					destination.z -= (dz / dist) * offset;
 				}
 
+				// 目的地(目標家具 or 中継のドア)への経路を生成
 				m_PathList = Field_FindPath(m_Position, targetPos);
-
-				if (m_PathList.empty() && targetFurniture)
-				{
-					m_PathList.push_back(targetFurniture->GetPos());
-				}
-
 				if (m_PathList.empty())
 				{
+					// 経路が見つからない（壁の中などで行けない）場合は、壁に突っ込まずに潔く諦める
 					m_TargetFurnitureIndex = -1;
-					m_WaitTimer = 300;
+					m_WaitTimer = 60; // 諦めて少し待機してから、別の目標を探す
 				}
 			}
 			else
@@ -389,10 +447,27 @@ void Busters::Update(void)
 			{
 				if (m_State == BUSTERS_SEARCH || m_State == BUSTERS_LURED)
 				{
-					m_State = BUSTERS_SEARCH;
-					m_TargetFurnitureIndex = -1; // ターゲット解除
-					m_WaitTimer = 300;           // 調査（待機）開始
-					m_PathList.clear();          // 残りのパスも消す
+					bool reached = forceArrive;
+					if (!reached && m_TargetFurnitureIndex != -1) {
+						Furniture* target = GetFurniture(m_TargetFurnitureIndex);
+						if (target) {
+							float tdx = target->GetPos().x - m_Position.x;
+							float tdz = target->GetPos().z - m_Position.z;
+							// 目標家具から1.5m以内にいれば到着とみなす
+							if (tdx * tdx + tdz * tdz < 1.5f * 1.5f) {
+								reached = true;
+							}
+						}
+					}
+
+					if (reached) {
+						// 本当に目標に到着した
+						m_State = BUSTERS_SEARCH;
+						m_TargetFurnitureIndex = -1; // ターゲット解除
+						m_WaitTimer = 300;           // 調査（待機）開始
+						m_PathList.clear();
+						ClearIgnoreRelayDoors();
+					}
 				}
 			}
 		}
@@ -493,15 +568,40 @@ int GetBlockIDFromWorldPos(float x, float z)
 	}
 }
 
-// 壁かどうか判定 (0以外は壁)
 bool IsWallBlock(float x, float z)
 {
-	return GetBlockIDFromWorldPos(x, z) != 0;
+	int id = GetBlockIDFromWorldPos(x, z);
+
+	// 0(空気)、13(ドア)、17(カーペット) は通り抜け可能
+	if (id == 0 || id == 13 || id == 17) return false;
+
+	// 50〜69(家具マーカー) や 98(方向指定マーカー) もマップチップの壁としては扱わない
+	if ((id >= 50 && id <= 69) || id == 98) return false;
+
+	return true; // それ以外（本物の壁）は true を返す
+}
+
+bool IsChokePoint(float x, float z)
+{
+	// 1マス(1.0f)の周囲の壁をチェック
+	bool wallL = IsWallBlock(x - 1.0f, z);
+	bool wallR = IsWallBlock(x + 1.0f, z);
+	bool wallU = IsWallBlock(x, z + 1.0f);
+	bool wallD = IsWallBlock(x, z - 1.0f);
+
+	// 左右が壁、または上下が壁（ドアや細い通路）
+	if (wallL && wallR) return true;
+	if (wallU && wallD) return true;
+
+	// L字の角（曲がり角）
+	if ((wallL || wallR) && (wallU || wallD)) return true;
+
+	return false;
 }
 
 bool IsObstacle(float x, float z, float radius, int ignoreFurnitureIndex = -1)
 {
-	// 1. 壁の判定 (中心と4隅をチェックしてめり込みを防ぐ)
+	// 壁の判定 (中心と4隅をチェックしてめり込みを防ぐ)
 	float checkR = radius * 0.7f;
 	if (IsWallBlock(x, z) ||
 		IsWallBlock(x + checkR, z + checkR) ||
@@ -512,13 +612,16 @@ bool IsObstacle(float x, float z, float radius, int ignoreFurnitureIndex = -1)
 		return true;
 	}
 
-	// 2. 家具の判定
+	/*// 家具の判定
 	for (int i = 0; i < FURNITURE_NUM; i++)
 	{
 		if (i == ignoreFurnitureIndex) continue; // ターゲット家具は通り抜けてOK
 
 		Furniture* pFurn = GetFurniture(i);
 		if (!pFurn) continue;
+
+		int fID = pFurn->GetBlockID();
+		if (fID == 13 || fID == 68 || fID == 69) continue;
 
 		XMFLOAT3 fPos = pFurn->GetPos();
 		float dx = fPos.x - x;
@@ -532,10 +635,9 @@ bool IsObstacle(float x, float z, float radius, int ignoreFurnitureIndex = -1)
 		{
 			return true; // 家具にぶつかる！
 		}
-	}
+	}*/
 	return false;
 }
-
 
 bool CanPassLine(const XMFLOAT3& start, const XMFLOAT3& end, float radius, int ignoreFurnitureIndex = -1)
 {
@@ -719,10 +821,15 @@ void Busters::MoveTo(XMFLOAT3 targetPos)
 		ignoreFurnIdx = m_TargetFurnitureIndex;
 	}
 
+	bool isNextChoke = false;
+	if (!m_PathList.empty()) {
+		isNextChoke = IsChokePoint(m_PathList[0].x, m_PathList[0].z);
+	}
+
 	// ストリング・プリング（経路のショートカット）
 	if (!m_PathList.empty())
 	{
-		int lookAheadMax = 3;
+		int lookAheadMax = isNextChoke ? 0 : 3;
 		int checkCount = 0;
 
 		while (!m_PathList.empty() && checkCount < lookAheadMax)
@@ -736,8 +843,8 @@ void Busters::MoveTo(XMFLOAT3 targetPos)
 			if (m_PathList.size() >= 2)
 			{
 				XMFLOAT3 nextNode = m_PathList[1];
-				// 半径0.3fで家具も壁も考慮してチェック
-				if (CanPassLine(m_Position, nextNode, 0.3f, ignoreFurnIdx))
+
+				if (CanPassLine(m_Position, nextNode, 0.6f, ignoreFurnIdx))
 				{
 					m_PathList.erase(m_PathList.begin());
 					continue;
@@ -748,6 +855,29 @@ void Busters::MoveTo(XMFLOAT3 targetPos)
 			break;
 		}
 	}
+
+	if (isNextChoke) {
+		float distToTargetX = finalTarget.x - m_Position.x;
+		float distToTargetZ = finalTarget.z - m_Position.z;
+		if (distToTargetX * distToTargetX + distToTargetZ * distToTargetZ < 0.2f * 0.2f) {
+			// 中心の 0.2m 以内に入ったら、はじめて次の経路を解放する（実質的な Threshold の上書き）
+			if (!m_PathList.empty()) m_PathList.erase(m_PathList.begin());
+		}
+	}
+
+	float checkDist = 0.8f; // チェックする距離（壁からのマージン）
+	XMFLOAT3 avoidVector = { 0.0f, 0.0f, 0.0f };
+
+	// 4方向の壁をチェックし、壁があれば逆方向に反発力を生む
+	if (IsWallBlock(m_Position.x + checkDist, m_Position.z)) avoidVector.x -= 1.0f; // 右に壁→左へ
+	if (IsWallBlock(m_Position.x - checkDist, m_Position.z)) avoidVector.x += 1.0f; // 左に壁→右へ
+	if (IsWallBlock(m_Position.x, m_Position.z + checkDist)) avoidVector.z -= 1.0f; // 奥に壁→手前へ
+	if (IsWallBlock(m_Position.x, m_Position.z - checkDist)) avoidVector.z += 1.0f; // 手前に壁→奥へ
+
+	// 反発ベクトルを目標地点に足す（壁から遠ざかるようにターゲットを膨らませる）
+	float avoidStrength = 0.5f; // 反発の強さ
+	finalTarget.x += avoidVector.x * avoidStrength;
+	finalTarget.z += avoidVector.z * avoidStrength;
 
 	// 移動ベクトルの計算
 	float dx = finalTarget.x - m_Position.x;
@@ -1231,6 +1361,7 @@ void Busters_CheckGaugeEvent(void)
 		StartFade(SCENE_ANM_WIN);
 	}
 }
+
 void Busters::Draw(void)
 {
 	// バスターズ（ボーンあり）を描画
@@ -1275,4 +1406,31 @@ void Busters_SetLight(void)
 
         Shader_AddPointLight(pHeadlight);
     }
+}
+
+// =================================================================
+// 中継地点（ドア）のブラックリスト管理関数
+// =================================================================
+
+// リストに追加して、次回から選ばれないようにする
+void Busters::AddIgnoreRelayDoor(int furnitureIndex)
+{
+	m_IgnoredDoorIndices.push_back(furnitureIndex);
+}
+
+// 目標に到着した時にリストを空にする
+void Busters::ClearIgnoreRelayDoors(void)
+{
+	m_IgnoredDoorIndices.clear();
+}
+
+// 指定されたドアが既にリストに入っているかチェックする
+bool Busters::IsIgnoredRelayDoor(int furnitureIndex)
+{
+
+	for (int ignoredIndex : m_IgnoredDoorIndices)
+	{
+		if (ignoredIndex == furnitureIndex) return true;
+	}
+	return false;
 }

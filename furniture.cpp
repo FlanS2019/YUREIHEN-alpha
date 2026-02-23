@@ -62,6 +62,19 @@ void Furniture_Initialize(void)
 
 				switch (id)
 				{
+
+				case 13:
+
+					// ドア
+					CreateFurniture(
+						{ wx, wy, wz },          // 場所
+						{ 1.0f, 1.0f, 1.0f },      // サイズ
+						{ 0.0f, rotY, 0.0f },      // 回転
+						"asset\\model\\cube.fbx", // モデル
+						ACTION_NONE,                // アクション
+						id
+					);
+
 				case 50:
 
 					// キャビネット
