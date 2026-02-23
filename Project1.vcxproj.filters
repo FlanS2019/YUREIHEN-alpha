@@ -37,7 +37,6 @@
     <ClCompile Include="field.cpp" />
     <ClCompile Include="light.cpp" />
     <ClCompile Include="UI_PauseMenu.cpp" />
-    <ClCompile Include="Tutorial_Bustars.cpp" />
     <ClCompile Include="UI_Tutorial.cpp" />
     <ClCompile Include="shader_2d.cpp" />
     <ClCompile Include="ClickFont.cpp" />
@@ -87,7 +86,6 @@
     <ClInclude Include="Floor2.h" />
     <ClInclude Include="Floor3.h" />
     <ClInclude Include="UI_PauseMenu.h" />
-    <ClInclude Include="Tutorial_Bustars.h" />
     <ClInclude Include="UI_Tutorial.h" />
     <ClInclude Include="shader_2d.h" />
     <ClInclude Include="HoleSprite.h" />

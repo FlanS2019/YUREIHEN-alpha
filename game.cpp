@@ -19,7 +19,6 @@ using namespace DirectX;
 #include "furniture.h"
 #include "fade.h"
 #include "busters.h"
-#include "Tutorial_Bustars.h"
 #include "Tutorial_Object.h"
 #include "debugdraw.h"
 #include "sound.h"
@@ -54,7 +53,6 @@ void Game_Initialize(ID3D11Device* pDevice, ID3D11DeviceContext* pContext)
 	Minimap_Initialize();
 	DebugDraw_Initialize();
 
-	TutorialBusters_Initialize({ 0.0f, PATROL_HEIGHT, 0.0f });
 	TutorialObject_Initialize();
 
 	g_pBGM = LoadMP3("asset/sound/bgm/HauntedHalloween.mp3");
@@ -85,22 +83,26 @@ void Game_Update(void)
 		return;
 	}
 
-	UI_Tutorial_Update();
-
-	if (UI_Tutorial_IsWaiting())
+	if (Field_GetCurrentFloor() == 2)
 	{
-		Camera_Update();
-		Shader_SetCameraPos(GetCamera()->GetPos());
-		Field_Update();
-		Ghost_Update();
-		Furniture_Update();
+		UI_Tutorial_Update();
 		TutorialObject_Update();
-		return;
-	}
 
-	if (UI_Tutorial_IsActive())
-	{
-		return;
+
+		if (UI_Tutorial_IsWaiting())
+		{
+			Camera_Update();
+			Shader_SetCameraPos(GetCamera()->GetPos());
+			Field_Update();
+			Ghost_Update();
+			Furniture_Update();
+			return;
+		}
+
+		if (UI_Tutorial_IsActive())
+		{
+			return;
+		}
 	}
 
 	Camera_Update();
@@ -112,11 +114,6 @@ void Game_Update(void)
 #if !STOP_TIMER_BUSTER
 	Busters_Update();
 #endif
-
-	if (Field_GetCurrentFloor() == 2)
-	{
-		TutorialBusters_Update();
-	}
 
 	DebugDraw_Update();
 }
@@ -135,10 +132,8 @@ void Game_Draw(void)
 
 	if (Field_GetCurrentFloor() == 2)
 	{
-		TutorialBusters_Draw();
+		TutorialObject_Draw();
 	}
-
-	TutorialObject_Draw();
 
 	Furniture_Draw();
 	Ghost_Draw();
@@ -150,7 +145,10 @@ void Game_Draw(void)
 	UI_Draw();
 	Minimap_Draw();
 
-	UI_Tutorial_Draw();
+	if (Field_GetCurrentFloor() == 2)
+	{
+		UI_Tutorial_Draw();
+	}
 	UI_PauseMenu_Draw();
 
 	Sprite_EndDraw2D();
@@ -181,6 +179,5 @@ void Game_Finalize(void)
 	Busters_Finalize();
 	DebugDraw_Finalize();
 
-	TutorialBusters_Finalize();
 	TutorialObject_Finalize();
 }
