@@ -35,6 +35,7 @@ private:
 	int m_PathUpdateTimer;
 
 	std::vector<XMFLOAT3> m_PathList;
+	std::vector<int> m_IgnoredDoorIndices;
 
 	XMFLOAT3 m_Velocity;
 	float m_MoveSpeed;
@@ -69,6 +70,9 @@ public:
 	bool IsTargetInFOV(const XMFLOAT3& targetPos, float range);
 	void SetTutorial(bool tutorial) { m_IsTutorial = tutorial; }
 	bool IsTutorial(void) const { return m_IsTutorial; }
+	void AddIgnoreRelayDoor(int furnitureIndex); // 対象のドアを中継地点候補から外す
+	void ClearIgnoreRelayDoors(void);            // 除外状態をすべてリセットする
+	bool IsIgnoredRelayDoor(int furnitureIndex); // そのドアが除外されているか確認する
 
 };
 
