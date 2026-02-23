@@ -325,14 +325,41 @@ void Direct3D_SetViewport3D()
 	g_pDeviceContext->RSSetViewports(1, &vp);
 }
 
-// 2D描画用：バックバッファ全体をビューポートに設定
+// 2D描画用：バックバッファ内に「16:9の中央領域」だけのビューポートを設定
+// ウィンドウが横長（例: 16:10）なら上下に黒帯、縦長なら左右に黒帯
 void Direct3D_SetViewport2D()
 {
+	const float targetAspect = DRAW_SCREEN_WIDTH / DRAW_SCREEN_HEIGHT;
+	const float windowAspect = g_ClientWidth / g_ClientHeight;
+
+	float vpW, vpH, vpX, vpY;
+
+	if (windowAspect > targetAspect)
+	{
+		// ウィンドウが横長 → 縦に合わせ、左右に黒帯（ピラーボックス）
+		vpH = g_ClientHeight;
+		vpW = g_ClientHeight * targetAspect;
+		vpX = (g_ClientWidth - vpW) * 0.5f;
+		vpY = 0.0f;
+	}
+	else
+	{
+		// ウィンドウが縦長 → 横に合わせ、上下に黒帯（レターボックス）
+		vpW = g_ClientWidth;
+		vpH = g_ClientWidth / targetAspect;
+		vpX = 0.0f;
+		vpY = (g_ClientHeight - vpH) * 0.5f;
+	}
+
+	// バックバッファ座標系に変換
+	float scaleX = static_cast<float>(g_BackBufferDesc.Width)  / g_ClientWidth;
+	float scaleY = static_cast<float>(g_BackBufferDesc.Height) / g_ClientHeight;
+
 	D3D11_VIEWPORT vp;
-	vp.TopLeftX = 0.0f;
-	vp.TopLeftY = 0.0f;
-	vp.Width    = static_cast<float>(g_BackBufferDesc.Width);
-	vp.Height   = static_cast<float>(g_BackBufferDesc.Height);
+	vp.TopLeftX = vpX * scaleX;
+	vp.TopLeftY = vpY * scaleY;
+	vp.Width    = vpW * scaleX;
+	vp.Height   = vpH * scaleY;
 	vp.MinDepth = 0.0f;
 	vp.MaxDepth = 1.0f;
 	g_pDeviceContext->RSSetViewports(1, &vp);

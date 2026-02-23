@@ -240,6 +240,7 @@ int APIENTRY WinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance,
 				auto startDraw = std::chrono::high_resolution_clock::now();
 				Direct3D_Clear();//バッファのクリア
 
+				Direct3D_SetViewport2D(); // 2D専用シーン向けにデフォルトで2Dビューポートを設定
 				Draw();
 				Fade_Draw();
 
