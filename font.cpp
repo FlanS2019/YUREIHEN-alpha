@@ -495,44 +495,30 @@ void FontRenderer::Draw() {
 		return;
 	}
 
-	// シェーダー開始
 	Shader_Begin();
 
-	// スクリーン座標用の射影行列を設定
-	Shader_SetMatrix(XMMatrixOrthographicOffCenterLH(0.0f, SCREEN_WIDTH, SCREEN_HEIGHT, 0.0f, 0.0f, 1.0f));
+	// 描画解像度に合わせた射影行列
+	Shader_SetMatrix(XMMatrixOrthographicOffCenterLH(0.0f, DRAW_SCREEN_WIDTH, DRAW_SCREEN_HEIGHT, 0.0f, 0.0f, 1.0f));
 
-	// 2D描画用にワールド行列をリセット
 	Shader_SetWorldMatrix(XMMatrixIdentity());
-
-	// マテリアル色を設定
 	Shader_SetMaterialColor(m_Color);
-
-	// ライトを無効化
 	Shader_SetPointLight(nullptr);
 
-	// テクスチャ設定
 	pContext->PSSetShaderResources(0, 1, &m_pSRV);
 	SetBlendState(BLENDSTATE_ALFA);
 
 	float scale = stbtt_ScaleForPixelHeight(m_pFontInfo, m_FontSize);
 
-	// テキスト全体の幅を計算（描画時と同じロジックで）
+	// テキスト全体の幅を計算
 	float text_width = 0.0f;
 	size_t temp_i = 0;
 	int prev_glyph = -1;
 	while (temp_i < m_Text.length()) {
 		int codepoint = UTF8ToCodePoint(m_Text, temp_i);
-
-		if (codepoint <= 0) {
-			continue;
-		}
-
+		if (codepoint <= 0) continue;
 		int glyph_index = stbtt_FindGlyphIndex(m_pFontInfo, codepoint);
-		if (glyph_index < 0) {
-			continue;
-		}
+		if (glyph_index < 0) continue;
 
-		// スペース判定
 		if (codepoint == 0x0020 || codepoint == 0x3000) {
 			int advance_width, left_side_bearing;
 			stbtt_GetGlyphHMetrics(m_pFontInfo, glyph_index, &advance_width, &left_side_bearing);
@@ -541,119 +527,83 @@ void FontRenderer::Draw() {
 			continue;
 		}
 
-		// グリフをアトラスに追加
-		if (!AddGlyphToAtlas(glyph_index)) {
-			continue;
-		}
+		if (!AddGlyphToAtlas(glyph_index)) continue;
 
 		CharInfo& info = m_CharCache[glyph_index];
-		
-		// カーニング値を取得
 		int kerning = 0;
-		if (prev_glyph >= 0) {
-			kerning = stbtt_GetGlyphKernAdvance(m_pFontInfo, prev_glyph, glyph_index);
-		}
-		
-		// グリフメトリクスを取得
+		if (prev_glyph >= 0) kerning = stbtt_GetGlyphKernAdvance(m_pFontInfo, prev_glyph, glyph_index);
+
 		int advance_width, left_side_bearing;
 		stbtt_GetGlyphHMetrics(m_pFontInfo, glyph_index, &advance_width, &left_side_bearing);
 
-		// グリフのバウンディングボックスを取得してマージンを計算
 		int x0, y0, x1, y1;
 		stbtt_GetGlyphBitmapBox(m_pFontInfo, glyph_index, scale, scale, &x0, &y0, &x1, &y1);
 		float actual_glyph_width = (float)(x1 - x0);
 		float margin = actual_glyph_width * FONT_MARGIN_RATIO;
-		
+
 		text_width += (float)advance_width * scale + (float)kerning * scale + margin;
 		prev_glyph = glyph_index;
 	}
 
-	// テキストの開始X座標を中央から左へずらす
-	float start_x = m_Position.x - text_width / 2.0f;
-	float current_x = start_x;
-	float current_y = m_Position.y;
-
-	// フォント全体のメトリクス（スケール適用）
-	float font_line_height = (float)(m_FontAscender - m_FontDescender) * scale;
-	float ascender_scaled = (float)m_FontAscender * scale;
-	float descender_scaled = (float)m_FontDescender * scale;
+	// HD論理座標→描画解像度へスケーリング
+	float draw_start_x = m_Position.x * DRAW_SCALE_X - (text_width * DRAW_SCALE_X) / 2.0f;
+	float draw_current_x = draw_start_x;
+	float draw_current_y = m_Position.y * DRAW_SCALE_Y;
 
 	size_t i = 0;
 	int prev_glyph_draw = -1;
 	int char_count = 0;
 	while (i < m_Text.length()) {
 		int codepoint = UTF8ToCodePoint(m_Text, i);
+		if (codepoint <= 0) continue;
 
-		if (codepoint <= 0) {
-			continue;
-		}
-
-		// グリフ ID を取得
 		int glyph_index = stbtt_FindGlyphIndex(m_pFontInfo, codepoint);
-		if (glyph_index < 0) {
-			continue;
-		}
+		if (glyph_index < 0) continue;
 
-		// 半角スペース（U+0020）の場合
 		if (codepoint == 0x0020) {
 			int advance_width, left_side_bearing;
 			stbtt_GetGlyphHMetrics(m_pFontInfo, glyph_index, &advance_width, &left_side_bearing);
-			current_x += (float)advance_width * scale;
+			draw_current_x += (float)advance_width * scale * DRAW_SCALE_X;
 			prev_glyph_draw = glyph_index;
 			continue;
 		}
-
-		// 全角スペース（U+3000）の場合
 		if (codepoint == 0x3000) {
 			int advance_width, left_side_bearing;
 			stbtt_GetGlyphHMetrics(m_pFontInfo, glyph_index, &advance_width, &left_side_bearing);
-			current_x += (float)advance_width * scale;
+			draw_current_x += (float)advance_width * scale * DRAW_SCALE_X;
 			prev_glyph_draw = glyph_index;
 			continue;
 		}
 
-		// グリフをアトラスに追加
-		if (!AddGlyphToAtlas(glyph_index)) {
-			continue;
-		}
+		if (!AddGlyphToAtlas(glyph_index)) continue;
 
 		CharInfo& info = m_CharCache[glyph_index];
 
-		// カーニング値を取得して適用
 		int kerning = 0;
-		if (prev_glyph_draw >= 0) {
-			kerning = stbtt_GetGlyphKernAdvance(m_pFontInfo, prev_glyph_draw, glyph_index);
-		}
+		if (prev_glyph_draw >= 0) kerning = stbtt_GetGlyphKernAdvance(m_pFontInfo, prev_glyph_draw, glyph_index);
 
-		// グリフメトリクスを取得
 		int advance_width, left_side_bearing;
 		stbtt_GetGlyphHMetrics(m_pFontInfo, glyph_index, &advance_width, &left_side_bearing);
 
-		// グリフのバウンディングボックスを取得
 		int x0, y0, x1, y1;
 		stbtt_GetGlyphBitmapBox(m_pFontInfo, glyph_index, scale, scale, &x0, &y0, &x1, &y1);
 
-		// 実際のグリフサイズ（ピクセル単位）
-		float actual_glyph_width = (float)(x1 - x0);
+		float actual_glyph_width  = (float)(x1 - x0);
 		float actual_glyph_height = (float)(y1 - y0);
-
-		// グリフ幅に基づいたマージンを計算
 		float margin = actual_glyph_width * FONT_MARGIN_RATIO;
 
-		// テクスチャ座標（0.0～1.0範囲に正規化）
 		float u0 = info.x0 / (float)m_AtlasWidth;
 		float v0 = info.y0 / (float)m_AtlasHeight;
 		float u1 = info.x1 / (float)m_AtlasWidth;
 		float v1 = info.y1 / (float)m_AtlasHeight;
 
-		// Y座標計算
-		float y_offset = current_y + y0 + m_FontSize * FONT_OFFSET_Y;
+		// Y オフセットもスケーリング
+		float y_offset = draw_current_y + (float)y0 * DRAW_SCALE_Y + m_FontSize * FONT_OFFSET_Y * DRAW_SCALE_Y;
 
-		// 描画サイズ
-		float char_pixel_width = actual_glyph_width;
-		float char_pixel_height = actual_glyph_height;
+		// グリフサイズも倍率をかけて描画
+		float char_pixel_width  = actual_glyph_width  * DRAW_SCALE_X;
+		float char_pixel_height = actual_glyph_height * DRAW_SCALE_Y;
 
-		// 4つの頂点を設定
 		D3D11_MAPPED_SUBRESOURCE msr;
 		pContext->Map(m_pVertexBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &msr);
 
@@ -666,43 +616,35 @@ void FontRenderer::Draw() {
 
 		Vertex* v = (Vertex*)msr.pData;
 
-		v[0].position = { current_x, y_offset, 0.0f };
+		v[0].position = { draw_current_x, y_offset, 0.0f };
 		v[0].texCoord = { u0, v0 };
 		v[0].normal = { 0.0f, 0.0f, 0.0f };
 		v[0].color = m_Color;
 
-		v[1].position = { current_x + char_pixel_width, y_offset, 0.0f };
+		v[1].position = { draw_current_x + char_pixel_width, y_offset, 0.0f };
 		v[1].texCoord = { u1, v0 };
 		v[1].normal = { 0.0f, 0.0f, 0.0f };
 		v[1].color = m_Color;
 
-		v[2].position = { current_x, y_offset + char_pixel_height, 0.0f };
+		v[2].position = { draw_current_x, y_offset + char_pixel_height, 0.0f };
 		v[2].texCoord = { u0, v1 };
 		v[2].normal = { 0.0f, 0.0f, 0.0f };
 		v[2].color = m_Color;
 
-		v[3].position = { current_x + char_pixel_width, y_offset + char_pixel_height, 0.0f };
+		v[3].position = { draw_current_x + char_pixel_width, y_offset + char_pixel_height, 0.0f };
 		v[3].texCoord = { u1, v1 };
 		v[3].normal = { 0.0f, 0.0f, 0.0f };
 		v[3].color = m_Color;
 
 		pContext->Unmap(m_pVertexBuffer, 0);
 
-		// 頂点バッファ設定
 		UINT stride = sizeof(Vertex);
 		UINT offset = 0;
 		pContext->IASetVertexBuffers(0, 1, &m_pVertexBuffer, &stride, &offset);
 		pContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
-
-		// DrawCall
 		pContext->Draw(m_VertexCount, 0);
 
-		// 次の文字の位置へ移動
-		// LSB を考慮した正確な位置計算
-		float lsb_scaled = (float)left_side_bearing * scale;
-		
-		// 前のグリフの右端から次のグリフの左端までの距離を計算
-		current_x += (float)advance_width * scale + (float)kerning * scale + margin;
+		draw_current_x += ((float)advance_width * scale + (float)kerning * scale + margin) * DRAW_SCALE_X;
 		prev_glyph_draw = glyph_index;
 		char_count++;
 	}

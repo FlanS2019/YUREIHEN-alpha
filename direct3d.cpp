@@ -8,6 +8,7 @@
 #include "direct3d.h"
 #include "debug_ostream.h"
 #include "shader.h"
+#include "define.h"
 
 #pragma comment(lib, "d3d11.lib")//DirectXのプログラムを追加する
 // #pragma comment(lib, "dxgi.lib")
@@ -39,13 +40,11 @@ static ID3D11DepthStencilState* g_DepthStateReadOnly;
 
 bool Direct3D_Initialize(HWND hWnd)
 {
-    /* デバイス、スワップチェーン、コンテキスト生成 */
     DXGI_SWAP_CHAIN_DESC swap_chain_desc{};
     swap_chain_desc.Windowed = TRUE;
     swap_chain_desc.BufferCount = 2;
-    // swap_chain_desc.BufferDesc.Width = 0;
-    // swap_chain_desc.BufferDesc.Height = 0;
-	// ⇒ ウィンドウサイズに合わせて自動的に設定される
+    swap_chain_desc.BufferDesc.Width  = (UINT)DRAW_SCREEN_WIDTH;   // バックバッファを描画解像度に固定
+    swap_chain_desc.BufferDesc.Height = (UINT)DRAW_SCREEN_HEIGHT;  // ウィンドウサイズに引きずられない
     swap_chain_desc.BufferDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
     swap_chain_desc.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT;
     swap_chain_desc.SampleDesc.Count = 1;

@@ -50,12 +50,11 @@ void Sprite_Finalize()
 //----------------------------
 void Sprite_BeginDraw2D()
 {
-	if (g_b2DBegun) return; // 既に開始済みなら何もしない
+	if (g_b2DBegun) return;
 
 	g_pDevice = Direct3D_GetDevice();
 	g_pContext = Direct3D_GetDeviceContext();
 
-	// 2D専用シェーダー（存在する場合はこちらを優先）
 	static bool s_Shader2DInitialized = false;
 	if (!s_Shader2DInitialized)
 	{
@@ -64,11 +63,10 @@ void Sprite_BeginDraw2D()
 	}
 
 	Shader2D_BeginDefault();
-	Shader2D_SetProjectionMatrix(XMMatrixOrthographicOffCenterLH(0.0f, SCREEN_WIDTH, SCREEN_HEIGHT, 0.0f, 0.0f, 1.0f));
+	Shader2D_SetProjectionMatrix(XMMatrixOrthographicOffCenterLH(0.0f, DRAW_SCREEN_WIDTH, DRAW_SCREEN_HEIGHT, 0.0f, 0.0f, 1.0f));
 
-	// 既存Spriteの動作互換のため、共通シェーダー側も従来通り設定
 	Shader_Begin();
-	Shader_SetMatrix(XMMatrixOrthographicOffCenterLH(0.0f, SCREEN_WIDTH, SCREEN_HEIGHT, 0.0f, 0.0f, 1.0f));
+	Shader_SetMatrix(XMMatrixOrthographicOffCenterLH(0.0f, DRAW_SCREEN_WIDTH, DRAW_SCREEN_HEIGHT, 0.0f, 0.0f, 1.0f));
 	Shader_SetWorldMatrix(XMMatrixIdentity());
 	Shader_SetMaterialColor({ 1.0f, 1.0f, 1.0f, 1.0f });
 	Shader_SetAmbientLight(&g_SpriteAmbientLight);
@@ -88,7 +86,7 @@ void Sprite_EndDraw2D()
 //----------------------------
 //単一スプライト描画（汎用的になるように外に出す）
 //----------------------------
-void Sprite_Single_Draw(XMFLOAT2 pos, XMFLOAT2 size,float rot, XMFLOAT4 color, BLENDSTATE bstate, ID3D11ShaderResourceView* texture, FLIPTYPE2D flipType)
+void Sprite_Single_Draw(XMFLOAT2 pos, XMFLOAT2 size, float rot, XMFLOAT4 color, BLENDSTATE bstate, ID3D11ShaderResourceView* texture, FLIPTYPE2D flipType)
 {
 	g_pDevice = Direct3D_GetDevice();
 	g_pContext = Direct3D_GetDeviceContext();
@@ -96,7 +94,7 @@ void Sprite_Single_Draw(XMFLOAT2 pos, XMFLOAT2 size,float rot, XMFLOAT4 color, B
 	// Sprite_BeginDraw2D()が呼ばれていない場合は個別にセットアップ（互換性維持）
 	if (!g_b2DBegun) {
 		Shader_Begin();
-		Shader_SetMatrix(XMMatrixOrthographicOffCenterLH(0.0f, SCREEN_WIDTH, SCREEN_HEIGHT, 0.0f, 0.0f, 1.0f));
+		Shader_SetMatrix(XMMatrixOrthographicOffCenterLH(0.0f, DRAW_SCREEN_WIDTH, DRAW_SCREEN_HEIGHT, 0.0f, 0.0f, 1.0f));
 		Shader_SetWorldMatrix(XMMatrixIdentity());
 		Shader_SetMaterialColor({ 1.0f, 1.0f, 1.0f, 1.0f });
 		Shader_SetAmbientLight(&g_SpriteAmbientLight);
@@ -113,8 +111,11 @@ void Sprite_Single_Draw(XMFLOAT2 pos, XMFLOAT2 size,float rot, XMFLOAT4 color, B
 	g_pContext->Map(g_pVertexBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &msr);
 	Vertex* v = (Vertex*)msr.pData;
 
-	float halfX = size.x * 0.5f;
-	float halfY = size.y * 0.5f;
+	// HD座標→描画解像度へスケーリング
+	float drawPosX = pos.x * DRAW_SCALE_X;
+	float drawPosY = pos.y * DRAW_SCALE_Y;
+	float halfX = size.x * DRAW_SCALE_X * 0.5f;
+	float halfY = size.y * DRAW_SCALE_Y * 0.5f;
 
 	// 回転（度->ラジアン）
 	float rotDeg = rot;
@@ -130,7 +131,7 @@ void Sprite_Single_Draw(XMFLOAT2 pos, XMFLOAT2 size,float rot, XMFLOAT4 color, B
 	for (int i = 0; i < 4; ++i) {
 		float rx = lx[i] * co - ly[i] * si;
 		float ry = lx[i] * si + ly[i] * co;
-		v[i].position = { rx + pos.x, ry + pos.y, 0.0f };
+		v[i].position = { rx + drawPosX, ry + drawPosY, 0.0f };
 		v[i].normal = { 0.0f, 0.0f, -1.0f }; // 法線を設定（NaN回避とライティング用）
 		v[i].color = color;
 	}
@@ -180,7 +181,7 @@ void Sprite_Split_Draw(XMFLOAT2 pos, XMFLOAT2 size, float rot, XMFLOAT4 color, B
 	// Sprite_BeginDraw2D()が呼ばれていない場合は個別にセットアップ（互換性維持）
 	if (!g_b2DBegun) {
 		Shader_Begin();
-		Shader_SetMatrix(XMMatrixOrthographicOffCenterLH(0.0f, SCREEN_WIDTH, SCREEN_HEIGHT, 0.0f, 0.0f, 1.0f));
+		Shader_SetMatrix(XMMatrixOrthographicOffCenterLH(0.0f, DRAW_SCREEN_WIDTH, DRAW_SCREEN_HEIGHT, 0.0f, 0.0f, 1.0f));
 		Shader_SetWorldMatrix(XMMatrixIdentity());
 		Shader_SetMaterialColor({ 1.0f, 1.0f, 1.0f, 1.0f });
 		Shader_SetAmbientLight(&g_SpriteAmbientLight);
@@ -197,24 +198,23 @@ void Sprite_Split_Draw(XMFLOAT2 pos, XMFLOAT2 size, float rot, XMFLOAT4 color, B
 	g_pContext->Map(g_pVertexBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &msr);
 	Vertex* v = (Vertex*)msr.pData;
 
-	float halfX = size.x * 0.5f;
-	float halfY = size.y * 0.5f;
+	// HD座標→描画解像度へスケーリング
+	float drawPosX = pos.x * DRAW_SCALE_X;
+	float drawPosY = pos.y * DRAW_SCALE_Y;
+	float halfX = size.x * DRAW_SCALE_X * 0.5f;
+	float halfY = size.y * DRAW_SCALE_Y * 0.5f;
 
-	// 回転（度->ラジアン）
-	float rotDeg = rot;
-	float rad = XMConvertToRadians(rotDeg);
+	float rad = XMConvertToRadians(rot);
 	float co = cosf(rad);
 	float si = sinf(rad);
 
-	// ローカル頂点（中心原点）
 	float lx[4] = { -halfX, halfX, -halfX, halfX };
 	float ly[4] = { -halfY, -halfY, halfY, halfY };
 
-	// 回転・平行移動後の頂点座標計算
 	for (int i = 0; i < 4; ++i) {
 		float rx = lx[i] * co - ly[i] * si;
 		float ry = lx[i] * si + ly[i] * co;
-		v[i].position = { rx + pos.x, ry + pos.y, 0.0f };
+		v[i].position = { rx + drawPosX, ry + drawPosY, 0.0f };
 		v[i].normal = { 0.0f, 0.0f, -1.0f }; // 法線を設定（NaN回避とライティング用）
 		v[i].color = color;
 	}
@@ -258,7 +258,6 @@ void Sprite_Single_DrawHole(XMFLOAT2 pos, XMFLOAT2 size, float rot, XMFLOAT4 col
 	g_pDevice = Direct3D_GetDevice();
 	g_pContext = Direct3D_GetDeviceContext();
 
-	// 2D専用シェーダーをセット（穴あき）
 	static bool s_Shader2DInitialized = false;
 	if (!s_Shader2DInitialized)
 	{
@@ -266,28 +265,30 @@ void Sprite_Single_DrawHole(XMFLOAT2 pos, XMFLOAT2 size, float rot, XMFLOAT4 col
 		s_Shader2DInitialized = true;
 	}
 
-	// ここで穴あきPSを有効化（他の2D描画に影響させないため、最後に必ず戻す）
 	Shader2D_SetUseHolePS(true);
 
-	Shader2D_SetProjectionMatrix(XMMatrixOrthographicOffCenterLH(0.0f, SCREEN_WIDTH, SCREEN_HEIGHT, 0.0f, 0.0f, 1.0f));
+	Shader2D_SetProjectionMatrix(XMMatrixOrthographicOffCenterLH(0.0f, DRAW_SCREEN_WIDTH, DRAW_SCREEN_HEIGHT, 0.0f, 0.0f, 1.0f));
+
+	// 穴のパラメータも描画解像度にスケーリング
 	Shader2D_HoleParams hp{};
-	hp.centerPx = holeCenterPx;
-	hp.radiusPx = holeRadiusPx;
-	hp.softnessPx = holeSoftnessPx;
+	hp.centerPx   = { holeCenterPx.x * DRAW_SCALE_X, holeCenterPx.y * DRAW_SCALE_Y };
+	hp.radiusPx   = holeRadiusPx   * DRAW_SCALE_X;
+	hp.softnessPx = holeSoftnessPx * DRAW_SCALE_X;
 	Shader2D_SetHoleParams(hp);
 
-	// テクスチャ設定＆ブレンド
 	ID3D11ShaderResourceView* tex = texture;
 	g_pContext->PSSetShaderResources(0, 1, &tex);
 	SetBlendState(bstate);
 
-	// 以降の頂点生成は通常描画と同じ
 	D3D11_MAPPED_SUBRESOURCE msr;
 	g_pContext->Map(g_pVertexBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &msr);
 	Vertex* v = (Vertex*)msr.pData;
 
-	float halfX = size.x * 0.5f;
-	float halfY = size.y * 0.5f;
+	// HD座標→描画解像度へスケーリング
+	float drawPosX = pos.x * DRAW_SCALE_X;
+	float drawPosY = pos.y * DRAW_SCALE_Y;
+	float halfX = size.x * DRAW_SCALE_X * 0.5f;
+	float halfY = size.y * DRAW_SCALE_Y * 0.5f;
 
 	float rad = XMConvertToRadians(rot);
 	float co = cosf(rad);
@@ -299,7 +300,7 @@ void Sprite_Single_DrawHole(XMFLOAT2 pos, XMFLOAT2 size, float rot, XMFLOAT4 col
 	for (int i = 0; i < 4; ++i) {
 		float rx = lx[i] * co - ly[i] * si;
 		float ry = lx[i] * si + ly[i] * co;
-		v[i].position = { rx + pos.x, ry + pos.y, 0.0f };
+		v[i].position = { rx + drawPosX, ry + drawPosY, 0.0f };
 		v[i].normal = { 0.0f, 0.0f, -1.0f };
 		v[i].color = color;
 	}

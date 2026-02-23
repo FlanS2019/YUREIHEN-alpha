@@ -8,6 +8,10 @@
 #define WINDOW_CAPTION L"幽霊変 - Violisun"
 #define SCREEN_WIDTH (1280.0f)
 #define SCREEN_HEIGHT (720.0f)
+#define DRAW_SCREEN_WIDTH  (3840.0f)   // 実際の描画解像度（フルHD）
+#define DRAW_SCREEN_HEIGHT (2160.0f)   // 実際の描画解像度（フルHD）
+#define DRAW_SCALE_X (DRAW_SCREEN_WIDTH  / SCREEN_WIDTH)   // 描画倍率X
+#define DRAW_SCALE_Y (DRAW_SCREEN_HEIGHT / SCREEN_HEIGHT)  // 描画倍率Y
 #define WIN32_LEAN_AND_MEAN	//32bitアプリには不要な情報を無視
 #define FPS (60)
 

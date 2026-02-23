@@ -19,7 +19,7 @@ void Camera_Initialize(void)
 		XMFLOAT3(0.0f, 0.0f, 0.0f),
 		XMFLOAT3(0.0f, 1.0f, 0.0f),
 		45.0f,
-		(float)SCREEN_WIDTH / SCREEN_HEIGHT,
+		(float)DRAW_SCREEN_WIDTH / DRAW_SCREEN_HEIGHT,
 		1.0f,
 		50.0f
 	);

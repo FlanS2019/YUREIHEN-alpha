@@ -80,7 +80,7 @@ int APIENTRY WinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance,
 
 	//ウィンドウサイズの調整
 	//クライアント領域（描画領域）のサイズを表す矩形
-	RECT window_rect = { 0,0,(LONG)SCREEN_WIDTH,(LONG)SCREEN_HEIGHT };
+	RECT window_rect = { 0, 0, (LONG)DRAW_SCREEN_WIDTH, (LONG)DRAW_SCREEN_HEIGHT };
 	//ウィンドウスタイルの設定
 	DWORD window_style = WS_OVERLAPPEDWINDOW ^ WS_THICKFRAME;
 	//指定のクライアント領域＋ウィンドウスタイルでの全体のサイズを計算
@@ -88,6 +88,14 @@ int APIENTRY WinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance,
 	//矩形の横と縦のサイズを計算
 	int window_width = window_rect.right - window_rect.left;
 	int window_height = window_rect.bottom - window_rect.top;
+
+	// 作業領域（タスクバーを除いた画面）に収まるようクランプ
+	RECT workArea;
+	SystemParametersInfo(SPI_GETWORKAREA, 0, &workArea, 0);
+	int maxW = (int)((workArea.right  - workArea.left) * 0.7f);
+	int maxH = (int)((workArea.bottom - workArea.top)  * 0.7f);
+	if (window_width  > maxW) window_width  = maxW;
+	if (window_height > maxH) window_height = maxH;
 
 	//ウィンドウの作成
 	HWND hWnd = CreateWindow(
