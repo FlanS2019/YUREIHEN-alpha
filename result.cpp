@@ -59,7 +59,7 @@ void Result_Initialize(ID3D11Device* pDevice, ID3D11DeviceContext* pContext)
 		0.0f,											//回転（度）
 		{ 1.0f, 1.0f, 1.0f, 1.0f },						//RGBA
 		BLENDSTATE_ALFA,								//BlendState
-		L"asset\\yureihen\\kakeru.png"					//テクスチャパス
+		L"asset\\yureihen\\Result\\kakeru.png"					//テクスチャパス
 	);
 
 	g_pEqual = new Sprite(
@@ -68,7 +68,7 @@ void Result_Initialize(ID3D11Device* pDevice, ID3D11DeviceContext* pContext)
 		0.0f,											//回転（度）
 		{ 1.0f, 1.0f, 1.0f, 1.0f },						//RGBA
 		BLENDSTATE_ALFA,								//BlendState
-		L"asset\\yureihen\\equal.png"					//テクスチャパス
+		L"asset\\yureihen\\Result\\equal.png"					//テクスチャパス
 	);
 
 	// グローバルフォントデータを初期化
@@ -83,7 +83,8 @@ void Result_Initialize(ID3D11Device* pDevice, ID3D11DeviceContext* pContext)
 		BLENDSTATE_ALFA,
 		L"asset\\texture\\num.png",
 		5, 3,	// 横10分割、縦1分割（0-9の数字）
-		45.0f	// 桁間の間隔
+		45.0f,	// 桁間の間隔	
+		2		// 最小2桁表示（1桁の場合は先頭に0を追加）
 	);
 
 	//// 階層表示用数字スプライト
@@ -154,7 +155,7 @@ void Result_Initialize(ID3D11Device* pDevice, ID3D11DeviceContext* pContext)
 		0.0f,											//回転（度）
 		{ 1.0f, 1.0f, 1.0f, 1.0f },						//RGBA
 		BLENDSTATE_ALFA,								//BlendState
-		L"asset\\yureihen\\kyou1.png"					//テクスチャパス
+		L"asset\\yureihen\\Result\\kyou1.png"					//テクスチャパス
 	);
 	g_pkyou2 = new Sprite(//恐
 		{ SCREEN_WIDTH / 2.0f + 140, SCREEN_HEIGHT / 2.0f },		//位置
@@ -162,7 +163,7 @@ void Result_Initialize(ID3D11Device* pDevice, ID3D11DeviceContext* pContext)
 		0.0f,											//回転（度）
 		{ 1.0f, 1.0f, 1.0f, 1.0f },						//RGBA
 		BLENDSTATE_ALFA,								//BlendState
-		L"asset\\yureihen\\kyou2.png"					//テクスチャパス
+		L"asset\\yureihen\\Result\\kyou2.png"					//テクスチャパス
 	);
 	g_pkyou3 = new Sprite(//虚
 		{ SCREEN_WIDTH / 2.0f + 240, SCREEN_HEIGHT / 2.0f },		//位置
@@ -170,7 +171,7 @@ void Result_Initialize(ID3D11Device* pDevice, ID3D11DeviceContext* pContext)
 		0.0f,											//回転（度）
 		{ 1.0f, 1.0f, 1.0f, 1.0f },						//RGBA
 		BLENDSTATE_ALFA,								//BlendState
-		L"asset\\yureihen\\kyou3.png"					//テクスチャパス
+		L"asset\\yureihen\\Result\\kyou3.png"					//テクスチャパス
 	);
 
 	// サウンド再生
