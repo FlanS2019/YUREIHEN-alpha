@@ -71,9 +71,6 @@ void Result_Initialize(ID3D11Device* pDevice, ID3D11DeviceContext* pContext)
 		L"asset\\yureihen\\equal.png"					//テクスチャパス
 	);
 
-	// グローバルフォントデータを初期化
-	Font_InitializeGlobalData();
-
 	// タイム表示用数字スプライト
 	// num.pngが0-9の数字を横に並べた画像と仮定（横10分割、縦1分割）
 	g_pTimeNum = new Number(
@@ -358,9 +355,6 @@ void Result_Finalize(void)
 		UnloadSound(g_pBGM);
 		g_pBGM = nullptr;
 	}
-
-
-	Font_FinalizeGlobalData();
 }
 
 // タイマー結果をセット
