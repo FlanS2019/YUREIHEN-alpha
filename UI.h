@@ -183,11 +183,12 @@ protected:
 	XMFLOAT2 m_DigitSize;   // 1桁あたりのサイズ
 	float m_DigitSpacing;   // 桁間の間隔
 	bool m_ShowMultiplier;  // 倍数接頭子「x」を表示するかどうか
+	int m_MinDigits;        // 最小桁数（0パディング用）
 
 public:
-	Number(const XMFLOAT2& pos, const XMFLOAT2& digitSize, const XMFLOAT4& col, BLENDSTATE bstate, const wchar_t* texturePath, int divideX, int divideY, float spacing)
+	Number(const XMFLOAT2& pos, const XMFLOAT2& digitSize, const XMFLOAT4& col, BLENDSTATE bstate, const wchar_t* texturePath, int divideX, int divideY, float spacing, int minDigits = 1)
 		: SplitSprite(pos, digitSize, 0.0f, col, bstate, texturePath, divideX, divideY),
-		m_Number(0), m_DigitSize(digitSize), m_DigitSpacing(spacing), m_ShowMultiplier(false)
+		m_Number(0), m_DigitSize(digitSize), m_DigitSpacing(spacing), m_ShowMultiplier(false), m_MinDigits(minDigits)
 	{
 	}
 
@@ -217,18 +218,25 @@ public:
 		}
 
 		// 数値を桁ごとに分解
-		if (m_Number == 0)
-		{
-			m_DigitTextures.push_back(0); // 0
-		}
-		else
 		{
 			int tempNum = m_Number;
 			std::vector<int> digits;
-			while (tempNum > 0)
+			if (tempNum == 0)
 			{
-				digits.push_back(tempNum % 10);
-				tempNum /= 10;
+				digits.push_back(0);
+			}
+			else
+			{
+				while (tempNum > 0)
+				{
+					digits.push_back(tempNum % 10);
+					tempNum /= 10;
+				}
+			}
+			// 最小桁数に満たない場合は0でパディング
+			while (static_cast<int>(digits.size()) < m_MinDigits)
+			{
+				digits.push_back(0);
 			}
 			// 逆順に格納（高位の桁から）
 			for (int i = static_cast<int>(digits.size()) - 1; i >= 0; --i)
@@ -264,6 +272,7 @@ public:
 	int GetNumber() const { return m_Number; }
 	bool GetShowMultiplier() const { return m_ShowMultiplier; }
 	void SetDigitSpacing(float spacing) { m_DigitSpacing = spacing; }
+	void SetMinDigits(int minDigits) { m_MinDigits = minDigits; UpdateDigitTextures(); }
 	void AddNumber(int value) { SetNumber(m_Number + value); }
 };
 
