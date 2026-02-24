@@ -506,9 +506,18 @@ void Ghost::ScareStart(void)
 				m_HasIncreasedMultiplier = true;
 			}
 			float addScore = SCORE_SCARE * UI_ScareCombo_GetNumber();
+			
 			if (isBackScare)
 			{
 				addScore *= backScareMultiplier; // 背後なら1.5倍にする
+			}
+
+			int busterCount = Busters_GetCurrentFloorCount();
+			if (busterCount == 2) {
+				addScore *= 0.8f; // 2人なら 80% にダウン
+			}
+			else if (busterCount >= 3) {
+				addScore *= 0.6f; // 3人なら 60% にさらにダウン
 			}
 			AddScareGauge(addScore);
 			Busters_CheckGaugeEvent();

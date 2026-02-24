@@ -197,25 +197,24 @@ void Busters::Update(void)
 		m_WaitTimer--;
 		if (m_State == BUSTERS_SUSPICION || m_State == BUSTERS_CHASE)
 		{
-			if (m_State == BUSTERS_SEARCH && m_TargetFurnitureIndex != -1)
-			{
-				Furniture* target = GetFurniture(m_TargetFurnitureIndex);
-				if (target)
-				{
-					float dx = target->GetPos().x - m_Position.x;
-					float dz = target->GetPos().z - m_Position.z;
-					float deg = XMConvertToDegrees(atan2f(dx, dz));
-					SetRotY(deg + 180.0f);
-				}
-			}
-
 			Ghost* ghost = GetGhost();
 			if (ghost)
 			{
 				float dx = ghost->GetPos().x - m_Position.x;
 				float dz = ghost->GetPos().z - m_Position.z;
-				float deg = XMConvertToDegrees(atan2f(dx, dz));
-				SetRotY(deg + 180.0f);
+				float deg = XMConvertToDegrees(atan2f(dz, dx));
+				SetRotY(deg);
+			}
+		}
+		else if (m_State == BUSTERS_SEARCH && m_TargetFurnitureIndex != -1)
+		{
+			Furniture* target = GetFurniture(m_TargetFurnitureIndex);
+			if (target)
+			{
+				float dx = target->GetPos().x - m_Position.x;
+				float dz = target->GetPos().z - m_Position.z;
+				float deg = XMConvertToDegrees(atan2f(dz, dx));
+				SetRotY(deg);
 			}
 		}
 		return;
@@ -526,6 +525,7 @@ void Busters::Update(void)
 						m_WaitTimer = 300;           // 調査（待機）開始
 						m_PathList.clear();
 						ClearIgnoreRelayDoors();
+						m_StuckTimer = 0; // スタックタイマーもリセット
 					}
 				}
 			}
@@ -938,9 +938,12 @@ void Busters::MoveTo(XMFLOAT3 targetPos)
 	float dirZ = dz / dist;
 
 	// 向き変更
-	float angle = atan2f(dirX, dirZ);
+	// ゲーム座標: X右方向、Z奥方向
+	// atan2(z, x) で正しい角度を計算（数学標準的な atan2(y, x) と同じ）
+	// X軸が0度、反時計回りに角度が増加する座標系
+	float angle = atan2f(dirZ, dirX);
 	float deg = XMConvertToDegrees(angle);
-	SetRotY(deg + 180.0f);
+	SetRotY(deg);
 
 	float bodyRadius = 0.4f; // バスターズの当たり判定サイズ
 	float moveAmount = m_MoveSpeed;
@@ -1405,6 +1408,16 @@ Busters* GetBusters(void)
 		}
 	}
 	return NULL;
+}
+
+int Busters_GetCurrentFloorCount(void)
+{
+	int currentFloor = Field_GetCurrentFloor();
+	if (currentFloor >= 0 && currentFloor < MAP_FLOORS)
+	{
+		return (int)g_BustersList[currentFloor].size();
+	}
+	return 0;
 }
 
 void BustersScare(void)
