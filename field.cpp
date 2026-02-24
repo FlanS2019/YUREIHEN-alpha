@@ -654,8 +654,9 @@ std::vector<XMFLOAT3> Field_FindPath(XMFLOAT3 start, XMFLOAT3 end)
 	openList.push(startNode);
 	nodes[startZ][startX] = startNode;
 
-	int dirX[] = { 0, 0, -1, 1 };
-	int dirZ[] = { -1, 1, 0, 0 };
+	int dirX[] = { 0, 0, -1, 1, -1, 1, -1, 1 };  // 4方向 + 斜め4方向
+	int dirZ[] = { -1, 1, 0, 0, -1, -1, 1, 1 };
+	float dirCost[] = { 1.0f, 1.0f, 1.0f, 1.0f, 1.41f, 1.41f, 1.41f, 1.41f };
 	bool found = false;
 	int maxCalculationSteps = 1000;
 
@@ -673,7 +674,7 @@ std::vector<XMFLOAT3> Field_FindPath(XMFLOAT3 start, XMFLOAT3 end)
 		if (closedList[current.z][current.x]) continue;
 		closedList[current.z][current.x] = true;
 
-		for (int i = 0; i < 4; i++)
+		for (int i = 0; i < 8; i++)  // 8方向をチェック
 		{
 			int nextX = current.x + dirX[i];
 			int nextZ = current.z + dirZ[i];
@@ -683,9 +684,21 @@ std::vector<XMFLOAT3> Field_FindPath(XMFLOAT3 start, XMFLOAT3 end)
 			// 壁判定
 			if (ConvertMapID(GetMapBlockID(g_CurrentFloor, 1, nextZ, nextX)) == FIELD_BOX) continue;
 
+			// 斜め移動の場合、両隣が通路であるか確認（コーナーにめり込まない）
+			if (i >= 4)
+			{
+				int adjX = current.x + dirX[i];
+				int adjZ = current.z + dirZ[i];
+				int diagX = current.x + dirX[i];
+				int diagZ = current.z + dirZ[i];
+
+				if (ConvertMapID(GetMapBlockID(g_CurrentFloor, 1, current.z, diagX)) == FIELD_BOX) continue;
+				if (ConvertMapID(GetMapBlockID(g_CurrentFloor, 1, diagZ, current.x)) == FIELD_BOX) continue;
+			}
+
 			if (closedList[nextZ][nextX]) continue;
 
-			float newCost = current.cost + 1.0f;
+			float newCost = current.cost + dirCost[i];
 			float h = (float)(std::abs(endX - nextX) + std::abs(endZ - nextZ));
 
 			Node neighbor = { nextX, nextZ, newCost, h, current.x, current.z };

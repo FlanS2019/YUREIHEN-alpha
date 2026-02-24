@@ -251,14 +251,13 @@ void Busters::Update(void)
 			if (targetFurniture && targetFurniture->GetBlockID() != 13)
 			{
 				XMFLOAT3 targetPos = targetFurniture->GetPos();
-				XMFLOAT3 destination = targetPos; // デフォルトは直接家具を目指す
-
+				XMFLOAT3 destination = targetPos;
+				int bestDoorIndex = -1;
 				bool hasWall = Field_CheckWallBetween(m_Position, targetPos);
 
 				if (hasWall)
 				{
-					float minDist = 999999.0f;
-					int bestDoorIndex = -1;
+				float minDist = 999999.0f;
 
 					for (int i = 0; i < FURNITURE_NUM; i++) {
 						Furniture* f = GetFurniture(i);
@@ -267,24 +266,26 @@ void Busters::Update(void)
 						{
 							XMFLOAT3 dPos = f->GetPos();
 
-							float d1x = dPos.x - m_Position.x;
-							float d1z = dPos.z - m_Position.z;
-							float distToDoor = sqrtf(d1x * d1x + d1z * d1z); // 現在地〜ドアの距離
+							// 現在地からドアへ、かつドアから目標への直線ルートが可能かチェック
+							bool canReachDoor = !Field_CheckWallBetween(m_Position, dPos);
+							bool canReachTarget = !Field_CheckWallBetween(dPos, targetPos);
 
-							float d2x = targetPos.x - dPos.x;
-							float d2z = targetPos.z - dPos.z;
-							float distToTarget = sqrtf(d2x * d2x + d2z * d2z); // ドア〜目標の距離
+							if (canReachDoor && canReachTarget)
+							{
+								float d1x = dPos.x - m_Position.x;
+								float d1z = dPos.z - m_Position.z;
+								float distToDoor = sqrtf(d1x * d1x + d1z * d1z); // 現在地〜ドアの距離
 
-							float totalDist = distToDoor + distToTarget;
+								float d2x = targetPos.x - dPos.x;
+								float d2z = targetPos.z - dPos.z;
+								float distToTarget = sqrtf(d2x * d2x + d2z * d2z); // ドア〜目標の距離
 
-							// 今いる部屋の中から行けるドアの優先度を上げる
-							if (!Field_CheckWallBetween(m_Position, dPos)) {
-								totalDist -= 10000.0f;
-							}
+								float totalDist = distToDoor + distToTarget;
 
-							if (totalDist < minDist) {
-								minDist = totalDist;
-								bestDoorIndex = i;
+								if (totalDist < minDist) {
+									minDist = totalDist;
+									bestDoorIndex = i;
+								}
 							}
 						}
 					}
@@ -312,13 +313,24 @@ void Busters::Update(void)
 					destination.z -= (dz / dist) * offset;
 				}
 
-				// 目的地(目標家具 or 中継のドア)への経路を生成
-				m_PathList = Field_FindPath(m_Position, targetPos);
-				if (m_PathList.empty())
+				// 目的地への経路を生成（destinationを使用してドア経由の経路を作成）
+				bool destinationHasWall = Field_CheckWallBetween(m_Position, destination);
+				
+				if (destinationHasWall && bestDoorIndex == -1)
 				{
-					// 経路が見つからない（壁の中などで行けない）場合は、壁に突っ込まずに潔く諦める
+					// ドアを経由してもアクセス不可の場合は、このターゲットを諦める
 					m_TargetFurnitureIndex = -1;
-					m_WaitTimer = 60; // 諦めて少し待機してから、別の目標を探す
+					m_WaitTimer = 60;
+				}
+				else
+				{
+					m_PathList = Field_FindPath(m_Position, destination);
+					if (m_PathList.empty())
+					{
+						// 経路が見つからない（壁の中などで行けない）場合は、壁に突っ込まずに潔く諦める
+						m_TargetFurnitureIndex = -1;
+						m_WaitTimer = 60; // 諦めて少し待機してから、別の目標を探す
+					}
 				}
 			}
 			else
@@ -397,7 +409,54 @@ void Busters::Update(void)
 					m_PathUpdateTimer = 0; // タイマーリセット
 					m_LastPathCalcGhostPos = ghostPos; // 計算位置を記憶
 
-					m_PathList = Field_FindPath(m_Position, ghostPos);
+				// ゴーストへの直線に壁がある場合、ドアを経由する経路を作成
+				XMFLOAT3 targetPos = ghostPos;
+				int bestDoorIndex = -1;
+				if (hasWall)
+				{
+			float minDist = 999999.0f;
+
+						for (int i = 0; i < FURNITURE_NUM; i++)
+						{
+							Furniture* f = GetFurniture(i);
+
+							if (f && f->GetBlockID() == 13)
+							{
+								XMFLOAT3 dPos = f->GetPos();
+
+								// 現在地からドアへ、かつドアからゴーストへのルートが可能かチェック
+								bool canReachDoor = !Field_CheckWallBetween(m_Position, dPos);
+								bool canReachGhost = !Field_CheckWallBetween(dPos, ghostPos);
+
+								if (canReachDoor && canReachGhost)
+								{
+									float d1x = dPos.x - m_Position.x;
+									float d1z = dPos.z - m_Position.z;
+									float distToDoor = sqrtf(d1x * d1x + d1z * d1z);
+
+									float d2x = ghostPos.x - dPos.x;
+									float d2z = ghostPos.z - dPos.z;
+									float distToGhost = sqrtf(d2x * d2x + d2z * d2z);
+
+									float totalDist = distToDoor + distToGhost;
+
+									if (totalDist < minDist)
+									{
+										minDist = totalDist;
+										bestDoorIndex = i;
+									}
+								}
+							}
+						}
+
+						// ドアが見つかった場合は、そのドアを経由して進む
+						if (bestDoorIndex != -1)
+						{
+							targetPos = GetFurniture(bestDoorIndex)->GetPos();
+						}
+					}
+
+					m_PathList = Field_FindPath(m_Position, targetPos);
 
 					if (!m_PathList.empty()) {
 						std::reverse(m_PathList.begin(), m_PathList.end());
@@ -497,23 +556,30 @@ void Busters::Update(void)
 		}
 	}
 
-	if (m_State == BUSTERS_SEARCH && !m_PathList.empty())
+	// スタック検出と回避
 	{
 		float dx = m_Position.x - m_PrevPos.x;
 		float dz = m_Position.z - m_PrevPos.z;
 		float movedDistSq = dx * dx + dz * dz;
 
-		// ほとんど動いていない (0.01cm以下)
 		if (movedDistSq < 0.0001f)
 		{
 			m_StuckTimer++;
-			// 60フレーム（約1秒）以上動けなかったらスタックとみなす
-			if (m_StuckTimer > 120)
+			// 移動不可になったら即座に経路を再計算する
+			if (m_StuckTimer > 30)
 			{
-				m_PathList.clear(); // 経路破棄して再計算へ
-				m_StuckTimer = 0;
-				m_TargetFurnitureIndex = -1; // ターゲットを変える（諦める）
-				m_WaitTimer = 120;
+				if (!m_PathList.empty())
+				{
+					m_PathList.clear(); // 経路をリセット
+					m_StuckTimer = 0;
+				}
+				else if (m_State == BUSTERS_SEARCH && m_TargetFurnitureIndex != -1)
+				{
+					// 経路のないスタックも処理
+					m_TargetFurnitureIndex = -1;
+					m_WaitTimer = 60;
+					m_StuckTimer = 0;
+				}
 			}
 		}
 		else
@@ -813,109 +879,181 @@ void Busters::MoveTo(XMFLOAT3 targetPos)
 	if (GetIsJumping()) return;
 
 	XMFLOAT3 finalTarget = targetPos;
-
-	// 探索中なら、ターゲットしている家具の判定を無効化する
 	int ignoreFurnIdx = -1;
 	if (m_State == BUSTERS_SEARCH)
 	{
 		ignoreFurnIdx = m_TargetFurnitureIndex;
 	}
 
-	bool isNextChoke = false;
-	if (!m_PathList.empty()) {
-		isNextChoke = IsChokePoint(m_PathList[0].x, m_PathList[0].z);
-	}
-
-	// ストリング・プリング（経路のショートカット）
+	// 経路の簡略化（連続したノードをスキップ）
 	if (!m_PathList.empty())
 	{
-		int lookAheadMax = isNextChoke ? 0 : 3;
-		int checkCount = 0;
-
-		while (!m_PathList.empty() && checkCount < lookAheadMax)
+		int skipCount = 0;
+		while (skipCount < 2 && m_PathList.size() > 1)
 		{
-			if (m_PathList.size() == 1)
+			XMFLOAT3 nextNode = m_PathList[1];
+			if (CanPassLine(m_Position, nextNode, 0.5f, ignoreFurnIdx))
 			{
-				finalTarget = m_PathList[0];
+				m_PathList.erase(m_PathList.begin());
+				skipCount++;
+			}
+			else
+			{
 				break;
 			}
+		}
 
-			if (m_PathList.size() >= 2)
-			{
-				XMFLOAT3 nextNode = m_PathList[1];
-
-				if (CanPassLine(m_Position, nextNode, 0.6f, ignoreFurnIdx))
-				{
-					m_PathList.erase(m_PathList.begin());
-					continue;
-				}
-			}
-
+		if (!m_PathList.empty())
+		{
 			finalTarget = m_PathList[0];
-			break;
 		}
 	}
 
-	if (isNextChoke) {
-		float distToTargetX = finalTarget.x - m_Position.x;
-		float distToTargetZ = finalTarget.z - m_Position.z;
-		if (distToTargetX * distToTargetX + distToTargetZ * distToTargetZ < 0.2f * 0.2f) {
-			// 中心の 0.2m 以内に入ったら、はじめて次の経路を解放する（実質的な Threshold の上書き）
-			if (!m_PathList.empty()) m_PathList.erase(m_PathList.begin());
+	// 経路のノードに到達したか判定
+	if (!m_PathList.empty())
+	{
+		float dx = m_PathList[0].x - m_Position.x;
+		float dz = m_PathList[0].z - m_Position.z;
+		float distSq = dx * dx + dz * dz;
+		
+		if (distSq < 0.3f * 0.3f)
+		{
+			m_PathList.erase(m_PathList.begin());
+			if (!m_PathList.empty())
+			{
+				finalTarget = m_PathList[0];
+			}
 		}
 	}
-
-	float checkDist = 0.8f; // チェックする距離（壁からのマージン）
-	XMFLOAT3 avoidVector = { 0.0f, 0.0f, 0.0f };
-
-	// 4方向の壁をチェックし、壁があれば逆方向に反発力を生む
-	if (IsWallBlock(m_Position.x + checkDist, m_Position.z)) avoidVector.x -= 1.0f; // 右に壁→左へ
-	if (IsWallBlock(m_Position.x - checkDist, m_Position.z)) avoidVector.x += 1.0f; // 左に壁→右へ
-	if (IsWallBlock(m_Position.x, m_Position.z + checkDist)) avoidVector.z -= 1.0f; // 奥に壁→手前へ
-	if (IsWallBlock(m_Position.x, m_Position.z - checkDist)) avoidVector.z += 1.0f; // 手前に壁→奥へ
-
-	// 反発ベクトルを目標地点に足す（壁から遠ざかるようにターゲットを膨らませる）
-	float avoidStrength = 0.5f; // 反発の強さ
-	finalTarget.x += avoidVector.x * avoidStrength;
-	finalTarget.z += avoidVector.z * avoidStrength;
 
 	// 移動ベクトルの計算
 	float dx = finalTarget.x - m_Position.x;
 	float dz = finalTarget.z - m_Position.z;
+	float distSq = dx * dx + dz * dz;
 
-	if (fabsf(dx) < m_MoveSpeed && fabsf(dz) < m_MoveSpeed) return;
+	if (distSq < 0.01f) return; // ほぼ同じ位置
 
-	float len = sqrtf(dx * dx + dz * dz);
-	if (len > 0) { dx /= len; dz /= len; }
+	float dist = sqrtf(distSq);
+	float dirX = dx / dist;
+	float dirZ = dz / dist;
 
 	// 向き変更
-	float angle = atan2f(dx, dz);
+	float angle = atan2f(dirX, dirZ);
 	float deg = XMConvertToDegrees(angle);
 	SetRotY(deg + 180.0f);
 
-	float nextPosX = m_Position.x + dx * m_MoveSpeed;
-	float nextPosZ = m_Position.z + dz * m_MoveSpeed;
-	float bodyRadius = 0.25f; // バスターズの当たり判定サイズ
+	float bodyRadius = 0.4f; // バスターズの当たり判定サイズ
+	float moveAmount = m_MoveSpeed;
 
-	// X軸とZ軸で独立して「進めるか」を判定
-	bool hitX = IsObstacle(nextPosX, m_Position.z, bodyRadius, ignoreFurnIdx);
-	bool hitZ = IsObstacle(m_Position.x, nextPosZ, bodyRadius, ignoreFurnIdx);
-
-	// 斜めに入った角でのめり込み防止
-	if (!hitX && !hitZ)
+	// スムーズなコーナー処理：目標が近い場合は速度を落とす
+	if (dist < 1.5f)
 	{
-		// 両方単体なら行けるが、斜めに合わさると角にぶつかる場合
-		if (IsObstacle(nextPosX, nextPosZ, bodyRadius, ignoreFurnIdx))
+		moveAmount = m_MoveSpeed * (dist / 1.5f);
+	}
+
+	float nextPosX = m_Position.x + dirX * moveAmount;
+	float nextPosZ = m_Position.z + dirZ * moveAmount;
+
+	// 複数点で壁衝突判定を行う（より正確な判定）
+	const int checkPoints = 3;
+	bool canMoveX = true;
+	bool canMoveZ = true;
+	bool canMoveDiag = true;
+
+	// X軸方向の移動可否
+	for (int i = 0; i < checkPoints; i++)
+	{
+		float checkZ = m_Position.z + (dz * moveAmount * i / (checkPoints - 1));
+		if (IsObstacle(nextPosX, checkZ, bodyRadius, ignoreFurnIdx))
 		{
-			// 移動成分が大きい方（より進みたい方向）を優先して滑らせる
-			if (fabsf(dx) > fabsf(dz)) hitZ = true;
-			else hitX = true;
+			canMoveX = false;
+			break;
 		}
 	}
 
-	// 障害物がなければ座標を更新（hitしていればその軸は移動しない＝滑る）
-	if (!hitX) m_Position.x = nextPosX;
-	if (!hitZ) m_Position.z = nextPosZ;
+	// Z軸方向の移動可否
+	for (int i = 0; i < checkPoints; i++)
+	{
+		float checkX = m_Position.x + (dx * moveAmount * i / (checkPoints - 1));
+		if (IsObstacle(checkX, nextPosZ, bodyRadius, ignoreFurnIdx))
+		{
+			canMoveZ = false;
+			break;
+		}
+	}
+
+	// 斜め移動の可否
+	if (!IsObstacle(nextPosX, nextPosZ, bodyRadius, ignoreFurnIdx))
+	{
+		canMoveDiag = true;
+	}
+	else
+	{
+		canMoveDiag = false;
+	}
+
+	// 移動の決定
+	if (canMoveDiag)
+	{
+		// 斜めに移動可能
+		m_Position.x = nextPosX;
+		m_Position.z = nextPosZ;
+	}
+	else if (canMoveX && canMoveZ)
+	{
+		// 両軸とも移動可能な場合：段階的に移動量を減らして滑り移動を実現
+		float slideFactor = moveAmount * 0.7f;
+		
+		if (!IsObstacle(m_Position.x + dirX * slideFactor, m_Position.z + dirZ * slideFactor, bodyRadius, ignoreFurnIdx))
+		{
+			m_Position.x += dirX * slideFactor;
+			m_Position.z += dirZ * slideFactor;
+		}
+		else if (fabsf(dx) > fabsf(dz))
+		{
+			m_Position.x = nextPosX;
+		}
+		else
+		{
+			m_Position.z = nextPosZ;
+		}
+	}
+	else if (canMoveX)
+	{
+		// X軸のみ移動可能：まず減速移動を試す
+		float slideFactor = moveAmount * 0.5f;
+		if (!IsObstacle(m_Position.x + dirX * slideFactor, m_Position.z, bodyRadius, ignoreFurnIdx))
+		{
+			m_Position.x += dirX * slideFactor;
+		}
+		else
+		{
+			m_Position.x = nextPosX;
+		}
+	}
+	else if (canMoveZ)
+	{
+		// Z軸のみ移動可能：まず減速移動を試す
+		float slideFactor = moveAmount * 0.5f;
+		if (!IsObstacle(m_Position.x, m_Position.z + dirZ * slideFactor, bodyRadius, ignoreFurnIdx))
+		{
+			m_Position.z += dirZ * slideFactor;
+		}
+		else
+		{
+			m_Position.z = nextPosZ;
+		}
+	}
+	else
+	{
+		// 壁に完全にブロックされている場合、経路を強制リセット
+		if (m_StuckTimer > 180)
+		{
+			m_PathList.clear();
+			m_TargetFurnitureIndex = -1;
+			m_StuckTimer = 0;
+		}
+	}
 }
 
 void Busters::OnScared(void)
@@ -1008,7 +1146,7 @@ bool Busters::IsTargetInFOV(const XMFLOAT3& targetPos, float range)
 XMFLOAT3 GetRandomBusterPos(int floor)
 {
 	int attempts = 0;
-	// 最大100回トライして、壁じゃない場所を探す
+	// 最大100回トライして、床があり周囲に家具がない場所を探す
 	while (attempts < 100)
 	{
 		int gx = 0;
@@ -1027,22 +1165,67 @@ XMFLOAT3 GetRandomBusterPos(int floor)
 
 		// 壁判定 (Y=1 のレイヤーを確認)
 		int blockID = 0;
+		int floorBlockID = 0;
 		switch (floor)
 		{
-		case 0: blockID = Floor1[1][gz][gx]; break;
-		case 1: blockID = Floor2[1][gz][gx]; break;
-		case 2: blockID = Floor3[1][gz][gx]; break;
+		case 0:
+			blockID = Floor1[1][gz][gx];
+			floorBlockID = Floor1[0][gz][gx];
+			break;
+		case 1:
+			blockID = Floor2[1][gz][gx];
+			floorBlockID = Floor2[0][gz][gx];
+			break;
+		case 2:
+			blockID = Floor3[1][gz][gx];
+			floorBlockID = Floor3[0][gz][gx];
+			break;
 		}
 
-		// IDが0 (空気) ならスポーンOK
-		if (blockID == 0)
+		// IDが0 (空気) で、床が存在する（0以外）場合のみチェック
+		if (blockID == 0 && floorBlockID != 0)
 		{
-			// グリッド座標 -> ワールド座標 変換
-			// field.cpp の計算式に合わせる: (x - W/2, z - H/2)
-			float wx = (float)gx - MAP_WIDTH / 2.0f;
-			float wz = MAP_LENGTH / 2.0f - (float)gz;
+			// 周囲に家具がないかチェック（3x3の範囲）
+			bool hasFurnitureNearby = false;
+			for (int i = -1; i <= 1; i++)
+			{
+				for (int j = -1; j <= 1; j++)
+				{
+					int checkX = gx + i;
+					int checkZ = gz + j;
 
-			return { wx, PATROL_HEIGHT, wz };
+					// 範囲内かチェック
+					if (checkX < 0 || checkX >= MAP_WIDTH || checkZ < 0 || checkZ >= MAP_LENGTH)
+						continue;
+
+					int furnitureID = 0;
+					switch (floor)
+					{
+					case 0: furnitureID = Floor1[1][checkZ][checkX]; break;
+					case 1: furnitureID = Floor2[1][checkZ][checkX]; break;
+					case 2: furnitureID = Floor3[1][checkZ][checkX]; break;
+					}
+
+					// 50〜69は家具マーカーなので、これが周囲にあったら避ける
+					if (furnitureID >= 50 && furnitureID <= 69)
+					{
+						hasFurnitureNearby = true;
+						break;
+					}
+				}
+				if (hasFurnitureNearby) break;
+			}
+
+			// 周囲に家具がなければスポーンOK
+			if (!hasFurnitureNearby)
+			{
+				// グリッド座標 -> ワールド座標 変換
+				// field.cpp の計算式に合わせる: (x - W/2, z - H/2)
+				float wx = (float)gx - MAP_WIDTH / 2.0f;
+				float wz = MAP_LENGTH / 2.0f - (float)gz;
+
+				return { wx, PATROL_HEIGHT, wz };
+			}
 		}
 		attempts++;
 	}

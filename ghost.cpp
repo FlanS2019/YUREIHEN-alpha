@@ -466,6 +466,33 @@ void Ghost::ScareStart(void)
 
 	float currentRange = GetCurrentScareRange();
 
+	float backScareAngle = 140.0f;      // 背後と判定する角度（180度にすると真横も背後扱いになります。少し狭めの140度を推奨）
+	float backScareMultiplier = 1.5f;   // 背後から驚かせた時のゲージ上昇倍率
+
+	bool isBackScare = false;
+	{
+		// バスターズの向いている角度から「正面」ベクトルを計算
+		float rotRad = XMConvertToRadians(pBuster->GetRot().y + 180.0f);
+		XMVECTOR forwardVec = XMVectorSet(sinf(rotRad), 0.0f, cosf(rotRad), 0.0f);
+
+		// 「背後」のベクトル（正面の逆）
+		XMVECTOR backwardVec = XMVectorSet(-XMVectorGetX(forwardVec), 0.0f, -XMVectorGetZ(forwardVec), 0.0f);
+
+		// バスターズから幽霊(家具)への方向ベクトル
+		XMVECTOR busterToGhost = XMVectorSet(ghostPos.x - busterPos.x, 0.0f, ghostPos.z - busterPos.z, 0.0f);
+		busterToGhost = XMVector3Normalize(busterToGhost);
+
+		// 内積で角度を判定（コサイン）
+		float dot = XMVectorGetX(XMVector3Dot(backwardVec, busterToGhost));
+		float limitCos = cosf(XMConvertToRadians(backScareAngle / 2.0f));
+
+		// 幽霊がバスターズの「背後設定角度」の範囲内にいればボーナス
+		if (dot >= limitCos)
+		{
+			isBackScare = true;
+		}
+	}
+
 	switch (action)
 	{
 	case ACTION_SCARE:
@@ -478,7 +505,12 @@ void Ghost::ScareStart(void)
 				ScareComboUP();
 				m_HasIncreasedMultiplier = true;
 			}
-			AddScareGauge(SCORE_SCARE * UI_ScareCombo_GetNumber());
+			float addScore = SCORE_SCARE * UI_ScareCombo_GetNumber();
+			if (isBackScare)
+			{
+				addScore *= backScareMultiplier; // 背後なら1.5倍にする
+			}
+			AddScareGauge(addScore);
 			Busters_CheckGaugeEvent();
 		}
 		break;
