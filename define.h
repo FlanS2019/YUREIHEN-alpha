@@ -114,10 +114,10 @@
 #define VIEW_RANGE      (13) 
 
 //=== スコア関連定数 ===
-#define SCARE_GAUGE_MAX (100.0f)
+#define SCARE_GAUGE_MAX (100.0f)// 恐怖ゲージの最大値
 #define SCORE_LURE (0.5f) // 引き寄せスコア
 #define SCORE_STOP (0.5f) // 停止スコア
-#define SCORE_SCARE (2.45f) // 驚かせスコア//2.45f勝てなさすぎるので一時変更
+#define SCORE_SCARE (2000.45f) // 驚かせスコア//2.45f勝てなさすぎるので一時変更
 #define BUSTER_GAUGE_REDUCTION (0.07f) // バスターに見つかったときのゲージ減少値（1フレームあたり）
 
 //=== UI_ScareCombo 関連定数 ===
