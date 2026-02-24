@@ -207,7 +207,6 @@ void UI_Initialize(void)
 	);
 
 	//hal::dout << g_ScareGauge->GetValue() << std::endl;
-
 }
 
 //----------------------------
@@ -236,6 +235,7 @@ void UI_Update(void)
 		{
 			float remainingTime = CLOCK_MAX - g_Clock->GetTime();
 			if (remainingTime < 0.0f) remainingTime = 0.0f;
+			WinAnim_SetResultData(remainingTime, UI_ScareCombo_GetNumber());
 			hal::dout << "WIN! time=" << remainingTime << std::endl;
 		}
 		
@@ -250,11 +250,11 @@ void UI_Update(void)
 
 	if(timeEnded || g_ScareGauge->GetValue() <= 0.0f)
 	{
-		float remainingTime = CLOCK_MAX - g_Clock->GetTime();
-		if (remainingTime < 0.0f) remainingTime = 0.0f;
-		Result_SetTimerValue(remainingTime); // 結果画面にタイマーの値を渡す
-		Result_SetCombo(UI_ScareCombo_GetNumber()); // 結果画面にコンボ数を渡す
-		hal::dout << "LOSE! time=" << remainingTime << std::endl;
+		//float remainingTime = CLOCK_MAX - g_Clock->GetTime();
+		//if (remainingTime < 0.0f) remainingTime = 0.0f;
+		//Result_SetTimerValue(remainingTime); // 結果画面にタイマーの値を渡す
+		//Result_SetCombo(UI_ScareCombo_GetNumber()); // 結果画面にコンボ数を渡す
+		//hal::dout << "LOSE! time=" << remainingTime << std::endl;
 		StartFade(SCENE_ANM_LOSE);
 	}
 	//if (timeEnded || g_ScareGauge->GetValue() <= 0.0f)
