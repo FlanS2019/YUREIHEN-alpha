@@ -202,9 +202,14 @@ void Title_Update(void)
 	if (g_pStartClickFont) g_pStartClickFont->Update();
 
 	// ③適当な処理　アニメーションなどもここで
-	if (Keyboard_IsKeyDownTrigger(KK_ENTER))
+	if (Keyboard_IsKeyDownTrigger(KK_SPACE))
 	{
 		StartFade(SCENE_ANM_OP);
+	}
+
+	if (Keyboard_IsKeyDownTrigger(KK_L))
+	{
+		StartFade(SCENE_ANM_LOSE);
 	}
 
 	// ③適当な処理　アニメーションなどもここで
