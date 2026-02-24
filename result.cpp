@@ -104,7 +104,7 @@ void Result_Initialize(ID3D11Device* pDevice, ID3D11DeviceContext* pContext)
 		{ 1.0f, 1.0f, 1.0f, 1.0f },	// 色（白）
 		BLENDSTATE_ALFA,
 		L"asset\\texture\\num.png",
-		5, 3,
+		5, 3,// 横10分割、縦1分割（0-9の数字）
 		45.0f
 	);
 	g_pComboNum->SetShowX(true);  // 「x」を表示
@@ -212,7 +212,7 @@ void Result_Initialize(ID3D11Device* pDevice, ID3D11DeviceContext* pContext)
 void Result_Update(void)
 {
 	// ③適当な処理　アニメーションなどもここで
-	if (Keyboard_IsKeyDown(KK_ENTER))
+	if (Keyboard_IsKeyDown(KK_SPACE))
 	{
 		StartFade(SCENE_TITLE);
 	}
