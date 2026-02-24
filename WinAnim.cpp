@@ -91,7 +91,7 @@ void Animation_Win_Update(void)
 	}
 
 	// ENTERキーで直接リザルトへ遷移（スキップ）
-	if (Keyboard_IsKeyDownTrigger(KK_ENTER))
+	if (Keyboard_IsKeyDownTrigger(KK_SPACE))
 	{
 		// ★ スキップ時もResult画面に値を渡す
 		if (g_HasResultData)
