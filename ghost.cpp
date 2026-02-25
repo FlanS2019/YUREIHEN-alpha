@@ -12,6 +12,7 @@ using namespace DirectX;
 #include "furniture.h"
 #include "busters.h"
 #include "Tutorial_Object.h"
+#include "game.h"
 #include "UI.h"
 #include "UI_scarecombo.h"
 #include "define.h"
@@ -548,7 +549,11 @@ void Ghost::ScareStart(void)
 				addScore *= 0.6f; // 3人なら 60% にさらにダウン
 			}
 			AddScareGauge(addScore);
-			Busters_CheckGaugeEvent();
+			// ゲージMAX判定はゲームループ内でアニメーション付きで処理する
+			if (Busters_CheckGaugeEvent())
+			{
+				Game_RequestFloorExitAnim();
+			}
 		}
 		break;
 	}

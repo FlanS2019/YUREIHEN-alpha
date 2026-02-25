@@ -35,6 +35,60 @@ static SoundData* g_pBGM = nullptr;
 
 static int g_NextFloorID = -1;
 
+// =================================================================
+// フロア降下アニメーションのステートマシン
+// =================================================================
+enum FLOOR_EXIT_ANIM_STATE
+{
+	FLOOR_EXIT_NONE = 0,    // 通常状態
+	FLOOR_EXIT_FADEOUT,     // フェードアウト中
+	FLOOR_EXIT_OVERVIEW,    // 俯瞰カメラ + バスターズ走行中
+	FLOOR_EXIT_FADEIN,      // フェードイン中
+};
+
+static FLOOR_EXIT_ANIM_STATE g_FloorExitState = FLOOR_EXIT_NONE;
+static int  g_FloorExitTimer    = 0;
+static bool g_FloorTransferDone = false; // フロア移行処理を実行済みか
+static XMFLOAT3 g_OverviewCameraPos = { 0.0f, 0.0f, 0.0f };
+static XMFLOAT3 g_StairsPosForAnim  = { 0.0f, 0.0f, 0.0f }; // アニメ開始時の階段座標（元フロア）
+
+// 俯瞰カメラをバスターズの真上に設定する
+static void SetupOverviewCamera(void)
+{
+	// バスターズが存在すればその位置に同期、なければゴーストにフォールバック
+	XMFLOAT3 focusPos = { 0.0f, 0.0f, 0.0f };
+	Busters* buster = GetBusters();
+	if (buster)
+	{
+		focusPos = buster->GetPos();
+	}
+	else
+	{
+		Ghost* ghost = GetGhost();
+		if (ghost) focusPos = ghost->GetPos();
+	}
+
+	// カメラをY+20の真上に置き、注視点をXZ同座標・Y=0（地面）に向ける
+	XMFLOAT3 camPos  = { focusPos.x, focusPos.y + 20.0f, focusPos.z };
+	XMFLOAT3 atPos   = { focusPos.x, focusPos.y,          focusPos.z };
+	g_OverviewCameraPos = camPos;
+
+	Camera* cam = GetCamera();
+	if (cam) cam->UpdateView(camPos, atPos);
+}
+
+static bool g_FloorExitAnimRequested = false; // ghost.cppからの要求フラグ
+
+void Game_RequestFloorExitAnim(void)
+{
+	g_FloorExitAnimRequested = true;
+}
+
+bool Game_IsFloorExitAnimActive(void)
+{
+	return g_FloorExitState != FLOOR_EXIT_NONE;
+}
+
 bool* Game_GetEnbanTouchedPtr(void)
 {
 	return TutorialObject_GetEnbanTouchedPtr();
@@ -65,6 +119,134 @@ void Game_Initialize(ID3D11Device* pDevice, ID3D11DeviceContext* pContext)
 void Game_Update(void)
 {
 	FADESTAT fadeState = GetFadeState();
+
+	// -------------------------------------------------------
+	// フロア降下アニメーションのステートマシン
+	// -------------------------------------------------------
+	if (g_FloorExitState != FLOOR_EXIT_NONE)
+	{
+		switch (g_FloorExitState)
+		{
+		case FLOOR_EXIT_FADEOUT:
+			// フェードアウト中はバスターズを更新して走らせ続ける
+			Busters_Update();
+			Field_Update();
+			Furniture_Update();
+			// 俯瞰カメラを維持
+			{
+				XMFLOAT3 focusPos = { 0.0f, 0.0f, 0.0f };
+				Busters* buster = GetBusters();
+				if (buster) focusPos = buster->GetPos();
+				else { Ghost* g = GetGhost(); if (g) focusPos = g->GetPos(); }
+				XMFLOAT3 camPos = { focusPos.x, focusPos.y + 20.0f, focusPos.z };
+				Camera* cam = GetCamera();
+				if (cam) cam->UpdateView(camPos, { focusPos.x, focusPos.y, focusPos.z });
+				Shader_SetCameraPos(camPos);
+			}
+			// フェードアウト完了（真っ暗）になったらフロア移行してフェードイン
+			if (fadeState == FADE_MAX)
+			{
+				if (!g_FloorTransferDone)
+				{
+					Busters_DoFloorTransition();
+					g_FloorTransferDone = true;
+				}
+				SetupOverviewCamera();
+				g_FloorExitState = FLOOR_EXIT_OVERVIEW;
+				g_FloorExitTimer = 0;
+				Fade_StartIn();
+			}
+			return;
+
+		case FLOOR_EXIT_OVERVIEW:
+		// バスターズが階段に到着するまで、俯瞰カメラで見守る
+			g_FloorExitTimer++;
+
+			// 俯瞰カメラをバスターズのX/Zに追従させながら維持
+			{
+				XMFLOAT3 focusPos = { 0.0f, 0.0f, 0.0f };
+				Busters* buster = GetBusters();
+				if (buster)
+				{
+					focusPos = buster->GetPos();
+				}
+				else
+				{
+					Ghost* ghost = GetGhost();
+					if (ghost) focusPos = ghost->GetPos();
+				}
+				XMFLOAT3 camPos = { focusPos.x, focusPos.y + 20.0f, focusPos.z };
+				XMFLOAT3 atPos  = { focusPos.x, focusPos.y,          focusPos.z };
+				Camera* cam = GetCamera();
+				if (cam) cam->UpdateView(camPos, atPos);
+				Shader_SetCameraPos(camPos);
+			}
+
+			// バスターズ更新（走行アニメーション）
+			Busters_Update();
+			Field_Update();
+			Furniture_Update();
+
+			// 到着 or タイムアウト（最大8秒）かつフェード中でなければ次のフェードアウトへ
+			if ((Busters_IsFloorExitAnimDone() || g_FloorExitTimer > 8 * FPS)
+				&& fadeState == FADE_NONE)
+			{
+				StartFade(SCENE_NONE); // プレイヤー視点に戻すためフェードアウト
+				g_FloorExitState = FLOOR_EXIT_FADEIN;
+			}
+			return; // 通常更新をスキップ
+
+		case FLOOR_EXIT_FADEIN:
+			// フェードアウト完了後、プレイヤー視点に戻してフェードイン
+			if (fadeState == FADE_MAX)
+			{
+				// プレイヤー（ゴースト）の視点にカメラを戻す
+				Ghost* ghost = GetGhost();
+				if (ghost)
+				{
+					Camera_SetTargetPos(ghost->GetPos());
+					// pitch/yaw をリセットして前後方向を向かせる
+					Camera* cam = GetCamera();
+					if (cam)
+					{
+						XMFLOAT3 gp = ghost->GetPos();
+						XMFLOAT3 atPos = { gp.x, gp.y + CAMERA_OFFSET_Y, gp.z };
+						XMFLOAT3 camPos = { gp.x, gp.y + CAMERA_OFFSET_Y + 6.0f, gp.z - 0.01f };
+						cam->UpdateView(camPos, atPos);
+					}
+				}
+				g_FloorExitState = FLOOR_EXIT_NONE;
+				g_FloorExitTimer = 0;
+				g_FloorTransferDone = false;
+				g_FloorExitAnimRequested = false;
+				Fade_StartIn();
+			}
+			return; // 通常更新をスキップ
+
+		default:
+			break;
+		}
+		return;
+	}
+
+	// フロア降下アニメーション要求を受け付ける
+	if (g_FloorExitAnimRequested && g_FloorExitState == FLOOR_EXIT_NONE)
+	{
+		g_FloorExitAnimRequested = false;
+		g_FloorExitState = FLOOR_EXIT_FADEOUT;
+		g_FloorTransferDone = false;
+
+		// 元フロアの階段位置を保存し、バスターズを今すぐ走らせる
+		g_StairsPosForAnim = Field_GetStairsUpWorldPos(Field_GetCurrentFloor());
+		Busters_StartFloorExitAnim(g_StairsPosForAnim);
+
+		StartFade(SCENE_NONE); // まずフェードアウト
+		return;
+	}
+
+	// -------------------------------------------------------
+	// 通常フェード処理
+	// -------------------------------------------------------
 	if (fadeState == FADE_MAX)
 	{
 		if (g_NextFloorID != -1) {

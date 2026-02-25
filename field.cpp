@@ -755,3 +755,22 @@ float Field_CalculateRotationFromMarker(float x, float y, float z)
 
 	return 0.0f;
 }
+
+// 指定フロアのSTAIRS_UPブロックのワールド座標を最初に見つけた1つ返す
+XMFLOAT3 Field_GetStairsUpWorldPos(int floor)
+{
+	for (int z = 0; z < MAP_H; z++)
+	{
+		for (int x = 0; x < MAP_W; x++)
+		{
+			int mcID = GetMapBlockID(floor, 1, z, x);
+			if (ConvertMapID(mcID) == FIELD_STAIRS_UP)
+			{
+				float wx = GridToWorldX(x);
+				float wz = GridToWorldZ(z);
+				return { wx, PATROL_HEIGHT, wz };
+			}
+		}
+	}
+	return { 0.0f, PATROL_HEIGHT, 0.0f };
+}
