@@ -18,7 +18,8 @@ enum BUSTERS_STATE
 	BUSTERS_SUSPICION, // 怪しんで近づく（警戒）
 	BUSTERS_CHASE,      // 幽霊を見つけて追跡（確定）
 	BUSTERS_STUN,		//気絶中
-	BUSTERS_LURED		// 誘引中
+	BUSTERS_LURED,		// 誘引中
+	BUSTERS_HELP
 
 };
 
@@ -52,6 +53,9 @@ private:
 	XMFLOAT3 m_LastPathCalcGhostPos;
 	XMFLOAT3 m_PrevPos; // 前フレームの座標
 	int m_StuckTimer;   // 動いていない時間を計測
+	int m_RotationUpdateCounter; // 回転更新用カウンター
+	float m_PrevTargetAngle; // 前回の目標角度
+	int m_AngleFlipCounter;  // 角度反転カウンター
 
 public:
 	Busters(const XMFLOAT3& pos, const XMFLOAT3& scale, const XMFLOAT3& rot, const char* pass);
@@ -65,6 +69,9 @@ public:
 	void OnLured(XMFLOAT3 targetPos);
 	void OnStopped(void);
 	
+	BUSTERS_STATE GetState(void) const { return m_State; }
+	void ReduceWaitTimer(int amount) { m_WaitTimer -= amount; if (m_WaitTimer < 0) m_WaitTimer = 0; }
+
 	PointLight* GetHeadlight(void) const { return m_pHeadlight; }
 	void SetIsGhostDiscover(bool discover);
 	bool IsTargetInFOV(const XMFLOAT3& targetPos, float range);
@@ -85,6 +92,9 @@ Busters* GetBusters(void);
 void BustersScare(void);
 void BustersLured(const XMFLOAT3& pos, float radius);
 void BustersStopped(void);
+
 void Busters_CheckGaugeEvent(void);
 
 void Busters_SetLight(void);
+
+int Busters_GetCurrentFloorCount(void);
