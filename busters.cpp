@@ -30,7 +30,7 @@ static std::vector<Busters*> g_BustersList[MAP_FLOORS];
 // =================================================================
 
 Busters::Busters(const XMFLOAT3& pos, const XMFLOAT3& scale, const XMFLOAT3& rot, const char* pass)
-	: Sprite3D(pos, scale, rot, pass),
+	: AnimSprite3D(pos, scale, rot, pass),
 	Jump(0.01f, 0.2f, PATROL_HEIGHT),
 	m_State(BUSTERS_SEARCH),
 	m_TargetFurnitureIndex(-1),
@@ -87,6 +87,30 @@ Busters::~Busters()
 
 void Busters::Update(void)
 {
+	// アニメーション更新
+	const float dt = 1.0f / 60.0f;
+	this->UpdateAnimation(dt);
+
+	// 状態に応じたモーション切り替え
+	switch (m_State)
+	{
+	case BUSTERS_SEARCH:
+		this->PlayAnimationByName("walk", true);
+		break;
+	case BUSTERS_SUSPICION:
+		this->PlayAnimationByName("walk", true);
+		break;
+	case BUSTERS_CHASE:
+		this->PlayAnimationByName("hakkendash", true);
+		break;
+	case BUSTERS_STUN:
+		this->PlayAnimationByName("kizetsu", true);
+		break;
+	case BUSTERS_LURED:
+		this->PlayAnimationByName("walk", true);
+		break;
+	}
+
 	// ========== デバッグモード: 角度確認用 ==========
 	// 左右矢印キーで回転、移動・検知は停止
 	if (DEBUG_BUSTERS_ROTATION)
@@ -277,7 +301,7 @@ void Busters::Update(void)
 				float maxRotSpeed = 45.0f;
 				if (fabsf(angleDiff) > maxRotSpeed)
 				{
-					angleDiff = (angleDiff > 0) ? maxRotSpeed : -maxRotSpeed;
+				angleDiff = (angleDiff > 0) ? maxRotSpeed : -maxRotSpeed;
 				}
 				
 				SetRotY(currentRot + angleDiff);
@@ -301,7 +325,7 @@ void Busters::Update(void)
 				float maxRotSpeed = 45.0f;
 				if (fabsf(angleDiff) > maxRotSpeed)
 				{
-					angleDiff = (angleDiff > 0) ? maxRotSpeed : -maxRotSpeed;
+				angleDiff = (angleDiff > 0) ? maxRotSpeed : -maxRotSpeed;
 				}
 				
 				SetRotY(currentRot + angleDiff);
@@ -1616,7 +1640,7 @@ void Busters::Draw(void)
 {
 	// バスターズ（ボーンあり）を描画
 
-	Sprite3D::Draw();
+	AnimSprite3D::Draw();
 
 	if (m_Icon)
 	{

@@ -4,6 +4,7 @@
 #include <DirectXMath.h>
 #include "model.h"
 #include "sprite3d.h"
+#include "anim_sprite3d.h"
 #include "ghost.h"
 #include "component.h"
 #include "define.h"
@@ -23,7 +24,7 @@ enum BUSTERS_STATE
 
 };
 
-class Busters : public Sprite3D, public Jump
+class Busters : public AnimSprite3D, public Jump
 {
 private:
 	BUSTERS_STATE m_State;
