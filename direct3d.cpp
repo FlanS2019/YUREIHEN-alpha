@@ -282,6 +282,16 @@ void Direct3D_ResizeWindow(unsigned int clientW, unsigned int clientH)
 	g_ClientHeight = (clientH > 0) ? static_cast<float>(clientH) : 1.0f;
 }
 
+float Direct3D_GetClientWidth()
+{
+	return g_ClientWidth;
+}
+
+float Direct3D_GetClientHeight()
+{
+	return g_ClientHeight;
+}
+
 // 3D描画用：DRAW_SCREEN の縦横比を保ったレターボックス/ピラーボックスビューポートを設定
 void Direct3D_SetViewport3D()
 {

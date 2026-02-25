@@ -25,8 +25,7 @@ struct TutorialPage
 	std::function<bool()> waitCondition;
 	bool autoWait = false; // trueのとき、ページ表示と同時に自動でテストプレイ開始
 
-	// ページに到達したときに一度だけ呼ばれるコールバック
-	std::function<void()> onEnter;
+	int conditionDelayFrames = 0; // 条件成立からページ遷移までの遅延フレーム数
 
 	// カメラ移動ページ用
 	bool      cameraOverride = false;  // trueのとき指定カメラ位置に移動
@@ -38,6 +37,9 @@ struct TutorialPage
 
 	// このページのページ番号（isPageType==true のページのみ有効）
 	int pageNumber = 0;
+
+	// ページ遷移時（表示開始直前）に呼ばれるコールバック
+	std::function<void()> onEnter;
 };
 
 // ==========================================

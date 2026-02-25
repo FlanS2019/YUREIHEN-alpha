@@ -197,6 +197,7 @@ public:
 		m_moveTween.Update(dt);
 		m_alphaTween.Update(dt);
 		m_stateMachine.Update(dt);
+		
 	}
 
 	void Draw() { if (m_sprite) m_sprite->Draw(); }
@@ -420,23 +421,31 @@ class OpBGMManager {
 private:
 	SoundData* m_bgmGhost;
 	SoundData* m_bgmLightningRain;
+	SoundData* m_seGhost;
 	bool m_played;
 public:
-	OpBGMManager() : m_bgmGhost(nullptr), m_bgmLightningRain(nullptr), m_played(false) {}
+	OpBGMManager() : m_bgmGhost(nullptr), m_bgmLightningRain(nullptr), m_seGhost(nullptr), m_played(false) {}
 	void Initialize() {
 		m_bgmGhost = LoadMP3("asset/sound/bgm/BGM1op.mp3");
 		m_bgmLightningRain = LoadMP3("asset/sound/se/lightning_rain.mp3");
+		m_seGhost = LoadMP3("asset/sound/se/gohst1.mp3");
 	}
 	void Update() {
 		if (!m_played) {
 			if (m_bgmGhost) PlaySound(m_bgmGhost, true);
 			if (m_bgmLightningRain) PlaySound(m_bgmLightningRain, true);
+			// m_seGhostはタイムラインで再生
 			m_played = true;
 		}
+	}
+	// ゴーストSE再生（1回のみ）
+	void PlayGhostSE() {
+		if (m_seGhost) PlaySound(m_seGhost, false);
 	}
 	void Finalize() {
 		if (m_bgmGhost) { StopSound(m_bgmGhost); UnloadSound(m_bgmGhost); }
 		if (m_bgmLightningRain) { StopSound(m_bgmLightningRain); UnloadSound(m_bgmLightningRain); }
+		if (m_seGhost) { StopSound(m_seGhost); UnloadSound(m_seGhost); }
 	}
 };
 
@@ -491,10 +500,11 @@ public:
 			}
 		});
 
-		m_timeline.AddEvent(13.0f, [this]() // 18.0秒：テキスト切り替え
+		m_timeline.AddEvent(13.0f, [this]() // テキスト切り替え + SE再生
 			{
-			m_text.HideFont(1, 0.5f);		// テキスト1を1秒かけてフェードアウト
-			m_text.ShowFont(2, 0.5f);		// 同時にテキスト2を1秒かけてフェードイン
+			m_text.HideFont(1, 0.5f);		// テキスト1を0.5秒かけてフェードアウト
+			m_text.ShowFont(2, 0.5f);		// 同時にテキスト2を0.5秒かけてフェードイン
+			m_bgm.PlayGhostSE();			// ゴーストSE再生
 		});
 
 		// 25.0秒：シーン遷移フェード開始
@@ -502,6 +512,11 @@ public:
 			if (GetFadeState() == FADE_NONE) {
 				StartFade(SCENE_GAME);
 			}
+		});
+
+		// 例：14.5秒でSEのみ再生
+		m_timeline.AddEvent(15.5f, [this]() {
+			m_bgm.PlayGhostSE();
 		});
 
 		Mouse_SetMode(MOUSE_POSITION_MODE_ABSOLUTE);
