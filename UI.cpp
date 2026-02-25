@@ -2,17 +2,18 @@
 
 #include "camera.h"
 #include "UI.h"
-#include "sprite.h"
 #include "debug_ostream.h"
 #include "keyboard.h"
 #include "fade.h"
 #include "UI_scarecombo.h"
 #include "field.h"
 #include "define.h"
+//#include "sprite.h"
 #include "ghost.h"
 #include "font.h"
 #include "furniture.h"
 #include "result.h"
+#include "WinAnim.h"
 
 // グローバル変数
 static Timer* g_Clock = nullptr;
@@ -47,7 +48,7 @@ static std::string g_LastPossessGuideText = "";//文字列記憶
 // 各階層のゲージ値を保存する配列
 static float g_FloorGaugeValues[MAP_FLOORS];
 // 前フレームの階層を記憶しておく変数
-static int g_LastFrameFloor = -1;
+static int g_LastFrameFloor = 0;
 
 
 // 3D座標 -> 2Dスクリーン座標変換
@@ -159,7 +160,7 @@ void UI_Initialize(void)
 		BLENDSTATE_ALFA,
 		L"asset\\texture\\kanban.png"
 	);
-
+	
 	g_FloorNumber = new Number(
 		{ CLOCK_POS_X - 30.0f, CLOCK_POS_Y + 240.0f },
 		{ 60.0f, 60.0f },
@@ -214,19 +215,6 @@ void UI_Initialize(void)
 //----------------------------
 void UI_Update(void)
 {
-	// g_ScareComboのnullcheck
-	if (!g_ScareGauge)
-	{
-		return;
-	}
-
-	if (Keyboard_IsKeyDown(KK_L))
-	{
-		SetScene(SCENE_ANM_LOSE);// Debug用に敗北アニメーションへ直接飛ぶ
-		return;
-
-	}
-	
 	// 階層が変わったかチェック
 	int currentFloor = Field_GetCurrentFloor();
 	if (currentFloor != g_LastFrameFloor)
@@ -236,23 +224,23 @@ void UI_Update(void)
 		{
 			g_FloorGaugeValues[g_LastFrameFloor] = g_ScareGauge->GetValue();
 		}
-		
+
 		// 新しい階層のゲージ値を復元
 		if (currentFloor >= 0 && currentFloor < MAP_FLOORS)
 		{
 			g_ScareGauge->SetValue(g_FloorGaugeValues[currentFloor]);
 		}
 		
-		g_LastFrameFloor = currentFloor;
-		
-		// 1階に到達したらクリア
-		if (currentFloor == 0)
+		// WIN 判定：前フレームが 1 階以上で現在 0 階 = クリア
+		if (g_LastFrameFloor > 0 && currentFloor == 0)
 		{
-			StartFade(SCENE_ANM_WIN);
+			float remainingTime = CLOCK_MAX - g_Clock->GetTime();
+			if (remainingTime < 0.0f) remainingTime = 0.0f;
+			hal::dout << "WIN! time=" << remainingTime << std::endl;
 		}
+		
+		g_LastFrameFloor = currentFloor;
 	}
-	
-
 	// --- 敗北条件 ---
 #if STOP_TIMER_BUSTER
 	bool timeEnded = false;
@@ -260,15 +248,18 @@ void UI_Update(void)
 	bool timeEnded = g_Clock->Update();
 #endif
 
-	if (timeEnded || g_ScareGauge->GetValue() <= 0.0f)
+	if(timeEnded || g_ScareGauge->GetValue() <= 0.0f)
 	{
-		hal::dout << "敗北条件を満たしました" << std::endl;
-		// タイマー結果をリザルト画面に渡す
-		Result_SetTimerValue(g_Clock->GetTime());
+		float remainingTime = CLOCK_MAX - g_Clock->GetTime();
+		if (remainingTime < 0.0f) remainingTime = 0.0f;
+		Result_SetTimerValue(remainingTime); // 結果画面にタイマーの値を渡す
+		Result_SetCombo(UI_ScareCombo_GetNumber()); // 結果画面にコンボ数を渡す
+		hal::dout << "LOSE! time=" << remainingTime << std::endl;
 		StartFade(SCENE_ANM_LOSE);
 	}
 	//if (timeEnded || g_ScareGauge->GetValue() <= 0.0f)
 	//{
+
 	//	hal::dout << "敗北条件を満たしました" << std::endl;
 	//	StartFade(SCENE_ANM_LOSE);
 	//}

@@ -43,6 +43,9 @@ void Direct3D_ResizeWindow(unsigned int clientW, unsigned int clientH); // ウ�
 void Direct3D_SetViewport3D();  // 3D描画用：アスペクト比を保ったビューポートを設定
 void Direct3D_SetViewport2D();  // 2D描画用：バックバッファ全体をビューポートに設定
 
+float Direct3D_GetClientWidth();   // 現在のウィンドウクライアント幅を取得
+float Direct3D_GetClientHeight();  // 現在のウィンドウクライアント高さを取得
+
 void	SetDepthTest(bool flg);	//深度テスト切り替え
 void	SetDepthWrite(bool flg); // 深度書き込み切り替え
 

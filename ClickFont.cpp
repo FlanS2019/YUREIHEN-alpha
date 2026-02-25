@@ -4,6 +4,8 @@
 
 ==============================================================================*/
 #include "ClickFont.h"
+#include "direct3d.h"
+#include "define.h"
 
 ClickFont::ClickFont(XMFLOAT2 pos, float fontSize, float rotation,
 	XMFLOAT4 normalColor, XMFLOAT4 hoverColor, const std::string& text)
@@ -19,13 +21,40 @@ ClickFont::ClickFont(XMFLOAT2 pos, float fontSize, float rotation,
 
 bool ClickFont::HitTest(int mouseX, int mouseY) const
 {
+	// ウィンドウサイズが変わっても正しく判定するため、
+	// マウス座標（クライアントピクセル）を論理座標（SCREEN_WIDTH/HEIGHT基準）に変換する
+	const float clientW = Direct3D_GetClientWidth();
+	const float clientH = Direct3D_GetClientHeight();
+	const float targetAspect = SCREEN_WIDTH / SCREEN_HEIGHT;
+	const float windowAspect = clientW / clientH;
+
+	// Direct3D_SetViewport2D() と同じ黒帯計算
+	float vpX, vpY, vpW, vpH;
+	if (windowAspect > targetAspect)
+	{
+		vpH = clientH;
+		vpW = clientH * targetAspect;
+		vpX = (clientW - vpW) * 0.5f;
+		vpY = 0.0f;
+	}
+	else
+	{
+		vpW = clientW;
+		vpH = clientW / targetAspect;
+		vpX = 0.0f;
+		vpY = (clientH - vpH) * 0.5f;
+	}
+
+	// ビューポート内の相対位置 → 論理座標へ
+	const float logicalX = (mouseX - vpX) / vpW * SCREEN_WIDTH;
+	const float logicalY = (mouseY - vpY) / vpH * SCREEN_HEIGHT;
+
 	const XMFLOAT2 pos = GetPos();
 	const float halfW = m_HitSize.x * 0.5f;
 	const float halfH = m_HitSize.y * 0.5f;
 
-	// 判定は常にGetPos()を中心に行う（UI毎の座標系差異をClickFont側で吸収しない）
-	return (mouseX >= (int)(pos.x - halfW) && mouseX <= (int)(pos.x + halfW)
-		&& mouseY >= (int)(pos.y - halfH) && mouseY <= (int)(pos.y + halfH));
+	return (logicalX >= pos.x - halfW && logicalX <= pos.x + halfW
+		&& logicalY >= pos.y - halfH && logicalY <= pos.y + halfH);
 }
 
 void ClickFont::Update()
