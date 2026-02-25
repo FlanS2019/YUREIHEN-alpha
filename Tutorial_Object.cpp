@@ -103,7 +103,7 @@ void TutorialMarker::SetPos(const XMFLOAT3& pos)
 
 TutorialBusters::TutorialBusters(const XMFLOAT3& pos, const XMFLOAT3& scale, const XMFLOAT3& rot, const char* pass)
 	: AnimSprite3D(pos, scale, rot, pass)
-	, Jump(0.01f, 0.2f, PATROL_HEIGHT)
+	, Jump(0.01f, 0.2f, BUSTERS_HEIGHT)
 	, m_State(TB_IDLE)
 	, m_Icon(nullptr)
 	, m_pHeadlight(nullptr)

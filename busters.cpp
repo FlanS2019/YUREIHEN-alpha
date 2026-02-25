@@ -31,7 +31,7 @@ static std::vector<Busters*> g_BustersList[MAP_FLOORS];
 
 Busters::Busters(const XMFLOAT3& pos, const XMFLOAT3& scale, const XMFLOAT3& rot, const char* pass)
 	: AnimSprite3D(pos, scale, rot, pass),
-	Jump(0.01f, 0.2f, PATROL_HEIGHT),
+	Jump(0.01f, 0.2f, BUSTERS_HEIGHT),
 	m_State(BUSTERS_SEARCH),
 	m_TargetFurnitureIndex(-1),
 	m_WaitTimer(0),
@@ -97,13 +97,29 @@ void Busters::Update(void)
 	switch (m_State)
 	{
 	case BUSTERS_SEARCH:
-		this->PlayAnimationByName("walk", true);
+		if (m_WaitTimer > 0)
+			this->PlayAnimationByName("chousa", true);
+		else
+			this->PlayAnimationByName("walk", true);
 		break;
 	case BUSTERS_SUSPICION:
 		this->PlayAnimationByName("walk", true);
 		break;
 	case BUSTERS_CHASE:
-		this->PlayAnimationByName("hakkendash", true);
+		// hakkenが再生中なら終了を待ち、終わったらhakkendashへ＋追跡開始
+		if (m_AnimState.currentAnimName == "hakken")
+		{
+			if (!this->IsAnimationPlaying())
+			{
+				this->PlayAnimationByName("hakkendash", true);
+				m_WaitTimer = 0; // hakken終了 → 即追跡開始
+			}
+		}
+		else if (m_AnimState.currentAnimName != "hakkendash")
+		{
+			// CHASE状態に入った直後：まずhakkenを非ループで再生
+			this->PlayAnimationByName("hakken", false);
+		}
 		break;
 	case BUSTERS_STUN:
 		this->PlayAnimationByName("kizetsu", true);
@@ -287,7 +303,16 @@ void Busters::Update(void)
 
 	if (m_WaitTimer > 0)
 	{
-		m_WaitTimer--;
+		// CHASE状態でhakken再生中はタイマーを減らない（hakken終了まで硬直維持）
+		if (m_State == BUSTERS_CHASE && m_AnimState.currentAnimName == "hakken" && this->IsAnimationPlaying())
+		{
+			// hakken再生中：タイマーを維持して移動させない
+		}
+		else
+		{
+			m_WaitTimer--;
+		}
+
 		if (m_State == BUSTERS_SUSPICION || m_State == BUSTERS_CHASE)
 		{
 			Ghost* ghost = GetGhost();
@@ -932,7 +957,7 @@ void Busters::CheckState(void)
 	bool hasWall = Field_CheckWallBetween(m_Position, ghost->GetPos());
 
 
-	// 判定範囲の決定（ヒステリシス付き）
+	// 判定範囲の決定（ヒステリシス付き）<
 	float chaseRange = BUSTERS_PATROL_RANGH;
 	if (m_State == BUSTERS_CHASE) chaseRange *= 1.2f;
 
