@@ -30,7 +30,7 @@ static std::vector<Busters*> g_BustersList[MAP_FLOORS];
 // =================================================================
 
 Busters::Busters(const XMFLOAT3& pos, const XMFLOAT3& scale, const XMFLOAT3& rot, const char* pass)
-	: Sprite3D(pos, scale, rot, pass),
+	: AnimSprite3D(pos, scale, rot, pass),
 	Jump(0.01f, 0.2f, PATROL_HEIGHT),
 	m_State(BUSTERS_SEARCH),
 	m_TargetFurnitureIndex(-1),
@@ -89,6 +89,30 @@ Busters::~Busters()
 
 void Busters::Update(void)
 {
+	// アニメーション更新
+	const float dt = 1.0f / 60.0f;
+	this->UpdateAnimation(dt);
+
+	// 状態に応じたモーション切り替え
+	switch (m_State)
+	{
+	case BUSTERS_SEARCH:
+		this->PlayAnimationByName("walk", true);
+		break;
+	case BUSTERS_SUSPICION:
+		this->PlayAnimationByName("walk", true);
+		break;
+	case BUSTERS_CHASE:
+		this->PlayAnimationByName("hakkendash", true);
+		break;
+	case BUSTERS_STUN:
+		this->PlayAnimationByName("kizetsu", true);
+		break;
+	case BUSTERS_LURED:
+		this->PlayAnimationByName("walk", true);
+		break;
+	}
+
 	// ========== デバッグモード: 角度確認用 ==========
 	// 左右矢印キーで回転、移動・検知は停止
 	if (DEBUG_BUSTERS_ROTATION)
@@ -126,9 +150,9 @@ void Busters::Update(void)
 		{
 			XMFLOAT3 headPos = m_Position;
 			headPos.y += 2.0f;
-			float dirRadY = XMConvertToRadians(currentRot + 90.0f);
-			float dirX = cosf(dirRadY);
-			float dirZ = sinf(dirRadY);
+			float dirRadY = XMConvertToRadians(currentRot);
+			float dirX = -sinf(dirRadY);
+			float dirZ = -cosf(dirRadY);
 			headPos.x += dirX * 0.8f;
 			headPos.z += dirZ * 0.8f;
 			m_pHeadlight->SetPosition(headPos.x, headPos.y, headPos.z);
@@ -186,11 +210,11 @@ void Busters::Update(void)
 		headPos.y += 2.0f;	// 頭部の高さ
 
 		float rotY = GetRot().y;
-		float radY = XMConvertToRadians(rotY + 90.0f);  // MoveToの-90度オフセットに対応
+		float radY = XMConvertToRadians(rotY);
 
-		// 方向計算
-		float dirX = cosf(radY);
-		float dirZ = sinf(radY);
+		// 方向計算（モデルの正面がZ軸負方向のため反転）
+		float dirX = -sinf(radY);
+		float dirZ = -cosf(radY);
 
 		// 位置オフセット
 		headPos.x += dirX * 0.8f;
@@ -271,8 +295,8 @@ void Busters::Update(void)
 			{
 			float dx = ghost->GetPos().x - m_Position.x;
 			float dz = ghost->GetPos().z - m_Position.z;
-			float angle = atan2f(dz, dx);
-			float deg = XMConvertToDegrees(angle) - 90.0f;
+			float angle = atan2f(-dx, -dz);
+			float deg = XMConvertToDegrees(angle);
 				
 				float currentRot = GetRot().y;
 				float angleDiff = deg - currentRot;
@@ -282,7 +306,7 @@ void Busters::Update(void)
 				float maxRotSpeed = 45.0f;
 				if (fabsf(angleDiff) > maxRotSpeed)
 				{
-					angleDiff = (angleDiff > 0) ? maxRotSpeed : -maxRotSpeed;
+				angleDiff = (angleDiff > 0) ? maxRotSpeed : -maxRotSpeed;
 				}
 				
 				SetRotY(currentRot + angleDiff);
@@ -295,8 +319,8 @@ void Busters::Update(void)
 			{
 				float dx = target->GetPos().x - m_Position.x;
 				float dz = target->GetPos().z - m_Position.z;
-				float angle = atan2f(dz, dx);
-				float deg = XMConvertToDegrees(angle) - 90.0f;
+				float angle = atan2f(-dx, -dz);
+				float deg = XMConvertToDegrees(angle);
 				
 				float currentRot = GetRot().y;
 				float angleDiff = deg - currentRot;
@@ -306,7 +330,7 @@ void Busters::Update(void)
 				float maxRotSpeed = 45.0f;
 				if (fabsf(angleDiff) > maxRotSpeed)
 				{
-					angleDiff = (angleDiff > 0) ? maxRotSpeed : -maxRotSpeed;
+				angleDiff = (angleDiff > 0) ? maxRotSpeed : -maxRotSpeed;
 				}
 				
 				SetRotY(currentRot + angleDiff);
@@ -1048,9 +1072,9 @@ void Busters::MoveTo(XMFLOAT3 targetPos)
 	float dirZ = dz / dist;
 
 	// 6. 回転処理（NavMesh風：常に移動方向を向く、毎フレーム更新）
-	// atan2(dirZ, dirX)はX軸正方向が0度だが、モデルはZ軸負方向が正面
-	// そのため90度のオフセットを追加
-	float targetAngle = XMConvertToDegrees(atan2f(dirZ, dirX)) - 90.0f;
+	// 左手系 + Mayaモデル補正: モデルの正面がZ軸負方向のため、180度オフセット
+	// atan2f(-dirX, -dirZ) = atan2f(dirX, dirZ) + 180° と等価
+	float targetAngle = XMConvertToDegrees(atan2f(-dirX, -dirZ));
 	float currentRot = GetRot().y;
 	
 	// 角度を-180〜180に正規化
@@ -1214,13 +1238,11 @@ bool Busters::IsTargetInFOV(const XMFLOAT3& targetPos, float range)
 
 	// 角度チェック (内積)
 	// バスターズの正面ベクトル
-	// MoveTo内でatan2(dirZ, dirX) - 90度でSetRotYしているので、
-	// 正面ベクトルは(sin(rot), cos(rot))ではなく、
-	// rot+90度を使って(cos(rot+90), sin(rot+90)) = (-sin(rot), cos(rot))となる
-	// 簡略化: 元の方向 = atan2の結果なので、rot + 90度を使う
-	float rotRad = XMConvertToRadians(GetRot().y + 90.0f);
-	float forwardX = cosf(rotRad);
-	float forwardZ = sinf(rotRad);
+	// 左手系 + Mayaモデル補正: モデルの正面がZ軸負方向
+	// rotY=0でZ軸負方向を向くため、正面ベクトルは (-sin(rot), -cos(rot))
+	float rotRad = XMConvertToRadians(GetRot().y);
+	float forwardX = -sinf(rotRad);
+	float forwardZ = -cosf(rotRad);
 	XMVECTOR forwardVec = XMVectorSet(forwardX, 0.0f, forwardZ, 0.0f);
 
 	// ターゲットへの方向ベクトル（XZ平面）
@@ -1323,7 +1345,7 @@ XMFLOAT3 GetRandomBusterPos(int floor)
 				float wx = (float)gx - MAP_WIDTH / 2.0f;
 				float wz = MAP_LENGTH / 2.0f - (float)gz;
 
-				return { wx, PATROL_HEIGHT, wz };
+				return { wx, BUSTERS_HEIGHT, wz };
 			}
 		}
 		attempts++;
@@ -1344,6 +1366,7 @@ void DrawDebugFan(const XMFLOAT3& center, float rotY, float fovAngle, float rang
 	ID3D11Device* pDevice = Direct3D_GetDevice();
 	ID3D11DeviceContext* pContext = Direct3D_GetDeviceContext();
 
+	// ラインの頂点を作成
 	// ラインの頂点を作成
 	std::vector<DebugVertex> vertices;
 	XMFLOAT3 startPos = { center.x, center.y + 0.1f, center.z }; // 少し浮かせる
@@ -1410,12 +1433,13 @@ void DrawDebugFan(const XMFLOAT3& center, float rotY, float fovAngle, float rang
 		pContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_LINELIST);
 
 		// 描画（マテリアルカラーを無視させるためシェーダー設定が必要な場合あり）
-		// ここでは描画発行のみ
+// ここでは描画発行のみ
 		pContext->Draw((UINT)vertices.size(), 0);
 
 		pVertexBuffer->Release();
 	}
 }
+
 // =================================================================
 // グローバル関数
 // =================================================================
@@ -1437,7 +1461,7 @@ void Busters_Initialize(void)
 	// 1階 (Floor 0)
 	{
 		XMFLOAT3 pos = GetRandomBusterPos(0);
-		Busters* b = new Busters(pos, { 1.0f, 1.0f, 1.0f }, { 0.0f, 0.0f, 0.0f }, "asset\\model\\busters_v3.fbx");
+		Busters* b = new Busters(pos, { 0.12f, 0.12f, 0.12f }, { 0.0f, 0.0f, 0.0f }, "asset\\model\\busters_v3.fbx");
 		if (b) {
 			b->SetGroundLevel(PATROL_HEIGHT);
 			g_BustersList[0].push_back(b);
@@ -1447,7 +1471,7 @@ void Busters_Initialize(void)
 	// 2階 (Floor 1)
 	{
 		XMFLOAT3 pos = GetRandomBusterPos(1);
-		Busters* b = new Busters(pos, { 1.0f, 1.0f, 1.0f }, { 0.0f, 0.0f, 0.0f }, "asset\\model\\busters_v3.fbx");
+		Busters* b = new Busters(pos, { 0.12f, 0.12f, 0.12f }, { 0.0f, 0.0f, 0.0f }, "asset\\model\\busters_v3.fbx");
 		if (b) {
 			b->SetGroundLevel(PATROL_HEIGHT);
 			g_BustersList[1].push_back(b);
@@ -1632,8 +1656,8 @@ void Busters_DoFloorTransition(void)
 			float offsetZ = (float)(rand() % 400 - 200) / 100.0f;
 
 				Busters* newBuster = new Busters(
-					{ offsetX, PATROL_HEIGHT, offsetZ },
-					{ 1.0f, 1.0f, 1.0f },
+					{ offsetX, BUSTERS_HEIGHT, offsetZ },
+					{ 0.12f, 0.12f, 0.12f },
 					{ 0.0f, 0.0f, 0.0f },
 					"asset\\model\\busters_v3.fbx"
 				);
@@ -1661,7 +1685,7 @@ void Busters::Draw(void)
 {
 	// バスターズ（ボーンあり）を描画
 
-	Sprite3D::Draw();
+	AnimSprite3D::Draw();
 
 	if (m_Icon)
 	{
@@ -1673,7 +1697,6 @@ void Busters::Draw(void)
 	}
 
 }
-
 
 // =================================================================
 // バスターズのライト設定
