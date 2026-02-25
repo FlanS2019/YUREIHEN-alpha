@@ -29,7 +29,7 @@ void Tutorial_Pages_Init()
 	SetTutorialMarker(true, { -5.0f, 0.5f, 17.0f });
 	SetEnbanVisible(true);
 	AddPage_Play(
-		{ "[W][A][S][D] 移動、マウスで視点" },
+		{ "[W][A][S][D] 移動・[マウス] 視点" },
 		TutorialObject_GetEnbanTouchedPtr(),
 		{ SCREEN_WIDTH / 2, SCREEN_HEIGHT - 100.0f }
 	);
@@ -51,7 +51,7 @@ void Tutorial_Pages_Init()
 	// --- ピアノ憑依テストプレイ ---
 	SetCameraFocusPoint({ -15.0f, 3.0f, 16.5f });
 	AddPage_Play(
-		{ "[W][A][S][D]移動 [マウス]視点 [スペースキー]憑依" },
+		{ "[W][A][S][D]移動・[マウス]視点・[スペースキー]憑依" },
 		TutorialObject_GetPianoPossessedPtr(),
 		{ SCREEN_WIDTH / 2, SCREEN_HEIGHT - 100.0f }
 	);
@@ -72,29 +72,41 @@ void Tutorial_Pages_Init()
 	// バスターズへの驚かせテストプレイ
 	SetTutorialBusterTarget({ -24.5f, 0.5f, 16.5f });
 	AddPage_Play(
-		{ "近づいてくるまで待ち、[スペースキー]驚かせ" },
-		TutorialObject_GetBustersStunnedPtr(),
+		{ "近づいてくるまで待ち、[スペースキー]で驚かせる" },
+		TutorialObject_GetBustersStunnedPtr(30),
 		{ SCREEN_WIDTH / 2, SCREEN_HEIGHT - 100.0f }
 	);
 
-	AddPage({ 120.0f, 120.0f }, 150.0f, {
-		"制限時間はにつき２分。過ぎると強制的に負けちゃうよ"
-		});
+	AddPage({ SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2 }, 0.0f, {
+		"ナイス！驚かせに成功したね！",
+	});
 
-	AddPage({ 1023.0f, 83.0f }, 200.0f, {
-		"これは「恐怖ゲージ」バスターズをうまく驚かせられると、溜まっていくよ！",
-		"右まで貯めるとバスターズが逃げてステージクリア！次の階へ進もう"
-		});
+	AddPage({ 1050.0f, 83.0f }, 50.0f, {
+		"バスターズをうまく驚かせられると、右上の「恐怖ゲージ」が溜まっていくよ。",
+		"MAXまでいくとステージクリア！次の階へ進もう"
+	});
 
 	AddPage({ 1163.0f, 201.0f }, 90.0f, {
-		"これは「恐怖コンボ」。バスターズへの驚かせが連鎖すると、恐怖ゲージが倍増するよ！"
-		});
+		"あと、「恐怖コンボ」ってのも上がる。",
+		"驚かせが連鎖すると、恐怖ゲージの上昇幅は増え、驚かせ範囲は広くなるよ！",
+		"",
+		"じゃあ早速恐怖コンボを……"
+	});
+
+	AddPage({ SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2 }, 0.0f, {
+	"ってあれ？バスターズが隣の部屋に行っちゃった！",
+	"とりあえず次の部屋まで移動しようか。",
+	});
+
+	AddPage({ 120.0f, 120.0f }, 150.0f, {
+		"制限時間はにつき２分。過ぎると強制的に負けちゃうよ"
+	});
 
 	AddPage({ 147.0f, 563.0f }, 150.0f, {
 		"これはミニマップ。動きの参考にしよう"
-		});
+	});
 
 	AddPage({ SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2 }, 150.0f, {
 		"あとは実際にやってみるターンを作る。一旦ゲームスタート（仮テキスト）"
-		});
+	});
 }

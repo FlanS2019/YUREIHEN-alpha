@@ -9,6 +9,8 @@
 #include "billboard.h"
 #include "light.h"
 #include "define.h"
+#include "TutorialFlag.h"
+#include "component.h"
 using namespace DirectX;
 
 // =================================================================
@@ -26,7 +28,7 @@ enum TUTORIAL_BUSTERS_STATE
 // チュートリアル用バスターズクラス
 // 経路探索なし・直線移動でゴーストに近づく最低限実装
 // =================================================================
-class TutorialBusters : public AnimSprite3D
+class TutorialBusters : public AnimSprite3D, public Jump
 {
 private:
 	TUTORIAL_BUSTERS_STATE m_State;
@@ -120,6 +122,7 @@ bool* TutorialObject_GetPianoPossessedPtr(void);
 
 // バスターズがスタンしたフラグのポインタを返す
 bool* TutorialObject_GetBustersStunnedPtr(void);
+FlagWithDelay TutorialObject_GetBustersStunnedPtr(int delayFrames);
 
 TutorialBusters* GetTutorialBusters(void);
 

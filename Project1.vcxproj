@@ -232,6 +232,7 @@
     <ClInclude Include="stb_truetype.h" />
     <ClInclude Include="texture.h" />
     <ClInclude Include="title.h" />
+    <ClInclude Include="TutorialFlag.h" />
     <ClInclude Include="Tutorial_Object.h" />
     <ClInclude Include="UI.h" />
     <ClInclude Include="UI_PauseMenu.h" />

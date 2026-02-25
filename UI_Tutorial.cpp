@@ -27,6 +27,8 @@ static HoleSprite* g_pTutorialBG = nullptr;
 
 static int g_TutorialDelayFrames = 0;
 
+static int g_WaitConditionMetFrames = -1; // 条件成立後の遅延カウンター（-1=未成立）
+
 static float g_VignetteRadius = 0.0f;
 static bool  g_VignetteFadingOut = false;
 static const float VIGNETTE_RADIUS_TARGET = 500.0f;
@@ -168,7 +170,8 @@ void AddPage(const XMFLOAT2& holeCenter, float holeRadius,
 // テストプレイページ追加（AddPage_Play → ページ番号カウント対象）
 void AddPage_Play(const std::vector<std::string>& texts, bool* pFlag,
 	XMFLOAT2 textPos,
-	float fontSize)
+	float fontSize,
+	int delayFrames)
 {
 	g_Pages.emplace_back();
 	TutorialPage& page = g_Pages.back();
@@ -176,6 +179,7 @@ void AddPage_Play(const std::vector<std::string>& texts, bool* pFlag,
 	page.holeRadius = 0.0f;
 	page.isPageType = true;
 	page.pageNumber = ++s_PageCounter;
+	page.conditionDelayFrames = delayFrames;
 
 	FlushPendingOnEnter(page);
 
@@ -192,6 +196,14 @@ void AddPage_Play(const std::vector<std::string>& texts, bool* pFlag,
 		return pFlag && *pFlag;
 		};
 	page.autoWait = true;
+}
+
+// FlagWithDelay を受け取るオーバーロード（AddPage_Play に委譲）
+void AddPage_Play(const std::vector<std::string>& texts, FlagWithDelay flagWithDelay,
+	XMFLOAT2 textPos,
+	float fontSize)
+{
+	AddPage_Play(texts, flagWithDelay.pFlag, textPos, fontSize, flagWithDelay.delayFrames);
 }
 
 // カメラ移動ページ追加（ページ番号カウント対象）
@@ -420,6 +432,7 @@ void UI_Tutorial_Initialize(ID3D11Device* pDevice, ID3D11DeviceContext* pContext
 	g_IsWaiting = false;
 	g_CurrentPage = 0;
 	g_TutorialDelayFrames = TUTORIAL_SKIP_FRAME;
+	g_WaitConditionMetFrames = -1;
 
 	g_State = TutorialState::FadeIn;
 	g_FadeAlpha = 0.0f;
@@ -471,7 +484,7 @@ void UI_Tutorial_Update(void)
 			if (g_VignetteRadius <= 0.0f)
 			{
 				g_VignetteRadius = 0.0f;
-
+				g_WaitConditionMetFrames = -1;
 				g_VignetteFadingOut = false;
 				g_IsWaiting = false;
 				g_IsTutorial = true;
@@ -506,7 +519,21 @@ void UI_Tutorial_Update(void)
 					auto& cond = g_Pages[g_CurrentPage].waitCondition;
 					if (cond && cond())
 					{
-						g_VignetteFadingOut = true;
+						if (g_WaitConditionMetFrames < 0)
+						{
+							g_WaitConditionMetFrames = 0;
+						}
+						g_WaitConditionMetFrames++;
+						int requiredFrames = g_Pages[g_CurrentPage].conditionDelayFrames;
+						if (g_WaitConditionMetFrames >= requiredFrames)
+						{
+							g_WaitConditionMetFrames = -1;
+							g_VignetteFadingOut = true;
+						}
+					}
+					else
+					{
+						g_WaitConditionMetFrames = -1;
 					}
 				}
 			}
@@ -772,10 +799,10 @@ void UI_Tutorial_Draw(void)
 			{
 				for (auto* f : newPage.fonts) {
 					if (f) {
-						XMFLOAT4 col = f->GetColor();
-						f->SetColor({ col.x, col.y, col.z, newAlpha });
-						f->Draw();
-						f->SetColor(col);
+					 XMFLOAT4 col = f->GetColor();
+					 f->SetColor({ col.x, col.y, col.z, newAlpha });
+					 f->Draw();
+					 f->SetColor(col);
 					}
 				}
 			}

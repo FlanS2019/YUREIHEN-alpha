@@ -93,6 +93,7 @@
     <ClInclude Include="ClickFont.h" />
     <ClInclude Include="Tutorial_Object.h" />
     <ClInclude Include="UI_Tutorial_Internal.h" />
+    <ClInclude Include="TutorialFlag.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="convert_to_utf8bom.ps1" />

@@ -11,6 +11,7 @@ using namespace DirectX;
 #include "camera.h"
 #include "furniture.h"
 #include "busters.h"
+#include "Tutorial_Object.h"
 #include "UI.h"
 #include "UI_scarecombo.h"
 #include "define.h"
@@ -449,9 +450,6 @@ void Ghost::ScareStart(void)
 	if (!pFurniture) return;
 
 	Busters* pBuster = GetBusters();
-	if (!pBuster) return;
-
-	XMFLOAT3 busterPos = pBuster->GetPos();
 
 	if (g_pScareSound)
 	{
@@ -459,20 +457,48 @@ void Ghost::ScareStart(void)
 	}
 
 	XMFLOAT3 ghostPos = GetPos();
-	XMVECTOR distVec = XMVectorSubtract(XMLoadFloat3(&busterPos), XMLoadFloat3(&ghostPos));
-	float distance = XMVectorGetX(XMVector3Length(distVec));
 
 	FURNITURE_ACTION action = pFurniture->GetActionType();
-
 	float currentRange = GetCurrentScareRange();
+
+	// 通常バスターズとの距離（いない場合は番兵値）
+	float distance = FLT_MAX;
+	XMFLOAT3 busterPos = { 0.0f, 0.0f, 0.0f };
+	if (pBuster)
+	{
+		busterPos = pBuster->GetPos();
+		XMVECTOR distVec = XMVectorSubtract(XMLoadFloat3(&busterPos), XMLoadFloat3(&ghostPos));
+		distance = XMVectorGetX(XMVector3Length(distVec));
+	}
 
 	switch (action)
 	{
 	case ACTION_SCARE:
+	{
+		bool scared = false;
 
-		if (distance <= currentRange)
+		if (pBuster && distance <= currentRange)
 		{
 			BustersScare();
+			scared = true;
+		}
+
+		// チュートリアルバスターズが範囲内にいれば驚かせる
+		TutorialBusters* pTutBuster = GetTutorialBusters();
+		if (pTutBuster && pTutBuster->GetState() != TB_STUN)
+		{
+			XMFLOAT3 tutPos = pTutBuster->GetPos();
+			XMVECTOR tutDistVec = XMVectorSubtract(XMLoadFloat3(&tutPos), XMLoadFloat3(&ghostPos));
+			float tutDistance = XMVectorGetX(XMVector3Length(tutDistVec));
+			if (tutDistance <= currentRange)
+			{
+				pTutBuster->OnScared();
+				scared = true;
+			}
+		}
+
+		if (scared)
+		{
 			if (!m_HasIncreasedMultiplier)
 			{
 				ScareComboUP();
@@ -482,9 +508,11 @@ void Ghost::ScareStart(void)
 			Busters_CheckGaugeEvent();
 		}
 		break;
+	}
 
 	case ACTION_LURE:
 	{
+		if (!pBuster) break;
 		float lureRange = currentRange * 2.0f;
 
 		if (distance <= lureRange)
@@ -497,11 +525,12 @@ void Ghost::ScareStart(void)
 			}
 			AddScareGauge(SCORE_LURE * UI_ScareCombo_GetNumber());
 		}
-	}
 		break;
+	}
 
 	case ACTION_STOP:
 
+		if (!pBuster) break;
 		if (distance <= BUSTERS_STOP_RANGE)
 		{
 			BustersStopped();

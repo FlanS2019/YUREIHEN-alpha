@@ -25,6 +25,8 @@ struct TutorialPage
 	std::function<bool()> waitCondition;
 	bool autoWait = false; // trueのとき、ページ表示と同時に自動でテストプレイ開始
 
+	int conditionDelayFrames = 0; // 条件成立からページ遷移までの遅延フレーム数
+
 	// カメラ移動ページ用
 	bool      cameraOverride = false;  // trueのとき指定カメラ位置に移動
 	XMFLOAT3  cameraPos;               // 目標カメラ位置

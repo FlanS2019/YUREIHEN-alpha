@@ -7,6 +7,7 @@
 
 #include "define.h"
 #include "UI_Tutorial.h"
+#include "TutorialFlag.h"
 #include <vector>
 #include <string>
 #include <functional>
@@ -14,6 +15,7 @@
 // ------------------------------------------
 // ページ追加ヘルパー
 // ------------------------------------------
+
 void AddPage(
     const XMFLOAT2& holeCenter, float holeRadius,
     const std::vector<std::string>& texts,
@@ -22,6 +24,13 @@ void AddPage(
 
 void AddPage_Play(
     const std::vector<std::string>& texts, bool* pFlag,
+    XMFLOAT2 textPos = { SCREEN_WIDTH * 0.5f, SCREEN_HEIGHT * 0.5f },
+    float fontSize = 40.0f,
+    int delayFrames = 0);
+
+// FlagWithDelay を受け取るオーバーロード
+void AddPage_Play(
+    const std::vector<std::string>& texts, FlagWithDelay flagWithDelay,
     XMFLOAT2 textPos = { SCREEN_WIDTH * 0.5f, SCREEN_HEIGHT * 0.5f },
     float fontSize = 40.0f);
 

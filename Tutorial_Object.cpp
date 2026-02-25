@@ -103,6 +103,7 @@ void TutorialMarker::SetPos(const XMFLOAT3& pos)
 
 TutorialBusters::TutorialBusters(const XMFLOAT3& pos, const XMFLOAT3& scale, const XMFLOAT3& rot, const char* pass)
 	: AnimSprite3D(pos, scale, rot, pass)
+	, Jump(0.01f, 0.2f, PATROL_HEIGHT)
 	, m_State(TB_IDLE)
 	, m_Icon(nullptr)
 	, m_pHeadlight(nullptr)
@@ -290,13 +291,22 @@ void TutorialBusters::Update(void)
 	const float dt = 1.0f / 60.0f;
 	this->UpdateAnimation(dt);
 
+	JumpUpdate(*(Transform3D*)this);
+
 	// 硬直タイマー
 	if (m_WaitTimer > 0)
 	{
 		m_WaitTimer--;
-		// 硬直中もゴーストの方向だけ向く
 		Ghost* ghost = GetGhost();
-		if (ghost && (m_State == TB_SUSPICION || m_State == TB_CHASE))
+		if (m_HasTarget && m_State == TB_SUSPICION)
+		{
+			// 調査中はピアノの方向を向き続ける
+			float dx = m_TargetPos.x - m_Position.x;
+			float dz = m_TargetPos.z - m_Position.z;
+			if (dx * dx + dz * dz > 0.001f)
+				SetRotY(XMConvertToDegrees(atan2f(dx, dz)) + 180.0f);
+		}
+		else if (ghost && (m_State == TB_SUSPICION || m_State == TB_CHASE))
 		{
 			float dx = ghost->GetPos().x - m_Position.x;
 			float dz = ghost->GetPos().z - m_Position.z;
@@ -312,9 +322,34 @@ void TutorialBusters::Update(void)
 
 		if (m_State == TB_CHASE || m_State == TB_SUSPICION)
 		{
-			// ゴーストを発見している → ゴーストへ直線移動
-			if (ghost)
+			if (m_HasTarget && m_State == TB_SUSPICION)
 			{
+				// 調査対象（ピアノ）へ向かっているとき
+				float dx = m_TargetPos.x - m_Position.x;
+				float dz = m_TargetPos.z - m_Position.z;
+				float distSq = dx * dx + dz * dz;
+
+				if (distSq <= 2.0f * 2.0f)
+				{
+					// ピアノ前に到着 → 調査開始（立ち止まって CHECK アイコン）
+					m_WaitTimer = 180;
+					if (m_Icon) m_Icon->SetIcon(BILLBOARD_ICON::CHECK);
+					// ターゲット方向を向く
+					if (distSq > 0.001f)
+					{
+						SetRotY(XMConvertToDegrees(atan2f(dx, dz)) + 180.0f);
+					}
+				}
+				else
+				{
+					// まだ遠い → 近づく
+					m_MoveSpeed = BUSTERS_MOVE_SPEED_SUSPICION;
+					MoveTo(m_TargetPos);
+				}
+			}
+			else if (ghost)
+			{
+				// ゴーストを発見している → ゴーストへ直線移動
 				m_MoveSpeed = (m_State == TB_CHASE)
 					? BUSTERS_MOVE_SPEED_CHASE
 					: BUSTERS_MOVE_SPEED_SUSPICION;
@@ -393,6 +428,7 @@ void TutorialBusters::SetState(TUTORIAL_BUSTERS_STATE state)
 // 驚かせられた
 void TutorialBusters::OnScared(void)
 {
+	JumpStart();
 	SetState(TB_STUN);
 	m_WaitTimer      = 180; // 3秒間スタン
 	m_KeepStateTimer = 0;
@@ -556,6 +592,11 @@ bool* TutorialObject_GetPianoPossessedPtr(void)
 bool* TutorialObject_GetBustersStunnedPtr(void)
 {
 	return &g_BustersStunned;
+}
+
+FlagWithDelay TutorialObject_GetBustersStunnedPtr(int delayFrames)
+{
+	return { &g_BustersStunned, delayFrames };
 }
 
 TutorialBusters* GetTutorialBusters(void)
