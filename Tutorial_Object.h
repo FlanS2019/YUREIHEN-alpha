@@ -7,6 +7,7 @@
 #include "sprite3d.h"
 #include "anim_sprite3d.h"
 #include "billboard.h"
+#include "light.h"
 #include "define.h"
 using namespace DirectX;
 
@@ -23,13 +24,22 @@ enum TUTORIAL_BUSTERS_STATE
 
 // =================================================================
 // チュートリアル用バスターズクラス
-// 最低限の状態表示（色変え）とビルボードアイコンのみ
+// 経路探索なし・直線移動でゴーストに近づく最低限実装
 // =================================================================
 class TutorialBusters : public AnimSprite3D
 {
 private:
 	TUTORIAL_BUSTERS_STATE m_State;
-	Billboard* m_Icon;
+	Billboard*  m_Icon;
+	PointLight* m_pHeadlight;
+
+	float m_MoveSpeed;
+	int   m_WaitTimer;          // 硬直タイマー
+	int   m_KeepStateTimer;     // 見失い猶予タイマー
+
+	// 調査対象（ピアノなど）への直線移動用
+	bool     m_HasTarget;
+	XMFLOAT3 m_TargetPos;
 
 public:
 	TutorialBusters(const XMFLOAT3& pos, const XMFLOAT3& scale, const XMFLOAT3& rot, const char* pass);
@@ -41,6 +51,24 @@ public:
 	// 状態を設定（色・アイコンも自動で切り替わる）
 	void SetState(TUTORIAL_BUSTERS_STATE state);
 	TUTORIAL_BUSTERS_STATE GetState(void) const { return m_State; }
+
+	// 驚かせられたときに呼ぶ
+	void OnScared(void);
+
+	// ヘッドライト取得
+	PointLight* GetHeadlight(void) const { return m_pHeadlight; }
+
+	// 視野判定（FOV）
+	bool IsTargetInFOV(const XMFLOAT3& targetPos, float range) const;
+
+	// 調査対象座標を設定（この座標へ警戒状態で向かう）
+	void SetTarget(const XMFLOAT3& pos) { m_TargetPos = pos; m_HasTarget = true; }
+	void ClearTarget(void)              { m_HasTarget = false; }
+
+private:
+	void CheckState(void);
+	void MoveTo(const XMFLOAT3& targetPos);
+	void UpdateHeadlight(void);
 };
 
 // =================================================================
@@ -90,7 +118,13 @@ void TutorialObject_SetBustersVisible(bool visible);
 // ピアノ憑依フラグのポインタを返す
 bool* TutorialObject_GetPianoPossessedPtr(void);
 
+// バスターズがスタンしたフラグのポインタを返す
+bool* TutorialObject_GetBustersStunnedPtr(void);
+
 TutorialBusters* GetTutorialBusters(void);
 
 // 目的地マーカーのゲッター
 TutorialMarker* GetTutorialMarker(void);
+
+// チュートリアル用バスターズのヘッドライトをシェーダーに登録する
+void TutorialBusters_SetLight(void);

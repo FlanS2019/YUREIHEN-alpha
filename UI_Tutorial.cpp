@@ -4,7 +4,6 @@
 #include <DirectXMath.h>
 #include <cmath>
 #include <functional>
-using namespace DirectX;
 #include "UI_Tutorial.h"
 #include "keyboard.h"
 #include "mouse.h"
@@ -15,6 +14,8 @@ using namespace DirectX;
 #include "Tutorial_Object.h"
 #include <windows.h>
 #include "debug_ostream.h"
+#include "UI_Tutorial_Internal.h"
+using namespace DirectX;
 
 // ==========================================
 // チュートリアル画面用の変数
@@ -45,7 +46,7 @@ static int g_TotalPageCount = 0;
 
 namespace {
 	std::vector<TutorialPage> g_Pages;
-	int g_CurrentPage = 0; // 通し番号（内部用）
+	int g_CurrentPage = 0;
 	int g_NextPage = -1;
 
 	enum class TutorialState {
@@ -64,6 +65,9 @@ namespace {
 
 	// ページ番号カウンター（InitPages内でリセット）
 	int s_PageCounter = 0;
+
+	// 次に追加するページの onEnter に積むコールバックキュー
+	std::vector<std::function<void()>> s_PendingOnEnter;
 }
 
 // テキストガイド用フォント
@@ -112,22 +116,33 @@ static void InitSkipUI()
 
 static void FinalizeSkipUI()
 {
-	if (g_pSkipBarBG) { delete g_pSkipBarBG;    g_pSkipBarBG = nullptr; }
-	if (g_pSkipBarFG) { delete g_pSkipBarFG;    g_pSkipBarFG = nullptr; }
-	if (g_pSkipGuideFont) { delete g_pSkipGuideFont; g_pSkipGuideFont = nullptr; }
-	if (g_pPlayHintFont) { delete g_pPlayHintFont;  g_pPlayHintFont = nullptr; }
-	if (g_pPageCountFont) { delete g_pPageCountFont; g_pPageCountFont = nullptr; }
+	if (g_pSkipBarBG)    { delete g_pSkipBarBG;    g_pSkipBarBG    = nullptr; }
+	if (g_pSkipBarFG)    { delete g_pSkipBarFG;    g_pSkipBarFG    = nullptr; }
+	if (g_pSkipGuideFont){ delete g_pSkipGuideFont; g_pSkipGuideFont = nullptr; }
+	if (g_pPlayHintFont) { delete g_pPlayHintFont;  g_pPlayHintFont  = nullptr; }
+	if (g_pPageCountFont){ delete g_pPageCountFont; g_pPageCountFont = nullptr; }
 }
 
 // ==========================================
 // ページデータ初期化用ヘルパー
 // ==========================================
 
+// 保留中のコールバックをページの onEnter に適用するヘルパー
+static void FlushPendingOnEnter(TutorialPage& page)
+{
+	if (s_PendingOnEnter.empty()) return;
+	auto captured = s_PendingOnEnter;
+	s_PendingOnEnter.clear();
+	page.onEnter = [captured]() {
+		for (auto& fn : captured) fn();
+	};
+}
+
 // 通常ページ追加
-static void AddPage(const XMFLOAT2& holeCenter, float holeRadius,
+void AddPage(const XMFLOAT2& holeCenter, float holeRadius,
 	const std::vector<std::string>& texts,
-	XMFLOAT2 textPos = { SCREEN_WIDTH * 0.5f, SCREEN_HEIGHT * 0.5f },
-	float fontSize = 40.0f)
+	XMFLOAT2 textPos,
+	float fontSize)
 {
 	g_Pages.emplace_back();
 	TutorialPage& page = g_Pages.back();
@@ -135,6 +150,8 @@ static void AddPage(const XMFLOAT2& holeCenter, float holeRadius,
 	page.holeRadius = holeRadius;
 	page.isPageType = true;
 	page.pageNumber = ++s_PageCounter;
+
+	FlushPendingOnEnter(page);
 
 	float yOffset = 0.0f;
 	for (const auto& text : texts)
@@ -149,9 +166,9 @@ static void AddPage(const XMFLOAT2& holeCenter, float holeRadius,
 }
 
 // テストプレイページ追加（AddPage_Play → ページ番号カウント対象）
-static void AddPage_Play(const std::vector<std::string>& texts, bool* pFlag,
-	XMFLOAT2 textPos = { SCREEN_WIDTH * 0.5f, SCREEN_HEIGHT * 0.5f },
-	float fontSize = 40.0f)
+void AddPage_Play(const std::vector<std::string>& texts, bool* pFlag,
+	XMFLOAT2 textPos,
+	float fontSize)
 {
 	g_Pages.emplace_back();
 	TutorialPage& page = g_Pages.back();
@@ -159,6 +176,8 @@ static void AddPage_Play(const std::vector<std::string>& texts, bool* pFlag,
 	page.holeRadius = 0.0f;
 	page.isPageType = true;
 	page.pageNumber = ++s_PageCounter;
+
+	FlushPendingOnEnter(page);
 
 	float yOffset = 0.0f;
 	for (const auto& text : texts)
@@ -176,11 +195,11 @@ static void AddPage_Play(const std::vector<std::string>& texts, bool* pFlag,
 }
 
 // カメラ移動ページ追加（ページ番号カウント対象）
-static void AddPage_Camera(const XMFLOAT2& holeCenter, float holeRadius,
+void AddPage_Camera(const XMFLOAT2& holeCenter, float holeRadius,
 	const std::vector<std::string>& texts,
 	const XMFLOAT3& targetPos, const XMFLOAT3& targetAt,
-	XMFLOAT2 textPos = { SCREEN_WIDTH * 0.5f, SCREEN_HEIGHT * 0.5f },
-	float fontSize = 40.0f)
+	XMFLOAT2 textPos,
+	float fontSize)
 {
 	AddPage(holeCenter, holeRadius, texts, textPos, fontSize);
 	TutorialPage& page = g_Pages.back();
@@ -190,7 +209,7 @@ static void AddPage_Camera(const XMFLOAT2& holeCenter, float holeRadius,
 }
 
 // カメラの注視点を変える（通し番号カウント対象、ページ番号はカウントしない）
-static void SetCameraFocusPoint(const XMFLOAT3& pos)
+void SetCameraFocusPoint(const XMFLOAT3& pos)
 {
 	g_Pages.emplace_back();
 	TutorialPage& page = g_Pages.back();
@@ -208,36 +227,57 @@ static void SetCameraFocusPoint(const XMFLOAT3& pos)
 	page.autoWait = false;
 }
 
-// チュートリアルマーカーの表示・非表示と位置を設定（通し番号カウント対象、ページ番号はカウントしない）
-static void SetTutorialMarker(bool use, const XMFLOAT3& pos = { 0.0f, 0.0f, 0.0f })
+// チュートリアルマーカーの表示・非表示と位置を設定（次ページの onEnter に積む）
+void SetTutorialMarker(bool use, const XMFLOAT3& pos)
 {
-	TutorialMarker* m = GetTutorialMarker();
-	if (!m) return;
-	if (use)
-	{
-		m->SetPos(pos);
-		m->SetVisible(true);
-	}
-	else
-	{
-		m->SetVisible(false);
-	}
+	s_PendingOnEnter.push_back([use, pos]() {
+		TutorialMarker* m = GetTutorialMarker();
+		if (!m) return;
+		if (use)
+		{
+			m->SetPos(pos);
+			m->SetVisible(true);
+		}
+		else
+		{
+			m->SetVisible(false);
+		}
+	});
 }
 
-// チュートリアルバスターズの表示・非表示と位置を設定
-static void SetTutorialBuster(bool use, const XMFLOAT3& pos = { 0.0f, 0.0f, 0.0f })
+// チュートリアルバスターズの表示・非表示と位置を設定（次ページの onEnter に積む）
+void SetTutorialBuster(bool use, const XMFLOAT3& pos)
 {
-	TutorialBusters* b = GetTutorialBusters();
-	if (!b) return;
-	if (use)
-	{
-		b->SetPos(pos);
-		TutorialObject_SetBustersVisible(true);
-	}
-	else
-	{
-		TutorialObject_SetBustersVisible(false);
-	}
+	s_PendingOnEnter.push_back([use, pos]() {
+		TutorialBusters* b = GetTutorialBusters();
+		if (!b) return;
+		if (use)
+		{
+			b->SetPos(pos);
+			TutorialObject_SetBustersVisible(true);
+		}
+		else
+		{
+			TutorialObject_SetBustersVisible(false);
+		}
+	});
+}
+
+// 円盤の表示・非表示（次ページの onEnter に積む）
+void SetEnbanVisible(bool visible)
+{
+	s_PendingOnEnter.push_back([visible]() {
+		TutorialObject_SetEnbanVisible(visible);
+	});
+}
+
+// バスターズの調査対象座標を設定（次ページの onEnter に積む）
+void SetTutorialBusterTarget(const XMFLOAT3& pos)
+{
+	s_PendingOnEnter.push_back([pos]() {
+		TutorialBusters* b = GetTutorialBusters();
+		if (b) b->SetTarget(pos);
+	});
 }
 
 // ==========================================
@@ -309,89 +349,7 @@ static void InitPages()
 	s_PageCounter = 0;
 	g_TotalPageCount = 0;
 
-	// --- ウェルカムメッセージ ---
-	AddPage({ SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2 }, 0.0f, {
-		"遊んでくれてありがとう！「幽霊変」の遊び方を説明していくね！"
-		});
-
-	AddPage({ SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2 }, 0.0f, {
-		"まずは操作説明！",
-		"[W][A][S][D] で移動、マウスで視点を動かせるよ",
-		"前に進んで円盤に触れてみよう！"
-		});
-
-	// --- 移動操作テストプレイ ---
-	SetTutorialMarker(true, { -5.0f, 0.5f, 17.0f });
-	TutorialObject_SetEnbanVisible(true);
-	AddPage_Play(
-		{ "[W][A][S][D] 移動、マウスで視点" },
-		TutorialObject_GetEnbanTouchedPtr(),
-		{ SCREEN_WIDTH / 2, SCREEN_HEIGHT - 100.0f }
-	);
-
-	SetTutorialMarker(false);
-	TutorialObject_SetEnbanVisible(false);
-	AddPage({ SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2 }, 0.0f, {
-		"移動は完璧！",
-		"次はゲームの目的、「敵を驚かせて追い払う！」について説明するね。"
-		});
-
-	AddPage_Camera({ SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2 }, 300.0f,
-		{ "これが家具の一つのピアノ。"
-		  "[スペースキー]で憑依だよ！" },
-		{ -15.0f, 3.0f, 16.5f }, { -24.5f, 0.5f, 16.5f },
-		{ SCREEN_WIDTH / 2, SCREEN_HEIGHT - 100.0f }
-	);
-
-	// --- ピアノ憑依テストプレイ ---
-	SetCameraFocusPoint({ -15.0f, 3.0f, 16.5f });
-	AddPage_Play(
-		{ "[W][A][S][D]移動 [マウス]視点 [スペースキー]憑依" },
-		TutorialObject_GetPianoPossessedPtr(),
-		{ SCREEN_WIDTH / 2, SCREEN_HEIGHT - 100.0f }
-	);
-
-	AddPage({ SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2 }, 0.0f, {
-		"憑依できたね！ おや？この影は？"
-		});
-
-	SetTutorialBuster(true, { -23.0f, BUSTERS_HEIGHT, 5.0f });
-
-	AddPage_Camera({ SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2 }, 300.0f,
-		{ "うわっ！侵入者の「バスターず」だ！",
-		  "近づいてきたら、[スペースキー]で驚かせよう！" },
-		{ -23.0f, 1.0f, 10.0f }, { -23.0f, 1.0f, 5.0f },
-		{ SCREEN_WIDTH / 2, SCREEN_HEIGHT - 100.0f }
-	);
-
-	//バスターズへの驚かせテストプレイ
-	AddPage_Play(
-		{ "近づいてくるまで待ち、[スペースキー]驚かせ" },
-		TutorialObject_GetPianoPossessedPtr(),
-		{ SCREEN_WIDTH / 2, SCREEN_HEIGHT - 100.0f }
-	);
-
-
-	AddPage({ 120.0f, 120.0f }, 150.0f, {
-		"制限時間はにつき２分。過ぎると強制的に負けちゃうよ"
-		});
-
-	AddPage({ 1023.0f, 83.0f }, 200.0f, {
-		"これは「恐怖ゲージ」バスターズをうまく驚かせられると、溜まっていくよ！",
-		"右まで貯めるとバスターズが逃げてステージクリア！次の階へ進もう"
-		});
-
-	AddPage({ 1163.0f, 201.0f }, 90.0f, {
-		"これは「恐怖コンボ」。バスターズへの驚かせが連鎖すると、恐怖ゲージが倍増するよ！"
-		});
-
-	AddPage({ 147.0f, 563.0f }, 150.0f, {
-		"これはミニマップ。動きの参考にしよう"
-		});
-
-	AddPage({ SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2 }, 150.0f, {
-		"あとは実際にやってみるターンを作る。一旦ゲームスタート（仮テキスト）"
-		});
+	Tutorial_Pages_Init();
 
 	g_TotalPageCount = s_PageCounter;
 
@@ -578,6 +536,12 @@ void UI_Tutorial_Update(void)
 		if (g_FadeAlpha >= 1.0f) {
 			g_FadeAlpha = 1.0f;
 			g_State = TutorialState::Active;
+			// ページ表示開始時にコールバックを実行
+			if (g_CurrentPage >= 0 && g_CurrentPage < (int)g_Pages.size() &&
+				g_Pages[g_CurrentPage].onEnter)
+			{
+				g_Pages[g_CurrentPage].onEnter();
+			}
 		}
 		ApplyPageHole();
 		break;
@@ -640,6 +604,13 @@ void UI_Tutorial_Update(void)
 			g_CurrentPage = g_NextPage;
 			g_NextPage = -1;
 			g_IsCameraTransitioning = false;
+
+			// ページ遷移完了時にコールバックを実行
+			if (g_CurrentPage >= 0 && g_CurrentPage < (int)g_Pages.size() &&
+				g_Pages[g_CurrentPage].onEnter)
+			{
+				g_Pages[g_CurrentPage].onEnter();
+			}
 
 			if (g_CurrentPage >= 0 && g_CurrentPage < (int)g_Pages.size() && !g_Pages[g_CurrentPage].cameraOverride)
 			{

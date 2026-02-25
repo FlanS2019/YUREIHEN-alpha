@@ -1156,7 +1156,7 @@ void Busters_Initialize(void)
 	// 1階 (Floor 0)
 	{
 		XMFLOAT3 pos = GetRandomBusterPos(0);
-		Busters* b = new Busters(pos, { 1.0f, 1.0f, 1.0f }, { 0.0f, 0.0f, 0.0f }, "asset\\model\\Busters_karikansei_3.fbx");
+		Busters* b = new Busters(pos, { 1.0f, 1.0f, 1.0f }, { 0.0f, 0.0f, 0.0f }, "asset\\model\\busters_v3.fbx");
 		if (b) {
 			b->SetGroundLevel(PATROL_HEIGHT);
 			g_BustersList[0].push_back(b);
@@ -1166,7 +1166,7 @@ void Busters_Initialize(void)
 	// 2階 (Floor 1)
 	{
 		XMFLOAT3 pos = GetRandomBusterPos(1);
-		Busters* b = new Busters(pos, { 1.0f, 1.0f, 1.0f }, { 0.0f, 0.0f, 0.0f }, "asset\\model\\Busters_karikansei_3.fbx");
+		Busters* b = new Busters(pos, { 1.0f, 1.0f, 1.0f }, { 0.0f, 0.0f, 0.0f }, "asset\\model\\busters_v3.fbx");
 		if (b) {
 			b->SetGroundLevel(PATROL_HEIGHT);
 			g_BustersList[1].push_back(b);
@@ -1330,7 +1330,7 @@ void Busters_CheckGaugeEvent(void)
 					{ offsetX, PATROL_HEIGHT, offsetZ },
 					{ 1.0f, 1.0f, 1.0f },
 					{ 0.0f, 0.0f, 0.0f },
-					"asset\\model\\Busters_karikansei_3.fbx"
+					"asset\\model\\busters_v3.fbx"
 				);
 
 				if (newBuster) {
