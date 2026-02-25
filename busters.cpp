@@ -124,9 +124,9 @@ void Busters::Update(void)
 		{
 			XMFLOAT3 headPos = m_Position;
 			headPos.y += 2.0f;
-			float dirRadY = XMConvertToRadians(currentRot + 90.0f);
-			float dirX = cosf(dirRadY);
-			float dirZ = sinf(dirRadY);
+			float dirRadY = XMConvertToRadians(currentRot);
+			float dirX = -sinf(dirRadY);
+			float dirZ = -cosf(dirRadY);
 			headPos.x += dirX * 0.8f;
 			headPos.z += dirZ * 0.8f;
 			m_pHeadlight->SetPosition(headPos.x, headPos.y, headPos.z);
@@ -181,11 +181,11 @@ void Busters::Update(void)
 		headPos.y += 2.0f;	// 頭部の高さ
 
 		float rotY = GetRot().y;
-		float radY = XMConvertToRadians(rotY + 90.0f);  // MoveToの-90度オフセットに対応
+		float radY = XMConvertToRadians(rotY);
 
-		// 方向計算
-		float dirX = cosf(radY);
-		float dirZ = sinf(radY);
+		// 方向計算（モデルの正面がZ軸負方向のため反転）
+		float dirX = -sinf(radY);
+		float dirZ = -cosf(radY);
 
 		// 位置オフセット
 		headPos.x += dirX * 0.8f;
@@ -266,8 +266,8 @@ void Busters::Update(void)
 			{
 			float dx = ghost->GetPos().x - m_Position.x;
 			float dz = ghost->GetPos().z - m_Position.z;
-			float angle = atan2f(dz, dx);
-			float deg = XMConvertToDegrees(angle) - 90.0f;
+			float angle = atan2f(-dx, -dz);
+			float deg = XMConvertToDegrees(angle);
 				
 				float currentRot = GetRot().y;
 				float angleDiff = deg - currentRot;
@@ -290,8 +290,8 @@ void Busters::Update(void)
 			{
 				float dx = target->GetPos().x - m_Position.x;
 				float dz = target->GetPos().z - m_Position.z;
-				float angle = atan2f(dz, dx);
-				float deg = XMConvertToDegrees(angle) - 90.0f;
+				float angle = atan2f(-dx, -dz);
+				float deg = XMConvertToDegrees(angle);
 				
 				float currentRot = GetRot().y;
 				float angleDiff = deg - currentRot;
@@ -1016,9 +1016,9 @@ void Busters::MoveTo(XMFLOAT3 targetPos)
 	float dirZ = dz / dist;
 
 	// 6. 回転処理（NavMesh風：常に移動方向を向く、毎フレーム更新）
-	// atan2(dirZ, dirX)はX軸正方向が0度だが、モデルはZ軸負方向が正面
-	// そのため90度のオフセットを追加
-	float targetAngle = XMConvertToDegrees(atan2f(dirZ, dirX)) - 90.0f;
+	// 左手系 + Mayaモデル補正: モデルの正面がZ軸負方向のため、180度オフセット
+	// atan2f(-dirX, -dirZ) = atan2f(dirX, dirZ) + 180° と等価
+	float targetAngle = XMConvertToDegrees(atan2f(-dirX, -dirZ));
 	float currentRot = GetRot().y;
 	
 	// 角度を-180〜180に正規化
@@ -1171,13 +1171,11 @@ bool Busters::IsTargetInFOV(const XMFLOAT3& targetPos, float range)
 
 	// 角度チェック (内積)
 	// バスターズの正面ベクトル
-	// MoveTo内でatan2(dirZ, dirX) - 90度でSetRotYしているので、
-	// 正面ベクトルは(sin(rot), cos(rot))ではなく、
-	// rot+90度を使って(cos(rot+90), sin(rot+90)) = (-sin(rot), cos(rot))となる
-	// 簡略化: 元の方向 = atan2の結果なので、rot + 90度を使う
-	float rotRad = XMConvertToRadians(GetRot().y + 90.0f);
-	float forwardX = cosf(rotRad);
-	float forwardZ = sinf(rotRad);
+	// 左手系 + Mayaモデル補正: モデルの正面がZ軸負方向
+	// rotY=0でZ軸負方向を向くため、正面ベクトルは (-sin(rot), -cos(rot))
+	float rotRad = XMConvertToRadians(GetRot().y);
+	float forwardX = -sinf(rotRad);
+	float forwardZ = -cosf(rotRad);
 	XMVECTOR forwardVec = XMVectorSet(forwardX, 0.0f, forwardZ, 0.0f);
 
 	// ターゲットへの方向ベクトル（XZ平面）
@@ -1302,6 +1300,7 @@ void DrawDebugFan(const XMFLOAT3& center, float rotY, float fovAngle, float rang
 	ID3D11DeviceContext* pContext = Direct3D_GetDeviceContext();
 
 	// ラインの頂点を作成
+	// ラインの頂点を作成
 	std::vector<DebugVertex> vertices;
 	XMFLOAT3 startPos = { center.x, center.y + 0.1f, center.z }; // 少し浮かせる
 
@@ -1367,12 +1366,13 @@ void DrawDebugFan(const XMFLOAT3& center, float rotY, float fovAngle, float rang
 		pContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_LINELIST);
 
 		// 描画（マテリアルカラーを無視させるためシェーダー設定が必要な場合あり）
-		// ここでは描画発行のみ
+// ここでは描画発行のみ
 		pContext->Draw((UINT)vertices.size(), 0);
 
 		pVertexBuffer->Release();
 	}
 }
+
 // =================================================================
 // グローバル関数
 // =================================================================
@@ -1518,7 +1518,6 @@ void BustersStopped(void)
 		}
 	}
 }
-
 // =================================================================
 // ゲージMAX時の処理
 // =================================================================
@@ -1629,7 +1628,6 @@ void Busters::Draw(void)
 	}
 
 }
-
 
 // =================================================================
 // バスターズのライト設定
