@@ -458,6 +458,17 @@ void Ghost::ScareStart(void)
 
 	XMFLOAT3 ghostPos = GetPos();
 
+	XMFLOAT3 busterPos = { 0.0f, 0.0f, 0.0f };
+	float distance = FLT_MAX;
+	if (pBuster)
+	{
+		busterPos = pBuster->GetPos();
+		XMVECTOR ghostVec = XMLoadFloat3(&ghostPos);
+		XMVECTOR busterVec = XMLoadFloat3(&busterPos);
+		XMVECTOR distVec = XMVectorSubtract(busterVec, ghostVec);
+		distance = XMVectorGetX(XMVector3Length(distVec));
+	}
+
 	FURNITURE_ACTION action = pFurniture->GetActionType();
 	float currentRange = GetCurrentScareRange();
 
@@ -465,6 +476,7 @@ void Ghost::ScareStart(void)
 	float backScareMultiplier = 1.5f;   // 背後から驚かせた時のゲージ上昇倍率
 
 	bool isBackScare = false;
+	if (pBuster)
 	{
 		// バスターズの向いている角度から「正面」ベクトルを計算
 		float rotRad = XMConvertToRadians(pBuster->GetRot().y + 180.0f);

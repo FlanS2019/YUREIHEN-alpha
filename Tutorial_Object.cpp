@@ -458,7 +458,7 @@ void TutorialObject_Initialize(void)
 	}
 
 	g_pTutorialBusters = new TutorialBusters(
-		{ 0.0f, PATROL_HEIGHT, 0.0f },
+		{ 0.0f, BUSTERS_HEIGHT, 0.0f },
 		{ 0.12f, 0.12f, 0.12f },
 		{ 0.0f, 180.0f, 0.0f },
 		"asset\\model\\busters_v3.fbx"
