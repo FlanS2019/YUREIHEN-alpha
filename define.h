@@ -20,6 +20,7 @@
 #define STOP_TIMER_BUSTER (false) //trueならタイマーとバスターズのupdateを停止させる
 #define DIRECT_START (true) //trueならgameシーンから直接開始する
 #define DEBUG_DRAW (false) //trueならdebugdraw機能を有効にする
+#define DEBUG_BUSTERS_ROTATION (false) //trueならバスターズの回転デバッグモード（左右矢印で回転、移動・検知・勝敗判定停止）
 #else
 //==================================
 //          ここは触らない
@@ -27,6 +28,7 @@
 #define STOP_TIMER_BUSTER (false) 
 #define DIRECT_START (false) 
 #define DEBUG_DRAW (false)
+#define DEBUG_BUSTERS_ROTATION (false)
 //==================================
 //          ここは触らない
 //==================================

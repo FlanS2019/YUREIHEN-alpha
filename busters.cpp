@@ -55,6 +55,9 @@ Busters::Busters(const XMFLOAT3& pos, const XMFLOAT3& scale, const XMFLOAT3& rot
 	m_PathUpdateTimer = rand() % 15;
 	m_PrevPos = pos;
 	m_StuckTimer = 0;
+	m_RotationUpdateCounter = 0;
+	m_PrevTargetAngle = 0.0f;
+	m_AngleFlipCounter = 0;
 
 	// ヘッドライト初期化
 	m_pHeadlight = new PointLight(
@@ -84,6 +87,67 @@ Busters::~Busters()
 
 void Busters::Update(void)
 {
+	// ========== デバッグモード: 角度確認用 ==========
+	// 左右矢印キーで回転、移動・検知は停止
+	if (DEBUG_BUSTERS_ROTATION)
+	{
+		float currentRot = GetRot().y;
+		
+		// 左矢印: 角度を減らす
+		if (Keyboard_IsKeyDown(KK_LEFT))
+		{
+			currentRot -= 2.0f;
+			SetRotY(currentRot);
+		}
+		// 右矢印: 角度を増やす
+		if (Keyboard_IsKeyDown(KK_RIGHT))
+		{
+			currentRot += 2.0f;
+			SetRotY(currentRot);
+		}
+		
+		// 角度を-180〜180に正規化
+		while (currentRot > 180.0f) currentRot -= 360.0f;
+		while (currentRot < -180.0f) currentRot += 360.0f;
+		
+		// デバッグログ出力（毎フレーム）
+		float radY = XMConvertToRadians(currentRot);
+		float radY90 = XMConvertToRadians(currentRot + 90.0f);
+		
+		hal::dout << "[DEBUG ROT] GetRot().y=" << currentRot 
+		          << " | cos/sin(rot)=(" << cosf(radY) << ", " << sinf(radY) << ")"
+		          << " | cos/sin(rot+90)=(" << cosf(radY90) << ", " << sinf(radY90) << ")"
+		          << std::endl;
+		
+		// ヘッドライト更新のみ行う
+		if (m_pHeadlight)
+		{
+			XMFLOAT3 headPos = m_Position;
+			headPos.y += 2.0f;
+			float dirRadY = XMConvertToRadians(currentRot + 90.0f);
+			float dirX = cosf(dirRadY);
+			float dirZ = sinf(dirRadY);
+			headPos.x += dirX * 0.8f;
+			headPos.z += dirZ * 0.8f;
+			m_pHeadlight->SetPosition(headPos.x, headPos.y, headPos.z);
+			m_pHeadlight->SetDirection(XMFLOAT4(dirX, -0.3f, dirZ, 0.0f));
+			m_pHeadlight->SetRange(15.0f);
+		}
+		
+		// アイコン更新
+		if (m_Icon)
+		{
+			m_Icon->SetIcon(BILLBOARD_ICON::SEARCH);
+			XMFLOAT3 iconPos = m_Position;
+			iconPos.y += 3.25f;
+			m_Icon->SetPos(iconPos);
+			m_Icon->Update();
+		}
+		
+		return;  // 通常処理をスキップ
+	}
+	// ========== デバッグモード終了 ==========
+
 	JumpUpdate(*(Transform3D*)this);
 
 	if (m_DetectionGraceTimer > 0)
@@ -117,11 +181,11 @@ void Busters::Update(void)
 		headPos.y += 2.0f;	// 頭部の高さ
 
 		float rotY = GetRot().y;
-		float radY = XMConvertToRadians(rotY);
+		float radY = XMConvertToRadians(rotY + 90.0f);  // MoveToの-90度オフセットに対応
 
-		// 方向計算 (モデルに合わせて調整)
-		float dirX = sinf(radY);
-		float dirZ = cosf(radY);
+		// 方向計算
+		float dirX = cosf(radY);
+		float dirZ = sinf(radY);
 
 		// 位置オフセット
 		headPos.x += dirX * 0.8f;
@@ -200,10 +264,23 @@ void Busters::Update(void)
 			Ghost* ghost = GetGhost();
 			if (ghost)
 			{
-				float dx = ghost->GetPos().x - m_Position.x;
-				float dz = ghost->GetPos().z - m_Position.z;
-				float deg = XMConvertToDegrees(atan2f(dz, dx));
-				SetRotY(deg);
+			float dx = ghost->GetPos().x - m_Position.x;
+			float dz = ghost->GetPos().z - m_Position.z;
+			float angle = atan2f(dz, dx);
+			float deg = XMConvertToDegrees(angle) - 90.0f;
+				
+				float currentRot = GetRot().y;
+				float angleDiff = deg - currentRot;
+				while (angleDiff > 180.0f) angleDiff -= 360.0f;
+				while (angleDiff < -180.0f) angleDiff += 360.0f;
+				
+				float maxRotSpeed = 45.0f;
+				if (fabsf(angleDiff) > maxRotSpeed)
+				{
+					angleDiff = (angleDiff > 0) ? maxRotSpeed : -maxRotSpeed;
+				}
+				
+				SetRotY(currentRot + angleDiff);
 			}
 		}
 		else if (m_State == BUSTERS_SEARCH && m_TargetFurnitureIndex != -1)
@@ -213,8 +290,21 @@ void Busters::Update(void)
 			{
 				float dx = target->GetPos().x - m_Position.x;
 				float dz = target->GetPos().z - m_Position.z;
-				float deg = XMConvertToDegrees(atan2f(dz, dx));
-				SetRotY(deg);
+				float angle = atan2f(dz, dx);
+				float deg = XMConvertToDegrees(angle) - 90.0f;
+				
+				float currentRot = GetRot().y;
+				float angleDiff = deg - currentRot;
+				while (angleDiff > 180.0f) angleDiff -= 360.0f;
+				while (angleDiff < -180.0f) angleDiff += 360.0f;
+				
+				float maxRotSpeed = 45.0f;
+				if (fabsf(angleDiff) > maxRotSpeed)
+				{
+					angleDiff = (angleDiff > 0) ? maxRotSpeed : -maxRotSpeed;
+				}
+				
+				SetRotY(currentRot + angleDiff);
 			}
 		}
 		return;
@@ -566,13 +656,14 @@ void Busters::Update(void)
 		{
 			m_StuckTimer++;
 			// 移動不可になったら即座に経路を再計算する
-			if (m_StuckTimer > 30)
+			if (m_StuckTimer > 15)
 			{
-				if (!m_PathList.empty())
-				{
-					m_PathList.clear(); // 経路をリセット
-					m_StuckTimer = 0;
-				}
+			if (!m_PathList.empty())
+			{
+			m_PathList.erase(m_PathList.begin());
+			m_StuckTimer = 0;
+			m_AngleFlipCounter = 0;
+			}
 				else if (m_State == BUSTERS_SEARCH && m_TargetFurnitureIndex != -1)
 				{
 					// 経路のないスタックも処理
@@ -878,183 +969,140 @@ void Busters::MoveTo(XMFLOAT3 targetPos)
 {
 	if (GetIsJumping()) return;
 
-	XMFLOAT3 finalTarget = targetPos;
 	int ignoreFurnIdx = -1;
 	if (m_State == BUSTERS_SEARCH)
 	{
 		ignoreFurnIdx = m_TargetFurnitureIndex;
 	}
 
-	// 経路の簡略化（連続したノードをスキップ）
+	// === NavMesh風エージェント移動 ===
+	
+	// 1. 現在の目標ノードを決定
+	XMFLOAT3 currentTarget = targetPos;
 	if (!m_PathList.empty())
 	{
-		int skipCount = 0;
-		while (skipCount < 2 && m_PathList.size() > 1)
-		{
-			XMFLOAT3 nextNode = m_PathList[1];
-			if (CanPassLine(m_Position, nextNode, 0.5f, ignoreFurnIdx))
-			{
-				m_PathList.erase(m_PathList.begin());
-				skipCount++;
-			}
-			else
-			{
-				break;
-			}
-		}
+		currentTarget = m_PathList[0];
+	}
 
+	// 2. 目標への距離と方向を計算
+	float dx = currentTarget.x - m_Position.x;
+	float dz = currentTarget.z - m_Position.z;
+	float distSq = dx * dx + dz * dz;
+	float dist = sqrtf(distSq);
+
+	// 3. ノード到達判定（NavMesh風：ノードに十分近づいたら次へ）
+	const float NODE_REACH_DISTANCE = 0.6f;
+	if (!m_PathList.empty() && dist < NODE_REACH_DISTANCE)
+	{
+		m_PathList.erase(m_PathList.begin());
+		m_AngleFlipCounter = 0;
+		
+		// 次のノードがあれば更新
 		if (!m_PathList.empty())
 		{
-			finalTarget = m_PathList[0];
+			currentTarget = m_PathList[0];
+			dx = currentTarget.x - m_Position.x;
+			dz = currentTarget.z - m_Position.z;
+			distSq = dx * dx + dz * dz;
+			dist = sqrtf(distSq);
 		}
 	}
 
-	// 経路のノードに到達したか判定
-	if (!m_PathList.empty())
-	{
-		float dx = m_PathList[0].x - m_Position.x;
-		float dz = m_PathList[0].z - m_Position.z;
-		float distSq = dx * dx + dz * dz;
-		
-		if (distSq < 0.3f * 0.3f)
-		{
-			m_PathList.erase(m_PathList.begin());
-			if (!m_PathList.empty())
-			{
-				finalTarget = m_PathList[0];
-			}
-		}
-	}
+	// 4. 移動不要チェック
+	if (dist < 0.05f) return;
 
-	// 移動ベクトルの計算
-	float dx = finalTarget.x - m_Position.x;
-	float dz = finalTarget.z - m_Position.z;
-	float distSq = dx * dx + dz * dz;
-
-	if (distSq < 0.01f) return; // ほぼ同じ位置
-
-	float dist = sqrtf(distSq);
+	// 5. 移動方向を計算
 	float dirX = dx / dist;
 	float dirZ = dz / dist;
 
-	// 向き変更
-	// ゲーム座標: X右方向、Z奥方向
-	// atan2(z, x) で正しい角度を計算（数学標準的な atan2(y, x) と同じ）
-	// X軸が0度、反時計回りに角度が増加する座標系
-	float angle = atan2f(dirZ, dirX);
-	float deg = XMConvertToDegrees(angle);
-	SetRotY(deg);
-
-	float bodyRadius = 0.4f; // バスターズの当たり判定サイズ
-	float moveAmount = m_MoveSpeed;
-
-	// スムーズなコーナー処理：目標が近い場合は速度を落とす
-	if (dist < 1.5f)
+	// 6. 回転処理（NavMesh風：常に移動方向を向く、毎フレーム更新）
+	// atan2(dirZ, dirX)はX軸正方向が0度だが、モデルはZ軸負方向が正面
+	// そのため90度のオフセットを追加
+	float targetAngle = XMConvertToDegrees(atan2f(dirZ, dirX)) - 90.0f;
+	float currentRot = GetRot().y;
+	
+	// 角度を-180〜180に正規化
+	while (currentRot > 180.0f) currentRot -= 360.0f;
+	while (currentRot < -180.0f) currentRot += 360.0f;
+	while (targetAngle > 180.0f) targetAngle -= 360.0f;
+	while (targetAngle < -180.0f) targetAngle += 360.0f;
+	
+	// 最短回転方向を計算
+	float angleDiff = targetAngle - currentRot;
+	while (angleDiff > 180.0f) angleDiff -= 360.0f;
+	while (angleDiff < -180.0f) angleDiff += 360.0f;
+	
+	// 滑らかな回転（最大回転速度を制限）
+	const float MAX_ROT_SPEED = 15.0f;
+	if (fabsf(angleDiff) > MAX_ROT_SPEED)
 	{
-		moveAmount = m_MoveSpeed * (dist / 1.5f);
+		angleDiff = (angleDiff > 0) ? MAX_ROT_SPEED : -MAX_ROT_SPEED;
+	}
+	
+	float newRot = currentRot + angleDiff;
+	while (newRot > 180.0f) newRot -= 360.0f;
+	while (newRot < -180.0f) newRot += 360.0f;
+	SetRotY(newRot);
+
+	// 7. 移動処理
+	float bodyRadius = 0.4f;
+	float moveAmount = m_MoveSpeed;
+	
+	// 目標が近い場合は減速
+	if (dist < 1.0f)
+	{
+		moveAmount *= (dist / 1.0f);
+	}
+	
+	// 回転が大きく違う場合は移動を抑制（その場で回転）
+	if (fabsf(angleDiff) > 60.0f)
+	{
+		moveAmount *= 0.3f;
 	}
 
 	float nextPosX = m_Position.x + dirX * moveAmount;
 	float nextPosZ = m_Position.z + dirZ * moveAmount;
 
-	// 複数点で壁衝突判定を行う（より正確な判定）
-	const int checkPoints = 3;
-	bool canMoveX = true;
-	bool canMoveZ = true;
-	bool canMoveDiag = true;
-
-	// X軸方向の移動可否
-	for (int i = 0; i < checkPoints; i++)
-	{
-		float checkZ = m_Position.z + (dz * moveAmount * i / (checkPoints - 1));
-		if (IsObstacle(nextPosX, checkZ, bodyRadius, ignoreFurnIdx))
-		{
-			canMoveX = false;
-			break;
-		}
-	}
-
-	// Z軸方向の移動可否
-	for (int i = 0; i < checkPoints; i++)
-	{
-		float checkX = m_Position.x + (dx * moveAmount * i / (checkPoints - 1));
-		if (IsObstacle(checkX, nextPosZ, bodyRadius, ignoreFurnIdx))
-		{
-			canMoveZ = false;
-			break;
-		}
-	}
-
-	// 斜め移動の可否
+	// 8. 衝突判定と移動
 	if (!IsObstacle(nextPosX, nextPosZ, bodyRadius, ignoreFurnIdx))
 	{
-		canMoveDiag = true;
-	}
-	else
-	{
-		canMoveDiag = false;
-	}
-
-	// 移動の決定
-	if (canMoveDiag)
-	{
-		// 斜めに移動可能
 		m_Position.x = nextPosX;
 		m_Position.z = nextPosZ;
 	}
-	else if (canMoveX && canMoveZ)
-	{
-		// 両軸とも移動可能な場合：段階的に移動量を減らして滑り移動を実現
-		float slideFactor = moveAmount * 0.7f;
-		
-		if (!IsObstacle(m_Position.x + dirX * slideFactor, m_Position.z + dirZ * slideFactor, bodyRadius, ignoreFurnIdx))
-		{
-			m_Position.x += dirX * slideFactor;
-			m_Position.z += dirZ * slideFactor;
-		}
-		else if (fabsf(dx) > fabsf(dz))
-		{
-			m_Position.x = nextPosX;
-		}
-		else
-		{
-			m_Position.z = nextPosZ;
-		}
-	}
-	else if (canMoveX)
-	{
-		// X軸のみ移動可能：まず減速移動を試す
-		float slideFactor = moveAmount * 0.5f;
-		if (!IsObstacle(m_Position.x + dirX * slideFactor, m_Position.z, bodyRadius, ignoreFurnIdx))
-		{
-			m_Position.x += dirX * slideFactor;
-		}
-		else
-		{
-			m_Position.x = nextPosX;
-		}
-	}
-	else if (canMoveZ)
-	{
-		// Z軸のみ移動可能：まず減速移動を試す
-		float slideFactor = moveAmount * 0.5f;
-		if (!IsObstacle(m_Position.x, m_Position.z + dirZ * slideFactor, bodyRadius, ignoreFurnIdx))
-		{
-			m_Position.z += dirZ * slideFactor;
-		}
-		else
-		{
-			m_Position.z = nextPosZ;
-		}
-	}
 	else
 	{
-		// 壁に完全にブロックされている場合、経路を強制リセット
-		if (m_StuckTimer > 180)
+		// 壁スライド移動
+		bool moved = false;
+		
+		if (!moved && fabsf(dirX) > 0.1f)
 		{
-			m_PathList.clear();
-			m_TargetFurnitureIndex = -1;
-			m_StuckTimer = 0;
+			float slideX = m_Position.x + dirX * moveAmount;
+			if (!IsObstacle(slideX, m_Position.z, bodyRadius, ignoreFurnIdx))
+			{
+				m_Position.x = slideX;
+				moved = true;
+			}
+		}
+		
+		if (!moved && fabsf(dirZ) > 0.1f)
+		{
+			float slideZ = m_Position.z + dirZ * moveAmount;
+			if (!IsObstacle(m_Position.x, slideZ, bodyRadius, ignoreFurnIdx))
+			{
+				m_Position.z = slideZ;
+				moved = true;
+			}
+		}
+		
+		// 完全にブロックされた場合、次のノードへスキップ
+		if (!moved && !m_PathList.empty())
+		{
+			m_StuckTimer++;
+			if (m_StuckTimer > 30)
+			{
+				m_PathList.erase(m_PathList.begin());
+				m_StuckTimer = 0;
+			}
 		}
 	}
 }
@@ -1123,9 +1171,14 @@ bool Busters::IsTargetInFOV(const XMFLOAT3& targetPos, float range)
 
 	// 角度チェック (内積)
 	// バスターズの正面ベクトル
-	// MoveToで `atan2 + 180` しているので、正面は `rotY + 180` の方向
-	float rotRad = XMConvertToRadians(GetRot().y + 180.0f);
-	XMVECTOR forwardVec = XMVectorSet(sinf(rotRad), 0.0f, cosf(rotRad), 0.0f);
+	// MoveTo内でatan2(dirZ, dirX) - 90度でSetRotYしているので、
+	// 正面ベクトルは(sin(rot), cos(rot))ではなく、
+	// rot+90度を使って(cos(rot+90), sin(rot+90)) = (-sin(rot), cos(rot))となる
+	// 簡略化: 元の方向 = atan2の結果なので、rot + 90度を使う
+	float rotRad = XMConvertToRadians(GetRot().y + 90.0f);
+	float forwardX = cosf(rotRad);
+	float forwardZ = sinf(rotRad);
+	XMVECTOR forwardVec = XMVectorSet(forwardX, 0.0f, forwardZ, 0.0f);
 
 	// ターゲットへの方向ベクトル（XZ平面）
 	dirVec = XMVectorSet(targetPos.x - m_Position.x, 0.0f, targetPos.z - m_Position.z, 0.0f);
@@ -1263,8 +1316,7 @@ void DrawDebugFan(const XMFLOAT3& center, float rotY, float fovAngle, float rang
 	for (int i = 0; i <= segments; i++)
 	{
 		float progress = (float)i / segments; // 0.0 ～ 1.0
-		float currentAngle = (radY + XM_PI) - halfFovRad + (halfFovRad * 2.0f * progress);
-		// ※ +XM_PI (180度) はモデルの向き（MoveToで+180している仕様）に合わせる補正
+		float currentAngle = radY - halfFovRad + (halfFovRad * 2.0f * progress);
 
 		// 終点計算
 		float dx = sinf(currentAngle);
@@ -1285,7 +1337,7 @@ void DrawDebugFan(const XMFLOAT3& center, float rotY, float fovAngle, float rang
 		// 外周の弧を描画（ひとつ前の点と結ぶ）
 		if (i > 0)
 		{
-			float prevAngle = (radY + XM_PI) - halfFovRad + (halfFovRad * 2.0f * ((float)(i - 1) / segments));
+			float prevAngle = radY - halfFovRad + (halfFovRad * 2.0f * ((float)(i - 1) / segments));
 			XMFLOAT3 prevEndPos = {
 				startPos.x + sinf(prevAngle) * range,
 				startPos.y,
@@ -1472,6 +1524,9 @@ void BustersStopped(void)
 // =================================================================
 void Busters_CheckGaugeEvent(void)
 {
+	// デバッグモード中は勝敗判定をスキップ
+	if (DEBUG_BUSTERS_ROTATION) return;
+
 	if (!UI_IsScareGaugeMax()) return;
 
 	int currentFloor = Field_GetCurrentFloor();
@@ -1522,12 +1577,12 @@ void Busters_CheckGaugeEvent(void)
 				float offsetX = (float)(rand() % 400 - 200) / 100.0f;
 				float offsetZ = (float)(rand() % 400 - 200) / 100.0f;
 
-				Busters* newBuster = new Busters(
-					{ offsetX, PATROL_HEIGHT, offsetZ },
-					{ 1.0f, 1.0f, 1.0f },
-					{ 0.0f, 0.0f, 0.0f },
-					"asset\\model\\Busters_karikansei_3.fbx"
-				);
+			Busters* newBuster = new Busters(
+				{ offsetX, PATROL_HEIGHT, offsetZ },
+				{ 1.0f, 1.0f, 1.0f },
+				{ 0.0f, 0.0f, 0.0f },
+				"asset\\model\\Busters_karikansei_3.fbx"
+			);
 
 				if (newBuster) {
 					newBuster->SetGroundLevel(PATROL_HEIGHT);

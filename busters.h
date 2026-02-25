@@ -53,6 +53,9 @@ private:
 	XMFLOAT3 m_LastPathCalcGhostPos;
 	XMFLOAT3 m_PrevPos; // 前フレームの座標
 	int m_StuckTimer;   // 動いていない時間を計測
+	int m_RotationUpdateCounter; // 回転更新用カウンター
+	float m_PrevTargetAngle; // 前回の目標角度
+	int m_AngleFlipCounter;  // 角度反転カウンター
 
 public:
 	Busters(const XMFLOAT3& pos, const XMFLOAT3& scale, const XMFLOAT3& rot, const char* pass);
