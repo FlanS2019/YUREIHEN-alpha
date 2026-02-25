@@ -321,26 +321,20 @@ static void InitPages()
 		});
 
 	// --- 移動操作テストプレイ ---
+	SetTutorialMarker(true, { -5.0f, 0.5f, 17.0f });
+	TutorialObject_SetEnbanVisible(true);
 	AddPage_Play(
 		{ "[W][A][S][D] 移動、マウスで視点" },
 		TutorialObject_GetEnbanTouchedPtr(),
 		{ SCREEN_WIDTH / 2, SCREEN_HEIGHT - 100.0f }
 	);
-	// このページに入ったときマーカーと円盤を表示
-	g_Pages.back().onEnter = []() {
-		SetTutorialMarker(true, { -5.0f, 0.5f, 17.0f });
-		TutorialObject_SetEnbanVisible(true);
-	};
 
+	SetTutorialMarker(false);
+	TutorialObject_SetEnbanVisible(false);
 	AddPage({ SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2 }, 0.0f, {
 		"移動は完璧！",
 		"次はゲームの目的、「敵を驚かせて追い払う！」について説明するね。"
 		});
-	// このページに入ったときマーカーと円盤を非表示
-	g_Pages.back().onEnter = []() {
-		SetTutorialMarker(false);
-		TutorialObject_SetEnbanVisible(false);
-	};
 
 	AddPage_Camera({ SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2 }, 300.0f,
 		{ "これが家具の一つのピアノ。"
@@ -366,10 +360,11 @@ static void InitPages()
 	AddPage_Camera({ SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2 }, 300.0f,
 		{ "うわっ！侵入者の「バスターず」だ！",
 		  "近づいてきたら、[スペースキー]で驚かせよう！" },
-		{ -23.0f, 2.0f, 15.0f }, { -23.0f, 2.0f, 5.0f },
+		{ -23.0f, 1.0f, 10.0f }, { -23.0f, 1.0f, 5.0f },
 		{ SCREEN_WIDTH / 2, SCREEN_HEIGHT - 100.0f }
 	);
 
+	//バスターズへの驚かせテストプレイ
 	AddPage_Play(
 		{ "近づいてくるまで待ち、[スペースキー]驚かせ" },
 		TutorialObject_GetPianoPossessedPtr(),
@@ -528,9 +523,6 @@ void UI_Tutorial_Update(void)
 					UI_Tutorial_End();
 					return;
 				}
-				// ページ確定：onEnter を呼ぶ
-				if (g_Pages[g_CurrentPage].onEnter)
-					g_Pages[g_CurrentPage].onEnter();
 				g_NextPage = -1;
 				g_FadeAlpha = 0.0f;
 				g_State = TutorialState::FadeIn;
@@ -654,13 +646,6 @@ void UI_Tutorial_Update(void)
 				g_CameraOverrideActive = false;
 			}
 
-			// ページ確定：onEnter を呼びる
-			if (g_CurrentPage >= 0 && g_CurrentPage < (int)g_Pages.size() &&
-				g_Pages[g_CurrentPage].onEnter)
-			{
-				g_Pages[g_CurrentPage].onEnter();
-			}
-
 			if (g_CurrentPage >= 0 && g_CurrentPage < (int)g_Pages.size() &&
 				g_Pages[g_CurrentPage].autoWait)
 			{
@@ -721,10 +706,6 @@ void UI_Tutorial_Update(void)
 			g_IsPreTutorial = false;
 			g_IsTutorial = true;
 			g_CurrentPage = 0;
-
-			// 最初のページの onEnter を呼ぶ
-			if (!g_Pages.empty() && g_Pages[0].onEnter)
-				g_Pages[0].onEnter();
 
 			g_State = TutorialState::FadeIn;
 			g_FadeAlpha = 0.0f;

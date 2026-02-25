@@ -213,9 +213,9 @@ void TutorialObject_Initialize(void)
 
 	g_pTutorialBusters = new TutorialBusters(
 		{ 0.0f, PATROL_HEIGHT, 0.0f },
-		{ 0.15f, 0.15f, 0.15f },
-		{ 0.0f, 0.0f, 0.0f },
-		"asset\\model\\bustars_nocolor.fbx"
+		{ 0.12f, 0.12f, 0.12f },
+		{ 0.0f, 180.0f, 0.0f },
+		"asset\\model\\bustars_v2.fbx"
 	);
 
 	// 目的地マーカーを円盤の上に配置
