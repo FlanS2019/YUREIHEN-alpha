@@ -19,6 +19,7 @@ static Sprite* g_pEqual = nullptr;
 static Sprite* g_pkyou1 = nullptr;
 static Sprite* g_pkyou2 = nullptr;
 static Sprite* g_pkyou3 = nullptr;
+static Sprite* g_pResult_gakubuti = nullptr;
 // 数字表示用のNumberクラスに変更
 static Number* g_pTimeNum = nullptr;
 //static Number* g_pFloorNum = nullptr;
@@ -27,7 +28,7 @@ static Number* g_pResultNum = nullptr;  // 結果スコア表示用（時間×�
 // ラベル用フォント（「Time:」「Floor:」のテキスト部分）
 static FontRenderer* g_pTimeLabelFont = nullptr;
 static FontRenderer* g_pFloorLabelFont = nullptr;
-static FontRenderer* g_pComboLabelFont = nullptr;  // 連鎖ラベル用
+static FontRenderer* g_pComboLabelFont =nullptr;  // 連鎖ラベル用
 static float g_pResultTime = 0.0f;
 static int g_pResultFloor = 1;
 static int g_pResultCombo = 1;  // 連鎖数
@@ -38,6 +39,17 @@ static SoundData* g_pBGM = nullptr;
 static int GetResultScore(void)
 {
 	return static_cast<int>(g_pResultTime) * g_pResultCombo;
+}
+
+// 2桁の場合のみ末尾に0を追加して表示用数値を返す
+static int GetDisplayTime(float time)
+{
+	int t = static_cast<int>(time);
+	if (t >= 10 && t <= 99)
+	{
+		return t * 10;
+	}
+	return t;
 }
 
 void Result_Initialize(ID3D11Device* pDevice, ID3D11DeviceContext* pContext)
@@ -51,6 +63,15 @@ void Result_Initialize(ID3D11Device* pDevice, ID3D11DeviceContext* pContext)
 		{ 1.0f, 1.0f, 1.0f, 1.0f },						//RGBA
 		BLENDSTATE_NONE,								//BlendState
 		L"asset\\yureihen\\Alpha_Tex\\siro.png"					//テクスチャパス
+	);
+
+	g_pResult_gakubuti = new Sprite(
+		{ SCREEN_WIDTH / 2.0f, SCREEN_HEIGHT / 2.0f },		//位置
+		{ 1080 , 1080 },	//サイズ
+		0.0f,											//回転（度）
+		{ 1.0f, 1.0f, 1.0f, 1.0f },						//RGBA
+		BLENDSTATE_NONE,								//BlendState
+		L"asset\\yureihen\\Result\\Result_gakubuti.png"					//テクスチャパス
 	);
 
 	g_pPlus = new Sprite(
@@ -184,7 +205,7 @@ void Result_Initialize(ID3D11Device* pDevice, ID3D11DeviceContext* pContext)
 	// ③既にセット済みの値を反映
 	if (g_pTimeNum)
 	{
-		g_pTimeNum->SetNumber(static_cast<int>(g_pResultTime));
+		g_pTimeNum->SetNumber(GetDisplayTime(g_pResultTime));
 	}
 	//// 既にセット済みの値を反映
 	//if (g_pResultTime > 0.0f && g_pTimeNum)
@@ -225,6 +246,7 @@ void Result_Draw(void)
 	g_pResultSprite->Draw();
 	g_pPlus->Draw();
 	g_pEqual->Draw();
+	g_pResult_gakubuti->Draw();
 
 	// スコアに応じた画像を表示（0-200：凶、201-400：恐、401-600：虚）
 	int resultScore = GetResultScore();
@@ -323,6 +345,11 @@ void Result_Finalize(void)
 		g_pkyou3 = nullptr;
 	}
 
+	if (g_pResult_gakubuti) {
+		delete g_pResult_gakubuti;
+		g_pResult_gakubuti = nullptr;
+	}
+
 	if (g_pTimeNum) {
 		delete g_pTimeNum;
 		g_pTimeNum = nullptr;
@@ -371,7 +398,7 @@ void Result_SetTimerValue(float time)
 
 	if (g_pTimeNum)
 	{
-		g_pTimeNum->SetNumber(static_cast<int>(time));
+		g_pTimeNum->SetNumber(GetDisplayTime(time));
 	}
 
 	// 時間が更新されたら、結果スコアを再計算
