@@ -24,4 +24,8 @@ void Game_Draw(void);
 // チュートリアル用：円盤接触フラグのポインタを返す
 bool* Game_GetEnbanTouchedPtr(void);
 
+// フロア降下アニメーション要求
+void  Game_RequestFloorExitAnim(void);
+bool  Game_IsFloorExitAnimActive(void);
+
 #endif // GAME_H

@@ -54,3 +54,6 @@ std::vector<XMFLOAT3> Field_FindPath(XMFLOAT3 start, XMFLOAT3 end);
 // 階層操作用
 void Field_ChangeFloor(int floorIndex); // 指定した階層に切り替える
 int Field_GetCurrentFloor(void);        // 現在の階層を取得
+
+// 指定フロアのSTAIRS_UPブロックのワールド座標を返す（見つからない場合は {0,0,0}）
+XMFLOAT3 Field_GetStairsUpWorldPos(int floor);

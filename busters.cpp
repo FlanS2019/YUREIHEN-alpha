@@ -47,7 +47,9 @@ Busters::Busters(const XMFLOAT3& pos, const XMFLOAT3& scale, const XMFLOAT3& rot
 	m_HasLureTarget(false),
 	m_LureStayTimer(0),
 	m_IsGhostDiscover(false),
-	m_IsTutorial(false)
+	m_IsTutorial(false),
+	m_StairsTargetPos(pos),
+	m_RunToStairsDone(false)
 {
 	m_Icon = new Billboard();
 	m_LastPathCalcGhostPos = { -999.0f, 0.0f, -999.0f }; 
@@ -132,6 +134,9 @@ void Busters::Update(void)
 			m_pHeadlight->SetPosition(headPos.x, headPos.y, headPos.z);
 			m_pHeadlight->SetDirection(XMFLOAT4(dirX, -0.3f, dirZ, 0.0f));
 			m_pHeadlight->SetRange(15.0f);
+			
+			// ライト方向もデバッグログに出力
+			hal::dout << "  LightDir: (" << dirX << ", -0.3, " << dirZ << ")" << std::endl;
 		}
 		
 		// アイコン更新
@@ -306,6 +311,33 @@ void Busters::Update(void)
 				
 				SetRotY(currentRot + angleDiff);
 			}
+		}
+		return;
+	}
+
+	// 階段へ走るアニメーション中はCheckStateをスキップ
+	if (m_State == BUSTERS_RUN_TO_STAIRS)
+	{
+		float dx = m_StairsTargetPos.x - m_Position.x;
+		float dz = m_StairsTargetPos.z - m_Position.z;
+		float distSq = dx * dx + dz * dz;
+		if (distSq <= 0.5f * 0.5f)
+		{
+			m_RunToStairsDone = true;
+		}
+		else
+		{
+			m_MoveSpeed = BUSTERS_MOVE_SPEED_CHASE;
+			MoveTo(m_StairsTargetPos);
+		}
+		// アイコン更新のみ
+		if (m_Icon)
+		{
+			m_Icon->SetIcon(BILLBOARD_ICON::ALERT);
+			XMFLOAT3 iconPos = m_Position;
+			iconPos.y += 3.25f;
+			m_Icon->SetPos(iconPos);
+			m_Icon->Update();
 		}
 		return;
 	}
@@ -1137,6 +1169,17 @@ void Busters::OnStopped(void)
 	m_State = BUSTERS_STUN;
 }
 
+void Busters::StartRunToStairs(XMFLOAT3 stairsPos)
+{
+	m_State = BUSTERS_RUN_TO_STAIRS;
+	m_StairsTargetPos = stairsPos;
+	m_RunToStairsDone = false;
+	m_WaitTimer = 0;
+	m_PathList.clear();
+	m_PathList = Field_FindPath(m_Position, stairsPos);
+	this->SetColor(1.0f, 0.5f, 0.0f, 1.0f); // オレンジ
+}
+
 void Busters::SetIsGhostDiscover(bool discover)
 {
     if (m_State != BUSTERS_SEARCH)
@@ -1519,63 +1562,74 @@ void BustersStopped(void)
 	}
 }
 
+
 // =================================================================
 // ゲージMAX時の処理
 // =================================================================
-void Busters_CheckGaugeEvent(void)
+
+// アニメーション開始前に一度だけ呼ぶ（勝利判定 + アニメーション起動）
+// 戻り値: true=フロア移行アニメを開始した / false=勝利フェードを開始した
+bool Busters_CheckGaugeEvent(void)
 {
 	// デバッグモード中は勝敗判定をスキップ
-	if (DEBUG_BUSTERS_ROTATION) return;
+	if (DEBUG_BUSTERS_ROTATION) return false;
 
-	if (!UI_IsScareGaugeMax()) return;
+	if (!UI_IsScareGaugeMax()) return false;
 
 	int currentFloor = Field_GetCurrentFloor();
 
 	if (currentFloor == END_FLOOR - 1)
 	{
-		// -------------------------------------------------
 		// クリア階（3階）の場合 -> ゲーム勝利
-		// -------------------------------------------------
 		StartFade(SCENE_ANM_WIN);
+		return false;
 	}
 	else if (currentFloor > 0)
 	{
-		// -------------------------------------------------
-		// 2階以上の場合 -> 下の階へ逃げる
-		// -------------------------------------------------
+		// 2階以上の場合 -> フロア降下アニメ開始を呼び出し元に通知
+		return true;
+	}
+	else
+	{
+		// 1階の場合 -> 逃げ場なし（プレイヤーの勝利）
+		StartFade(SCENE_ANM_WIN);
+		return false;
+	}
+}
 
-		// ゲージをリセット
-		UI_ResetScareGauge();
+// フロア移行の実体処理（アニメーション完了後に呼ぶ）
+void Busters_DoFloorTransition(void)
+{
+	int currentFloor = Field_GetCurrentFloor();
+	if (currentFloor <= 0) return;
 
-		// 0.0以下で敗北になるのでとりあえず回復
-		AddScareGauge(BUSTERS_DEFOURT_GAUGE);
+	// ゲージをリセット
+	UI_ResetScareGauge();
 
-		int nextFloor = currentFloor - 1;
+	// 0.0以下で敗北になるのでとりあえず回復
+	AddScareGauge(BUSTERS_DEFOURT_GAUGE);
 
-		// 階層に応じて増やす人数を決める
-		int addCount = 0;
-		if (nextFloor == 1) addCount = 1; // 2階へ行くとき： +1人
-		if (nextFloor == 0) addCount = 2; // 1階へ行くとき： +2人
+	int nextFloor = currentFloor - 1;
 
-		for (Busters* buster : g_BustersList[currentFloor])
+	// 階層に応じて増やす人数を決める
+	int addCount = 0;
+	if (nextFloor == 1) addCount = 1; // 2階へ行くとき： +1人
+	if (nextFloor == 0) addCount = 2; // 1階へ行くとき： +2人
+
+	for (Busters* buster : g_BustersList[currentFloor])
+	{
+		XMFLOAT3 newPos = GetRandomBusterPos(nextFloor);
+		buster->SetPos(newPos);
+		g_BustersList[nextFloor].push_back(buster);
+	}
+	g_BustersList[currentFloor].clear();
+
+	for (int i = 0; i < addCount; i++)
+	{
+		if (nextFloor >= 0 && nextFloor < MAP_FLOORS)
 		{
-			// 下の階のランダムな位置へ移動
-			XMFLOAT3 newPos = GetRandomBusterPos(nextFloor);
-			buster->SetPos(newPos);
-
-			// 下の階のリストに追加
-			g_BustersList[nextFloor].push_back(buster);
-		}
-		// 現在の階のバスターズを空に
-		g_BustersList[currentFloor].clear();
-
-		for (int i = 0; i < addCount; i++)
-		{
-			if (nextFloor >= 0 && nextFloor < MAP_FLOORS)
-			{
-
-				float offsetX = (float)(rand() % 400 - 200) / 100.0f;
-				float offsetZ = (float)(rand() % 400 - 200) / 100.0f;
+			float offsetX = (float)(rand() % 400 - 200) / 100.0f;
+			float offsetZ = (float)(rand() % 400 - 200) / 100.0f;
 
 			Busters* newBuster = new Busters(
 				{ offsetX, PATROL_HEIGHT, offsetZ },
@@ -1584,34 +1638,24 @@ void Busters_CheckGaugeEvent(void)
 				"asset\\model\\Busters_karikansei_3.fbx"
 			);
 
-				if (newBuster) {
-					newBuster->SetGroundLevel(PATROL_HEIGHT);
-					g_BustersList[nextFloor].push_back(newBuster);
-				}
+			if (newBuster) {
+				newBuster->SetGroundLevel(PATROL_HEIGHT);
+				g_BustersList[nextFloor].push_back(newBuster);
 			}
 		}
-
-		// 幽霊も下の階へ自動移動
-		Ghost* ghost = GetGhost();
-		if (ghost)
-		{
-			// 現在の幽霊の位置をそのまま保持して下の階に移動
-			XMFLOAT3 ghostPos = ghost->GetPos();
-			Field_ChangeFloor(nextFloor);
-			ghost->SetPos(ghostPos);
-		}
-
-		// 下の階へ移動
-		//Field_ChangeFloor(nextFloor);
 	}
-	else
+
+	// 幽霊も下の階へ自動移動
+	Ghost* ghost = GetGhost();
+	if (ghost)
 	{
-		// -------------------------------------------------
-		// 1階の場合 -> 逃げ場なし（プレイヤーの勝利）
-		// -------------------------------------------------
-		StartFade(SCENE_ANM_WIN);
+		XMFLOAT3 ghostPos = ghost->GetPos();
+		Field_ChangeFloor(nextFloor);
+		ghost->SetPos(ghostPos);
 	}
 }
+
+
 
 void Busters::Draw(void)
 {
@@ -1684,4 +1728,31 @@ bool Busters::IsIgnoredRelayDoor(int furnitureIndex)
 		if (ignoredIndex == furnitureIndex) return true;
 	}
 	return false;
+}
+
+// =================================================================
+// フロア降下アニメーション用グローバル関数
+// =================================================================
+
+void Busters_StartFloorExitAnim(XMFLOAT3 stairsPos)
+{
+	int currentFloor = Field_GetCurrentFloor();
+	if (currentFloor < 0 || currentFloor >= MAP_FLOORS) return;
+
+	for (Busters* buster : g_BustersList[currentFloor])
+	{
+		buster->StartRunToStairs(stairsPos);
+	}
+}
+
+bool Busters_IsFloorExitAnimDone(void)
+{
+	int currentFloor = Field_GetCurrentFloor();
+	if (currentFloor < 0 || currentFloor >= MAP_FLOORS) return true;
+
+	for (Busters* buster : g_BustersList[currentFloor])
+	{
+		if (!buster->IsRunToStairsDone()) return false;
+	}
+	return true;
 }
