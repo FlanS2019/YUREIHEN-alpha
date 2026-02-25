@@ -243,9 +243,9 @@ void Animation_Lose_Update(void)
 		StartFade(SCENE_TITLE);
 	}
 	// ENTERキーでスキップデバッグ用
-	if (Keyboard_IsKeyDownTrigger(KK_ENTER))
+	if (Keyboard_IsKeyDownTrigger(KK_SPACE))
 	{
-		StartFade(SCENE_RESULT);
+		StartFade(SCENE_TITLE);
 	}
 
 	// ENTERキーでゲームへ戻る
