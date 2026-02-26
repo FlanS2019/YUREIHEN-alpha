@@ -4,6 +4,7 @@
 #include "UI.h"
 #include "define.h"
 #include "debug_ostream.h"
+#include "sound.h"
 #include <windows.h>
 
 // グローバル変数
@@ -13,7 +14,10 @@ static Sprite* g_ScareComboBar = nullptr;//恐怖コンボの時間切れを表�
 ULONGLONG g_StartTime = GetTickCount64();
 ULONGLONG g_KeikaTime = GetTickCount64();
 
- // 恐怖コンボの初期化
+// コンボSE（Combo_1.m4a〜Combo_5.m4a）
+static SoundData* g_ComboSE[SCARECOMBO_MAX] = {};
+
+// 恐怖コンボの初期化
 void UI_ScareCombo_Initialize(void)
 {
 	g_ScareComboBG = new Sprite(
@@ -48,6 +52,13 @@ void UI_ScareCombo_Initialize(void)
 	g_ScareCombo->SetNumber(1);
 	g_StartTime = GetTickCount64();
 	g_KeikaTime = GetTickCount64();
+
+	// コンボSE読み込み
+	g_ComboSE[0] = LoadMP3(L"asset\\sound\\se\\Combo_1.m4a");
+	g_ComboSE[1] = LoadMP3(L"asset\\sound\\se\\Combo_2.m4a");
+	g_ComboSE[2] = LoadMP3(L"asset\\sound\\se\\Combo_3.m4a");
+	g_ComboSE[3] = LoadMP3(L"asset\\sound\\se\\Combo_4.m4a");
+	g_ComboSE[4] = LoadMP3(L"asset\\sound\\se\\Combo_5.m4a");
 }
 
 // 恐怖コンボの更新
@@ -112,6 +123,17 @@ void UI_ScareCombo_Finalize(void)
 
 	delete g_ScareComboBar;
 	g_ScareComboBar = nullptr;
+
+	// コンボSE解放
+	for (int i = 0; i < SCARECOMBO_MAX; i++)
+	{
+		if (g_ComboSE[i])
+		{
+			StopSound(g_ComboSE[i]);
+			UnloadSound(g_ComboSE[i]);
+			g_ComboSE[i] = nullptr;
+		}
+	}
 }
 
 void ScareComboUP(void)
@@ -122,6 +144,13 @@ void ScareComboUP(void)
 	if (g_ScareCombo->GetNumber() > SCARECOMBO_MAX)
 	{
 		g_ScareCombo->SetNumber(SCARECOMBO_MAX);
+	}
+
+	// コンボ数に対応するSEを再生（コンボ値1〜5 → 配列インデックス0〜4）
+	int comboIndex = g_ScareCombo->GetNumber() - 1;
+	if (comboIndex >= 0 && comboIndex < SCARECOMBO_MAX && g_ComboSE[comboIndex])
+	{
+		PlaySound(g_ComboSE[comboIndex], false);
 	}
 
 	g_StartTime = GetTickCount64();
