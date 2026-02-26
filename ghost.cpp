@@ -365,7 +365,11 @@ void Ghost_Update(void)
 
 	if (g_Ghost)
 	{
-		Camera_SetTargetPos(g_Ghost->GetPos());
+		// 俯瞰カメラ中はカメラ追従を止める（Camera_SetTargetPos内のUpdate()が上書きするため）
+		if (!Game_IsFloorExitAnimActive())
+		{
+			Camera_SetTargetPos(g_Ghost->GetPos());
+		}
 	}
 }
 
@@ -549,11 +553,7 @@ void Ghost::ScareStart(void)
 				addScore *= 0.6f; // 3人なら 60% にさらにダウン
 			}
 			AddScareGauge(addScore);
-			// ゲージMAX判定はゲームループ内でアニメーション付きで処理する
-			if (Busters_CheckGaugeEvent())
-			{
-				Game_RequestFloorExitAnim();
-			}
+			// ゲージMAXの判定は Game_Update 内の通常ループで倒す
 		}
 		break;
 	}

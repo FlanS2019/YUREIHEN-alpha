@@ -93,6 +93,7 @@ FIELD_TYPE ConvertMapID(int minecraftID)
 		return FIELD_STAIRS_DOWN;
 
 	case 98: case 13:
+	case 97:  // バスターズ誘導マーカー（通行可）
 	case 50: case 51: case 52:case 53:case 54:case 55:case 56:case 57:case 58:case 59: //家具
 	case 60: case 61: case 62:case 63:case 64:case 65:case 66:case 67:case 68:case 69: //家具
 		return FIELD_NONE;
@@ -773,4 +774,24 @@ XMFLOAT3 Field_GetStairsUpWorldPos(int floor)
 		}
 	}
 	return { 0.0f, PATROL_HEIGHT, 0.0f };
+}
+
+// マップID97（バスターズ誘導マーカー）のワールド座標を返す
+XMFLOAT3 Field_GetMarker97WorldPos(int floor)
+{
+	for (int z = 0; z < MAP_H; z++)
+	{
+		for (int x = 0; x < MAP_W; x++)
+		{
+			int mcID = GetMapBlockID(floor, 1, z, x);
+			if (mcID == 97)
+			{
+				float wx = GridToWorldX(x);
+				float wz = GridToWorldZ(z);
+				return { wx, PATROL_HEIGHT, wz };
+			}
+		}
+	}
+	// 97が見つからない場合は階段座標にフォールバック
+	return Field_GetStairsUpWorldPos(floor);
 }

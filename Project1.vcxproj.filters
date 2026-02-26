@@ -19,7 +19,6 @@
     <ClCompile Include="debugdraw.cpp" />
     <ClCompile Include="model.cpp" />
     <ClCompile Include="mouse.cpp" />
-    <ClCompile Include="game.cpp" />
     <ClCompile Include="opanim.cpp" />
     <ClCompile Include="result.cpp" />
     <ClCompile Include="shader.cpp" />
@@ -42,6 +41,7 @@
     <ClCompile Include="ClickFont.cpp" />
     <ClCompile Include="Tutorial_Object.cpp" />
     <ClCompile Include="Tutorial_Pages.cpp" />
+    <ClCompile Include="game.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="animation.h" />

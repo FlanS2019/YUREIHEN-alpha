@@ -127,6 +127,9 @@ void Busters::Update(void)
 	case BUSTERS_LURED:
 		this->PlayAnimationByName("walk", true);
 		break;
+	case BUSTERS_RUN_TO_STAIRS:
+		this->PlayAnimationByName("hakkendash", true);
+		break;
 	}
 
 	// ========== デバッグモード: 角度確認用 ==========
@@ -301,6 +304,66 @@ void Busters::Update(void)
 		m_Icon->Update();
 	}
 
+	// 階段へ走るアニメーション中は最優先で処理（WaitTimerなどに邪魔させない）
+	if (m_State == BUSTERS_RUN_TO_STAIRS)
+	{
+		float dx = m_StairsTargetPos.x - m_Position.x;
+		float dz = m_StairsTargetPos.z - m_Position.z;
+		float distSq = dx * dx + dz * dz;
+		if (distSq <= 0.5f * 0.5f)
+		{
+			m_RunToStairsDone = true;
+		}
+		else
+		{
+			m_MoveSpeed = BUSTERS_MOVE_SPEED_CHASE;
+			if (!m_PathList.empty())
+			{
+				MoveTo(m_PathList[0]);
+			}
+			else
+			{
+				MoveTo(m_StairsTargetPos);
+			}
+			// スタック検出：止まっていたらパスを再計算する
+			{
+				float mdx = m_Position.x - m_PrevPos.x;
+				float mdz = m_Position.z - m_PrevPos.z;
+				if (mdx * mdx + mdz * mdz < 0.0001f)
+				{
+					m_StuckTimer++;
+					if (m_StuckTimer > 30)
+					{
+						// パスを再計算して再挑戦
+						m_PathList.clear();
+						m_PathList = Field_FindPath(m_Position, m_StairsTargetPos);
+						if (!m_PathList.empty())
+						{
+							std::reverse(m_PathList.begin(), m_PathList.end());
+							if (!m_PathList.empty()) m_PathList.erase(m_PathList.begin());
+						}
+						m_StuckTimer = 0;
+					}
+				}
+				else
+				{
+					m_StuckTimer = 0;
+				}
+			}
+		}
+		m_PrevPos = m_Position;
+		// アイコン更新
+		if (m_Icon)
+		{
+			m_Icon->SetIcon(BILLBOARD_ICON::ALERT);
+			XMFLOAT3 iconPos = m_Position;
+			iconPos.y += 3.25f;
+			m_Icon->SetPos(iconPos);
+			m_Icon->Update();
+		}
+		return;
+	}
+
 	if (m_WaitTimer > 0)
 	{
 		// CHASE状態でhakken再生中はタイマーを減らない（hakken終了まで硬直維持）
@@ -360,33 +423,6 @@ void Busters::Update(void)
 				
 				SetRotY(currentRot + angleDiff);
 			}
-		}
-		return;
-	}
-
-	// 階段へ走るアニメーション中はCheckStateをスキップ
-	if (m_State == BUSTERS_RUN_TO_STAIRS)
-	{
-		float dx = m_StairsTargetPos.x - m_Position.x;
-		float dz = m_StairsTargetPos.z - m_Position.z;
-		float distSq = dx * dx + dz * dz;
-		if (distSq <= 0.5f * 0.5f)
-		{
-			m_RunToStairsDone = true;
-		}
-		else
-		{
-			m_MoveSpeed = BUSTERS_MOVE_SPEED_CHASE;
-			MoveTo(m_StairsTargetPos);
-		}
-		// アイコン更新のみ
-		if (m_Icon)
-		{
-			m_Icon->SetIcon(BILLBOARD_ICON::ALERT);
-			XMFLOAT3 iconPos = m_Position;
-			iconPos.y += 3.25f;
-			m_Icon->SetPos(iconPos);
-			m_Icon->Update();
 		}
 		return;
 	}
@@ -1224,8 +1260,15 @@ void Busters::StartRunToStairs(XMFLOAT3 stairsPos)
 	m_StairsTargetPos = stairsPos;
 	m_RunToStairsDone = false;
 	m_WaitTimer = 0;
+	m_StuckTimer = 0;
 	m_PathList.clear();
 	m_PathList = Field_FindPath(m_Position, stairsPos);
+	// Field_FindPath は終点→始点の逆順で返すので正順に直す
+	if (!m_PathList.empty())
+	{
+		std::reverse(m_PathList.begin(), m_PathList.end());
+		if (!m_PathList.empty()) m_PathList.erase(m_PathList.begin()); // 始点自身を除去
+	}
 	this->SetColor(1.0f, 0.5f, 0.0f, 1.0f); // オレンジ
 }
 
@@ -1796,7 +1839,10 @@ void Busters_StartFloorExitAnim(XMFLOAT3 stairsPos)
 bool Busters_IsFloorExitAnimDone(void)
 {
 	int currentFloor = Field_GetCurrentFloor();
-	if (currentFloor < 0 || currentFloor >= MAP_FLOORS) return true;
+	if (currentFloor < 0 || currentFloor >= MAP_FLOORS) return false;
+
+	// バスターズが0人の場合は未完了扱い（アニメ開始直後の即遷移を防ぐ）
+	if (g_BustersList[currentFloor].empty()) return false;
 
 	for (Busters* buster : g_BustersList[currentFloor])
 	{
