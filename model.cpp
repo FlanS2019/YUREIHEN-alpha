@@ -62,18 +62,10 @@ void RenderNode(MODEL* model, aiNode* node, XMMATRIX parentTransform, const XMFL
 		}
 		else
 		{
-			// ライト計算を有効化する処理
-			// マテリアル色が黒い場合は白にリセット
+			// マテリアル色を反映
 			if (meshIndex < model->AiScene->mNumMeshes && model->MeshMaterials)
 			{
 				XMFLOAT4 meshColor = model->MeshMaterials[meshIndex].diffuseColor;
-				
-				// 【重要】メッシュの色が黒い場合は必ず白にリセット
-				// これによりライトが正しく反映される
-				if (meshColor.x == 0.0f && meshColor.y == 0.0f && meshColor.z == 0.0f)
-				{
-					meshColor = XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f);
-				}
 				
 				finalColor = XMFLOAT4(
 					meshColor.x * color.x,
@@ -163,11 +155,6 @@ void RenderNodeAnimation(MODEL* model, aiNode* node, XMMATRIX parentTransform, c
 			if (meshIndex < model->AiScene->mNumMeshes && model->MeshMaterials)
 			{
 				XMFLOAT4 meshColor = model->MeshMaterials[meshIndex].diffuseColor;
-				
-				if (meshColor.x == 0.0f && meshColor.y == 0.0f && meshColor.z == 0.0f)
-				{
-					meshColor = XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f);
-				}
 				
 				finalColor = XMFLOAT4(
 					meshColor.x * color.x,
@@ -337,15 +324,88 @@ MODEL* ModelLoad(const char* FileName)
 			aiColor4D diffuseColor(1.0f, 1.0f, 1.0f, 1.0f);
 			aiReturn colorResult = material->Get(AI_MATKEY_COLOR_DIFFUSE, diffuseColor);
 			
-			// マテリアル色が取得できなかった場合、または全て0の場合は白をデフォルトに設定
-			if (colorResult != AI_SUCCESS || 
-				(diffuseColor.r == 0.0f && diffuseColor.g == 0.0f && diffuseColor.b == 0.0f))
+			// Diffuse色が取得できなかった、または黒(0,0,0)の場合はフォールバックを試みる
+			// FBXのPhongマテリアルではDiffuseが黒で、実際の色がBase ColorやAmbientに格納される場合がある
+			bool diffuseIsBlack = (colorResult == AI_SUCCESS &&
+				diffuseColor.r == 0.0f && diffuseColor.g == 0.0f && diffuseColor.b == 0.0f);
+
+			if (colorResult != AI_SUCCESS || diffuseIsBlack)
 			{
-				diffuseColor = aiColor4D(1.0f, 1.0f, 1.0f, 1.0f);  // デフォルトは白
-				hal::dout << "  Mesh[" << m << "]: Material color not found or black -> set white" << std::endl;
+				bool foundFallback = false;
+
+				// フォールバック1: PBR Base Color を試す
+				aiColor4D baseColor;
+				if (AI_SUCCESS == material->Get(AI_MATKEY_BASE_COLOR, baseColor))
+				{
+					if (baseColor.r != 0.0f || baseColor.g != 0.0f || baseColor.b != 0.0f)
+					{
+						diffuseColor = baseColor;
+						foundFallback = true;
+						hal::dout << "  Mesh[" << m << "]: Using BASE_COLOR as fallback ("
+								  << baseColor.r << ", " << baseColor.g << ", " << baseColor.b << ")" << std::endl;
+					}
+				}
+
+				// フォールバック2: Ambient Color を試す（Phongマテリアルではここに色が入ることがある）
+				if (!foundFallback)
+				{
+					aiColor4D ambientColor;
+					if (AI_SUCCESS == material->Get(AI_MATKEY_COLOR_AMBIENT, ambientColor))
+					{
+						if (ambientColor.r != 0.0f || ambientColor.g != 0.0f || ambientColor.b != 0.0f)
+						{
+							diffuseColor = ambientColor;
+							foundFallback = true;
+							hal::dout << "  Mesh[" << m << "]: Using AMBIENT color as fallback ("
+									  << ambientColor.r << ", " << ambientColor.g << ", " << ambientColor.b << ")" << std::endl;
+						}
+					}
+				}
+
+				// テクスチャがある場合は白にしてテクスチャ色をそのまま使う
+				// テクスチャがない場合はDiffuse色をそのまま尊重する（黒でも正しい色の場合がある）
+				if (!foundFallback)
+				{
+					aiString texPath;
+					bool hasTexture = (AI_SUCCESS == material->GetTexture(aiTextureType_DIFFUSE, 0, &texPath));
+					if (hasTexture)
+					{
+						// テクスチャがあるのでマテリアル色は白（テクスチャ色 × 白 = テクスチャ色）
+						diffuseColor = aiColor4D(1.0f, 1.0f, 1.0f, 1.0f);
+						hal::dout << "  Mesh[" << m << "]: Diffuse black but has texture -> set white" << std::endl;
+					}
+					else if (colorResult != AI_SUCCESS)
+					{
+						// Diffuse色自体が取得できなかった場合のみ白をデフォルトにする
+						diffuseColor = aiColor4D(1.0f, 1.0f, 1.0f, 1.0f);
+						hal::dout << "  Mesh[" << m << "]: Material color not found -> set white" << std::endl;
+					}
+					else
+					{
+						// Diffuse色が黒(0,0,0)でテクスチャもないが、Assimpが返した色をそのまま使用
+						hal::dout << "  Mesh[" << m << "]: Diffuse is black, no texture -> keeping original color" << std::endl;
+					}
+				}
+			}
+
+			// アルファ値の補正（0の場合は不透明に設定）
+			if (diffuseColor.a == 0.0f)
+			{
+				diffuseColor.a = 1.0f;
 			}
 
 			model->MeshMaterials[m].diffuseColor = XMFLOAT4(diffuseColor.r, diffuseColor.g, diffuseColor.b, diffuseColor.a);
+
+			// マテリアル名とシェーディングモデルをデバッグ出力
+			aiString matName;
+			if (AI_SUCCESS == material->Get(AI_MATKEY_NAME, matName))
+			{
+				int shadingModel = 0;
+				material->Get(AI_MATKEY_SHADING_MODEL, shadingModel);
+				hal::dout << "  Mesh[" << m << "]: Material=\"" << matName.data
+						  << "\" Shading=" << shadingModel
+						  << " Color=(" << diffuseColor.r << ", " << diffuseColor.g << ", " << diffuseColor.b << ", " << diffuseColor.a << ")" << std::endl;
+			}
 
 			// テクスチャ情報の取得
 			aiString texturePath;
@@ -874,8 +934,6 @@ void ModelAnimationDraw(MODEL* model, XMFLOAT3 pos, XMFLOAT3 rot, XMFLOAT3 scale
 			if (m < model->AiScene->mNumMeshes && model->MeshMaterials)
 			{
 				XMFLOAT4 meshColor = model->MeshMaterials[m].diffuseColor;
-				if (meshColor.x == 0.0f && meshColor.y == 0.0f && meshColor.z == 0.0f)
-					meshColor = XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f);
 				meshFinalColor = XMFLOAT4(
 					meshColor.x * finalColor.x, meshColor.y * finalColor.y,
 					meshColor.z * finalColor.z, meshColor.w * finalColor.w);

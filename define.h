@@ -8,8 +8,8 @@
 #define WINDOW_CAPTION L"幽霊変 - Violisun"
 #define SCREEN_WIDTH (1280.0f)	// UI要素の配置に使う（いままで通り）
 #define SCREEN_HEIGHT (720.0f)	// UI要素の配置に使う（いままで通り）
-#define DRAW_SCREEN_WIDTH  (3840.0f)   // （最終的な描画解像度）　実際の配置には使わない！！！
-#define DRAW_SCREEN_HEIGHT (2160.0f)   // （最終的な描画解像度）　実際の配置には使わない！！！
+#define DRAW_SCREEN_WIDTH  (1920.0f)   // （最終的な描画解像度）　実際の配置には使わない！！！
+#define DRAW_SCREEN_HEIGHT (1080.0f)   // （最終的な描画解像度）　実際の配置には使わない！！！
 #define DRAW_SCALE_X (DRAW_SCREEN_WIDTH  / SCREEN_WIDTH)   // 描画倍率X
 #define DRAW_SCALE_Y (DRAW_SCREEN_HEIGHT / SCREEN_HEIGHT)  // 描画倍率Y
 #define WIN32_LEAN_AND_MEAN	//32bitアプリには不要な情報を無視
@@ -20,6 +20,7 @@
 #define STOP_TIMER_BUSTER (false) //trueならタイマーとバスターズのupdateを停止させる
 #define DIRECT_START (true) //trueならgameシーンから直接開始する
 #define DEBUG_DRAW (false) //trueならdebugdraw機能を有効にする
+#define DEBUG_BUSTERS_ROTATION (false) //trueならバスターズの回転デバッグモード（左右矢印で回転、移動・検知・勝敗判定停止）
 #else
 //==================================
 //          ここは触らない
@@ -27,6 +28,7 @@
 #define STOP_TIMER_BUSTER (false) 
 #define DIRECT_START (false) 
 #define DEBUG_DRAW (false)
+#define DEBUG_BUSTERS_ROTATION (false)
 //==================================
 //          ここは触らない
 //==================================
@@ -67,10 +69,9 @@
 #define FURNITURE_DETECTION_RANGE (5.0f) // Ghost検出範囲
 
 //=== Busters 関連定数 ===
-#define BUSTERS_PATROL_SPEED (0.001f)    // パトロール速度
 #define BUSTERS_MOVE_SPEED_SEARCH    (0.05f) // 探索速度
-#define BUSTERS_MOVE_SPEED_SUSPICION (0.10f) // 警戒速度
-#define BUSTERS_MOVE_SPEED_CHASE     (0.15f) // 追跡速度
+#define BUSTERS_MOVE_SPEED_SUSPICION (0.11f) // 警戒速度
+#define BUSTERS_MOVE_SPEED_CHASE     (0.12f) // 追跡速度
 
 #define MAP_MIN_X (-20.0f)
 #define MAP_MAX_X (20.0f)

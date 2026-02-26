@@ -26,14 +26,6 @@ public:
 		m_Model = ModelLoad(pass);
 		m_ModelSize = ModelGetSize(m_Model);
 		m_OriginalColor = ModelGetAverageMaterialColor(m_Model);
-
-		// 【重要】モデルマテリアルカラーが黒い場合は必ず白にリセット
-		// これにより Ghost と Furniture が真っ黒に表示されることを防ぐ
-		if (m_OriginalColor.x == 0.0f && m_OriginalColor.y == 0.0f && m_OriginalColor.z == 0.0f)
-		{
-			m_OriginalColor = XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f);
-			hal::dout << "  Warning: Model material color was black, reset to white" << std::endl;
-		}
 	}
 	~Sprite3D()
 	{

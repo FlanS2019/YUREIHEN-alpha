@@ -92,11 +92,12 @@ FIELD_TYPE ConvertMapID(int minecraftID)
 	case 9: case 10: case 11: case 12: // 上付き階段
 		return FIELD_STAIRS_DOWN;
 
-	case 98: case 13:
-	case 50: case 51: case 52:case 53:case 54:case 55:case 56:case 57:case 58:case 59: //家具
-	case 60: case 61: case 62:case 63:case 64:case 65:case 66:case 67:case 68:case 69: //家具
+	case 98: case 13: // 方向指示ブロック・ドア
 		return FIELD_NONE;
+
 	default:
+		// 家具ブロック（JSONで model が定義されているもの）はFIELD_NONEとして扱う
+		if (IsFurnitureBlock(minecraftID)) return FIELD_NONE;
 		if (minecraftID > 0) return FIELD_BOX;
 		return FIELD_NONE;
 	}
@@ -654,8 +655,9 @@ std::vector<XMFLOAT3> Field_FindPath(XMFLOAT3 start, XMFLOAT3 end)
 	openList.push(startNode);
 	nodes[startZ][startX] = startNode;
 
-	int dirX[] = { 0, 0, -1, 1 };
-	int dirZ[] = { -1, 1, 0, 0 };
+	int dirX[] = { 0, 0, -1, 1, -1, 1, -1, 1 };  // 4方向 + 斜め4方向
+	int dirZ[] = { -1, 1, 0, 0, -1, -1, 1, 1 };
+	float dirCost[] = { 1.0f, 1.0f, 1.0f, 1.0f, 1.41f, 1.41f, 1.41f, 1.41f };
 	bool found = false;
 	int maxCalculationSteps = 1000;
 
@@ -673,7 +675,7 @@ std::vector<XMFLOAT3> Field_FindPath(XMFLOAT3 start, XMFLOAT3 end)
 		if (closedList[current.z][current.x]) continue;
 		closedList[current.z][current.x] = true;
 
-		for (int i = 0; i < 4; i++)
+		for (int i = 0; i < 8; i++)  // 8方向をチェック
 		{
 			int nextX = current.x + dirX[i];
 			int nextZ = current.z + dirZ[i];
@@ -683,9 +685,21 @@ std::vector<XMFLOAT3> Field_FindPath(XMFLOAT3 start, XMFLOAT3 end)
 			// 壁判定
 			if (ConvertMapID(GetMapBlockID(g_CurrentFloor, 1, nextZ, nextX)) == FIELD_BOX) continue;
 
+			// 斜め移動の場合、両隣が通路であるか確認（コーナーにめり込まない）
+			if (i >= 4)
+			{
+				int adjX = current.x + dirX[i];
+				int adjZ = current.z + dirZ[i];
+				int diagX = current.x + dirX[i];
+				int diagZ = current.z + dirZ[i];
+
+				if (ConvertMapID(GetMapBlockID(g_CurrentFloor, 1, current.z, diagX)) == FIELD_BOX) continue;
+				if (ConvertMapID(GetMapBlockID(g_CurrentFloor, 1, diagZ, current.x)) == FIELD_BOX) continue;
+			}
+
 			if (closedList[nextZ][nextX]) continue;
 
-			float newCost = current.cost + 1.0f;
+			float newCost = current.cost + dirCost[i];
 			float h = (float)(std::abs(endX - nextX) + std::abs(endZ - nextZ));
 
 			Node neighbor = { nextX, nextZ, newCost, h, current.x, current.z };
@@ -741,4 +755,43 @@ float Field_CalculateRotationFromMarker(float x, float y, float z)
 	if (GetMapBlockID(g_CurrentFloor, gy, gz, gx - 1) == markerID) return 90.0f;  // 左
 
 	return 0.0f;
+}
+
+// 指定フロアのSTAIRS_UPブロックのワールド座標を最初に見つけた1つ返す
+XMFLOAT3 Field_GetStairsUpWorldPos(int floor)
+{
+	for (int z = 0; z < MAP_H; z++)
+	{
+		for (int x = 0; x < MAP_W; x++)
+		{
+			int mcID = GetMapBlockID(floor, 1, z, x);
+			if (ConvertMapID(mcID) == FIELD_STAIRS_UP)
+			{
+				float wx = GridToWorldX(x);
+				float wz = GridToWorldZ(z);
+				return { wx, PATROL_HEIGHT, wz };
+			}
+		}
+	}
+	return { 0.0f, PATROL_HEIGHT, 0.0f };
+}
+
+// マップID97（バスターズ誘導マーカー）のワールド座標を返す
+XMFLOAT3 Field_GetMarker97WorldPos(int floor)
+{
+	for (int z = 0; z < MAP_H; z++)
+	{
+		for (int x = 0; x < MAP_W; x++)
+		{
+			int mcID = GetMapBlockID(floor, 1, z, x);
+			if (mcID == 97)
+			{
+				float wx = GridToWorldX(x);
+				float wz = GridToWorldZ(z);
+				return { wx, PATROL_HEIGHT, wz };
+			}
+		}
+	}
+	// 97が見つからない場合は階段座標にフォールバック
+	return Field_GetStairsUpWorldPos(floor);
 }

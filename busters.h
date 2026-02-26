@@ -4,6 +4,7 @@
 #include <DirectXMath.h>
 #include "model.h"
 #include "sprite3d.h"
+#include "anim_sprite3d.h"
 #include "ghost.h"
 #include "component.h"
 #include "define.h"
@@ -14,15 +15,16 @@ using namespace DirectX;
 
 enum BUSTERS_STATE
 {
-	BUSTERS_SEARCH,    // 家具を探して移動（探索）
-	BUSTERS_SUSPICION, // 怪しんで近づく（警戒）
-	BUSTERS_CHASE,      // 幽霊を見つけて追跡（確定）
-	BUSTERS_STUN,		//気絶中
-	BUSTERS_LURED		// 誘引中
-
+	BUSTERS_SEARCH,         // 家具を探して移動（探索）
+	BUSTERS_SUSPICION,      // 怪しんで近づく（警戒）
+	BUSTERS_CHASE,          // 幽霊を見つけて追跡（確定）
+	BUSTERS_STUN,           // 気絶中
+	BUSTERS_LURED,          // 誘引中
+	BUSTERS_HELP,
+	BUSTERS_RUN_TO_STAIRS,  // 階降下アニメーション：階段まで走る
 };
 
-class Busters : public Sprite3D, public Jump
+class Busters : public AnimSprite3D, public Jump
 {
 private:
 	BUSTERS_STATE m_State;
@@ -52,6 +54,13 @@ private:
 	XMFLOAT3 m_LastPathCalcGhostPos;
 	XMFLOAT3 m_PrevPos; // 前フレームの座標
 	int m_StuckTimer;   // 動いていない時間を計測
+	int m_RotationUpdateCounter; // 回転更新用カウンター
+	float m_PrevTargetAngle; // 前回の目標角度
+	int m_AngleFlipCounter;  // 角度反転カウンター
+
+	// 階降下アニメーション用
+	XMFLOAT3 m_StairsTargetPos;  // 目標の階段位置
+	bool m_RunToStairsDone;       // 階段到着済みフラグ
 
 public:
 	Busters(const XMFLOAT3& pos, const XMFLOAT3& scale, const XMFLOAT3& rot, const char* pass);
@@ -64,7 +73,12 @@ public:
 	void OnScared(void);
 	void OnLured(XMFLOAT3 targetPos);
 	void OnStopped(void);
+	void StartRunToStairs(XMFLOAT3 stairsPos); // 階降下アニメ開始
+	bool IsRunToStairsDone(void) const { return m_RunToStairsDone; }
 	
+	BUSTERS_STATE GetState(void) const { return m_State; }
+	void ReduceWaitTimer(int amount) { m_WaitTimer -= amount; if (m_WaitTimer < 0) m_WaitTimer = 0; }
+
 	PointLight* GetHeadlight(void) const { return m_pHeadlight; }
 	void SetIsGhostDiscover(bool discover);
 	bool IsTargetInFOV(const XMFLOAT3& targetPos, float range);
@@ -85,6 +99,17 @@ Busters* GetBusters(void);
 void BustersScare(void);
 void BustersLured(const XMFLOAT3& pos, float radius);
 void BustersStopped(void);
-void Busters_CheckGaugeEvent(void);
+
+// ゲージMAX時の処理：trueならフロア降下アニメーション開始、falseなら勝利フェード済み
+bool Busters_CheckGaugeEvent(void);
 
 void Busters_SetLight(void);
+
+int Busters_GetCurrentFloorCount(void);
+
+// フロア降下アニメーション用
+void Busters_StartFloorExitAnim(XMFLOAT3 stairsPos); // 全バスターズに階段まで走るよう指示
+bool Busters_IsFloorExitAnimDone(void);               // 全バスターズが階段到着済みか
+void Busters_DoFloorTransition(void);                 // 実際のフロア移行処理を実行
+
+bool CanPassLine(const XMFLOAT3& start, const XMFLOAT3& end, float radius, int ignoreFurnitureIndex = -1);

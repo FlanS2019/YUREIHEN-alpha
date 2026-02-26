@@ -109,32 +109,44 @@
 		{
 			"name": "white_concrete",
 			"names_ja": "キャビネット",
-			"default_id": 50
+			"default_id": 50,
+			"model": "asset\\model\\cabinet.fbx",
+			"action": "scare"
 		},
 		{
 			"name": "light_gray_concrete",
 			"names_ja": "高い本棚",
-			"default_id": 51
+			"default_id": 51,
+			"model": "asset\\model\\tall_bookshelf.fbx",
+			"action": "scare"
 		},
 		{
 			"name": "gray_concrete",
 			"names_ja": "ソファー",
-			"default_id": 52
+			"default_id": 52,
+			"model": "asset\\model\\sofa.fbx",
+			"action": "scare"
 		},
 		{
 			"name": "black_concrete",
 			"names_ja": "シャンデリア",
-			"default_id": 53
+			"default_id": 53,
+			"model": "asset\\model\\chandelier.fbx",
+			"action": "scare"
 		},
 		{
 			"name": "brown_concrete",
 			"names_ja": "ロッキングチェア",
-			"default_id": 54
+			"default_id": 54,
+			"model": "asset\\model\\rockingchair.fbx",
+			"action": "lure"
 		},
 		{
 			"name": "jukebox",
 			"names_ja": "蓄音機",
-			"default_id": 55
+			"default_id": 55,
+			"model": "asset\\model\\phonograph.fbx",
+			"action": "stop"
 		},
 		{
 			"name": "light_gray_wool",
@@ -144,67 +156,100 @@
 		{
 			"name": "campfire",
 			"names_ja": "暖炉",
-			"default_id": 57
+			"default_id": 57,
+			"model": "asset\\model\\danro.fbx",
+			"action": "lure"
 		},
 		{
 			"name": "red_concrete",
 			"names_ja": "バスタブ",
-			"default_id": 58
+			"default_id": 58,
+			"model": "asset\\model\\bathtub.fbx",
+			"action": "lure"
 		},
 		{
 			"name": "orange_concrete",
 			"names_ja": "キッチン",
-			"default_id": 59
+			"default_id": 59,
+			"model": "asset\\model\\kitchen.fbx",
+			"action": "scare"
 		},
 		{
 			"name": "yellow_concrete",
 			"names_ja": "便器",
-			"default_id": 60
+			"default_id": 60,
+			"model": "asset\\model\\toilet.fbx",
+			"action": "lure"
 		},
 		{
 			"name": "lime_concrete",
 			"names_ja": "ベッド",
-			"default_id": 61
+			"default_id": 61,
+			"model": "asset\\model\\cube.fbx",
+			"action": "stop"
 		},
 		{
 			"name": "green_concrete",
 			"names_ja": "ピアノ",
-			"default_id": 62
+			"default_id": 62,
+			"model": "asset\\model\\piano.fbx",
+			"action": "scare"
 		},
 		{
 			"name": "cauldron",
 			"names_ja": "シンク",
-			"default_id": 63
+			"default_id": 63,
+			"model": "asset\\model\\sink.fbx",
+			"action": "scare"
 		},
 		{
 			"name": "white_banner",
 			"names_ja": "鏡",
-			"default_id": 64
+			"default_id": 64,
+			"model": "asset\\model\\mirror.fbx",
+			"action": "scare"
 		},
 		{
 			"name": "dragon_head",
 			"names_ja": "ハンティングトロフィー",
-			"default_id": 65
+			"default_id": 65,
+			"model": "asset\\model\\huntingtrophy.fbx",
+			"action": "scare"
 		},
 		{
 			"name": "mangrove_door",
 			"names_ja": "偽扉",
-			"default_id": 66
+			"default_id": 66,
+			"model": "asset\\model\\cube.fbx",
+			"action": "scare"
 		},
 		{
 			"name": "cyan_concrete",
 			"names_ja": "振り子時計",
-			"default_id": 67
+			"default_id": 67,
+			"model": "asset\\model\\grandfather_clock.fbx",
+			"action": "lure"
 		},
 		{
 			"name": "light_blue_concrete",
 			"names_ja": "椅子",
-			"default_id": 68
+			"default_id": 68,
+			"model": "asset\\model\\cube.fbx",
+			"action": "none"
 		},
 		{
 			"name": "blue_concrete",
 			"names_ja": "ダイニングテーブル",
-			"default_id": 69
+			"default_id": 69,
+			"model": "asset\\model\\cube.fbx",
+			"action": "none"
+		},
+		{
+			"name": "purple_concrete",
+			"names_ja": "壁掛けライト",
+			"default_id": 70,
+			"model": "asset\\model\\wall_light.fbx",
+			"action": "none"
 		},
 		{
 			"name": "end_stone_brick_wall",

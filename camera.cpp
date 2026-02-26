@@ -44,7 +44,6 @@ void Camera_Draw(void)
 void Camera_SetTargetPos(XMFLOAT3 targetPos)
 {
 	CameraObject->SetTargetPos(targetPos);
-	CameraObject->Update();
 }
 
 float Camera_GetYaw(void)

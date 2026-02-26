@@ -163,6 +163,7 @@
     <ClInclude Include="field.h" />
     <ClCompile Include="font.cpp" />
     <ClCompile Include="furniture.cpp" />
+    <ClCompile Include="game.cpp" />
     <ClCompile Include="ghost.cpp" />
     <ClCompile Include="keyboard.cpp" />
     <ClCompile Include="light.cpp" />
@@ -173,7 +174,6 @@
     <ClCompile Include="minimap.cpp" />
     <ClCompile Include="model.cpp" />
     <ClCompile Include="mouse.cpp" />
-    <ClCompile Include="game.cpp" />
     <ClCompile Include="opanim.cpp" />
     <ClCompile Include="result.cpp" />
     <ClCompile Include="shader.cpp" />
@@ -184,6 +184,7 @@
     <ClCompile Include="texture.cpp" />
     <ClCompile Include="title.cpp" />
     <ClCompile Include="Tutorial_Object.cpp" />
+    <ClCompile Include="Tutorial_Pages.cpp" />
     <ClCompile Include="UI.cpp" />
     <ClCompile Include="UI_PauseMenu.cpp" />
     <ClCompile Include="UI_scarecombo.cpp" />
@@ -231,11 +232,13 @@
     <ClInclude Include="stb_truetype.h" />
     <ClInclude Include="texture.h" />
     <ClInclude Include="title.h" />
+    <ClInclude Include="TutorialFlag.h" />
     <ClInclude Include="Tutorial_Object.h" />
     <ClInclude Include="UI.h" />
     <ClInclude Include="UI_PauseMenu.h" />
     <ClInclude Include="UI_scarecombo.h" />
     <ClInclude Include="UI_Tutorial.h" />
+    <ClInclude Include="UI_Tutorial_Internal.h" />
     <ClInclude Include="WinAnim.h" />
   </ItemGroup>
   <ItemGroup>

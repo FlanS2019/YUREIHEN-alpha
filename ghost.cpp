@@ -11,6 +11,8 @@ using namespace DirectX;
 #include "camera.h"
 #include "furniture.h"
 #include "busters.h"
+#include "Tutorial_Object.h"
+#include "game.h"
 #include "UI.h"
 #include "UI_scarecombo.h"
 #include "define.h"
@@ -363,7 +365,11 @@ void Ghost_Update(void)
 
 	if (g_Ghost)
 	{
-		Camera_SetTargetPos(g_Ghost->GetPos());
+		// 俯瞰カメラ中はカメラ追従を止める（Camera_SetTargetPos内のUpdate()が上書きするため）
+		if (!Game_IsFloorExitAnimActive())
+		{
+			Camera_SetTargetPos(g_Ghost->GetPos());
+		}
 	}
 }
 
@@ -449,9 +455,6 @@ void Ghost::ScareStart(void)
 	if (!pFurniture) return;
 
 	Busters* pBuster = GetBusters();
-	if (!pBuster) return;
-
-	XMFLOAT3 busterPos = pBuster->GetPos();
 
 	if (g_pScareSound)
 	{
@@ -459,32 +462,105 @@ void Ghost::ScareStart(void)
 	}
 
 	XMFLOAT3 ghostPos = GetPos();
-	XMVECTOR distVec = XMVectorSubtract(XMLoadFloat3(&busterPos), XMLoadFloat3(&ghostPos));
-	float distance = XMVectorGetX(XMVector3Length(distVec));
+
+	XMFLOAT3 busterPos = { 0.0f, 0.0f, 0.0f };
+	float distance = FLT_MAX;
+	if (pBuster)
+	{
+		busterPos = pBuster->GetPos();
+		XMVECTOR ghostVec = XMLoadFloat3(&ghostPos);
+		XMVECTOR busterVec = XMLoadFloat3(&busterPos);
+		XMVECTOR distVec = XMVectorSubtract(busterVec, ghostVec);
+		distance = XMVectorGetX(XMVector3Length(distVec));
+	}
 
 	FURNITURE_ACTION action = pFurniture->GetActionType();
-
 	float currentRange = GetCurrentScareRange();
+
+	float backScareAngle = 140.0f;      // 背後と判定する角度（180度にすると真横も背後扱いになります。少し狭めの140度を推奨）
+	float backScareMultiplier = 1.5f;   // 背後から驚かせた時のゲージ上昇倍率
+
+	bool isBackScare = false;
+	if (pBuster)
+	{
+		// バスターズの向いている角度から「正面」ベクトルを計算
+		float rotRad = XMConvertToRadians(pBuster->GetRot().y + 180.0f);
+		XMVECTOR forwardVec = XMVectorSet(sinf(rotRad), 0.0f, cosf(rotRad), 0.0f);
+
+		// 「背後」のベクトル（正面の逆）
+		XMVECTOR backwardVec = XMVectorSet(-XMVectorGetX(forwardVec), 0.0f, -XMVectorGetZ(forwardVec), 0.0f);
+
+		// バスターズから幽霊(家具)への方向ベクトル
+		XMVECTOR busterToGhost = XMVectorSet(ghostPos.x - busterPos.x, 0.0f, ghostPos.z - busterPos.z, 0.0f);
+		busterToGhost = XMVector3Normalize(busterToGhost);
+
+		// 内積で角度を判定（コサイン）
+		float dot = XMVectorGetX(XMVector3Dot(backwardVec, busterToGhost));
+		float limitCos = cosf(XMConvertToRadians(backScareAngle / 2.0f));
+
+		// 幽霊がバスターズの「背後設定角度」の範囲内にいればボーナス
+		if (dot >= limitCos)
+		{
+			isBackScare = true;
+		}
+	}
 
 	switch (action)
 	{
 	case ACTION_SCARE:
+	{
+		bool scared = false;
 
-		if (distance <= currentRange)
+		if (pBuster && distance <= currentRange)
 		{
 			BustersScare();
+			scared = true;
+		}
+
+		// チュートリアルバスターズが範囲内にいれば驚かせる
+		TutorialBusters* pTutBuster = GetTutorialBusters();
+		if (pTutBuster && pTutBuster->GetState() != TB_STUN)
+		{
+			XMFLOAT3 tutPos = pTutBuster->GetPos();
+			XMVECTOR tutDistVec = XMVectorSubtract(XMLoadFloat3(&tutPos), XMLoadFloat3(&ghostPos));
+			float tutDistance = XMVectorGetX(XMVector3Length(tutDistVec));
+			if (tutDistance <= currentRange)
+			{
+				pTutBuster->OnScared();
+				scared = true;
+			}
+		}
+
+		if (scared)
+		{
 			if (!m_HasIncreasedMultiplier)
 			{
 				ScareComboUP();
 				m_HasIncreasedMultiplier = true;
 			}
-			AddScareGauge(SCORE_SCARE * UI_ScareCombo_GetNumber());
-			Busters_CheckGaugeEvent();
+			float addScore = SCORE_SCARE * UI_ScareCombo_GetNumber();
+			
+			if (isBackScare)
+			{
+				addScore *= backScareMultiplier; // 背後なら1.5倍にする
+			}
+
+			int busterCount = Busters_GetCurrentFloorCount();
+			if (busterCount == 2) {
+				addScore *= 0.8f; // 2人なら 80% にダウン
+			}
+			else if (busterCount >= 3) {
+				addScore *= 0.6f; // 3人なら 60% にさらにダウン
+			}
+			AddScareGauge(addScore);
+			// ゲージMAXの判定は Game_Update 内の通常ループで倒す
 		}
 		break;
+	}
 
 	case ACTION_LURE:
 	{
+		if (!pBuster) break;
 		float lureRange = currentRange * 2.0f;
 
 		if (distance <= lureRange)
@@ -497,11 +573,12 @@ void Ghost::ScareStart(void)
 			}
 			AddScareGauge(SCORE_LURE * UI_ScareCombo_GetNumber());
 		}
-	}
 		break;
+	}
 
 	case ACTION_STOP:
 
+		if (!pBuster) break;
 		if (distance <= BUSTERS_STOP_RANGE)
 		{
 			BustersStopped();

@@ -481,8 +481,6 @@ void Result_Finalize(void)
 		UnloadSound(g_pBGM);
 		g_pBGM = nullptr;
 	}
-
-	Font_FinalizeGlobalData();
 }
 
 void Result_SetTimerValue(float time)
