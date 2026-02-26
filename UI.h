@@ -184,11 +184,12 @@ protected:
 	float m_DigitSpacing;   // 桁間の間隔
 	bool m_ShowMultiplier;  // 倍数接頭子「x」を表示するかどうか
 	int m_MinDigits;        // 最小桁数（0パディング用）
+	XMFLOAT4 m_Color;       // 色（Spriteと同様）
 
 public:
 	Number(const XMFLOAT2& pos, const XMFLOAT2& digitSize, const XMFLOAT4& col, BLENDSTATE bstate, const wchar_t* texturePath, int divideX, int divideY, float spacing, int minDigits = 1)
 		: SplitSprite(pos, digitSize, 0.0f, col, bstate, texturePath, divideX, divideY),
-		m_Number(0), m_DigitSize(digitSize), m_DigitSpacing(spacing), m_ShowMultiplier(false), m_MinDigits(minDigits)
+		m_Number(0), m_DigitSize(digitSize), m_DigitSpacing(spacing), m_ShowMultiplier(false), m_MinDigits(minDigits), m_Color(col)
 	{
 	}
 
@@ -204,6 +205,18 @@ public:
 	{
 		m_ShowMultiplier = show;
 		UpdateDigitTextures();
+	}
+
+	// 色を設定する
+	void SetColor(const XMFLOAT4& color)
+	{
+		m_Color = color;
+	}
+
+	// 色を取得する
+	XMFLOAT4 GetColor() const
+	{
+		return m_Color;
 	}
 
 	// 数値から各桁のテクスチャ番号を計算
@@ -260,6 +273,8 @@ public:
 			// 座標を整数値に丸める（ピクセル単位での正確な配置）
 			m_Position.x = floorf(currentPos.x);
 			m_Position.y = floorf(currentPos.y);
+			// 色を反映
+			SplitSprite::m_Color = m_Color;
 			SplitSprite::Draw();
 			currentPos.x -= m_DigitSpacing;
 		}
