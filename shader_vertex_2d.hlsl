@@ -5,7 +5,7 @@
 
 ==============================================================================*/
 
-#define MAX_POINT_LIGHTS 8
+#define MAX_POINT_LIGHTS 16
 
 // 定数バッファ
 cbuffer Buffer0 : register(b0)
@@ -20,8 +20,8 @@ cbuffer Buffer1 : register(b1)
 
 struct POINT_LIGHT
 {
-	bool enable;
-	bool3 dummy;
+	int enable;
+	int3 dummy;
 	float4 Position; // ライト位置（ポイントライト用）
 	float4 Direction; // ライト方向（直光源用）
 	float4 Diffuse;

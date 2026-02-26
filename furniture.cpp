@@ -18,6 +18,120 @@ Furniture* g_Furniture[FURNITURE_NUM]{};
 
 static int g_FurnitureCount = 0;
 
+static std::map<int, std::string> g_BlockNameJaMap;
+static bool g_FileLoadFailed = false; // 読み込み失敗フラグ
+static bool g_BlockDefinitionsLoaded = false; // 読み込み完了フラグ
+
+// ブロック定義構造体（モデル・アクション情報を保持）
+struct BlockDefinition
+{
+	std::string names_ja;
+	std::string model;   // fbxモデルパス（空文字列なら家具ではない）
+	std::string action;  // "scare", "lure", "stop", "none"（空文字列なら家具ではない）
+};
+
+static std::map<int, BlockDefinition> g_BlockDefMap;
+
+// アクション文字列を FURNITURE_ACTION に変換
+static FURNITURE_ACTION ParseAction(const std::string& actionStr)
+{
+	if (actionStr == "scare") return ACTION_SCARE;
+	if (actionStr == "lure")  return ACTION_LURE;
+	if (actionStr == "stop")  return ACTION_STOP;
+	return ACTION_NONE;
+}
+
+// block_definitions.json を読み込み、IDと定義情報のマップを作成する
+static void LoadBlockDefinitions()
+{
+	if (g_BlockDefinitionsLoaded) return;
+	g_BlockDefinitionsLoaded = true;
+
+	std::ifstream file("SchemToArray\\block_definitions.json");
+	if (!file.is_open())
+	{
+		g_FileLoadFailed = true;
+		return;
+	}
+
+	// エラー回避のため、明示的に文字列へ読み込む
+	std::string content;
+	file.seekg(0, std::ios::end);
+	content.reserve(static_cast<size_t>(file.tellg()));
+	file.seekg(0, std::ios::beg);
+	content.assign((std::istreambuf_iterator<char>(file)), std::istreambuf_iterator<char>());
+
+	// JSONの文字列値を抽出するヘルパー
+	auto findStringValue = [](const std::string& obj, const char* key) -> std::string {
+		std::string searchKey = std::string("\"") + key + "\"";
+		size_t npos = obj.find(searchKey);
+		if (npos == std::string::npos) return "";
+		size_t colon = obj.find(':', npos);
+		if (colon == std::string::npos) return "";
+		size_t s = obj.find('"', colon);
+		if (s == std::string::npos) return "";
+		size_t e = obj.find('"', s + 1);
+		if (e == std::string::npos) return "";
+		return obj.substr(s + 1, e - s - 1);
+	};
+
+	// JSONの数値を抽出するヘルパー
+	auto findIntValue = [](const std::string& obj, const char* key) -> int {
+		std::string searchKey = std::string("\"") + key + "\"";
+		size_t ipos = obj.find(searchKey);
+		if (ipos == std::string::npos) return -1;
+		size_t colon = obj.find(':', ipos);
+		if (colon == std::string::npos) return -1;
+		size_t s = obj.find_first_of("0123456789", colon);
+		if (s == std::string::npos) return -1;
+		size_t e = obj.find_first_not_of("0123456789", s);
+		std::string idStr = (e == std::string::npos) ? obj.substr(s) : obj.substr(s, e - s);
+		if (idStr.empty()) return -1;
+		return std::stoi(idStr);
+	};
+
+	size_t pos = 0;
+	while ((pos = content.find('{', pos)) != std::string::npos)
+	{
+		size_t level = 1;
+		size_t endPos = pos + 1;
+		while (level > 0 && endPos < content.length())
+		{
+			if (content[endPos] == '{') level++;
+			else if (content[endPos] == '}') level--;
+			endPos++;
+		}
+
+		if (level == 0)
+		{
+			std::string object = content.substr(pos, endPos - pos);
+
+			std::string names_ja = findStringValue(object, "names_ja");
+			std::string model = findStringValue(object, "model");
+			std::string action = findStringValue(object, "action");
+
+			// id または default_id を探す
+			int id = findIntValue(object, "id");
+			if (id == -1) id = findIntValue(object, "default_id");
+
+			if (id != -1 && !names_ja.empty())
+			{
+				// 後方互換: g_BlockNameJaMap にも保存
+				g_BlockNameJaMap[id] = names_ja;
+
+				// 新しい定義マップにも保存
+				BlockDefinition def;
+				def.names_ja = names_ja;
+				def.model = model;
+				def.action = action;
+				g_BlockDefMap[id] = def;
+			}
+		}
+		// 次の '{' から探索を続ける（入れ子構造にも対応）
+		pos++;
+	}
+}
+
 int GetFurnitureBlockID(int floor, int y, int z, int x)
 {
 	// 範囲チェック
@@ -39,6 +153,9 @@ void Furniture_Initialize(void)
 {
 	Furniture_Finalize();
 
+	// ブロック定義を読み込む（初回のみ）
+	LoadBlockDefinitions();
+
 	// 1. カウントをリセット
 	g_FurnitureCount = 0;
 
@@ -53,249 +170,27 @@ void Furniture_Initialize(void)
 
 				int id = GetFurnitureBlockID(currentFloor, y, z, x);
 
-				// ワールド座標に変換
-				float wx = (float)x - MAP_WIDTH / 2.0f;
-				float wz = MAP_LENGTH / 2.0f - (float)z;
-				float wy = (float)y - 1.0f;
-
-				float rotY = Field_CalculateRotationFromMarker(wx, wy, wz);
-
-				switch (id)
+				// ブロック定義にモデルが登録されている場合のみ家具として生成
+				if (g_BlockDefMap.count(id) > 0 && !g_BlockDefMap[id].model.empty())
 				{
+					// ワールド座標に変換
+					float wx = (float)x - MAP_WIDTH / 2.0f;
+					float wz = MAP_LENGTH / 2.0f - (float)z;
+					float wy = (float)y - 1.0f;
 
-				case 13:
+					float rotY = Field_CalculateRotationFromMarker(wx, wy, wz);
 
-					// ドア
-					CreateFurniture(
-						{ wx, wy, wz },          // 場所
-						{ 1.0f, 1.0f, 1.0f },      // サイズ
-						{ 0.0f, rotY, 0.0f },      // 回転
-						"asset\\model\\cube.fbx", // モデル
-						ACTION_NONE,                // アクション
-						id
-					);
+					const BlockDefinition& def = g_BlockDefMap[id];
+					FURNITURE_ACTION action = ParseAction(def.action);
 
-				case 50:
-
-					// キャビネット
 					CreateFurniture(
-						{ wx, wy, wz },          // 場所
-						{ 1.0f, 1.0f, 1.0f },      // サイズ
-						{ 0.0f, rotY, 0.0f },      // 回転
-						"asset\\model\\cube.fbx", // モデル
-						ACTION_SCARE,                // アクション
+						{ wx, wy, wz },
+						{ 1.0f, 1.0f, 1.0f },
+						{ 0.0f, rotY, 0.0f },
+						def.model.c_str(),
+						action,
 						id
 					);
-					break;
-				case 51:
-					// 高い本棚
-					CreateFurniture(
-						{ wx, wy, wz },          // 場所
-						{ 1.0f, 1.0f, 1.0f },      // サイズ
-						{ 0.0f, rotY, 0.0f },      // 回転
-						"asset\\model\\tall_bookshelf.fbx", // モデル
-						ACTION_SCARE,                // アクション
-						id
-					);
-					break;
-				case 52:
-					// ソファー
-					CreateFurniture(
-						{ wx, wy, wz },          // 場所
-						{ 1.0f, 1.0f, 1.0f },      // サイズ
-						{ 0.0f, rotY, 0.0f },      // 回転
-						"asset\\model\\sofa.fbx", // モデル
-						ACTION_SCARE,                // アクション
-						id
-					);
-					break;
-				case 53:
-					// シャンデリア
-					CreateFurniture(
-						{ wx, wy, wz },          // 場所
-						{ 1.0f, 1.0f, 1.0f },      // サイズ
-						{ 0.0f, rotY, 0.0f },      // 回転
-						"asset\\model\\chandelier.fbx", // モデル
-						ACTION_SCARE,                // アクション
-						id
-					);
-					break;
-				case 54:
-					// ロッキングチェア
-					CreateFurniture(
-						{ wx, wy, wz },          // 場所
-						{ 1.0f, 1.0f, 1.0f },      // サイズ
-						{ 0.0f, rotY, 0.0f },      // 回転
-						"asset\\model\\rockingchair.fbx", // モデル
-						ACTION_LURE,                // アクション
-						id
-					);
-					break;
-				case 55:
-					// 蓄音機
-					CreateFurniture(
-						{ wx, wy, wz },          // 場所
-						{ 1.0f, 1.0f, 1.0f },      // サイズ
-						{ 0.0f, rotY, 0.0f },      // 回転
-						"asset\\model\\phonograph.fbx", // モデル
-						ACTION_STOP,               // アクション
-						id
-					);
-					break;
-				case 56:
-					// カーペット
-					CreateFurniture(
-						{ wx, wy, wz },          // 場所
-						{ 1.0f, 1.0f, 1.0f },      // サイズ
-						{ 0.0f, rotY, 0.0f },      // 回転
-						"asset\\model\\cube.fbx", // モデル
-						ACTION_STOP,                // アクション
-						id
-					);
-					break;
-				case 57:
-					// 暖炉
-					CreateFurniture(
-						{ wx, wy, wz },          // 場所
-						{ 1.0f, 1.0f, 1.0f },      // サイズ
-						{ 0.0f, rotY, 0.0f },      // 回転
-						"asset\\model\\danro.fbx", // モデル
-						ACTION_LURE,                // アクション
-						id
-					);
-					break;
-				case 58:
-					// バスタブ
-					CreateFurniture(
-						{ wx, wy, wz },          // 場所
-						{ 1.0f, 1.0f, 1.0f },      // サイズ
-						{ 0.0f, rotY, 0.0f },      // 回転
-						"asset\\model\\bathtub.fbx", // モデル
-						ACTION_LURE,                // アクション
-						id
-					);
-					break;
-				case 59:
-					// キッチン
-					CreateFurniture(
-						{ wx, wy, wz },          // 場所
-						{ 1.0f, 1.0f, 1.0f },      // サイズ
-						{ 0.0f, rotY, 0.0f },      // 回転
-						"asset\\model\\kitchen.fbx", // モデル
-						ACTION_SCARE,                // アクション
-						id
-					);
-					break;
-				case 60:
-					// 便器
-					CreateFurniture(
-						{ wx, wy, wz },          // 場所
-						{ 1.0f, 1.0f, 1.0f },      // サイズ
-						{ 0.0f, rotY, 0.0f },      // 回転
-						"asset\\model\\toilet.fbx", // モデル
-						ACTION_LURE,                // アクション
-						id
-					);
-					break;
-				case 61:
-					// ベッド
-					CreateFurniture(
-						{ wx, wy, wz },          // 場所
-						{ 1.0f, 1.0f, 1.0f },      // サイズ
-						{ 0.0f, rotY, 0.0f },      // 回転
-						"asset\\model\\cube.fbx", // モデル
-						ACTION_STOP,               // アクション
-						id
-					);
-					break;
-				case 62:
-					// ピアノ
-					CreateFurniture(
-						{ wx, wy, wz },          // 場所
-						{ 1.0f, 1.0f, 1.0f },      // サイズ
-						{ 0.0f, rotY, 0.0f },      // 回転
-						"asset\\model\\piano.fbx", // モデル
-						ACTION_SCARE,                // アクション
-						id
-					);
-					break;
-				case 63:
-					// シンク
-					CreateFurniture(
-						{ wx, wy, wz },          // 場所
-						{ 1.0f, 1.0f, 1.0f },      // サイズ
-						{ 0.0f, rotY, 0.0f },      // 回転
-						"asset\\model\\sink.fbx", // モデル
-						ACTION_SCARE,                // アクション
-						id
-					);
-					break;
-				case 64:
-					// 鏡
-					CreateFurniture(
-						{ wx, wy, wz },          // 場所
-						{ 1.0f, 1.0f, 1.0f },      // サイズ
-						{ 0.0f, rotY, 0.0f },      // 回転
-						"asset\\model\\mirror.fbx", // モデル
-						ACTION_SCARE,                // アクション
-						id
-					);
-					break;
-				case 65:
-					// ハンティングトロフィー
-					CreateFurniture(
-						{ wx, wy, wz },          // 場所
-						{ 1.0f, 1.0f, 1.0f },      // サイズ
-						{ 0.0f, rotY, 0.0f },      // 回転
-						"asset\\model\\huntingtrophy.fbx", // モデル
-						ACTION_SCARE,                // アクション
-						id
-					);
-					break;
-				case 66:
-					// 偽扉
-					CreateFurniture(
-						{ wx, wy, wz },          // 場所
-						{ 1.0f, 1.0f, 1.0f },      // サイズ
-						{ 0.0f, rotY, 0.0f },      // 回転
-						"asset\\model\\cube.fbx", // モデル
-						ACTION_SCARE,                // アクション
-						id
-					);
-					break;
-				case 67:
-					// 振り子時計
-					CreateFurniture(
-						{ wx, wy, wz },          // 場所
-						{ 1.0f, 1.0f, 1.0f },      // サイズ
-						{ 0.0f, rotY, 0.0f },      // 回転
-						"asset\\model\\grandfather_clock.fbx", // モデル
-						ACTION_LURE,               // アクション
-						id
-					);
-					break;
-				case 68:
-					// 椅子
-					CreateFurniture(
-						{ wx, wy, wz },          // 場所
-						{ 1.0f, 1.0f, 1.0f },      // サイズ
-						{ 0.0f, rotY, 0.0f },      // 回転
-						"asset\\model\\cube.fbx", // モデル
-						ACTION_NONE,                // アクション
-						id
-					);
-					break;
-				case 69:
-					// ダイニングテーブル
-					CreateFurniture(
-						{ wx, wy, wz },          // 場所
-						{ 1.0f, 1.0f, 1.0f },      // サイズ
-						{ 0.0f, rotY, 0.0f },      // 回転
-						"asset\\model\\cube.fbx", // モデル
-						ACTION_NONE,                // アクション
-						id
-					);
-					break;
 				}
 			}
 		}
@@ -569,100 +464,6 @@ Furniture* GetFurniture(int index)
 	return nullptr;
 }
 
-static std::map<int, std::string> g_BlockNameJaMap;
-static bool g_FileLoadFailed = false; // 読み込み失敗フラグ
-static bool g_BlockDefinitionsLoaded = false; // 読み込み完了フラグ
-
-// block_definitions.json を読み込み、IDと日本語名のマップを作成する
-static void LoadBlockDefinitions()
-{
-	if (g_BlockDefinitionsLoaded) return;
-	g_BlockDefinitionsLoaded = true;
-
-	std::ifstream file("SchemToArray\\block_definitions.json");
-	if (!file.is_open())
-	{
-		g_FileLoadFailed = true;
-		return;
-	}
-
-	// エラー回避のため、明示的に文字列へ読み込む
-	std::string content;
-	file.seekg(0, std::ios::end);
-	content.reserve(static_cast<size_t>(file.tellg()));
-	file.seekg(0, std::ios::beg);
-	content.assign((std::istreambuf_iterator<char>(file)), std::istreambuf_iterator<char>());
-
-	size_t pos = 0;
-	while ((pos = content.find('{', pos)) != std::string::npos)
-	{
-		size_t level = 1;
-		size_t endPos = pos + 1;
-		while (level > 0 && endPos < content.length())
-		{
-			if (content[endPos] == '{') level++;
-			else if (content[endPos] == '}') level--;
-			endPos++;
-		}
-
-		if (level == 0)
-		{
-			std::string object = content.substr(pos, endPos - pos);
-
-			std::string names_ja = "";
-			int id = -1;
-
-			// names_ja を探す
-			size_t npos = object.find("\"names_ja\"");
-			if (npos != std::string::npos)
-			{
-				size_t colon = object.find(':', npos);
-				if (colon != std::string::npos) {
-					size_t s = object.find('"', colon);
-					if (s != std::string::npos) {
-						size_t e = object.find('"', s + 1);
-						if (e != std::string::npos)
-						{
-							names_ja = object.substr(s + 1, e - s - 1);
-						}
-					}
-				}
-			}
-
-			// id または default_id を探す
-			size_t ipos = object.find("\"id\"");
-			if (ipos == std::string::npos)
-			{
-				ipos = object.find("\"default_id\"");
-			}
-
-			if (ipos != std::string::npos)
-			{
-				size_t colon = object.find(':', ipos);
-				if (colon != std::string::npos) {
-					size_t s = object.find_first_of("0123456789", colon);
-					if (s != std::string::npos)
-					{
-						size_t e = object.find_first_not_of("0123456789", s);
-						std::string idStr = (e == std::string::npos) ? object.substr(s) : object.substr(s, e - s);
-						if (!idStr.empty()) {
-							id = std::stoi(idStr);
-						}
-					}
-				}
-			}
-
-			if (id != -1 && !names_ja.empty())
-			{
-				// 見つかった ID と日本語名のペアを保存
-				g_BlockNameJaMap[id] = names_ja;
-			}
-		}
-		// 次の '{' から探索を続ける（入れ子構造にも対応）
-		pos++;
-	}
-}
-
 // 与えられた数字のIDから日本語名を返す
 std::string GetBlockNameJa(int id)
 {
@@ -701,4 +502,32 @@ bool FurnitureScareEnded(int index)
 		return !g_Furniture[index]->GetIsActing();
 	}
 	return false;
+}
+
+bool IsFurnitureBlock(int id)
+{
+	if (!g_BlockDefinitionsLoaded && !g_FileLoadFailed)
+	{
+		LoadBlockDefinitions();
+	}
+	if (g_BlockDefMap.count(id) > 0 && !g_BlockDefMap[id].model.empty())
+	{
+		return true;
+	}
+	return false;
+}
+
+// 壁掛けライトのポイントライトをシェーダーに登録する
+void Furniture_SetLight(void)
+{
+	for (int i = 0; i < FURNITURE_NUM; i++)
+	{
+		if (!g_Furniture[i]) continue;
+		if (!g_Furniture[i]->IsWallLight()) continue;
+
+		PointLight* pLight = g_Furniture[i]->GetPointLight();
+		if (!pLight) continue;
+
+		Shader_AddPointLight(pLight);
+	}
 }

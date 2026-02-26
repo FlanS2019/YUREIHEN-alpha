@@ -17,7 +17,7 @@ using namespace DirectX;
 #include <Windows.h>
 #include <DirectXMath.h>
 
-#define MAX_POINT_LIGHTS (8) // HLSL側の定義と必ず一致させる
+#define MAX_POINT_LIGHTS (16) // HLSL側の定義と必ず一致させる
 
 // シェーダー定数バッファ用構造体
 struct PointLightData
