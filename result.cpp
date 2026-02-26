@@ -27,8 +27,10 @@ enum ResultPhase
 	PHASE_COMBO_SMALL,		// Combo: 下部に小さくフェードイン
 	PHASE_KAKERU,			// kakeru2.png フェードイン
 	PHASE_SCORE,			// スコアフェードイン
+	PHASE_SPACE_GUIDE,		// 「SPACEでタイトルへ」フェードイン
 	PHASE_DONE				// 全表示完了
 };
+
 // フェード速度（1フレームあたりのアルファ変化量）
 static const float FADE_SPEED = 0.03f;
 // 待機フレーム数（60fps × 1秒 = 60フレーム）
@@ -38,7 +40,7 @@ static const int   WAIT_FRAMES = 60;
 // 座標・サイズ定数
 // -------------------------------------------------------
 // スコア画像の下・中央付近（大表示用）時間の結果
-static const XMFLOAT2 TIME_BIG_POS = { SCREEN_WIDTH / 2.0f +10, SCREEN_HEIGHT / 2.0f + 130.0f };//スコアの位置
+static const XMFLOAT2 TIME_BIG_POS = { SCREEN_WIDTH / 2.0f + 10, SCREEN_HEIGHT / 2.0f + 130.0f };//スコアの位置
 static const XMFLOAT2 TIME_BIG_SIZE = { 50.0f, 50.0f };//スコアの大きさ
 static const float    TIME_BIG_LABEL_FONT = 55.0f;//フォントサイズ
 static const XMFLOAT2 TIME_BIG_LABEL_POS = { SCREEN_WIDTH / 2.0f - 200.0f, SCREEN_HEIGHT / 2.0f + 130.0f };//スコアのラベル位置
@@ -48,9 +50,9 @@ static const XMFLOAT2 TIME_SMALL_POS = { SCREEN_WIDTH / 2.0f + 215.0f, SCREEN_HE
 static const XMFLOAT2 TIME_SMALL_SIZE = { 35.0f, 35.0f };
 static const float    TIME_SMALL_SPACING = 30.0f;//桁間のスペース
 static const float    TIME_SMALL_LABEL_FONT = 33.0f;//フォントサイズ
-static const XMFLOAT2 TIME_SMALL_LABEL_POS = { SCREEN_WIDTH / 2.0f + 230.0f, SCREEN_HEIGHT / 2.0f -50.0f };
+static const XMFLOAT2 TIME_SMALL_LABEL_POS = { SCREEN_WIDTH / 2.0f + 230.0f, SCREEN_HEIGHT / 2.0f - 50.0f };
 // combo,スコアの下・中央付近（大表示用）
-static const XMFLOAT2 COMBO_BIG_POS = { SCREEN_WIDTH / 2.0f+10,  SCREEN_HEIGHT / 2.0f + 110.0f };
+static const XMFLOAT2 COMBO_BIG_POS = { SCREEN_WIDTH / 2.0f + 10,  SCREEN_HEIGHT / 2.0f + 110.0f };
 static const XMFLOAT2 COMBO_BIG_SIZE = { 70.0f, 70.0f };
 static const float    COMBO_BIG_LABEL_FONT = 55.0f;
 static const XMFLOAT2 COMBO_BIG_LABEL_POS = { SCREEN_WIDTH / 2.0f - 150.0f, SCREEN_HEIGHT / 2.0f + 130.0f };
@@ -61,6 +63,10 @@ static const float    COMBO_SMALL_SPACING = 20.0f;//桁間のスペース
 static const float    COMBO_SMALL_LABEL_FONT = 40.0f;//フォントサイズ（小表示用）
 static const XMFLOAT2 COMBO_SMALL_LABEL_POS = { SCREEN_WIDTH / 2.0f + 230.0f, SCREEN_HEIGHT / 2.0f + 65.0f };
 static const float    SCORE_LABEL_FONT = 40.0f;//フォントサイズ
+
+// SPACEガイドの座標・サイズ定数
+static const XMFLOAT2 SPACE_GUIDE_POS = { SCREEN_WIDTH / 2.0f, SCREEN_HEIGHT / 2.0f + 200};
+static const float    SPACE_GUIDE_FONT = 35.0f;
 
 // -------------------------------------------------------
 // Sprite ポインタ
@@ -79,6 +85,7 @@ static FontRenderer* g_pFloorLabelFont = nullptr;
 static FontRenderer* g_pComboLabelFont = nullptr;		// Combo 大表示用ラベル
 static FontRenderer* g_pComboLabelFontSmall = nullptr;	// Combo 小表示用ラベル（別サイズ）
 static FontRenderer* g_pScoreFont = nullptr;
+static FontRenderer* g_pSpaceGuideFont = nullptr;		// 「SPACEでタイトルへ」ガイド
 
 static float g_pResultTime = 0.0f;
 static int   g_pResultFloor = 1;
@@ -88,7 +95,7 @@ static SoundData* g_pBGM = nullptr;
 
 // フェード演出用
 static ResultPhase g_ResultPhase = PHASE_TIME_BIG;
-static float       g_PhaseAlpha  = 0.0f;
+static float       g_PhaseAlpha = 0.0f;
 static int         g_WaitCounter = 0;	// 待機フレームカウンタ
 
 // -------------------------------------------------------
@@ -202,6 +209,7 @@ static void SetKakeruAlpha(float alpha)
 {
 	if (g_pkakeru) g_pkakeru->SetColor({ 1.0f, 1.0f, 1.0f, alpha });
 }
+
 // -------------------------------------------------------
 void Result_Initialize(ID3D11Device* pDevice, ID3D11DeviceContext* pContext)
 {
@@ -209,7 +217,7 @@ void Result_Initialize(ID3D11Device* pDevice, ID3D11DeviceContext* pContext)
 
 	// フェード演出をリセット
 	g_ResultPhase = PHASE_TIME_BIG;
-	g_PhaseAlpha  = 0.0f;
+	g_PhaseAlpha = 0.0f;
 	g_WaitCounter = 0;
 
 	// 背景
@@ -239,6 +247,7 @@ void Result_Initialize(ID3D11Device* pDevice, ID3D11DeviceContext* pContext)
 		BLENDSTATE_ALFA,
 		L"asset\\yureihen\\Result\\kakeru2.png"
 	);
+
 	Font_InitializeGlobalData();
 
 	// タイム数字：最初は大きい位置・サイズで、アルファ 0
@@ -312,9 +321,18 @@ void Result_Initialize(ID3D11Device* pDevice, ID3D11DeviceContext* pContext)
 		"Score:"
 	);
 
+	// SPACEガイド：Score:の下、アルファ 0
+	g_pSpaceGuideFont = new FontRenderer(
+		SPACE_GUIDE_POS,
+		SPACE_GUIDE_FONT,
+		0.0f,
+		{ 1.0f, 1.0f, 1.0f, 0.0f },
+		"スペースキーでタイトルに戻る"
+	);
+
 	// 凶、恐、虚の絵
 	g_pkyou1 = new Sprite(
-		{ SCREEN_WIDTH / 2.0f - 30, SCREEN_HEIGHT / 2.0f -10 },
+		{ SCREEN_WIDTH / 2.0f - 30, SCREEN_HEIGHT / 2.0f - 10 },
 		{ 250,250 },
 		0.0f,
 		{ 1.0f, 1.0f, 1.0f, 1.0f },
@@ -362,7 +380,7 @@ void Result_Update(void)
 	{
 		switch (g_ResultPhase)
 		{
-		// --- Time 大表示フェードイン ---
+			// --- Time 大表示フェードイン ---
 		case PHASE_TIME_BIG:
 			g_PhaseAlpha += FADE_SPEED;
 			if (g_PhaseAlpha > 1.0f) g_PhaseAlpha = 1.0f;
@@ -374,18 +392,18 @@ void Result_Update(void)
 			}
 			break;
 
-		// --- Time 大表示 待機 ---
+			// --- Time 大表示 待機 ---
 		case PHASE_TIME_WAIT:
 			ApplyTimeBig(1.0f);	// アルファ1.0のまま維持
 			g_WaitCounter++;
 			if (g_WaitCounter >= WAIT_FRAMES)
 			{
 				g_ResultPhase = PHASE_TIME_FADEOUT;
-				g_PhaseAlpha  = 1.0f;
+				g_PhaseAlpha = 1.0f;
 			}
 			break;
 
-		// --- Time フェードアウト ---
+			// --- Time フェードアウト ---
 		case PHASE_TIME_FADEOUT:
 			g_PhaseAlpha -= FADE_SPEED * 2.0f;
 			if (g_PhaseAlpha < 0.0f) g_PhaseAlpha = 0.0f;
@@ -394,11 +412,11 @@ void Result_Update(void)
 			{
 				ApplyTimeSmall(0.0f);
 				g_ResultPhase = PHASE_TIME_SMALL;
-				g_PhaseAlpha  = 0.0f;
+				g_PhaseAlpha = 0.0f;
 			}
 			break;
 
-		// --- Time 小表示フェードイン ---
+			// --- Time 小表示フェードイン ---
 		case PHASE_TIME_SMALL:
 			g_PhaseAlpha += FADE_SPEED;
 			if (g_PhaseAlpha > 1.0f) g_PhaseAlpha = 1.0f;
@@ -406,11 +424,11 @@ void Result_Update(void)
 			if (g_PhaseAlpha >= 1.0f)
 			{
 				g_ResultPhase = PHASE_COMBO_BIG;
-				g_PhaseAlpha  = 0.0f;
+				g_PhaseAlpha = 0.0f;
 			}
 			break;
 
-		// --- Combo 大表示フェードイン ---
+			// --- Combo 大表示フェードイン ---
 		case PHASE_COMBO_BIG:
 			g_PhaseAlpha += FADE_SPEED;
 			if (g_PhaseAlpha > 1.0f) g_PhaseAlpha = 1.0f;
@@ -422,18 +440,18 @@ void Result_Update(void)
 			}
 			break;
 
-		// --- Combo 大表示 待機 ---
+			// --- Combo 大表示 待機 ---
 		case PHASE_COMBO_WAIT:
 			ApplyComboBig(1.0f);	// アルファ1.0のまま維持
 			g_WaitCounter++;
 			if (g_WaitCounter >= WAIT_FRAMES)
 			{
 				g_ResultPhase = PHASE_COMBO_FADEOUT;
-				g_PhaseAlpha  = 1.0f;
+				g_PhaseAlpha = 1.0f;
 			}
 			break;
 
-		// --- Combo フェードアウト ---
+			// --- Combo フェードアウト ---
 		case PHASE_COMBO_FADEOUT:
 			g_PhaseAlpha -= FADE_SPEED * 2.0f;
 			if (g_PhaseAlpha < 0.0f) g_PhaseAlpha = 0.0f;
@@ -442,11 +460,11 @@ void Result_Update(void)
 			{
 				ApplyComboSmall(0.0f);
 				g_ResultPhase = PHASE_COMBO_SMALL;
-				g_PhaseAlpha  = 0.0f;
+				g_PhaseAlpha = 0.0f;
 			}
 			break;
 
-		// --- Combo 小表示フェードイン ---
+			// --- Combo 小表示フェードイン ---
 		case PHASE_COMBO_SMALL:
 			g_PhaseAlpha += FADE_SPEED;
 			if (g_PhaseAlpha > 1.0f) g_PhaseAlpha = 1.0f;
@@ -454,11 +472,11 @@ void Result_Update(void)
 			if (g_PhaseAlpha >= 1.0f)
 			{
 				g_ResultPhase = PHASE_KAKERU;
-				g_PhaseAlpha  = 0.0f;
+				g_PhaseAlpha = 0.0f;
 			}
 			break;
 
-		// --- kakeru2.png フェードイン ---
+			// --- kakeru2.png フェードイン ---
 		case PHASE_KAKERU:
 			g_PhaseAlpha += FADE_SPEED;
 			if (g_PhaseAlpha > 1.0f) g_PhaseAlpha = 1.0f;
@@ -466,15 +484,28 @@ void Result_Update(void)
 			if (g_PhaseAlpha >= 1.0f)
 			{
 				g_ResultPhase = PHASE_SCORE;
-				g_PhaseAlpha  = 0.0f;
+				g_PhaseAlpha = 0.0f;
 			}
 			break;
 
-		// --- スコアフェードイン ---
+			// --- スコアフェードイン ---
 		case PHASE_SCORE:
 			g_PhaseAlpha += FADE_SPEED;
 			if (g_PhaseAlpha > 1.0f) g_PhaseAlpha = 1.0f;
 			SetScoreAlpha(g_PhaseAlpha);
+			if (g_PhaseAlpha >= 1.0f)
+			{
+				g_ResultPhase = PHASE_SPACE_GUIDE;
+				g_PhaseAlpha = 0.0f;
+			}
+			break;
+
+			// --- 「Press SPACE to Title」フェードイン ---
+		case PHASE_SPACE_GUIDE:
+			g_PhaseAlpha += FADE_SPEED;
+			if (g_PhaseAlpha > 1.0f) g_PhaseAlpha = 1.0f;
+			if (g_pSpaceGuideFont)
+				g_pSpaceGuideFont->SetColor({ 1.0f, 1.0f, 1.0f, g_PhaseAlpha });
 			if (g_PhaseAlpha >= 1.0f)
 			{
 				g_ResultPhase = PHASE_DONE;
@@ -523,6 +554,7 @@ void Result_Draw(void)
 	if (g_pScoreFont)            g_pScoreFont->Draw();
 	if (g_pComboNum)             g_pComboNum->Draw();
 	if (g_pResultNum)            g_pResultNum->Draw();
+	if (g_pSpaceGuideFont)       g_pSpaceGuideFont->Draw();	// SPACEガイド
 }
 
 void Result_Finalize(void)
@@ -541,6 +573,7 @@ void Result_Finalize(void)
 	if (g_pComboNum) { delete g_pComboNum;           g_pComboNum = nullptr; }
 	if (g_pResultNum) { delete g_pResultNum;          g_pResultNum = nullptr; }
 	if (g_pScoreFont) { delete g_pScoreFont;          g_pScoreFont = nullptr; }
+	if (g_pSpaceGuideFont) { delete g_pSpaceGuideFont;    g_pSpaceGuideFont = nullptr; }	// SPACEガイド解放
 
 	if (g_pBGM)
 	{
