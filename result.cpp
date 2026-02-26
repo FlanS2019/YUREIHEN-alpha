@@ -12,33 +12,89 @@
 #include <iomanip>
 using namespace DirectX;
 
-// ①Spriteのインスタンス、ポインタ用意
+// -------------------------------------------------------
+// フェード演出フェーズ
+// -------------------------------------------------------
+enum ResultPhase
+{
+	PHASE_TIME_BIG = 0,		// Time: スコア下に大きくフェードイン
+	PHASE_TIME_WAIT,		// Time: 大表示のまま待機（約1秒）
+	PHASE_TIME_FADEOUT,		// Time: フェードアウト
+	PHASE_TIME_SMALL,		// Time: 下部に小さくフェードイン
+	PHASE_COMBO_BIG,		// Combo: スコア下に大きくフェードイン
+	PHASE_COMBO_WAIT,		// Combo: 大表示のまま待機（約1秒）
+	PHASE_COMBO_FADEOUT,	// Combo: フェードアウト
+	PHASE_COMBO_SMALL,		// Combo: 下部に小さくフェードイン
+	PHASE_SCORE,			// スコアフェードイン
+	PHASE_DONE				// 全表示完了
+};
+
+// フェード速度（1フレームあたりのアルファ変化量）
+static const float FADE_SPEED = 0.03f;
+// 待機フレーム数（60fps × 1秒 = 60フレーム）
+static const int   WAIT_FRAMES = 60;
+
+// -------------------------------------------------------
+// 座標・サイズ定数
+// -------------------------------------------------------
+// スコア画像の下・中央付近（大表示用）
+static const XMFLOAT2 TIME_BIG_POS = { SCREEN_WIDTH / 2.0f, SCREEN_HEIGHT / 2.0f + 60.0f };//スコアの位置
+static const XMFLOAT2 TIME_BIG_SIZE = { 70.0f, 70.0f };//スコアの大きさ
+static const float    TIME_BIG_LABEL_FONT = 55.0f;//フォントサイズ
+static const XMFLOAT2 TIME_BIG_LABEL_POS = { SCREEN_WIDTH / 2.0f - 130.0f, SCREEN_HEIGHT / 2.0f + 55.0f };
+
+// 下部の小さい最終位置
+static const XMFLOAT2 TIME_SMALL_POS = { SCREEN_WIDTH / 2.0f + 110.0f, SCREEN_HEIGHT / 2.0f + 135.0f };
+static const XMFLOAT2 TIME_SMALL_SIZE = { 35.0f, 35.0f };
+static const float    TIME_SMALL_SPACING = 28.0f;
+static const float    TIME_SMALL_LABEL_FONT = 35.0f;
+static const XMFLOAT2 TIME_SMALL_LABEL_POS = { SCREEN_WIDTH / 2.0f - 50.0f, SCREEN_HEIGHT / 2.0f + 130.0f };
+// combo,スコアの下・中央付近（大表示用）
+static const XMFLOAT2 COMBO_BIG_POS = { SCREEN_WIDTH / 2.0f,        SCREEN_HEIGHT / 2.0f + 60.0f };
+static const XMFLOAT2 COMBO_BIG_SIZE = { 70.0f, 70.0f };
+static const float    COMBO_BIG_LABEL_FONT = 55.0f;
+static const XMFLOAT2 COMBO_BIG_LABEL_POS = { SCREEN_WIDTH / 2.0f - 150.0f, SCREEN_HEIGHT / 2.0f + 55.0f };
+// 下部の小さい最終位置
+static const XMFLOAT2 COMBO_SMALL_POS = { SCREEN_WIDTH / 2.0f + 110.0f, SCREEN_HEIGHT / 2.0f + 180.0f };
+static const XMFLOAT2 COMBO_SMALL_SIZE = { 35.0f, 35.0f };
+static const float    COMBO_SMALL_SPACING = 28.0f;
+static const float    COMBO_SMALL_LABEL_FONT = 35.0f;
+static const XMFLOAT2 COMBO_SMALL_LABEL_POS = { SCREEN_WIDTH / 2.0f - 50.0f, SCREEN_HEIGHT / 2.0f + 175.0f };
+
+// -------------------------------------------------------
+// Sprite ポインタ
+// -------------------------------------------------------
 static Sprite* g_pResultSprite = nullptr;
 static Sprite* g_pkyou1 = nullptr;
 static Sprite* g_pkyou2 = nullptr;
 static Sprite* g_pkyou3 = nullptr;
 static Sprite* g_pResult_gakubuti = nullptr;
-// 数字表示用のNumberクラスに変更
 static Number* g_pTimeNum = nullptr;
-static Number* g_pComboNum = nullptr;  // 連鎖数表示用
-static Number* g_pResultNum = nullptr;  // 結果スコア表示用（時間×コンボ）
-// ラベル用フォント（「Time:」「Combo:」のテキスト部分）
+static Number* g_pComboNum = nullptr;
+static Number* g_pResultNum = nullptr;
 static FontRenderer* g_pTimeLabelFont = nullptr;
 static FontRenderer* g_pFloorLabelFont = nullptr;
-static FontRenderer* g_pComboLabelFont = nullptr;  // 連鎖ラベル用
+static FontRenderer* g_pComboLabelFont = nullptr;
+
 static float g_pResultTime = 0.0f;
-static int g_pResultFloor = 1;
-static int g_pResultCombo = 1;  // 連鎖数
-//sound
+static int   g_pResultFloor = 1;
+static int   g_pResultCombo = 1;
+
 static SoundData* g_pBGM = nullptr;
 
-// スコアに応じた画像表示用ヘルパー関数
+// フェード演出用
+static ResultPhase g_ResultPhase = PHASE_TIME_BIG;
+static float       g_PhaseAlpha  = 0.0f;
+static int         g_WaitCounter = 0;	// 待機フレームカウンタ
+
+// -------------------------------------------------------
+// ヘルパー関数
+// -------------------------------------------------------
 static int GetResultScore(void)
 {
 	return static_cast<int>(g_pResultTime) * g_pResultCombo;
 }
 
-// 2桁の場合のみ末尾に0を追加して表示用数値を返す
 static int GetDisplayTime(float time)
 {
 	int t = static_cast<int>(time);
@@ -49,147 +105,330 @@ static int GetDisplayTime(float time)
 	return t;
 }
 
+// Time のアルファ・位置・サイズをまとめて適用
+static void ApplyTimeBig(float alpha)
+{
+	XMFLOAT4 col = { 1.0f, 1.0f, 1.0f, alpha };
+	if (g_pTimeLabelFont)
+	{
+		g_pTimeLabelFont->SetColor(col);
+		g_pTimeLabelFont->SetPos(TIME_BIG_LABEL_POS);
+	}
+	if (g_pTimeNum)
+	{
+		g_pTimeNum->SetColor(col);
+		g_pTimeNum->SetPos(TIME_BIG_POS);
+		g_pTimeNum->SetSize(TIME_BIG_SIZE);
+		g_pTimeNum->SetDigitSpacing(TIME_BIG_SIZE.x - 10.0f);
+	}
+}
+
+static void ApplyTimeSmall(float alpha)
+{
+	XMFLOAT4 col = { 1.0f, 1.0f, 1.0f, alpha };
+	if (g_pTimeLabelFont)
+	{
+		g_pTimeLabelFont->SetColor(col);
+		g_pTimeLabelFont->SetPos(TIME_SMALL_LABEL_POS);
+	}
+	if (g_pTimeNum)
+	{
+		g_pTimeNum->SetColor(col);
+		g_pTimeNum->SetPos(TIME_SMALL_POS);
+		g_pTimeNum->SetSize(TIME_SMALL_SIZE);
+		g_pTimeNum->SetDigitSpacing(TIME_SMALL_SPACING);
+	}
+}
+
+// Combo のアルファ・位置・サイズをまとめて適用
+static void ApplyComboBig(float alpha)
+{
+	XMFLOAT4 col = { 1.0f, 1.0f, 1.0f, alpha };
+	if (g_pComboLabelFont)
+	{
+		g_pComboLabelFont->SetColor(col);
+		g_pComboLabelFont->SetPos(COMBO_BIG_LABEL_POS);
+	}
+	if (g_pComboNum)
+	{
+		g_pComboNum->SetColor(col);
+		g_pComboNum->SetPos(COMBO_BIG_POS);
+		g_pComboNum->SetSize(COMBO_BIG_SIZE);
+		g_pComboNum->SetDigitSpacing(COMBO_BIG_SIZE.x - 10.0f);
+	}
+}
+
+static void ApplyComboSmall(float alpha)
+{
+	XMFLOAT4 col = { 1.0f, 1.0f, 1.0f, alpha };
+	if (g_pComboLabelFont)
+	{
+		g_pComboLabelFont->SetColor(col);
+		g_pComboLabelFont->SetPos(COMBO_SMALL_LABEL_POS);
+	}
+	if (g_pComboNum)
+	{
+		g_pComboNum->SetColor(col);
+		g_pComboNum->SetPos(COMBO_SMALL_POS);
+		g_pComboNum->SetSize(COMBO_SMALL_SIZE);
+		g_pComboNum->SetDigitSpacing(COMBO_SMALL_SPACING);
+	}
+}
+
+static void SetScoreAlpha(float alpha)
+{
+	XMFLOAT4 col = { 1.0f, 1.0f, 1.0f, alpha };
+	if (g_pResultNum) g_pResultNum->SetColor(col);
+}
+
+// -------------------------------------------------------
 void Result_Initialize(ID3D11Device* pDevice, ID3D11DeviceContext* pContext)
 {
 	hal::dout << "Result Initialize Called" << std::endl;
-	// ②各種初期化
+
+	// フェード演出をリセット
+	g_ResultPhase = PHASE_TIME_BIG;
+	g_PhaseAlpha  = 0.0f;
+	g_WaitCounter = 0;
+
+	// 背景
 	g_pResultSprite = new Sprite(
-		{ SCREEN_WIDTH / 2.0f, SCREEN_HEIGHT / 2.0f },		//位置
-		{ SCREEN_WIDTH , SCREEN_HEIGHT },	//サイズ
-		0.0f,											//回転（度）
-		{ 1.0f, 1.0f, 1.0f, 1.0f },						//RGBA
-		BLENDSTATE_NONE,								//BlendState
-		L"asset\\yureihen\\Alpha_Tex\\siro.png"					//テクスチャパス
+		{ SCREEN_WIDTH / 2.0f, SCREEN_HEIGHT / 2.0f },
+		{ SCREEN_WIDTH , SCREEN_HEIGHT },
+		0.0f,
+		{ 1.0f, 1.0f, 1.0f, 1.0f },
+		BLENDSTATE_NONE,
+		L"asset\\yureihen\\Alpha_Tex\\siro.png"
 	);
 
 	g_pResult_gakubuti = new Sprite(
-		{ SCREEN_WIDTH / 2.0f, SCREEN_HEIGHT / 2.0f - 20 },		//位置
-		{ 795, 795 },	//サイズ
-		0.0f,											//回転（度）
-		{ 1.0f, 1.0f, 1.0f, 1.0f },						//RGBA
-		BLENDSTATE_ALFA,								//BlendState
-		L"asset\\yureihen\\Result\\Result_gakubuti.png"					//テクスチャパス
+		{ SCREEN_WIDTH / 2.0f, SCREEN_HEIGHT / 2.0f - 20 },
+		{ 795, 795 },
+		0.0f,
+		{ 1.0f, 1.0f, 1.0f, 1.0f },
+		BLENDSTATE_ALFA,
+		L"asset\\yureihen\\Result\\Result_gakubuti_Nofont.png"
 	);
 
-	// グローバルフォントデータを初期化
 	Font_InitializeGlobalData();
 
-	// -------------------------------------------------------
-	// Normal画像（凶・恐・虚）の下にTime/Comboを並べる
-	// Normal画像の下端を基準にする
-	// Normal画像位置: 中央右寄り (SCREEN_WIDTH/2.0f + 10, SCREEN_HEIGHT/2.0f)
-	// Normal下端: SCREEN_HEIGHT/2.0f + 100（サイズ200の半分）
-	// -------------------------------------------------------
-
-	// タイム表示用数字スプライト（Normalの下・左列）
+	// タイム数字：最初は大きい位置・サイズで、アルファ 0
 	g_pTimeNum = new Number(
-		{ SCREEN_WIDTH / 2.0f + 110.0f, SCREEN_HEIGHT / 2.0f + 135.0f },	// 位置
-		{ 35.0f, 35.0f },	// 1桁のサイズ（縮小）
-		{ 1.0f, 1.0f, 1.0f, 1.0f },	// 色（白）
+		TIME_BIG_POS,
+		TIME_BIG_SIZE,
+		{ 1.0f, 1.0f, 1.0f, 0.0f },
 		BLENDSTATE_ALFA,
 		L"asset\\texture\\num.png",
-		5, 3,	// 横10分割、縦1分割（0-9の数字）
-		28.0f,	// 桁間の間隔
-		2		// 最小2桁表示
+		5, 3,
+		TIME_BIG_SIZE.x - 10.0f,
+		2
 	);
 
-	// 連鎖(コンボ)表示用数字スプライト（Timeの下）
+	// コンボ数字：最初は大きい位置・サイズで、アルファ 0
 	g_pComboNum = new Number(
-		{ SCREEN_WIDTH / 2.0f + 110.0f, SCREEN_HEIGHT / 2.0f + 180.0f },	// 位置
-		{ 35.0f, 35.0f },	// 1桁のサイズ（縮小）
-		{ 1.0f, 1.0f, 1.0f, 1.0f },	// 色（白）
+		COMBO_BIG_POS,
+		COMBO_BIG_SIZE,
+		{ 1.0f, 1.0f, 1.0f, 0.0f },
 		BLENDSTATE_ALFA,
 		L"asset\\texture\\num.png",
-		5, 3,	// 横10分割、縦1分割（0-9の数字）
-		28.0f
+		5, 3,
+		COMBO_BIG_SIZE.x - 10.0f
 	);
-	g_pComboNum->SetShowX(true);  // 「x」を表示
+	g_pComboNum->SetShowX(true);
 
-	// 結果スコア表示用数字スプライト（Scoreの二本線の上・中央）
+	// スコア数字：アルファ 0
 	g_pResultNum = new Number(
-		{ SCREEN_WIDTH / 2.0f + 10.0f, SCREEN_HEIGHT / 2.0f + 230.0f },	// 二本線付近
-		{ 50.0f, 50.0f },	// 1桁のサイズ
-		{ 1.0f, 1.0f, 1.0f, 1.0f },	// 色（白）
+		{ SCREEN_WIDTH / 2.0f + 10.0f, SCREEN_HEIGHT / 2.0f + 230.0f },
+		{ 50.0f, 50.0f },
+		{ 1.0f, 1.0f, 1.0f, 0.0f },
 		BLENDSTATE_ALFA,
 		L"asset\\texture\\num.png",
 		5, 3,
 		40.0f
 	);
 
-	// タイマーラベル表示用フォント（Normalの下・左）
+	// タイマーラベル：最初は大きい位置で、アルファ 0
 	g_pTimeLabelFont = new FontRenderer(
-		{ SCREEN_WIDTH / 2.0f - 50.0f, SCREEN_HEIGHT / 2.0f + 130.0f },	// 位置
-		35.0f,		// フォントサイズ（縮小）
-		0.0f,		// 回転
-		{ 1.0f, 1.0f, 1.0f, 1.0f },	// 色（白）
+		TIME_BIG_LABEL_POS,
+		TIME_BIG_LABEL_FONT,
+		0.0f,
+		{ 1.0f, 1.0f, 1.0f, 0.0f },
 		"Time:"
 	);
 
-	// 連鎖ラベル表示用フォント（Timeの下）
+	// コンボラベル：最初は大きい位置で、アルファ 0
 	g_pComboLabelFont = new FontRenderer(
-		{ SCREEN_WIDTH / 2.0f - 50.0f, SCREEN_HEIGHT / 2.0f + 175.0f },	// 位置
-		35.0f,		// フォントサイズ（縮小）
-		0.0f,		// 回転
-		{ 1.0f, 1.0f, 1.0f, 1.0f },	// 色（白）
+		COMBO_BIG_LABEL_POS,
+		COMBO_BIG_LABEL_FONT,
+		0.0f,
+		{ 1.0f, 1.0f, 1.0f, 0.0f },
 		"Combo:"
 	);
 
-	// 凶、恐、虚の絵（位置は変更なし）
-	g_pkyou1 = new Sprite(//凶 低いスコア0-200
-		{ SCREEN_WIDTH / 2.0f + 10, SCREEN_HEIGHT / 2.0f },		//位置
-		{ 200, 200 },	//サイズ
-		0.0f,											//回転（度）
-		{ 1.0f, 1.0f, 1.0f, 1.0f },						//RGBA
-		BLENDSTATE_ALFA,								//BlendState
-		L"asset\\yureihen\\Result\\Result_Normal.png"					//テクスチャパス
+	// 凶、恐、虚の絵
+	g_pkyou1 = new Sprite(
+		{ SCREEN_WIDTH / 2.0f + 10, SCREEN_HEIGHT / 2.0f -10 },
+		{ 200, 200 },
+		0.0f,
+		{ 1.0f, 1.0f, 1.0f, 1.0f },
+		BLENDSTATE_ALFA,
+		L"asset\\yureihen\\Result\\Result_Normal.png"
 	);
-	g_pkyou2 = new Sprite(//恐 中くらいスコア201-400
-		{ SCREEN_WIDTH / 2.0f + 10, SCREEN_HEIGHT / 2.0f },		//位置
-		{ 200, 200 },	//サイズ
-		0.0f,											//回転（度）
-		{ 1.0f, 1.0f, 1.0f, 1.0f },						//RGBA
-		BLENDSTATE_ALFA,								//BlendState
-		L"asset\\yureihen\\Result\\Result_Good.png"					//テクスチャパス
+	g_pkyou2 = new Sprite(
+		{ SCREEN_WIDTH / 2.0f + 10, SCREEN_HEIGHT / 2.0f - 10 },
+		{ 200, 200 },
+		0.0f,
+		{ 1.0f, 1.0f, 1.0f, 1.0f },
+		BLENDSTATE_ALFA,
+		L"asset\\yureihen\\Result\\Result_Good.png"
 	);
-	g_pkyou3 = new Sprite(//虚 401-600 高いスコア
-		{ SCREEN_WIDTH / 2.0f + 10, SCREEN_HEIGHT / 2.0f },		//位置
-		{ 500, 500 },	//サイズ
-		0.0f,											//回転（度）
-		{ 1.0f, 1.0f, 1.0f, 1.0f },						//RGBA
-		BLENDSTATE_ALFA,								//BlendState
-		L"asset\\yureihen\\Result\\Result_Excellent.png"					//テクスチャパス
+	g_pkyou3 = new Sprite(
+		{ SCREEN_WIDTH / 2.0f + 10, SCREEN_HEIGHT / 2.0f - 10 },
+		{ 500, 500 },
+		0.0f,
+		{ 1.0f, 1.0f, 1.0f, 1.0f },
+		BLENDSTATE_ALFA,
+		L"asset\\yureihen\\Result\\Result_Excellent.png"
 	);
 
-	// サウンド再生
+	// サウンド
 	g_pBGM = LoadMP3("asset/sound/bgm/HauntedHalloween.mp3");
 	if (g_pBGM)
 	{
 		PlaySound(g_pBGM, true);
 	}
 
-	// ③既にセット済みの値を反映
+	// 値を反映
 	if (g_pTimeNum)
-	{
 		g_pTimeNum->SetNumber(GetDisplayTime(g_pResultTime));
-	}
 
-	if (g_pResultCombo > 0 && g_pComboNum)
-	{
+	if (g_pComboNum)
 		g_pComboNum->SetNumber(g_pResultCombo);
-	}
 
-	// 結果スコア（時間×コンボ）を計算して設定
 	if (g_pResultNum)
-	{
-		int resultScore = GetResultScore();
-		g_pResultNum->SetNumber(resultScore);
-	}
+		g_pResultNum->SetNumber(GetResultScore());
 }
 
 void Result_Update(void)
 {
-	// ③適当な処理　アニメーションなどもここで
-	if (Keyboard_IsKeyDown(KK_SPACE))
+	if (g_ResultPhase != PHASE_DONE)
+	{
+		switch (g_ResultPhase)
+		{
+		// --- Time 大表示フェードイン ---
+		case PHASE_TIME_BIG:
+			g_PhaseAlpha += FADE_SPEED;
+			if (g_PhaseAlpha > 1.0f) g_PhaseAlpha = 1.0f;
+			ApplyTimeBig(g_PhaseAlpha);
+			if (g_PhaseAlpha >= 1.0f)
+			{
+				g_ResultPhase = PHASE_TIME_WAIT;
+				g_WaitCounter = 0;
+			}
+			break;
+
+		// --- Time 大表示 待機 ---
+		case PHASE_TIME_WAIT:
+			ApplyTimeBig(1.0f);	// アルファ1.0のまま維持
+			g_WaitCounter++;
+			if (g_WaitCounter >= WAIT_FRAMES)
+			{
+				g_ResultPhase = PHASE_TIME_FADEOUT;
+				g_PhaseAlpha  = 1.0f;
+			}
+			break;
+
+			// --- Time フェードアウト ---
+		case PHASE_TIME_FADEOUT:
+			g_PhaseAlpha -= FADE_SPEED * 2.0f;
+			if (g_PhaseAlpha < 0.0f) g_PhaseAlpha = 0.0f;
+			ApplyTimeBig(g_PhaseAlpha);
+			if (g_PhaseAlpha <= 0.0f)
+			{
+				ApplyTimeSmall(0.0f);
+				g_ResultPhase = PHASE_TIME_SMALL;
+				g_PhaseAlpha  = 0.0f;
+			}
+			break;
+
+			// --- Time 小表示フェードイン ---
+		case PHASE_TIME_SMALL:
+			g_PhaseAlpha += FADE_SPEED;
+			if (g_PhaseAlpha > 1.0f) g_PhaseAlpha = 1.0f;
+			ApplyTimeSmall(g_PhaseAlpha);
+			if (g_PhaseAlpha >= 1.0f)
+			{
+				g_ResultPhase = PHASE_COMBO_BIG;
+				g_PhaseAlpha  = 0.0f;
+			}
+			break;
+
+			// --- Combo 大表示フェードイン ---
+		case PHASE_COMBO_BIG:
+			g_PhaseAlpha += FADE_SPEED;
+			if (g_PhaseAlpha > 1.0f) g_PhaseAlpha = 1.0f;
+			ApplyComboBig(g_PhaseAlpha);
+			if (g_PhaseAlpha >= 1.0f)
+			{
+				g_ResultPhase = PHASE_COMBO_WAIT;
+				g_WaitCounter = 0;
+			}
+			break;
+
+		// --- Combo 大表示 待機 ---
+		case PHASE_COMBO_WAIT:
+			ApplyComboBig(1.0f);	// アルファ1.0のまま維持
+			g_WaitCounter++;
+			if (g_WaitCounter >= WAIT_FRAMES)
+			{
+				g_ResultPhase = PHASE_COMBO_FADEOUT;
+				g_PhaseAlpha  = 1.0f;
+			}
+			break;
+
+			// --- Combo フェードアウト ---
+		case PHASE_COMBO_FADEOUT:
+			g_PhaseAlpha -= FADE_SPEED * 2.0f;
+			if (g_PhaseAlpha < 0.0f) g_PhaseAlpha = 0.0f;
+			ApplyComboBig(g_PhaseAlpha);
+			if (g_PhaseAlpha <= 0.0f)
+			{
+				ApplyComboSmall(0.0f);
+				g_ResultPhase = PHASE_COMBO_SMALL;
+				g_PhaseAlpha  = 0.0f;
+			}
+			break;
+
+			// --- Combo 小表示フェードイン ---
+		case PHASE_COMBO_SMALL:
+			g_PhaseAlpha += FADE_SPEED;
+			if (g_PhaseAlpha > 1.0f) g_PhaseAlpha = 1.0f;
+			ApplyComboSmall(g_PhaseAlpha);
+			if (g_PhaseAlpha >= 1.0f)
+			{
+				g_ResultPhase = PHASE_SCORE;
+				g_PhaseAlpha  = 0.0f;
+			}
+			break;
+
+			// --- スコアフェードイン ---
+		case PHASE_SCORE:
+			g_PhaseAlpha += FADE_SPEED;
+			if (g_PhaseAlpha > 1.0f) g_PhaseAlpha = 1.0f;
+			SetScoreAlpha(g_PhaseAlpha);
+			if (g_PhaseAlpha >= 1.0f)
+			{
+				g_ResultPhase = PHASE_DONE;
+			}
+			break;
+
+		default:
+			break;
+		}
+	}
+
+	// 演出完了後のみタイトルへ遷移
+	if (g_ResultPhase == PHASE_DONE && Keyboard_IsKeyDown(KK_SPACE))
 	{
 		StartFade(SCENE_TITLE);
 	}
@@ -197,115 +436,45 @@ void Result_Update(void)
 
 void Result_Draw(void)
 {
-	// ④Drawするだけでいい！！！！！！！
 	g_pResultSprite->Draw();
 	g_pResult_gakubuti->Draw();
 
-	// スコアに応じた画像を表示（0-200：凶、201-400：恐、401-600：虚）
+	// スコアに応じた画像を表示
 	int resultScore = GetResultScore();
 	if (resultScore >= 0 && resultScore <= 200)
 	{
-		if (g_pkyou1)
-			g_pkyou1->Draw();
+		if (g_pkyou1) g_pkyou1->Draw();
 	}
 	else if (resultScore >= 201 && resultScore <= 400)
 	{
-		if (g_pkyou2)
-			g_pkyou2->Draw();
+		if (g_pkyou2) g_pkyou2->Draw();
 	}
 	else if (resultScore >= 401 && resultScore <= 600)
 	{
-		if (g_pkyou3)
-			g_pkyou3->Draw();
+		if (g_pkyou3) g_pkyou3->Draw();
 	}
 
-	// タイマーラベルを描画
-	if (g_pTimeLabelFont)
-	{
-		g_pTimeLabelFont->Draw();
-	}
-
-	// タイマー数値を描画
-	if (g_pTimeNum)
-	{
-		g_pTimeNum->Draw();
-	}
-
-	// 連鎖ラベルを描画
-	if (g_pComboLabelFont)
-	{
-		g_pComboLabelFont->Draw();
-	}
-
-	// 連鎖数値を描画
-	if (g_pComboNum)
-	{
-		g_pComboNum->Draw();
-	}
-
-	// 結果スコアを描画（二本線の位置）
-	if (g_pResultNum)
-	{
-		g_pResultNum->Draw();
-	}
+	if (g_pTimeLabelFont)   g_pTimeLabelFont->Draw();
+	if (g_pTimeNum)         g_pTimeNum->Draw();
+	if (g_pComboLabelFont)  g_pComboLabelFont->Draw();
+	if (g_pComboNum)        g_pComboNum->Draw();
+	if (g_pResultNum)       g_pResultNum->Draw();
 }
 
 void Result_Finalize(void)
 {
-	if (g_pResultSprite) {
-		delete g_pResultSprite;
-		g_pResultSprite = nullptr;
-	}
+	if (g_pResultSprite) { delete g_pResultSprite;    g_pResultSprite = nullptr; }
+	if (g_pTimeLabelFont) { delete g_pTimeLabelFont;   g_pTimeLabelFont = nullptr; }
+	if (g_pkyou1) { delete g_pkyou1;           g_pkyou1 = nullptr; }
+	if (g_pkyou2) { delete g_pkyou2;           g_pkyou2 = nullptr; }
+	if (g_pkyou3) { delete g_pkyou3;           g_pkyou3 = nullptr; }
+	if (g_pResult_gakubuti) { delete g_pResult_gakubuti; g_pResult_gakubuti = nullptr; }
+	if (g_pTimeNum) { delete g_pTimeNum;         g_pTimeNum = nullptr; }
+	if (g_pFloorLabelFont) { delete g_pFloorLabelFont;  g_pFloorLabelFont = nullptr; }
+	if (g_pComboLabelFont) { delete g_pComboLabelFont;  g_pComboLabelFont = nullptr; }
+	if (g_pComboNum) { delete g_pComboNum;        g_pComboNum = nullptr; }
+	if (g_pResultNum) { delete g_pResultNum;       g_pResultNum = nullptr; }
 
-	if (g_pTimeLabelFont) {
-		delete g_pTimeLabelFont;
-		g_pTimeLabelFont = nullptr;
-	}
-
-	if (g_pkyou1) {
-		delete g_pkyou1;
-		g_pkyou1 = nullptr;
-	}
-	if (g_pkyou2) {
-		delete g_pkyou2;
-		g_pkyou2 = nullptr;
-	}
-
-	if (g_pkyou3) {
-		delete g_pkyou3;
-		g_pkyou3 = nullptr;
-	}
-
-	if (g_pResult_gakubuti) {
-		delete g_pResult_gakubuti;
-		g_pResult_gakubuti = nullptr;
-	}
-
-	if (g_pTimeNum) {
-		delete g_pTimeNum;
-		g_pTimeNum = nullptr;
-	}
-
-	if (g_pFloorLabelFont) {
-		delete g_pFloorLabelFont;
-		g_pFloorLabelFont = nullptr;
-	}
-
-	if (g_pComboLabelFont) {
-		delete g_pComboLabelFont;
-		g_pComboLabelFont = nullptr;
-	}
-
-	if (g_pComboNum) {
-		delete g_pComboNum;
-		g_pComboNum = nullptr;
-	}
-
-	if (g_pResultNum) {
-		delete g_pResultNum;
-		g_pResultNum = nullptr;
-	}
-	// BGM解放
 	if (g_pBGM)
 	{
 		StopSound(g_pBGM);
@@ -316,38 +485,16 @@ void Result_Finalize(void)
 	Font_FinalizeGlobalData();
 }
 
-// タイマー結果をセット
 void Result_SetTimerValue(float time)
 {
 	g_pResultTime = time;
-
-	if (g_pTimeNum)
-	{
-		g_pTimeNum->SetNumber(GetDisplayTime(time));
-	}
-
-	// 時間が更新されたら、結果スコアを再計算
-	if (g_pResultNum)
-	{
-		int resultScore = GetResultScore();
-		g_pResultNum->SetNumber(resultScore);
-	}
+	if (g_pTimeNum)  g_pTimeNum->SetNumber(GetDisplayTime(time));
+	if (g_pResultNum) g_pResultNum->SetNumber(GetResultScore());
 }
 
-// 連鎖数をセット
 void Result_SetCombo(int combo)
 {
 	g_pResultCombo = combo;
-
-	if (g_pComboNum)
-	{
-		g_pComboNum->SetNumber(combo);
-	}
-
-	// コンボが更新されたら、結果スコアを再計算
-	if (g_pResultNum)
-	{
-		int resultScore = GetResultScore();
-		g_pResultNum->SetNumber(resultScore);
-	}
+	if (g_pComboNum)  g_pComboNum->SetNumber(combo);
+	if (g_pResultNum) g_pResultNum->SetNumber(GetResultScore());
 }
