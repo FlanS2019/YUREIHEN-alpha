@@ -37,29 +37,30 @@ static const int   WAIT_FRAMES = 60;
 // -------------------------------------------------------
 // 座標・サイズ定数
 // -------------------------------------------------------
-// スコア画像の下・中央付近（大表示用）
-static const XMFLOAT2 TIME_BIG_POS = { SCREEN_WIDTH / 2.0f, SCREEN_HEIGHT / 2.0f + 60.0f };//スコアの位置
-static const XMFLOAT2 TIME_BIG_SIZE = { 70.0f, 70.0f };//スコアの大きさ
+// スコア画像の下・中央付近（大表示用）時間の結果
+static const XMFLOAT2 TIME_BIG_POS = { SCREEN_WIDTH / 2.0f +10, SCREEN_HEIGHT / 2.0f + 130.0f };//スコアの位置
+static const XMFLOAT2 TIME_BIG_SIZE = { 50.0f, 50.0f };//スコアの大きさ
 static const float    TIME_BIG_LABEL_FONT = 55.0f;//フォントサイズ
-static const XMFLOAT2 TIME_BIG_LABEL_POS = { SCREEN_WIDTH / 2.0f - 130.0f, SCREEN_HEIGHT / 2.0f + 55.0f };
+static const XMFLOAT2 TIME_BIG_LABEL_POS = { SCREEN_WIDTH / 2.0f - 200.0f, SCREEN_HEIGHT / 2.0f + 130.0f };//スコアのラベル位置
 
-// 下部の小さい最終位置
-static const XMFLOAT2 TIME_SMALL_POS = { SCREEN_WIDTH / 2.0f + 110.0f, SCREEN_HEIGHT / 2.0f + 135.0f };
+// 下部の小さい最終位置　時間の結果
+static const XMFLOAT2 TIME_SMALL_POS = { SCREEN_WIDTH / 2.0f + 215.0f, SCREEN_HEIGHT / 2.0f - 13.0f };
 static const XMFLOAT2 TIME_SMALL_SIZE = { 35.0f, 35.0f };
-static const float    TIME_SMALL_SPACING = 28.0f;
-static const float    TIME_SMALL_LABEL_FONT = 35.0f;
-static const XMFLOAT2 TIME_SMALL_LABEL_POS = { SCREEN_WIDTH / 2.0f - 50.0f, SCREEN_HEIGHT / 2.0f + 130.0f };
+static const float    TIME_SMALL_SPACING = 30.0f;//桁間のスペース
+static const float    TIME_SMALL_LABEL_FONT = 33.0f;//フォントサイズ
+static const XMFLOAT2 TIME_SMALL_LABEL_POS = { SCREEN_WIDTH / 2.0f + 220.0f, SCREEN_HEIGHT / 2.0f -50.0f };
 // combo,スコアの下・中央付近（大表示用）
-static const XMFLOAT2 COMBO_BIG_POS = { SCREEN_WIDTH / 2.0f,        SCREEN_HEIGHT / 2.0f + 60.0f };
+static const XMFLOAT2 COMBO_BIG_POS = { SCREEN_WIDTH / 2.0f+10,  SCREEN_HEIGHT / 2.0f + 110.0f };
 static const XMFLOAT2 COMBO_BIG_SIZE = { 70.0f, 70.0f };
 static const float    COMBO_BIG_LABEL_FONT = 55.0f;
-static const XMFLOAT2 COMBO_BIG_LABEL_POS = { SCREEN_WIDTH / 2.0f - 150.0f, SCREEN_HEIGHT / 2.0f + 55.0f };
-// 下部の小さい最終位置
-static const XMFLOAT2 COMBO_SMALL_POS = { SCREEN_WIDTH / 2.0f + 110.0f, SCREEN_HEIGHT / 2.0f + 180.0f };
-static const XMFLOAT2 COMBO_SMALL_SIZE = { 35.0f, 35.0f };
-static const float    COMBO_SMALL_SPACING = 28.0f;
-static const float    COMBO_SMALL_LABEL_FONT = 35.0f;
-static const XMFLOAT2 COMBO_SMALL_LABEL_POS = { SCREEN_WIDTH / 2.0f - 50.0f, SCREEN_HEIGHT / 2.0f + 175.0f };
+static const XMFLOAT2 COMBO_BIG_LABEL_POS = { SCREEN_WIDTH / 2.0f - 150.0f, SCREEN_HEIGHT / 2.0f + 130.0f };
+// 下部の小さい最終位置 combo,スコアの下・中央付近（小表示用）
+static const XMFLOAT2 COMBO_SMALL_POS = { SCREEN_WIDTH / 2.0f + 215.0f, SCREEN_HEIGHT / 2.0f + 50.0f };
+static const XMFLOAT2 COMBO_SMALL_SIZE = { 35.0f, 35.0f };//スコアの大きさ
+static const float    COMBO_SMALL_SPACING = 20.0f;//桁間のスペース
+static const float    COMBO_SMALL_LABEL_FONT = 33.0f;//フォントサイズ（小表示用）
+static const XMFLOAT2 COMBO_SMALL_LABEL_POS = { SCREEN_WIDTH / 2.0f + 220.0f, SCREEN_HEIGHT / 2.0f + 15.0f };
+static const float    SCORE_LABEL_FONT = 40.0f;//フォントサイズ
 
 // -------------------------------------------------------
 // Sprite ポインタ
@@ -74,7 +75,9 @@ static Number* g_pComboNum = nullptr;
 static Number* g_pResultNum = nullptr;
 static FontRenderer* g_pTimeLabelFont = nullptr;
 static FontRenderer* g_pFloorLabelFont = nullptr;
-static FontRenderer* g_pComboLabelFont = nullptr;
+static FontRenderer* g_pComboLabelFont = nullptr;		// Combo 大表示用ラベル
+static FontRenderer* g_pComboLabelFontSmall = nullptr;	// Combo 小表示用ラベル（別サイズ）
+static FontRenderer* g_pScoreFont = nullptr;
 
 static float g_pResultTime = 0.0f;
 static int   g_pResultFloor = 1;
@@ -140,7 +143,7 @@ static void ApplyTimeSmall(float alpha)
 	}
 }
 
-// Combo のアルファ・位置・サイズをまとめて適用
+// Combo のアルファ・位置・サイズをまとめて適用（大表示：g_pComboLabelFont を使用）
 static void ApplyComboBig(float alpha)
 {
 	XMFLOAT4 col = { 1.0f, 1.0f, 1.0f, alpha };
@@ -148,6 +151,11 @@ static void ApplyComboBig(float alpha)
 	{
 		g_pComboLabelFont->SetColor(col);
 		g_pComboLabelFont->SetPos(COMBO_BIG_LABEL_POS);
+	}
+	// 小表示用は非表示にしておく
+	if (g_pComboLabelFontSmall)
+	{
+		g_pComboLabelFontSmall->SetColor({ 1.0f, 1.0f, 1.0f, 0.0f });
 	}
 	if (g_pComboNum)
 	{
@@ -158,13 +166,19 @@ static void ApplyComboBig(float alpha)
 	}
 }
 
+// Combo 小表示（g_pComboLabelFontSmall を使用）
 static void ApplyComboSmall(float alpha)
 {
 	XMFLOAT4 col = { 1.0f, 1.0f, 1.0f, alpha };
+	// 大表示用は非表示にしておく
 	if (g_pComboLabelFont)
 	{
-		g_pComboLabelFont->SetColor(col);
-		g_pComboLabelFont->SetPos(COMBO_SMALL_LABEL_POS);
+		g_pComboLabelFont->SetColor({ 1.0f, 1.0f, 1.0f, 0.0f });
+	}
+	if (g_pComboLabelFontSmall)
+	{
+		g_pComboLabelFontSmall->SetColor(col);
+		g_pComboLabelFontSmall->SetPos(COMBO_SMALL_LABEL_POS);
 	}
 	if (g_pComboNum)
 	{
@@ -178,7 +192,8 @@ static void ApplyComboSmall(float alpha)
 static void SetScoreAlpha(float alpha)
 {
 	XMFLOAT4 col = { 1.0f, 1.0f, 1.0f, alpha };
-	if (g_pResultNum) g_pResultNum->SetColor(col);
+	if (g_pResultNum)  g_pResultNum->SetColor(col);
+	if (g_pScoreFont)  g_pScoreFont->SetColor(col);
 }
 
 // -------------------------------------------------------
@@ -238,7 +253,7 @@ void Result_Initialize(ID3D11Device* pDevice, ID3D11DeviceContext* pContext)
 
 	// スコア数字：アルファ 0
 	g_pResultNum = new Number(
-		{ SCREEN_WIDTH / 2.0f + 10.0f, SCREEN_HEIGHT / 2.0f + 230.0f },
+		{ SCREEN_WIDTH / 2.0f + 10.0f, SCREEN_HEIGHT / 2.0f + 130.0f },
 		{ 50.0f, 50.0f },
 		{ 1.0f, 1.0f, 1.0f, 0.0f },
 		BLENDSTATE_ALFA,
@@ -256,7 +271,7 @@ void Result_Initialize(ID3D11Device* pDevice, ID3D11DeviceContext* pContext)
 		"Time:"
 	);
 
-	// コンボラベル：最初は大きい位置で、アルファ 0
+	// コンボラベル（大表示用）：COMBO_BIG_LABEL_FONT サイズ、アルファ 0
 	g_pComboLabelFont = new FontRenderer(
 		COMBO_BIG_LABEL_POS,
 		COMBO_BIG_LABEL_FONT,
@@ -265,10 +280,28 @@ void Result_Initialize(ID3D11Device* pDevice, ID3D11DeviceContext* pContext)
 		"Combo:"
 	);
 
+	// コンボラベル（小表示用）：COMBO_SMALL_LABEL_FONT サイズ、アルファ 0
+	g_pComboLabelFontSmall = new FontRenderer(
+		COMBO_SMALL_LABEL_POS,
+		COMBO_SMALL_LABEL_FONT,
+		0.0f,
+		{ 1.0f, 1.0f, 1.0f, 0.0f },
+		"Combo:"
+	);
+
+	// Score: ラベル：スコア数値の左側・同じY座標
+	g_pScoreFont = new FontRenderer(
+		{ SCREEN_WIDTH / 2.0f - 120.0f, SCREEN_HEIGHT / 2.0f + 130.0f },
+		65.0f,
+		0.0f,
+		{ 1.0f, 1.0f, 1.0f, 0.0f },
+		"Score:"
+	);
+
 	// 凶、恐、虚の絵
 	g_pkyou1 = new Sprite(
-		{ SCREEN_WIDTH / 2.0f + 10, SCREEN_HEIGHT / 2.0f -10 },
-		{ 200, 200 },
+		{ SCREEN_WIDTH / 2.0f - 30, SCREEN_HEIGHT / 2.0f -10 },
+		{ 250,250 },
 		0.0f,
 		{ 1.0f, 1.0f, 1.0f, 1.0f },
 		BLENDSTATE_ALFA,
@@ -276,7 +309,7 @@ void Result_Initialize(ID3D11Device* pDevice, ID3D11DeviceContext* pContext)
 	);
 	g_pkyou2 = new Sprite(
 		{ SCREEN_WIDTH / 2.0f + 10, SCREEN_HEIGHT / 2.0f - 10 },
-		{ 200, 200 },
+		{ 300,300 },
 		0.0f,
 		{ 1.0f, 1.0f, 1.0f, 1.0f },
 		BLENDSTATE_ALFA,
@@ -284,7 +317,7 @@ void Result_Initialize(ID3D11Device* pDevice, ID3D11DeviceContext* pContext)
 	);
 	g_pkyou3 = new Sprite(
 		{ SCREEN_WIDTH / 2.0f + 10, SCREEN_HEIGHT / 2.0f - 10 },
-		{ 500, 500 },
+		{ 300,300 },
 		0.0f,
 		{ 1.0f, 1.0f, 1.0f, 1.0f },
 		BLENDSTATE_ALFA,
@@ -338,7 +371,7 @@ void Result_Update(void)
 			}
 			break;
 
-			// --- Time フェードアウト ---
+		// --- Time フェードアウト ---
 		case PHASE_TIME_FADEOUT:
 			g_PhaseAlpha -= FADE_SPEED * 2.0f;
 			if (g_PhaseAlpha < 0.0f) g_PhaseAlpha = 0.0f;
@@ -351,7 +384,7 @@ void Result_Update(void)
 			}
 			break;
 
-			// --- Time 小表示フェードイン ---
+		// --- Time 小表示フェードイン ---
 		case PHASE_TIME_SMALL:
 			g_PhaseAlpha += FADE_SPEED;
 			if (g_PhaseAlpha > 1.0f) g_PhaseAlpha = 1.0f;
@@ -363,7 +396,7 @@ void Result_Update(void)
 			}
 			break;
 
-			// --- Combo 大表示フェードイン ---
+		// --- Combo 大表示フェードイン ---
 		case PHASE_COMBO_BIG:
 			g_PhaseAlpha += FADE_SPEED;
 			if (g_PhaseAlpha > 1.0f) g_PhaseAlpha = 1.0f;
@@ -386,7 +419,7 @@ void Result_Update(void)
 			}
 			break;
 
-			// --- Combo フェードアウト ---
+		// --- Combo フェードアウト ---
 		case PHASE_COMBO_FADEOUT:
 			g_PhaseAlpha -= FADE_SPEED * 2.0f;
 			if (g_PhaseAlpha < 0.0f) g_PhaseAlpha = 0.0f;
@@ -399,7 +432,7 @@ void Result_Update(void)
 			}
 			break;
 
-			// --- Combo 小表示フェードイン ---
+		// --- Combo 小表示フェードイン ---
 		case PHASE_COMBO_SMALL:
 			g_PhaseAlpha += FADE_SPEED;
 			if (g_PhaseAlpha > 1.0f) g_PhaseAlpha = 1.0f;
@@ -411,7 +444,7 @@ void Result_Update(void)
 			}
 			break;
 
-			// --- スコアフェードイン ---
+		// --- スコアフェードイン ---
 		case PHASE_SCORE:
 			g_PhaseAlpha += FADE_SPEED;
 			if (g_PhaseAlpha > 1.0f) g_PhaseAlpha = 1.0f;
@@ -454,26 +487,30 @@ void Result_Draw(void)
 		if (g_pkyou3) g_pkyou3->Draw();
 	}
 
-	if (g_pTimeLabelFont)   g_pTimeLabelFont->Draw();
-	if (g_pTimeNum)         g_pTimeNum->Draw();
-	if (g_pComboLabelFont)  g_pComboLabelFont->Draw();
-	if (g_pComboNum)        g_pComboNum->Draw();
-	if (g_pResultNum)       g_pResultNum->Draw();
+	if (g_pTimeLabelFont)        g_pTimeLabelFont->Draw();
+	if (g_pTimeNum)              g_pTimeNum->Draw();
+	if (g_pComboLabelFont)       g_pComboLabelFont->Draw();
+	if (g_pComboLabelFontSmall)  g_pComboLabelFontSmall->Draw();	// 小表示用ラベル
+	if (g_pScoreFont)            g_pScoreFont->Draw();
+	if (g_pComboNum)             g_pComboNum->Draw();
+	if (g_pResultNum)            g_pResultNum->Draw();
 }
 
 void Result_Finalize(void)
 {
-	if (g_pResultSprite) { delete g_pResultSprite;    g_pResultSprite = nullptr; }
-	if (g_pTimeLabelFont) { delete g_pTimeLabelFont;   g_pTimeLabelFont = nullptr; }
-	if (g_pkyou1) { delete g_pkyou1;           g_pkyou1 = nullptr; }
-	if (g_pkyou2) { delete g_pkyou2;           g_pkyou2 = nullptr; }
-	if (g_pkyou3) { delete g_pkyou3;           g_pkyou3 = nullptr; }
-	if (g_pResult_gakubuti) { delete g_pResult_gakubuti; g_pResult_gakubuti = nullptr; }
-	if (g_pTimeNum) { delete g_pTimeNum;         g_pTimeNum = nullptr; }
-	if (g_pFloorLabelFont) { delete g_pFloorLabelFont;  g_pFloorLabelFont = nullptr; }
-	if (g_pComboLabelFont) { delete g_pComboLabelFont;  g_pComboLabelFont = nullptr; }
-	if (g_pComboNum) { delete g_pComboNum;        g_pComboNum = nullptr; }
-	if (g_pResultNum) { delete g_pResultNum;       g_pResultNum = nullptr; }
+	if (g_pResultSprite) { delete g_pResultSprite;       g_pResultSprite = nullptr; }
+	if (g_pTimeLabelFont) { delete g_pTimeLabelFont;      g_pTimeLabelFont = nullptr; }
+	if (g_pkyou1) { delete g_pkyou1;              g_pkyou1 = nullptr; }
+	if (g_pkyou2) { delete g_pkyou2;              g_pkyou2 = nullptr; }
+	if (g_pkyou3) { delete g_pkyou3;              g_pkyou3 = nullptr; }
+	if (g_pResult_gakubuti) { delete g_pResult_gakubuti;   g_pResult_gakubuti = nullptr; }
+	if (g_pTimeNum) { delete g_pTimeNum;            g_pTimeNum = nullptr; }
+	if (g_pFloorLabelFont) { delete g_pFloorLabelFont;    g_pFloorLabelFont = nullptr; }
+	if (g_pComboLabelFont) { delete g_pComboLabelFont;    g_pComboLabelFont = nullptr; }
+	if (g_pComboLabelFontSmall) { delete g_pComboLabelFontSmall; g_pComboLabelFontSmall = nullptr; }	// 小表示用ラベル解放
+	if (g_pComboNum) { delete g_pComboNum;           g_pComboNum = nullptr; }
+	if (g_pResultNum) { delete g_pResultNum;          g_pResultNum = nullptr; }
+	if (g_pScoreFont) { delete g_pScoreFont;          g_pScoreFont = nullptr; }
 
 	if (g_pBGM)
 	{
