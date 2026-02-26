@@ -91,7 +91,7 @@ void Animation_Win_Initialize(ID3D11Device* pDevice, ID3D11DeviceContext* pConte
 	);
 
 	// サウンド再生
-	g_pBGM = LoadMP3("asset/sound/bgm/HauntedHalloween.mp3");
+	g_pBGM = LoadMP3("asset/sound/se/Fluffy_SE.m4a");
 	if (g_pBGM) {
 		PlaySound(g_pBGM, true);
 	}
