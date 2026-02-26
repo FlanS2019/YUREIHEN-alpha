@@ -1,4 +1,4 @@
-/*=============================================================================
+﻿/*=============================================================================
 
    2D描画用ピクセルシェーダー [shader_pixel_2d.hlsl]
 --------------------------------------------------------------------------------
@@ -46,15 +46,8 @@ float4 main(PS_INPUT ps_in) : SV_TARGET
     // テクスチャからサンプル
 	float4 texColor = g_Texture.Sample(g_SamplerState, ps_in.texcoord);
     
-    // マテリアルカラー安全チェック
-	float4 materialColorSafe = MaterialColor;
-	if (MaterialColor.r == 0.0f && MaterialColor.g == 0.0f && MaterialColor.b == 0.0f)
-	{
-		materialColorSafe = float4(1.0f, 1.0f, 1.0f, 1.0f);
-	}
-    
     // ベースカラー = テクスチャカラー × マテリアルカラー × 頂点カラー
-	float4 baseColor = texColor * materialColorSafe * ps_in.color;
+	float4 baseColor = texColor * MaterialColor * ps_in.color;
     
     // ライティング計算
 	float3 normal = normalize(ps_in.normal.xyz);
