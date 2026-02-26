@@ -25,6 +25,37 @@
 
 static std::vector<Busters*> g_BustersList[MAP_FLOORS];
 
+
+
+// =================================================================
+// パススムージング: 直線で到達可能なノードをスキップして滑らかにする
+// =================================================================
+static std::vector<XMFLOAT3> SmoothPath(const std::vector<XMFLOAT3>& path, float bodyRadius, int ignoreFurnIdx = -1)
+{
+	if (path.size() <= 2) return path;
+
+	std::vector<XMFLOAT3> smoothed;
+	smoothed.push_back(path[0]);
+
+	size_t current = 0;
+	while (current < path.size() - 1)
+	{
+		size_t farthest = current + 1;
+		// 現在のノードから、直線で到達できる最も遠いノードを探す
+		for (size_t i = current + 2; i < path.size(); i++)
+		{
+			if (CanPassLine(path[current], path[i], bodyRadius, ignoreFurnIdx))
+			{
+				farthest = i;
+			}
+		}
+		smoothed.push_back(path[farthest]);
+		current = farthest;
+	}
+
+	return smoothed;
+}
+
 // =================================================================
 // Busters クラスメンバ関数の実装
 // =================================================================
@@ -569,7 +600,7 @@ void Busters::Update(void)
 				{
 					shouldUpdate = true;
 				}
-				else if (m_PathUpdateTimer > updateInterval && distGhostMovedSq > 0.5f * 0.5f)
+				else if (m_PathUpdateTimer > updateInterval * 2 && distGhostMovedSq > 1.0f * 1.0f)
 				{
 					shouldUpdate = true;
 				}
@@ -632,6 +663,12 @@ void Busters::Update(void)
 						std::reverse(m_PathList.begin(), m_PathList.end());
 
 						if (m_PathList.size() > 0) m_PathList.erase(m_PathList.begin());
+
+						// パススムージング：直線で到達できるノードをスキップして滑らかなルートにする
+						if (m_PathList.size() > 2)
+						{
+							m_PathList = SmoothPath(m_PathList, 0.4f);
+						}
 					}
 				}
 			}
@@ -877,7 +914,7 @@ bool IsObstacle(float x, float z, float radius, int ignoreFurnitureIndex = -1)
 	return false;
 }
 
-bool CanPassLine(const XMFLOAT3& start, const XMFLOAT3& end, float radius, int ignoreFurnitureIndex = -1)
+bool CanPassLine(const XMFLOAT3& start, const XMFLOAT3& end, float radius, int ignoreFurnitureIndex)
 {
 	float dx = end.x - start.x;
 	float dz = end.z - start.z;
@@ -1092,13 +1129,37 @@ void Busters::MoveTo(XMFLOAT3 targetPos)
 	// 4. 移動不要チェック
 	if (dist < 0.05f) return;
 
-	// 5. 移動方向を計算
+	// 5. 移動方向を計算（先読み: 追跡・警戒時はパスの先を見て方向を補間）
 	float dirX = dx / dist;
 	float dirZ = dz / dist;
 
+	if ((m_State == BUSTERS_CHASE || m_State == BUSTERS_SUSPICION) && m_PathList.size() >= 2)
+	{
+		// 現在のノードと次のノードの方向をブレンドして滑らかにする
+		XMFLOAT3 nextNode = m_PathList[1];
+		float ndx = nextNode.x - m_Position.x;
+		float ndz = nextNode.z - m_Position.z;
+		float ndist = sqrtf(ndx * ndx + ndz * ndz);
+		if (ndist > 0.1f)
+		{
+			float nextDirX = ndx / ndist;
+			float nextDirZ = ndz / ndist;
+			// 現在ノードに近いほど次のノード方向の影響を大きくする
+			float blendFactor = 1.0f - (dist / (dist + 1.0f));
+			blendFactor = blendFactor * 0.5f; // 最大50%まで次のノード方向をブレンド
+			dirX = dirX * (1.0f - blendFactor) + nextDirX * blendFactor;
+			dirZ = dirZ * (1.0f - blendFactor) + nextDirZ * blendFactor;
+			// 正規化
+			float blendLen = sqrtf(dirX * dirX + dirZ * dirZ);
+			if (blendLen > 0.001f)
+			{
+				dirX /= blendLen;
+				dirZ /= blendLen;
+			}
+		}
+	}
+
 	// 6. 回転処理（NavMesh風：常に移動方向を向く、毎フレーム更新）
-	// 左手系 + Mayaモデル補正: モデルの正面がZ軸負方向のため、180度オフセット
-	// atan2f(-dirX, -dirZ) = atan2f(dirX, dirZ) + 180° と等価
 	float targetAngle = XMConvertToDegrees(atan2f(-dirX, -dirZ));
 	float currentRot = GetRot().y;
 	
@@ -1113,11 +1174,14 @@ void Busters::MoveTo(XMFLOAT3 targetPos)
 	while (angleDiff > 180.0f) angleDiff -= 360.0f;
 	while (angleDiff < -180.0f) angleDiff += 360.0f;
 	
-	// 滑らかな回転（最大回転速度を制限）
-	const float MAX_ROT_SPEED = 15.0f;
-	if (fabsf(angleDiff) > MAX_ROT_SPEED)
+	// 滑らかな回転（状態に応じて最大回転速度を変える）
+	float maxRotSpeed = 15.0f;
+	if (m_State == BUSTERS_CHASE) maxRotSpeed = 8.0f;       // 追跡時はより滑らかに
+	else if (m_State == BUSTERS_SUSPICION) maxRotSpeed = 10.0f; // 警戒時もやや滑らか
+	
+	if (fabsf(angleDiff) > maxRotSpeed)
 	{
-		angleDiff = (angleDiff > 0) ? MAX_ROT_SPEED : -MAX_ROT_SPEED;
+		angleDiff = (angleDiff > 0) ? maxRotSpeed : -maxRotSpeed;
 	}
 	
 	float newRot = currentRot + angleDiff;
@@ -1125,7 +1189,7 @@ void Busters::MoveTo(XMFLOAT3 targetPos)
 	while (newRot < -180.0f) newRot += 360.0f;
 	SetRotY(newRot);
 
-	// 7. 移動処理
+	// 7. 移動処理（追跡・警戒時は実際の回転方向に沿って移動する）
 	float bodyRadius = 0.4f;
 	float moveAmount = m_MoveSpeed;
 	
@@ -1136,9 +1200,25 @@ void Busters::MoveTo(XMFLOAT3 targetPos)
 	}
 	
 	// 回転が大きく違う場合は移動を抑制（その場で回転）
-	if (fabsf(angleDiff) > 60.0f)
+	float angleDiffAbs = fabsf(angleDiff);
+	if (m_State == BUSTERS_CHASE || m_State == BUSTERS_SUSPICION)
 	{
-		moveAmount *= 0.3f;
+		// 追跡・警戒時は回転方向に沿って移動（旋回しながら走る）
+		if (angleDiffAbs > 45.0f)
+		{
+			moveAmount *= 0.5f;
+		}
+		// 実際の向きに基づいて移動方向を計算
+		float moveRadY = XMConvertToRadians(newRot);
+		dirX = -sinf(moveRadY);
+		dirZ = -cosf(moveRadY);
+	}
+	else
+	{
+		if (angleDiffAbs > 60.0f)
+		{
+			moveAmount *= 0.3f;
+		}
 	}
 
 	float nextPosX = m_Position.x + dirX * moveAmount;
