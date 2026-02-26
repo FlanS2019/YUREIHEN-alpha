@@ -74,8 +74,7 @@ FIELD_TYPE ConvertMapID(int minecraftID)
 
 		// --- 箱（壁・床）として扱うもの ---
 	case 1:  // トウヒの板材
-	case 2:  // ダークオークの原木
-	case 3:  // ダークオークの板材
+	case 2:  // ダークオークの原木（抜けられない壁）
 	case 4:  // シラカバの板材
 	case 14: // ダークオークフェンス
 	case 15: // オークフェンス
@@ -84,6 +83,9 @@ FIELD_TYPE ConvertMapID(int minecraftID)
 	case 18: // 窓ガラス
 	case 39: // コピー用ブロック
 		return FIELD_BOX;
+
+	case 3:  // ダークオークの板材（ゴーストのみ通過可能な壁）
+		return FIELD_WALL_PASS;
 
 		// --- 階段として扱うもの ---
 	case 5: case 6: case 7: case 8: // 下付き階段
@@ -136,6 +138,9 @@ void LoadMapData(int floor)
 					// 透過ブロック(ガラス等)を並べた時、隣が同じブロックなら接合面を消す
 					if (myID == neighborID) return false;
 
+					// ID:2とID:3は同じ壁テクスチャなので、隣接時は接合面を消す
+					if ((myID == 2 || myID == 3) && (neighborID == 2 || neighborID == 3)) return false;
+
 					// 自分が不透明ブロックで、隣が透過ブロックの場合は面を描画する
 					// 他に透過ブロックIDがあれば || neighborID == XX を追加
 					if (myID != 18 && neighborID == 18) return true;
@@ -171,6 +176,7 @@ void LoadMapData(int floor)
 				data.isHidden = false;
 				data.rotY = 0.0f;
 				data.blockID = mcID;
+				data.mapY = y;
 
 				data.currentScale = 1.0f;
 
@@ -179,7 +185,13 @@ void LoadMapData(int floor)
 		}
 	}
 
+	// テクスチャバッチング用にソート（blockIDベース）
 	std::sort(g_MapList.begin(), g_MapList.end(), [](const MAPDATA& a, const MAPDATA& b) {
+		// 壁ブロック(ID:2,3)はy軸でテクスチャが決まるのでmapYでソート
+		bool aIsWall = (a.blockID == 2 || a.blockID == 3);
+		bool bIsWall = (b.blockID == 2 || b.blockID == 3);
+		if (aIsWall && bIsWall) return a.mapY < b.mapY;
+		if (aIsWall != bIsWall) return aIsWall < bIsWall;
 		return a.blockID < b.blockID;
 		});
 }
@@ -282,8 +294,9 @@ void Field_Update(void)
 		{
 			// Y=1 (壁レイヤー) をチェック
 			int mcID = GetMapBlockID(g_CurrentFloor, 1, gridZ, gridX);
+			FIELD_TYPE mcType = ConvertMapID(mcID);
 
-			if (ConvertMapID(mcID) == FIELD_BOX)
+			if (mcType == FIELD_BOX || mcType == FIELD_WALL_PASS)
 			{
 				// 遮蔽物を見つけたら、その周囲も含めて「隠すフラグ」を立てる
 				int range = 2;
@@ -438,6 +451,12 @@ void Field_Draw(void)
 		if (mapData.no == FIELD_STAIRS_UP || mapData.no == FIELD_STAIRS_DOWN) {
 			nextSRV = g_TextureStairs;
 		}
+		else if (mapData.blockID == 2 || mapData.blockID == 3) {
+			// 壁ブロックはy軸でテクスチャを選択
+			if (mapData.mapY == 1) nextSRV = g_BlockTextures[2];       // kabesita.png
+			else if (mapData.mapY == 2) nextSRV = g_BlockTextures[3];  // tunagime.png
+			else nextSRV = g_BlockTextures[4];                         // kabeue.png
+		}
 		else {
 			int id = mapData.blockID;
 			if (id <= 0 || id >= MAX_BLOCK_TYPES || g_BlockTextures[id] == nullptr) nextSRV = g_BlockTextures[0];
@@ -530,10 +549,12 @@ bool Field_IsWall(float x, float z)
 	if (gx >= 0 && gx < MAP_W && gz >= 0 && gz < MAP_H)
 	{
 		int mcID = GetMapBlockID(g_CurrentFloor, 1, gz, gx);
-		if (ConvertMapID(mcID) == FIELD_BOX) return true;
+		FIELD_TYPE type = ConvertMapID(mcID);
+		if (type == FIELD_BOX || type == FIELD_WALL_PASS) return true;
 
 		int mcID2 = GetMapBlockID(g_CurrentFloor, 2, gz, gx);
-		if (ConvertMapID(mcID2) == FIELD_BOX) return true;
+		FIELD_TYPE type2 = ConvertMapID(mcID2);
+		if (type2 == FIELD_BOX || type2 == FIELD_WALL_PASS) return true;
 	}
 	return false;
 }
@@ -547,6 +568,23 @@ bool Field_IsOuterWall(float x, float z)
 	return false;
 }
 
+bool Field_IsWallForGhost(float x, float z)
+{
+	int gx = WorldToGridX(x);
+	int gz = WorldToGridZ(z);
+
+	if (gx < 0 || gx >= MAP_W || gz < 0 || gz >= MAP_H) return true;
+
+	// FIELD_BOXのみ壁として扱う（FIELD_WALL_PASSはゴーストが通過可能）
+	int mcID = GetMapBlockID(g_CurrentFloor, 1, gz, gx);
+	if (ConvertMapID(mcID) == FIELD_BOX) return true;
+
+	int mcID2 = GetMapBlockID(g_CurrentFloor, 2, gz, gx);
+	if (ConvertMapID(mcID2) == FIELD_BOX) return true;
+
+	return false;
+}
+
 bool Field_IsWall(float x, float y, float z)
 {
 	int gx = WorldToGridX(x);
@@ -556,7 +594,8 @@ bool Field_IsWall(float x, float y, float z)
 	if (gx >= 0 && gx < MAP_W && gz >= 0 && gz < MAP_H && gy >= 0 && gy < MAP_HEIGHT)
 	{
 		int mcID = GetMapBlockID(g_CurrentFloor, gy, gz, gx);
-		if (ConvertMapID(mcID) != FIELD_NONE) return true;
+		FIELD_TYPE type = ConvertMapID(mcID);
+		if (type != FIELD_NONE) return true;
 	}
 	return false;
 }
@@ -625,7 +664,8 @@ std::vector<XMFLOAT3> Field_FindPath(XMFLOAT3 start, XMFLOAT3 end)
 	}
 
 
-	if (ConvertMapID(GetMapBlockID(g_CurrentFloor, 1, endZ, endX)) == FIELD_BOX)
+	if (ConvertMapID(GetMapBlockID(g_CurrentFloor, 1, endZ, endX)) == FIELD_BOX ||
+		ConvertMapID(GetMapBlockID(g_CurrentFloor, 1, endZ, endX)) == FIELD_WALL_PASS)
 	{
 		int dx[] = { 0, 0, 1, -1 };
 		int dz[] = { 1, -1, 0, 0 };
@@ -633,7 +673,8 @@ std::vector<XMFLOAT3> Field_FindPath(XMFLOAT3 start, XMFLOAT3 end)
 			int nx = endX + dx[i];
 			int nz = endZ + dz[i];
 			if (nx >= 0 && nx < MAP_W && nz >= 0 && nz < MAP_H) {
-				if (ConvertMapID(GetMapBlockID(g_CurrentFloor, 1, nz, nx)) != FIELD_BOX) {
+				FIELD_TYPE t = ConvertMapID(GetMapBlockID(g_CurrentFloor, 1, nz, nx));
+				if (t != FIELD_BOX && t != FIELD_WALL_PASS) {
 					endX = nx; endZ = nz; break;
 				}
 			}
@@ -682,8 +723,9 @@ std::vector<XMFLOAT3> Field_FindPath(XMFLOAT3 start, XMFLOAT3 end)
 
 			if (nextX < 0 || nextX >= MAP_W || nextZ < 0 || nextZ >= MAP_H) continue;
 
-			// 壁判定
-			if (ConvertMapID(GetMapBlockID(g_CurrentFloor, 1, nextZ, nextX)) == FIELD_BOX) continue;
+			// 壁判定（FIELD_BOXとFIELD_WALL_PASSの両方を壁として扱う）
+			FIELD_TYPE nextType = ConvertMapID(GetMapBlockID(g_CurrentFloor, 1, nextZ, nextX));
+			if (nextType == FIELD_BOX || nextType == FIELD_WALL_PASS) continue;
 
 			// 斜め移動の場合、両隣が通路であるか確認（コーナーにめり込まない）
 			if (i >= 4)
@@ -693,8 +735,10 @@ std::vector<XMFLOAT3> Field_FindPath(XMFLOAT3 start, XMFLOAT3 end)
 				int diagX = current.x + dirX[i];
 				int diagZ = current.z + dirZ[i];
 
-				if (ConvertMapID(GetMapBlockID(g_CurrentFloor, 1, current.z, diagX)) == FIELD_BOX) continue;
-				if (ConvertMapID(GetMapBlockID(g_CurrentFloor, 1, diagZ, current.x)) == FIELD_BOX) continue;
+				FIELD_TYPE diagTypeX = ConvertMapID(GetMapBlockID(g_CurrentFloor, 1, current.z, diagX));
+				if (diagTypeX == FIELD_BOX || diagTypeX == FIELD_WALL_PASS) continue;
+				FIELD_TYPE diagTypeZ = ConvertMapID(GetMapBlockID(g_CurrentFloor, 1, diagZ, current.x));
+				if (diagTypeZ == FIELD_BOX || diagTypeZ == FIELD_WALL_PASS) continue;
 			}
 
 			if (closedList[nextZ][nextX]) continue;
