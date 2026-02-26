@@ -487,6 +487,8 @@ void UI_Draw(void)
 	if (g_Clock) g_Clock->Draw();
 	if (g_ScareGauge) g_ScareGauge->Draw();
 	//if (g_RemainingTimeNum) g_RemainingTimeNum->Draw();
+
+	if (g_PossessGuideFont) g_PossessGuideFont->Draw();
 }
 
 //----------------------------
