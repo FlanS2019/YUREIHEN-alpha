@@ -97,3 +97,4 @@ void CreateFurniture(XMFLOAT3 pos, XMFLOAT3 scale, XMFLOAT3 rot, const char* mod
 Furniture* GetFurniture(int index);
 bool FurnitureScareStart(int index);
 bool FurnitureScareEnded(int index);
+bool IsFurnitureBlock(int id);
