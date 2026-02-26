@@ -376,9 +376,6 @@ void Furniture::Draw(void)
 
 	Sprite3D::Draw();
 
-	// シェーダーの状態をリセット（Billboard 描画の前に必要）
-	Shader_RefreshState();
-
 	m_Billboard.Draw();
 }
 
