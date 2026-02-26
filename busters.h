@@ -108,6 +108,8 @@ void Busters_SetLight(void);
 int Busters_GetCurrentFloorCount(void);
 
 // フロア降下アニメーション用
-void Busters_StartFloorExitAnim(XMFLOAT3 stairsPos); // 全バスターズに階段まで走るよう指示
+void Busters_StartFloorExitAnim(void); // 全バスターズにID5/6階段まで走るよう指示（ランダム割り当て）
 bool Busters_IsFloorExitAnimDone(void);               // 全バスターズが階段到着済みか
 void Busters_DoFloorTransition(void);                 // 実際のフロア移行処理を実行
+void Busters_DeleteCurrentFloor(void);                // 現在フロアのバスターズを全削除
+void Busters_SpawnOnFloor(int floorIndex);            // 指定フロアにバスターズを生成

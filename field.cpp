@@ -685,6 +685,9 @@ std::vector<XMFLOAT3> Field_FindPath(XMFLOAT3 start, XMFLOAT3 end)
 			// 壁判定
 			if (ConvertMapID(GetMapBlockID(g_CurrentFloor, 1, nextZ, nextX)) == FIELD_BOX) continue;
 
+			// Y=0が空気（床なし）のマスは通行不可
+			if (GetMapBlockID(g_CurrentFloor, 0, nextZ, nextX) == 0) continue;
+
 			// 斜め移動の場合、両隣が通路であるか確認（コーナーにめり込まない）
 			if (i >= 4)
 			{
@@ -792,6 +795,37 @@ XMFLOAT3 Field_GetMarker97WorldPos(int floor)
 			}
 		}
 	}
-	// 97が見つからない場合は階段座標にフォールバック
-	return Field_GetStairsUpWorldPos(floor);
+	// 97が見つからない場合はマップ中央にフォールバック（階段5・6には誘導しない）
+	return { 0.0f, PATROL_HEIGHT, 0.0f };
+}
+
+// 指定フロアのID5またはID6（階段ブロック）のワールド座標を全て取得する
+std::vector<XMFLOAT3> Field_GetStairsExitPositions(int floor)
+{
+	std::vector<XMFLOAT3> positions;
+	for (int z = 0; z < MAP_H; z++)
+	{
+		for (int x = 0; x < MAP_W; x++)
+		{
+			int mcID = GetMapBlockID(floor, 0, z, x);
+			if (mcID == 5 || mcID == 6)
+			{
+				float wx = GridToWorldX(x);
+				float wz = GridToWorldZ(z);
+				positions.push_back({ wx, PATROL_HEIGHT, wz });
+			}
+		}
+	}
+	return positions;
+}
+
+// 現在フロアの指定ワールド座標のY=0またはY=1レイヤーの生マップIDを返す
+int Field_GetRawBlockID(float x, float z)
+{
+	int gx = WorldToGridX(x);
+	int gz = WorldToGridZ(z);
+	if (gx < 0 || gx >= MAP_W || gz < 0 || gz >= MAP_H) return 0;
+	int id = GetMapBlockID(g_CurrentFloor, 1, gz, gx);
+	if (id == 0) id = GetMapBlockID(g_CurrentFloor, 0, gz, gx);
+	return id;
 }

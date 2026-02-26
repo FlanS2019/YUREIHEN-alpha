@@ -13,6 +13,7 @@ using namespace DirectX;
 #include "busters.h"
 #include "Tutorial_Object.h"
 #include "game.h"
+#include "scene.h"
 #include "UI.h"
 #include "UI_scarecombo.h"
 #include "define.h"
@@ -361,6 +362,17 @@ void Ghost_Update(void)
 			XMFLOAT3 pos = g_Ghost->GetPos();
 			hal::dout << "Ghost Position: { " << pos.x << "f, " << pos.y << "f, " << pos.z << "f }" << std::endl;
 		}
+
+		// 現在のSCENEを名前付きで出力
+		const char* sceneNames[] = {
+			"SCENE_TITLE", "SCENE_GAME", "SCENE_RESULT",
+			"SCENE_ANM_LOGO", "SCENE_ANM_OP", "SCENE_ANM_WIN",
+			"SCENE_ANM_LOSE", "SCENE_ANM_LOSE_ED"
+		};
+		SCENE currentScene = GetScene();
+		const char* sceneName = (currentScene >= 0 && currentScene < SCENE_MAX)
+			? sceneNames[currentScene] : "UNKNOWN";
+		hal::dout << "Scene: " << sceneName << " (" << (int)currentScene << ")" << std::endl;
 	}
 
 	if (g_Ghost)

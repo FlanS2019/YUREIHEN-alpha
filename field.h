@@ -60,3 +60,9 @@ XMFLOAT3 Field_GetStairsUpWorldPos(int floor);
 
 // マップID97（バスターズ誘導マーカー）のワールド座標を返す
 XMFLOAT3 Field_GetMarker97WorldPos(int floor);
+
+// 指定フロアのID5またはID6（階段ブロック）のワールド座標を全て取得する
+std::vector<XMFLOAT3> Field_GetStairsExitPositions(int floor);
+
+// 現在フロアの指定ワールド座標(Y=1レイヤー)の生マップIDを返す
+int Field_GetRawBlockID(float x, float z);

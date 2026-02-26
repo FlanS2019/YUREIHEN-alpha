@@ -12,6 +12,7 @@
 #include "field.h"
 #include "furniture.h"
 #include <stdlib.h>
+#include <cfloat>
 #include <algorithm>
 #include <vector>
 
@@ -312,7 +313,12 @@ void Busters::Update(void)
 		float distSq = dx * dx + dz * dz;
 		if (distSq <= 0.5f * 0.5f)
 		{
-			m_RunToStairsDone = true;
+			// 距離が近くても、実際にID5またはID6のマスの真上にいる場合のみ完了とする
+			int blockID = Field_GetRawBlockID(m_Position.x, m_Position.z);
+			if (blockID == 5 || blockID == 6)
+			{
+				m_RunToStairsDone = true;
+			}
 		}
 		else
 		{
@@ -1737,13 +1743,43 @@ void Busters_DoFloorTransition(void)
 		}
 	}
 
-	// 幽霊も下の階へ自動移動
-	Ghost* ghost = GetGhost();
-	if (ghost)
+	// 幽霊の階層移動はアニメーション完了後（FADE_MAX時）にgame.cpp側で行う
+}
+
+// 現在フロアのバスターズを全削除する
+void Busters_DeleteCurrentFloor(void)
+{
+	int currentFloor = Field_GetCurrentFloor();
+	if (currentFloor < 0 || currentFloor >= MAP_FLOORS) return;
+	for (Busters* buster : g_BustersList[currentFloor])
+		delete buster;
+	g_BustersList[currentFloor].clear();
+}
+
+// 指定フロアにバスターズを生成する
+void Busters_SpawnOnFloor(int floorIndex)
+{
+	if (floorIndex < 0 || floorIndex >= MAP_FLOORS) return;
+
+	// 追加人数：1階(index0)は+2、2階(index1)は+1、それ以外はなし
+	int addCount = 0;
+	if (floorIndex == 1) addCount = 1;
+	if (floorIndex == 0) addCount = 2;
+
+	for (int i = 0; i < addCount; i++)
 	{
-		XMFLOAT3 ghostPos = ghost->GetPos();
-		Field_ChangeFloor(nextFloor);
-		ghost->SetPos(ghostPos);
+		XMFLOAT3 newPos = GetRandomBusterPos(floorIndex);
+		Busters* newBuster = new Busters(
+			{ newPos.x, BUSTERS_HEIGHT, newPos.z },
+			{ 0.12f, 0.12f, 0.12f },
+			{ 0.0f, 0.0f, 0.0f },
+			"asset\\model\\busters_v3.fbx"
+		);
+		if (newBuster)
+		{
+			newBuster->SetGroundLevel(PATROL_HEIGHT);
+			g_BustersList[floorIndex].push_back(newBuster);
+		}
 	}
 }
 
@@ -1825,14 +1861,40 @@ bool Busters::IsIgnoredRelayDoor(int furnitureIndex)
 // フロア降下アニメーション用グローバル関数
 // =================================================================
 
-void Busters_StartFloorExitAnim(XMFLOAT3 stairsPos)
+void Busters_StartFloorExitAnim(void)
 {
 	int currentFloor = Field_GetCurrentFloor();
 	if (currentFloor < 0 || currentFloor >= MAP_FLOORS) return;
 
+	// ID5・6（下付き階段）の座標一覧を取得し、バスターズ1体ずつにランダムで割り当てる
+	std::vector<XMFLOAT3> exits = Field_GetStairsExitPositions(currentFloor);
+	if (exits.empty())
+	{
+		// フォールバック：97マーカーへ誘導
+		XMFLOAT3 fallback = Field_GetMarker97WorldPos(currentFloor);
+		for (Busters* buster : g_BustersList[currentFloor])
+			buster->StartRunToStairs(fallback);
+		return;
+	}
+
 	for (Busters* buster : g_BustersList[currentFloor])
 	{
-		buster->StartRunToStairs(stairsPos);
+		// 各バスターズの現在位置から最も近い出口を選ぶ
+		XMFLOAT3 pos = buster->GetPos();
+		XMFLOAT3 nearest = exits[0];
+		float minDist = FLT_MAX;
+		for (const XMFLOAT3& exit : exits)
+		{
+			float dx = exit.x - pos.x;
+			float dz = exit.z - pos.z;
+			float dist = dx * dx + dz * dz;
+			if (dist < minDist)
+			{
+				minDist = dist;
+				nearest = exit;
+			}
+		}
+		buster->StartRunToStairs(nearest);
 	}
 }
 
