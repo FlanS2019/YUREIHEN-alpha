@@ -163,6 +163,7 @@
     <ClInclude Include="field.h" />
     <ClCompile Include="font.cpp" />
     <ClCompile Include="furniture.cpp" />
+    <ClCompile Include="game.cpp" />
     <ClCompile Include="ghost.cpp" />
     <ClCompile Include="keyboard.cpp" />
     <ClCompile Include="light.cpp" />
@@ -173,7 +174,6 @@
     <ClCompile Include="minimap.cpp" />
     <ClCompile Include="model.cpp" />
     <ClCompile Include="mouse.cpp" />
-    <ClCompile Include="game.cpp" />
     <ClCompile Include="opanim.cpp" />
     <ClCompile Include="result.cpp" />
     <ClCompile Include="shader.cpp" />

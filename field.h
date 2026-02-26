@@ -57,3 +57,6 @@ int Field_GetCurrentFloor(void);        // 現在の階層を取得
 
 // 指定フロアのSTAIRS_UPブロックのワールド座標を返す（見つからない場合は {0,0,0}）
 XMFLOAT3 Field_GetStairsUpWorldPos(int floor);
+
+// マップID97（バスターズ誘導マーカー）のワールド座標を返す
+XMFLOAT3 Field_GetMarker97WorldPos(int floor);

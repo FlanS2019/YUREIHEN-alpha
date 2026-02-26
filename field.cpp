@@ -775,3 +775,23 @@ XMFLOAT3 Field_GetStairsUpWorldPos(int floor)
 	}
 	return { 0.0f, PATROL_HEIGHT, 0.0f };
 }
+
+// マップID97（バスターズ誘導マーカー）のワールド座標を返す
+XMFLOAT3 Field_GetMarker97WorldPos(int floor)
+{
+	for (int z = 0; z < MAP_H; z++)
+	{
+		for (int x = 0; x < MAP_W; x++)
+		{
+			int mcID = GetMapBlockID(floor, 1, z, x);
+			if (mcID == 97)
+			{
+				float wx = GridToWorldX(x);
+				float wz = GridToWorldZ(z);
+				return { wx, PATROL_HEIGHT, wz };
+			}
+		}
+	}
+	// 97が見つからない場合は階段座標にフォールバック
+	return Field_GetStairsUpWorldPos(floor);
+}
