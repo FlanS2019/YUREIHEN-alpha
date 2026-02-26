@@ -8,6 +8,7 @@
 #include "Floor2.h"
 #include "Floor3.h"
 #include "field.h"
+#include "sound.h"
 #include <cmath>   // sinf用
 #include <fstream>
 #include <map>
@@ -26,11 +27,15 @@ static bool g_BlockDefinitionsLoaded = false; // 読み込み完了フラグ
 struct BlockDefinition
 {
 	std::string names_ja;
-	std::string model;   // fbxモデルパス（空文字列なら家具ではない）
-	std::string action;  // "scare", "lure", "stop", "none"（空文字列なら家具ではない）
+	std::string model;     // fbxモデルパス（空文字列なら家具ではない）
+	std::string action;    // "scare", "lure", "stop", "none"（空文字列なら家具ではない）
+	std::string scare_se;  // アクション時に再生するSEパス（空文字列ならSEなし）
 };
 
 static std::map<int, BlockDefinition> g_BlockDefMap;
+
+// ブロックIDごとのSEデータ（同じIDの家具で共有）
+static std::map<int, SoundData*> g_FurnitureSEMap;
 
 // アクション文字列を FURNITURE_ACTION に変換
 static FURNITURE_ACTION ParseAction(const std::string& actionStr)
@@ -109,6 +114,7 @@ static void LoadBlockDefinitions()
 			std::string names_ja = findStringValue(object, "names_ja");
 			std::string model = findStringValue(object, "model");
 			std::string action = findStringValue(object, "action");
+			std::string scare_se = findStringValue(object, "scare_se");
 
 			// id または default_id を探す
 			int id = findIntValue(object, "id");
@@ -124,6 +130,7 @@ static void LoadBlockDefinitions()
 				def.names_ja = names_ja;
 				def.model = model;
 				def.action = action;
+				def.scare_se = scare_se;
 				g_BlockDefMap[id] = def;
 			}
 		}
@@ -155,6 +162,21 @@ void Furniture_Initialize(void)
 
 	// ブロック定義を読み込む（初回のみ）
 	LoadBlockDefinitions();
+
+	// SE読み込み（ブロックIDごとに1つだけ読み込む）
+	for (auto& pair : g_BlockDefMap)
+	{
+		int id = pair.first;
+		const BlockDefinition& def = pair.second;
+		if (!def.scare_se.empty() && g_FurnitureSEMap.count(id) == 0)
+		{
+			SoundData* pSE = LoadMP3(def.scare_se);
+			if (pSE)
+			{
+				g_FurnitureSEMap[id] = pSE;
+			}
+		}
+	}
 
 	// 1. カウントをリセット
 	g_FurnitureCount = 0;
@@ -364,6 +386,12 @@ void Furniture::StartAction(void)
 {
 	if (GetIsActing() || IsCoolingDown()) return; // 二重実行およびクールタイム中の実行を抑止
 
+	// アクションSEを再生
+	if (g_FurnitureSEMap.count(m_BlockID) > 0 && g_FurnitureSEMap[m_BlockID])
+	{
+		PlaySound(g_FurnitureSEMap[m_BlockID], false);
+	}
+
 	if (m_ActionType == ACTION_SCARE)
 	{
 		JumpStart(); // ジャンプフラグON
@@ -456,6 +484,17 @@ void Furniture_Finalize(void)
 	{
 		if (g_Furniture[i]) { delete g_Furniture[i]; g_Furniture[i] = nullptr; }
 	}
+
+	// SE解放
+	for (auto& pair : g_FurnitureSEMap)
+	{
+		if (pair.second)
+		{
+			StopSound(pair.second);
+			UnloadSound(pair.second);
+		}
+	}
+	g_FurnitureSEMap.clear();
 }
 
 Furniture* GetFurniture(int index)

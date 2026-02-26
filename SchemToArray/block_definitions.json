@@ -96,7 +96,8 @@
 			"names_ja": "キャビネット",
 			"default_id": 50,
 			"model": "asset\\model\\cabinet.fbx",
-			"action": "scare"
+			"action": "scare",
+			"scare_se": "asset\\sound\\se\\cabinet.m4a"
 		},
 		{
 			"name": "light_gray_concrete",
@@ -164,7 +165,8 @@
 			"names_ja": "便器",
 			"default_id": 60,
 			"model": "asset\\model\\toilet.fbx",
-			"action": "lure"
+			"action": "lure",
+			"scare_se": "asset\\sound\\se\\toilet.m4a"
 		},
 		{
 			"name": "lime_concrete",
@@ -178,7 +180,8 @@
 			"names_ja": "ピアノ",
 			"default_id": 62,
 			"model": "asset\\model\\piano.fbx",
-			"action": "scare"
+			"action": "scare",
+			"scare_se": "asset\\sound\\se\\piano.m4a"
 		},
 		{
 			"name": "cauldron",
