@@ -12,6 +12,8 @@ using namespace DirectX;
 #include "direct3d.h"
 #include "debug_ostream.h"
 #include <fstream>
+#include <vector>
+#include <algorithm>
 #include "shader.h"
 
 
@@ -36,6 +38,16 @@ static ID3D11Buffer* g_pMaterialColorBuffer = nullptr;//マテリアル色バッ
 static ID3D11Buffer* g_pCameraPositionBuffer = nullptr;//カメラ位置バッファ
 
 static LightData g_CurrentLightData;
+static bool g_LightBufferDirty = false;
+
+// ライトカリング用：全候補ライトを一旦ここに溜める
+struct LightCandidate
+{
+	PointLightData data;
+	float distSqToCamera; // カメラからの距離の2乗
+};
+static std::vector<LightCandidate> g_LightCandidates;
+static XMFLOAT3 g_CullingCameraPos = { 0.0f, 0.0f, 0.0f }; // カリング用カメラ位置
 
 // 現在設定されているシェーダーの種類を記録する
 enum SHADER_TYPE {
@@ -301,7 +313,8 @@ void Shader_ClearPointLights()
 		g_CurrentLightData.pointLights[i] = {};
 	}
 	g_CurrentLightData.lightCount = 0;
-	UpdateLightBuffer();
+	g_LightCandidates.clear();
+	g_LightBufferDirty = true;
 }
 
 void Shader_AddPointLight(PointLight* light)
@@ -311,22 +324,23 @@ void Shader_AddPointLight(PointLight* light)
 		return;
 	}
 
-	if (g_CurrentLightData.lightCount >= MAX_POINT_LIGHTS)
-	{
-		hal::dout << "Shader_AddPointLight() : MAX_POINT_LIGHTS(" << MAX_POINT_LIGHTS << ") を超えています" << std::endl;
-		return;
-	}
+	// 候補キューに追加（上限なし）
+	LightCandidate candidate;
+	candidate.data = {};
+	candidate.data.enable = light->enable;
+	candidate.data.position = light->position;
+	candidate.data.direction = light->direction;
+	candidate.data.diffuse = light->diffuse;
+	candidate.data.params = XMFLOAT4(light->range, light->intensity, 0.0f, 0.0f);
 
-	PointLightData& dst = g_CurrentLightData.pointLights[g_CurrentLightData.lightCount];
-	dst = {};
-	dst.enable = light->enable;
-	dst.position = light->position;
-	dst.direction = light->direction;
-	dst.diffuse = light->diffuse;
-	dst.params = XMFLOAT4(light->range, light->intensity, 0.0f, 0.0f);
+	// カメラからの距離の2乗を計算
+	float dx = light->position.x - g_CullingCameraPos.x;
+	float dy = light->position.y - g_CullingCameraPos.y;
+	float dz = light->position.z - g_CullingCameraPos.z;
+	candidate.distSqToCamera = dx * dx + dy * dy + dz * dz;
 
-	++g_CurrentLightData.lightCount;
-	UpdateLightBuffer();
+	g_LightCandidates.push_back(candidate);
+	g_LightBufferDirty = true;
 }
 
 void Shader_SetPointLight(PointLight* light)
@@ -343,7 +357,7 @@ void Shader_SetAmbientLight(AmbientLight* ambient)
 	else {
 		g_CurrentLightData.ambient = { 0.3f, 0.3f, 0.3f, 1.0f };
 	}
-	UpdateLightBuffer();
+	g_LightBufferDirty = true;
 }
 
 void Shader_SetMaterialColor(const DirectX::XMFLOAT4& color)
@@ -354,13 +368,49 @@ void Shader_SetMaterialColor(const DirectX::XMFLOAT4& color)
 
 void Shader_SetCameraPos(const DirectX::XMFLOAT3& pos)
 {
+	// カリング用カメラ位置も更新
+	g_CullingCameraPos = pos;
+
 	// 定数バッファにカメラ位置をセット（XMFLOAT4に変換）
 	XMFLOAT4 cameraPos = { pos.x, pos.y, pos.z, 1.0f };
 	UpdateConstantBuffer(g_pCameraPositionBuffer, cameraPos);
 }
 
+void Shader_FlushLights()
+{
+	if (g_LightBufferDirty)
+	{
+		// 候補ライトをカメラ距離の近い順にソート
+		std::sort(g_LightCandidates.begin(), g_LightCandidates.end(),
+			[](const LightCandidate& a, const LightCandidate& b) {
+				return a.distSqToCamera < b.distSqToCamera;
+			});
+
+		// 上位 MAX_POINT_LIGHTS 個だけ g_CurrentLightData に詰める
+		int count = (int)g_LightCandidates.size();
+		if (count > MAX_POINT_LIGHTS) count = MAX_POINT_LIGHTS;
+
+		for (int i = 0; i < MAX_POINT_LIGHTS; ++i)
+		{
+			if (i < count)
+			{
+				g_CurrentLightData.pointLights[i] = g_LightCandidates[i].data;
+			}
+			else
+			{
+				g_CurrentLightData.pointLights[i] = {};
+			}
+		}
+		g_CurrentLightData.lightCount = count;
+
+		UpdateLightBuffer();
+		g_LightBufferDirty = false;
+	}
+}
+
 void Shader_Begin()
 {
+	Shader_FlushLights();
 	if (g_CurrentShaderType == SHADER_TYPE_DEFAULT) return;
 	g_CurrentShaderType = SHADER_TYPE_DEFAULT;
 
@@ -385,6 +435,7 @@ void Shader_Begin()
 // スキニングアニメーション描画開始
 void Shader_BeginSkinning()
 {
+	Shader_FlushLights();
 	if (g_CurrentShaderType == SHADER_TYPE_SKINNING) return;
 	g_CurrentShaderType = SHADER_TYPE_SKINNING;
 
@@ -425,6 +476,7 @@ void Shader_SetBoneMatrices(const DirectX::XMMATRIX* matrices, unsigned int coun
 // フィールド専用インスタンス描画開始
 void Shader_BeginInstance()
 {
+	Shader_FlushLights();
 	if (g_CurrentShaderType == SHADER_TYPE_INSTANCE) return;
 	g_CurrentShaderType = SHADER_TYPE_INSTANCE;
 

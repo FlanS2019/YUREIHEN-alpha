@@ -26,6 +26,7 @@ void Shader_SetPointLight(PointLight* light);
 void Shader_SetAmbientLight(AmbientLight* ambient);
 void Shader_SetMaterialColor(const DirectX::XMFLOAT4& color);
 void Shader_SetCameraPos(const DirectX::XMFLOAT3& pos);
+void Shader_FlushLights(); // ライトバッファをGPUに転送（描画前に自動呼び出し）
 
 void Shader_Begin();
 void Shader_BeginSkinning(); // スキニングアニメーション描画専用

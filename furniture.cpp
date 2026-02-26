@@ -516,3 +516,18 @@ bool IsFurnitureBlock(int id)
 	}
 	return false;
 }
+
+// 壁掛けライトのポイントライトをシェーダーに登録する
+void Furniture_SetLight(void)
+{
+	for (int i = 0; i < FURNITURE_NUM; i++)
+	{
+		if (!g_Furniture[i]) continue;
+		if (!g_Furniture[i]->IsWallLight()) continue;
+
+		PointLight* pLight = g_Furniture[i]->GetPointLight();
+		if (!pLight) continue;
+
+		Shader_AddPointLight(pLight);
+	}
+}

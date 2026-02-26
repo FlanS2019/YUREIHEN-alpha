@@ -8,6 +8,7 @@
 #include "component.h"
 #include "define.h"
 #include "billboard.h"
+#include "light.h"
 #include <string>
 using namespace DirectX;
 
@@ -41,6 +42,10 @@ protected:
 	bool m_IsTargeted;    // バスターズ用
 	bool m_IsGhostTarget; // 幽霊用
 
+	// 壁掛けライト用ポイントライト
+	bool m_IsWallLight;
+	PointLight* m_pPointLight;
+
 public:
 	// コンストラクタ
 	Furniture(const XMFLOAT3& pos, const XMFLOAT3& scale, const XMFLOAT3& rot, const char* pass, FURNITURE_ACTION actionType = ACTION_SCARE, int blockID = 0)
@@ -54,15 +59,38 @@ public:
 		m_BasePos(pos),
 		m_BlockID(blockID),
 		m_IsTargeted(false),
-		m_IsGhostTarget(false)
+		m_IsGhostTarget(false),
+		m_IsWallLight(false),
+		m_pPointLight(nullptr)
 	{
 		// ビルボードの初期化 (サイズを大きくし、位置は後でUpdateで調整する)
 		m_Billboard.Initialize({ pos.x, pos.y + 1.0f, pos.z }, { 1.0f, 1.0f }, { 0,0,0 });
 		// ライティング無効化を有効にして、アイコンを常に明るく表示
 		m_Billboard.SetIgnoreLighting(true);
+
+		// 壁掛けライト（ID:70）の場合、ポイントライトを生成
+		if (blockID == 70)
+		{
+			m_IsWallLight = true;
+			m_pPointLight = new PointLight(
+				TRUE,
+				XMFLOAT4(pos.x, pos.y + 0.5f, pos.z, 1.0f),
+				XMFLOAT4(0.0f, -1.0f, 0.0f, 0.0f),
+				XMFLOAT4(1.0f, 0.85f, 0.6f, 1.0f), // 暖色系の光
+				5.0f,  // 範囲
+				1.5f   // 強度
+			);
+		}
 	}
 
-	~Furniture() = default;
+	~Furniture()
+	{
+		if (m_pPointLight)
+		{
+			delete m_pPointLight;
+			m_pPointLight = nullptr;
+		}
+	}
 
 	void Update(void);
 	void Draw(void) override;
@@ -86,6 +114,10 @@ public:
 	// 幽霊用のセッターとゲッター
 	void SetIsGhostTarget(bool targeted) { m_IsGhostTarget = targeted; }
 	bool GetIsGhostTarget(void) const { return m_IsGhostTarget; }
+
+	// 壁掛けライト関連
+	bool IsWallLight(void) const { return m_IsWallLight; }
+	PointLight* GetPointLight(void) const { return m_pPointLight; }
 };
 
 void Furniture_Initialize(void);
@@ -98,3 +130,4 @@ Furniture* GetFurniture(int index);
 bool FurnitureScareStart(int index);
 bool FurnitureScareEnded(int index);
 bool IsFurnitureBlock(int id);
+void Furniture_SetLight(void);
