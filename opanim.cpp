@@ -537,7 +537,7 @@ public:
 		m_text.Update(dt);
 
 		if (Keyboard_IsKeyDownTrigger(KK_E)) {
-			SetScene(SCENE_TITLE);
+			SetScene(SCENE_ANM_WIN);
 		}
 	}
 
