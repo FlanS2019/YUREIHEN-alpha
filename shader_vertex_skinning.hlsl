@@ -1,4 +1,4 @@
-#define MAX_POINT_LIGHTS 8
+#define MAX_POINT_LIGHTS 16
 #define MAX_BONES 256
 
 cbuffer Buffer0 : register(b0)
@@ -13,8 +13,8 @@ cbuffer Buffer1 : register(b1)
 
 struct POINT_LIGHT
 {
-	bool enable;
-	bool3 dummy;
+	int enable;
+	int3 dummy;
 	float4 Position;
 	float4 Direction;
 	float4 Diffuse;

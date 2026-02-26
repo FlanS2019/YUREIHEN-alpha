@@ -348,6 +348,7 @@ void Game_Draw(void)
 	Shader_ClearPointLights();
 	Ghost_SetLight();
 	Busters_SetLight();
+	Furniture_SetLight();
 
 	Field_Draw();
 	Busters_Draw();

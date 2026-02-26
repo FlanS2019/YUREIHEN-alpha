@@ -4,17 +4,17 @@
 --------------------------------------------------------------------------------
 
 ==============================================================================*/
-#define MAX_POINT_LIGHTS 8
+#define MAX_POINT_LIGHTS 16
 
 Texture2D g_Texture : register(t0);
 SamplerState g_SamplerState : register(s0);
 
 struct POINT_LIGHT
 {
-	bool enable;
-	bool3 dummy;
-	float4 Position; // ライト位置（ポイントライト用）
-	float4 Direction; // ライト方向（直光源用）
+	int enable;
+	int3 dummy;
+	float4 Position;
+	float4 Direction;
 	float4 Diffuse;
 	float4 Params; // x: Range, y: Intensity
 };
@@ -37,34 +37,32 @@ struct PS_INPUT
 	float4 posH : SV_POSITION;
 	float4 color : COLOR0;
 	float2 texcoord : TEXCOORD0;
-	float4 normal : NORMAL0; // 法線（ワールド空間）
-	float4 worldPos : TEXCOORD1; // ワールド座標
+	float4 normal : NORMAL0;
+	float4 worldPos : TEXCOORD1;
 };
 
 float4 main(PS_INPUT ps_in) : SV_TARGET
 {
-    // テクスチャからサンプル
 	float4 texColor = g_Texture.Sample(g_SamplerState, ps_in.texcoord);
-    
-    // マテリアルカラー安全チェック
-	float4 materialColorSafe = MaterialColor;
-	if (MaterialColor.r == 0.0f && MaterialColor.g == 0.0f && MaterialColor.b == 0.0f)
+	float4 baseColor = texColor * MaterialColor * ps_in.color;
+
+	// ポイントライトが0個の場合はアンビエントのみ適用（2D描画の高速化）
+	int activeLights = min(PointLightCount, MAX_POINT_LIGHTS);
+	[branch]
+	if (activeLights == 0)
 	{
-		materialColorSafe = float4(1.0f, 1.0f, 1.0f, 1.0f);
+		baseColor.rgb *= AmbientColor.rgb;
+		return baseColor;
 	}
-    
-    // ベースカラー = テクスチャカラー × マテリアルカラー × 頂点カラー
-	float4 baseColor = texColor * materialColorSafe * ps_in.color;
-    
-    // ライティング計算
+
 	float3 normal = normalize(ps_in.normal.xyz);
 	float3 diffuseAccum = float3(0.0f, 0.0f, 0.0f);
-	float3 ambientColor = AmbientColor.rgb;
-	int activeLights = min(PointLightCount, MAX_POINT_LIGHTS);
+	float3 worldPos = ps_in.worldPos.xyz;
 
 	[loop]
 	for (int i = 0; i < activeLights; ++i)
 	{
+		[branch]
 		if (!PointLights[i].enable)
 		{
 			continue;
@@ -72,25 +70,30 @@ float4 main(PS_INPUT ps_in) : SV_TARGET
 
 		float3 contribution = float3(0.0f, 0.0f, 0.0f);
 
-        // Position の w=1 ならポイントライト、w=0 なら直光源
+		[branch]
 		if (PointLights[i].Position.w > 0.5f)
 		{
-            // ポイントライト：ピクセルからライトへの方向を計算
-			float3 lightVec = PointLights[i].Position.xyz - ps_in.worldPos.xyz;
-			float dist = length(lightVec);
-			float3 lightDir = normalize(lightVec);
+			// ポイントライト：距離チェックを先に行い範囲外なら即スキップ
+			float3 lightVec = PointLights[i].Position.xyz - worldPos;
+			float range = PointLights[i].Params.x;
+			float distSq = dot(lightVec, lightVec);
+			float rangeSq = range * range;
 
-			float range = max(0.1f, PointLights[i].Params.x);
-			float intensity = PointLights[i].Params.y;
-			float attenuation = saturate(1.0f - (dist / range));
-			attenuation = attenuation * attenuation;
+			[branch]
+			if (distSq < rangeSq)
+			{
+				float dist = sqrt(distSq);
+				float3 lightDir = lightVec / max(dist, 0.001f);
+				float intensity = PointLights[i].Params.y;
+				float attenuation = 1.0f - (dist / max(range, 0.1f));
+				attenuation = attenuation * attenuation;
 
-			float lambert = max(dot(normal, lightDir), 0.0f);
-			contribution = lambert * PointLights[i].Diffuse.rgb * attenuation * intensity;
+				float lambert = max(dot(normal, lightDir), 0.0f);
+				contribution = lambert * PointLights[i].Diffuse.rgb * attenuation * intensity;
+			}
 		}
 		else
 		{
-            // 直光源：方向をそのまま使用
 			float3 lightDir = normalize(-PointLights[i].Direction.xyz);
 			float lambert = max(dot(normal, lightDir), 0.0f);
 			contribution = lambert * PointLights[i].Diffuse.rgb;
@@ -98,8 +101,8 @@ float4 main(PS_INPUT ps_in) : SV_TARGET
 
 		diffuseAccum += contribution;
 	}
-    
-	baseColor.rgb *= (diffuseAccum + ambientColor);
-    
+
+	baseColor.rgb *= (diffuseAccum + AmbientColor.rgb);
+
 	return baseColor;
 }

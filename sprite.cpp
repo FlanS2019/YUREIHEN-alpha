@@ -65,12 +65,15 @@ void Sprite_BeginDraw2D()
 	Shader2D_BeginDefault();
 	Shader2D_SetProjectionMatrix(XMMatrixOrthographicOffCenterLH(0.0f, DRAW_SCREEN_WIDTH, DRAW_SCREEN_HEIGHT, 0.0f, 0.0f, 1.0f));
 
+	// 2D描画用のライト設定（ライトなし・アンビエント白）を先に設定
+	Shader_SetAmbientLight(&g_SpriteAmbientLight);
+	Shader_SetPointLight(nullptr);
+	Shader_FlushLights(); // ライトバッファをGPUに転送してからShader_Beginを呼ぶ
+
 	Shader_Begin();
 	Shader_SetMatrix(XMMatrixOrthographicOffCenterLH(0.0f, DRAW_SCREEN_WIDTH, DRAW_SCREEN_HEIGHT, 0.0f, 0.0f, 1.0f));
 	Shader_SetWorldMatrix(XMMatrixIdentity());
 	Shader_SetMaterialColor({ 1.0f, 1.0f, 1.0f, 1.0f });
-	Shader_SetAmbientLight(&g_SpriteAmbientLight);
-	Shader_SetPointLight(nullptr);
 
 	g_b2DBegun = true;
 }
@@ -93,12 +96,13 @@ void Sprite_Single_Draw(XMFLOAT2 pos, XMFLOAT2 size, float rot, XMFLOAT4 color, 
 
 	// Sprite_BeginDraw2D()が呼ばれていない場合は個別にセットアップ（互換性維持）
 	if (!g_b2DBegun) {
+		Shader_SetAmbientLight(&g_SpriteAmbientLight);
+		Shader_SetPointLight(nullptr); // ライトを無効化
+		Shader_FlushLights(); // ライトバッファをGPUに転送
 		Shader_Begin();
 		Shader_SetMatrix(XMMatrixOrthographicOffCenterLH(0.0f, DRAW_SCREEN_WIDTH, DRAW_SCREEN_HEIGHT, 0.0f, 0.0f, 1.0f));
 		Shader_SetWorldMatrix(XMMatrixIdentity());
 		Shader_SetMaterialColor({ 1.0f, 1.0f, 1.0f, 1.0f });
-		Shader_SetAmbientLight(&g_SpriteAmbientLight);
-		Shader_SetPointLight(nullptr); // ライトを無効化
 	}
 
 	// テクスチャ設定
@@ -115,7 +119,7 @@ void Sprite_Single_Draw(XMFLOAT2 pos, XMFLOAT2 size, float rot, XMFLOAT4 color, 
 	float drawPosX = pos.x * DRAW_SCALE_X;
 	float drawPosY = pos.y * DRAW_SCALE_Y;
 	float halfX = size.x * DRAW_SCALE_X * 0.5f;
-	float halfY = size.y * DRAW_SCALE_Y * 0.5f;
+	float halfY = size.y * DRAW_SCALE_X * 0.5f;
 
 	// 回転（度->ラジアン）
 	float rotDeg = rot;
@@ -180,12 +184,13 @@ void Sprite_Split_Draw(XMFLOAT2 pos, XMFLOAT2 size, float rot, XMFLOAT4 color, B
 
 	// Sprite_BeginDraw2D()が呼ばれていない場合は個別にセットアップ（互換性維持）
 	if (!g_b2DBegun) {
+		Shader_SetAmbientLight(&g_SpriteAmbientLight);
+		Shader_SetPointLight(nullptr); // ライトを無効化
+		Shader_FlushLights(); // ライトバッファをGPUに転送
 		Shader_Begin();
 		Shader_SetMatrix(XMMatrixOrthographicOffCenterLH(0.0f, DRAW_SCREEN_WIDTH, DRAW_SCREEN_HEIGHT, 0.0f, 0.0f, 1.0f));
 		Shader_SetWorldMatrix(XMMatrixIdentity());
 		Shader_SetMaterialColor({ 1.0f, 1.0f, 1.0f, 1.0f });
-		Shader_SetAmbientLight(&g_SpriteAmbientLight);
-		Shader_SetPointLight(nullptr); // ライトを無効化
 	}
 
 	// テクスチャ設定
@@ -202,7 +207,7 @@ void Sprite_Split_Draw(XMFLOAT2 pos, XMFLOAT2 size, float rot, XMFLOAT4 color, B
 	float drawPosX = pos.x * DRAW_SCALE_X;
 	float drawPosY = pos.y * DRAW_SCALE_Y;
 	float halfX = size.x * DRAW_SCALE_X * 0.5f;
-	float halfY = size.y * DRAW_SCALE_Y * 0.5f;
+	float halfY = size.y * DRAW_SCALE_X * 0.5f;
 
 	float rad = XMConvertToRadians(rot);
 	float co = cosf(rad);
@@ -288,7 +293,7 @@ void Sprite_Single_DrawHole(XMFLOAT2 pos, XMFLOAT2 size, float rot, XMFLOAT4 col
 	float drawPosX = pos.x * DRAW_SCALE_X;
 	float drawPosY = pos.y * DRAW_SCALE_Y;
 	float halfX = size.x * DRAW_SCALE_X * 0.5f;
-	float halfY = size.y * DRAW_SCALE_Y * 0.5f;
+	float halfY = size.y * DRAW_SCALE_X * 0.5f;
 
 	float rad = XMConvertToRadians(rot);
 	float co = cosf(rad);

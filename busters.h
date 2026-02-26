@@ -111,3 +111,5 @@ int Busters_GetCurrentFloorCount(void);
 void Busters_StartFloorExitAnim(XMFLOAT3 stairsPos); // 全バスターズに階段まで走るよう指示
 bool Busters_IsFloorExitAnimDone(void);               // 全バスターズが階段到着済みか
 void Busters_DoFloorTransition(void);                 // 実際のフロア移行処理を実行
+
+bool CanPassLine(const XMFLOAT3& start, const XMFLOAT3& end, float radius, int ignoreFurnitureIndex = -1);

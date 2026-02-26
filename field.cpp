@@ -92,12 +92,12 @@ FIELD_TYPE ConvertMapID(int minecraftID)
 	case 9: case 10: case 11: case 12: // 上付き階段
 		return FIELD_STAIRS_DOWN;
 
-	case 98: case 13:
-	case 97:  // バスターズ誘導マーカー（通行可）
-	case 50: case 51: case 52:case 53:case 54:case 55:case 56:case 57:case 58:case 59: //家具
-	case 60: case 61: case 62:case 63:case 64:case 65:case 66:case 67:case 68:case 69: //家具
+	case 98: case 13: // 方向指示ブロック・ドア
 		return FIELD_NONE;
+
 	default:
+		// 家具ブロック（JSONで model が定義されているもの）はFIELD_NONEとして扱う
+		if (IsFurnitureBlock(minecraftID)) return FIELD_NONE;
 		if (minecraftID > 0) return FIELD_BOX;
 		return FIELD_NONE;
 	}
