@@ -24,6 +24,7 @@ protected:
 	float m_lastYaw;
 	XMFLOAT3 m_targetPos;
 	float m_sensitivity;
+	int m_skipInputFrames;
 
 public:
 	Camera(
@@ -37,7 +38,7 @@ public:
 		:m_Pos(pos), m_AtPos(atpos), m_UpVec(upvec),
 		m_Fov(fov), m_Aspect(aspect), m_Near(near_), m_Far(far_),
 		m_pitch(0.0f), m_yaw(0.0f), m_lastPitch(0.0f), m_lastYaw(0.0f),
-		m_targetPos(0.0f, 0.0f, 0.0f), m_sensitivity(0.1f)
+		m_targetPos(0.0f, 0.0f, 0.0f), m_sensitivity(0.1f), m_skipInputFrames(0)
 	{
 		m_View = XMMatrixLookAtLH(
 			XMVectorSet(m_Pos.x, m_Pos.y, m_Pos.z, 0.0f),
@@ -75,8 +76,10 @@ public:
 	
 	void SetTargetPos(XMFLOAT3 targetPos);
 	float GetYaw(void) const { return m_yaw; }
+	float GetPitch(void) const { return m_pitch; }
 	void SetSensitivity(float sensitivity) { m_sensitivity = sensitivity; }
 	float GetSensitivity() const { return m_sensitivity; }
+	void SkipNextInput(int frames = 2) { m_skipInputFrames = frames; }
 };
 
 // 注視対象を設定する関数（汎用化）

@@ -258,6 +258,9 @@ void Ghost_Update(void)
 
 			UpdateRangeCircleState();
 
+			// 変身前の実際のゴーストの位置を記録する（カメラ復帰に使用）
+			g_Ghost->m_PreTransformPos = g_Ghost->GetPos();
+
 			g_Ghost->SetState(GS_TRANSFORM);
 			g_Ghost->SetIsTransformed(true);
 			g_Ghost->SetVelocity({ 0.0f, 0.0f, 0.0f });
@@ -293,7 +296,14 @@ void Ghost_Update(void)
 
 			UpdateRangeCircleState();
 
+			// 変身解除後にゴーストが家具と同じXZ座標に残るため、
+			// FurnitureSearch()で即GS_FURNITURE_FOUNDに戻るのを防ぐため検知範囲外へ移動させる
+			XMFLOAT3 exitPos = g_Ghost->GetPos();
+			exitPos.z += FURNITURE_DETECTION_RANGE + 1.0f;
+			if (exitPos.z > MAP_MAX_Z) exitPos.z = g_Ghost->GetPos().z - (FURNITURE_DETECTION_RANGE + 1.0f);
+
 			g_Ghost->ResetPos();
+			g_Ghost->SetPos(exitPos);
 			g_Ghost->SetState(GS_MOVING);
 		}
 		break;
@@ -307,7 +317,13 @@ void Ghost_Update(void)
 		{
 			UpdateRangeCircleState();
 
+			// 変身解除後にゴーストが家具と同じXZ座標に残るため検知範囲外へ移動させる
+			XMFLOAT3 scareExitPos = g_Ghost->GetPos();
+			scareExitPos.z += FURNITURE_DETECTION_RANGE + 1.0f;
+			if (scareExitPos.z > MAP_MAX_Z) scareExitPos.z = g_Ghost->GetPos().z - (FURNITURE_DETECTION_RANGE + 1.0f);
+
 			g_Ghost->ResetPos();
+			g_Ghost->SetPos(scareExitPos);
 			g_Ghost->SetState(GS_MOVING);
 		}
 		break;
@@ -375,10 +391,57 @@ void Ghost_Update(void)
 		hal::dout << "Scene: " << sceneName << " (" << (int)currentScene << ")" << std::endl;
 	}
 
+	// 60フレーム毎の自動デバッグログ
+	{
+		static int s_DebugLogTimer = 0;
+		s_DebugLogTimer++;
+		if (s_DebugLogTimer >= 60)
+		{
+			s_DebugLogTimer = 0;
+
+			if (g_Ghost)
+			{
+				// ゴーストステート文字列化
+				const char* stateNames[] = {
+					"GS_MOVING", "GS_FURNITURE_FOUND", "GS_TRANSFORM",
+					"GS_SCARE", "GS_CAUGHT"
+				};
+				GHOST_STATE gs = g_Ghost->GetState();
+				const char* gsName = (gs >= 0 && gs <= GS_CAUGHT) ? stateNames[gs] : "UNKNOWN";
+
+				XMFLOAT3 gPos   = g_Ghost->GetPos();
+				XMFLOAT3 prePos = g_Ghost->m_PreTransformPos;
+				bool invincible  = g_Ghost->IsInvincible();
+				int  invTimer    = g_Ghost->m_InvincibleTimer;
+				bool isTransformed = g_Ghost->GetIsTransformed();
+
+				// カメラ情報
+				Camera* cam = GetCamera();
+				XMFLOAT3 camPos   = cam ? cam->GetPos()   : XMFLOAT3(0,0,0);
+				XMFLOAT3 camAt    = cam ? cam->GetAtPos() : XMFLOAT3(0,0,0);
+				float camPitch    = cam ? cam->GetPitch() : 0.0f;
+				float camYaw      = cam ? cam->GetYaw()   : 0.0f;
+
+				hal::dout << "[AUTO-DBG] GhostState=" << gsName
+				          << " IsTransformed=" << isTransformed
+				          << " Invincible=" << invincible << "(" << invTimer << "f)"
+				          << std::endl;
+				hal::dout << "  GhostPos=(" << gPos.x << "," << gPos.y << "," << gPos.z << ")"
+				          << " PreTransformPos=(" << prePos.x << "," << prePos.y << "," << prePos.z << ")"
+				          << std::endl;
+				hal::dout << "  CamPos=(" << camPos.x << "," << camPos.y << "," << camPos.z << ")"
+				          << " CamAt=(" << camAt.x << "," << camAt.y << "," << camAt.z << ")"
+				          << " Pitch=" << camPitch << " Yaw=" << camYaw
+				          << std::endl;
+			}
+		}
+	}
+
 	if (g_Ghost)
 	{
-		// 俯瞰カメラ中はカメラ追従を止める（Camera_SetTargetPos内のUpdate()が上書きするため）
-		if (!Game_IsFloorExitAnimActive())
+		// 俯瞰・補間中のみカメラ追従を止める
+		// PLAYER_WALK以降は通常追従に戻す
+		if (!Game_IsCamOverrideActive())
 		{
 			Camera_SetTargetPos(g_Ghost->GetPos());
 		}
@@ -809,6 +872,32 @@ void Ghost::ResetPos(void)
 	m_InRangeFurnitureNum = -1;
 	m_IsTransformed = false;
 	m_HasIncreasedMultiplier = false;
+}
+
+// 変身中（GS_TRANSFORM / GS_SCARE）を強制解除してGS_MOVINGに戻す
+// FLOOR_EXIT_OVERVIEW中など Ghost_Update() の外から呼ぶ用
+void Ghost_ForceExitTransform(void)
+{
+	if (!g_Ghost) return;
+	GHOST_STATE state = g_Ghost->GetState();
+	if (state != GS_TRANSFORM && state != GS_SCARE) return;
+
+	UpdateRangeCircleState();
+	g_Ghost->ResetPos();
+
+	// 解除後もゴーストは家具と同じXZ座標にいるため、
+	// FurnitureSearch()で即座にGS_FURNITURE_FOUNDに戻るのを防ぐため
+	// 家具の検知範囲(FURNITURE_DETECTION_RANGE=5.0f)の外まで強制移動させる
+	{
+		XMFLOAT3 safePos = g_Ghost->GetPos();
+		safePos.z += FURNITURE_DETECTION_RANGE + 1.0f;
+		// マップ範囲外になる場合は逆方向にオフセット
+		if (safePos.z > MAP_MAX_Z) safePos.z = g_Ghost->GetPos().z - (FURNITURE_DETECTION_RANGE + 1.0f);
+		g_Ghost->SetPos(safePos);
+	}
+
+	g_Ghost->SetState(GS_MOVING);
+	g_Ghost->SetIsDraw(true);
 }
 
 Ghost* GetGhost(void)

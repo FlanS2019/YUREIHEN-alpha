@@ -26,7 +26,8 @@
 
 static std::vector<Busters*> g_BustersList[MAP_FLOORS];
 
-
+// 前方宣言
+bool CanPassLine(const XMFLOAT3& start, const XMFLOAT3& end, float radius, int ignoreFurnitureIndex = -1);
 
 // =================================================================
 // パススムージング: 直線で到達可能なノードをスキップして滑らかにする
@@ -1623,6 +1624,7 @@ void Busters_Initialize(void)
 	}
 
 	// 2階 (Floor 1)
+	for (int i = 0; i < 2; i++)
 	{
 		XMFLOAT3 pos = GetRandomBusterPos(1);
 		Busters* b = new Busters(pos, { 0.12f, 0.12f, 0.12f }, { 0.0f, 0.0f, 0.0f }, "asset\\model\\busters_v3.fbx");

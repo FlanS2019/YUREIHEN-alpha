@@ -27,4 +27,8 @@ bool* Game_GetEnbanTouchedPtr(void);
 // フロア降下アニメーション中かどうか
 bool  Game_IsFloorExitAnimActive(void);
 
+// 俯瞰カメラ・補間中かどうか（OVERVIEW or CAM_LERP）
+// PLAYER_WALKはカメラ追従を再開するためfalseを返す
+bool  Game_IsCamOverrideActive(void);
+
 #endif // GAME_H

@@ -51,6 +51,7 @@ static FLOOR_EXIT_ANIM_STATE g_FloorExitState = FLOOR_EXIT_NONE;
 static int  g_FloorExitTimer      = 0;
 static bool g_FloorTransferDone   = false;
 static bool g_FloorExitAnimRequested = false;
+static bool g_NeedRestoreMouseMode = false; // 階層移行後にマウスをRELATIVEモードへ戻すフラグ
 static int  g_OverviewFrameCount  = 0;
 static XMFLOAT3 g_OverviewCameraPos = { 0.0f, 0.0f, 0.0f };
 static XMFLOAT3 g_StairsPosForAnim  = { 0.0f, 0.0f, 0.0f };
@@ -89,6 +90,12 @@ bool Game_IsFloorExitAnimActive(void)
 	return g_FloorExitState != FLOOR_EXIT_NONE;
 }
 
+bool Game_IsCamOverrideActive(void)
+{
+	return g_FloorExitState == FLOOR_EXIT_OVERVIEW
+	    || g_FloorExitState == FLOOR_EXIT_CAM_LERP;
+}
+
 bool* Game_GetEnbanTouchedPtr(void)
 {
 	return TutorialObject_GetEnbanTouchedPtr();
@@ -116,6 +123,9 @@ void Game_Initialize(ID3D11Device* pDevice, ID3D11DeviceContext* pContext)
 
 	UI_PauseMenu_Initialize(pDevice, pContext);
 	UI_Tutorial_Initialize(pDevice, pContext);
+
+	Mouse_SetMode(MOUSE_POSITION_MODE_RELATIVE);
+	Mouse_SetVisible(false);
 }
 
 void Game_Update(void)
@@ -134,6 +144,8 @@ void Game_Update(void)
 		case FLOOR_EXIT_OVERVIEW:
 			// 俯瞰カメラでバスターズを追いかけ、到着後に削除してカメラ補間へ
 			{
+				// Ghost_Update()は呼ばない: 変身中にTransforming()が家具位置へSetPos()し続けるため
+				// 変身状態はGhost_ForceExitTransform()で到着後に一括解除する
 				Busters_Update();
 				XMFLOAT3 focusPos = { 0.0f, 0.0f, 0.0f };
 				Busters* buster = GetBusters();
@@ -145,12 +157,52 @@ void Game_Update(void)
 				if (cam) cam->UpdateView(camPos, atPos);
 				Shader_SetCameraPos(camPos);
 				g_OverviewFrameCount++;
+				// 60フレーム毎デバッグログ
+				if (g_OverviewFrameCount % 60 == 0)
+				{
+					Ghost* dbgGhost = GetGhost();
+					XMFLOAT3 gp = dbgGhost ? dbgGhost->GetPos() : XMFLOAT3(0,0,0);
+					XMFLOAT3 pp = dbgGhost ? dbgGhost->m_PreTransformPos : XMFLOAT3(0,0,0);
+					const char* gsName = "N/A";
+					if (dbgGhost) { const char* n[]={"MOVING","FURN_FOUND","TRANSFORM","SCARE","CAUGHT"}; int s=(int)dbgGhost->GetState(); gsName=(s>=0&&s<=4)?n[s]:"?"; }
+					hal::dout << "[OVERVIEW F=" << g_OverviewFrameCount << "] GhostState=" << gsName
+					          << " GPos=(" << gp.x << "," << gp.y << "," << gp.z << ")"
+					          << " PrePos=(" << pp.x << "," << pp.y << "," << pp.z << ")"
+					          << " CamPos=(" << camPos.x << "," << camPos.y << "," << camPos.z << ")"
+					          << std::endl;
+				}
 				if (g_OverviewFrameCount > 1 && Busters_IsFloorExitAnimDone())
 				{
-					// バスターズが階段に到着したら削除
+				// バスターズが階段に到着したら削除
 					Busters_DeleteCurrentFloor();
+
+					// 変身中の場合は強制解除する
+					Ghost_ForceExitTransform();
+
+					// 補間の開始注視点 = 俯瞰カメラが向いていた注視点（atPos = バスターズ位置付近）
+					// ※ PreTransformPos に設定すると終点と同じになり補間が無意味になるため使わない
+					g_LerpStartAtPos = atPos;
+
+					// Camera_SetTargetPos の m_targetPos を PreTransformPos に設定しておく
+					// （補間終点の計算に使われる）
+					{
+						Ghost* ghostForAt = GetGhost();
+						if (ghostForAt)
+						{
+							XMFLOAT3 gp;
+							if (ghostForAt->m_PreTransformPos.x != 0.0f || ghostForAt->m_PreTransformPos.z != 0.0f)
+							{
+								gp = ghostForAt->m_PreTransformPos;
+								gp.y = GHOST_POS_Y;
+							}
+							else
+							{
+								gp = ghostForAt->GetPos();
+							}
+							Camera_SetTargetPos(gp);
+						}
+					}
 					g_LerpStartCamPos = camPos;
-					g_LerpStartAtPos  = atPos;
 					g_CamLerpT        = 0.0f;
 					g_OverviewFrameCount = 0;
 					g_FloorExitState  = FLOOR_EXIT_CAM_LERP;
@@ -159,14 +211,38 @@ void Game_Update(void)
 			return;
 
 		case FLOOR_EXIT_CAM_LERP:
-			// 俯瞰位置からプレイヤー視点へ補間。完了したらプレイヤー操作に戻す
+			// 俯瞰位置からプレイヤー（PreTransformPos）視点へ補間。
+			// カメラ位置が終点に近づいたら補間を終了し通常カメラに戻す。
 			{
 				g_CamLerpT += CAM_LERP_SPEED;
 				if (g_CamLerpT > 1.0f) g_CamLerpT = 1.0f;
-				Ghost* ghost = GetGhost();
-				XMFLOAT3 gp = ghost ? ghost->GetPos() : XMFLOAT3(0.0f, 0.0f, 0.0f);
-				XMFLOAT3 dstCamPos = { gp.x, gp.y + CAMERA_OFFSET_Y + 6.0f, gp.z - 0.01f };
-				XMFLOAT3 dstAtPos  = { gp.x, gp.y + CAMERA_OFFSET_Y,        gp.z };
+
+				// Ghost_Update()は呼ばない: FurnitureSearch()で再びGS_TRANSFORMに戻る可能性があるため
+				// ゴーストの無敵タイマーのみ手動で更新する
+				Ghost* ghostLerp = GetGhost();
+				if (ghostLerp && ghostLerp->m_InvincibleTimer > 0) ghostLerp->m_InvincibleTimer--;
+
+				// 補間の終点：PreTransformPos（変身キー押下時の実座標）に基づいて計算する
+				XMFLOAT3 dstCamPos = { 0.0f, 0.0f, 0.0f };
+				XMFLOAT3 dstAtPos  = { 0.0f, 0.0f, 0.0f };
+				if (ghostLerp)
+				{
+					XMFLOAT3 gp = ghostLerp->m_PreTransformPos;
+					gp.y = GHOST_POS_Y;
+					XMFLOAT3 targetPos = { gp.x, gp.y + CAMERA_OFFSET_Y, gp.z };
+					dstAtPos = targetPos;
+
+					Camera* cam = GetCamera();
+					float pitchRad = XMConvertToRadians(cam ? cam->GetPitch() : 0.0f);
+					float yawRad   = XMConvertToRadians(cam ? cam->GetYaw()   : 0.0f);
+					float camX = -sinf(yawRad) * cosf(pitchRad) * CAMERA_DISTANCE;
+					float camY = -sinf(pitchRad) * CAMERA_DISTANCE + 0.1f;
+					float camZ = -cosf(yawRad) * cosf(pitchRad) * CAMERA_DISTANCE;
+					dstCamPos = { targetPos.x + camX, targetPos.y + camY, targetPos.z + camZ };
+				}
+
+				// 現在フレームのカメラ位置・注視点を補間して適用
+				Camera* cam = GetCamera();
 				XMFLOAT3 camPos =
 				{
 					g_LerpStartCamPos.x + (dstCamPos.x - g_LerpStartCamPos.x) * g_CamLerpT,
@@ -179,12 +255,39 @@ void Game_Update(void)
 					g_LerpStartAtPos.y + (dstAtPos.y - g_LerpStartAtPos.y) * g_CamLerpT,
 					g_LerpStartAtPos.z + (dstAtPos.z - g_LerpStartAtPos.z) * g_CamLerpT
 				};
-				Camera* cam = GetCamera();
 				if (cam) cam->UpdateView(camPos, atPos);
 				Shader_SetCameraPos(camPos);
-				if (g_CamLerpT >= 1.0f)
+
+				// 60フレーム毎にログ出力
 				{
-					// 補間完了 → プレイヤー操作に戻して階段を待つ
+					static int s_LerpLogTimer = 0;
+					s_LerpLogTimer++;
+					if (s_LerpLogTimer >= 60)
+					{
+						s_LerpLogTimer = 0;
+						hal::dout << "[CAM_LERP] T=" << g_CamLerpT
+						          << " CamPos=(" << camPos.x << "," << camPos.y << "," << camPos.z << ")"
+						          << " Dst=(" << dstCamPos.x << "," << dstCamPos.y << "," << dstCamPos.z << ")"
+						          << std::endl;
+					}
+				}
+
+				// 終了判定：カメラ位置が終点から2m以内 or T>=1.0 になったら
+				// ゴーストとカメラtargetPosをPreTransformPosに同期して通常カメラに戻す
+				float ex = camPos.x - dstCamPos.x;
+				float ey = camPos.y - dstCamPos.y;
+				float ez = camPos.z - dstCamPos.z;
+				float distSq = ex * ex + ey * ey + ez * ez;
+				if (g_CamLerpT >= 1.0f || distSq < 2.0f * 2.0f)
+				{
+					if (ghostLerp)
+					{
+						XMFLOAT3 syncPos = ghostLerp->m_PreTransformPos;
+						syncPos.y = GHOST_POS_Y;
+						ghostLerp->SetPos(syncPos);
+						Camera_SetTargetPos(syncPos);
+					}
+					hal::dout << "[CAM_LERP] \u5b8c\u4e86(dist=" << sqrtf(distSq) << ") -> PLAYER_WALK" << std::endl;
 					g_FloorExitState = FLOOR_EXIT_PLAYER_WALK;
 				}
 			}
@@ -246,6 +349,8 @@ void Game_Update(void)
 					UI_ResetScareGauge();
 					AddScareGauge(BUSTERS_DEFOURT_GAUGE);
 					Fade_StartIn();
+					// フェードイン完了後に通常処理が再開したタイミングでマウスを戻す
+				g_NeedRestoreMouseMode = true;
 					g_FloorExitState     = FLOOR_EXIT_NONE;
 					g_FloorExitTimer     = 0;
 					g_FloorTransferDone  = false;
@@ -271,10 +376,21 @@ void Game_Update(void)
 			GetGhost()->SetPos(XMFLOAT3(0, 0, 0));
 			g_NextFloorID = -1;
 			Fade_StartIn();
+			g_NeedRestoreMouseMode = true;
 		}
 		return;
 	}
 	if (fadeState != FADE_NONE) return;
+
+	// 階層移行後、フェードイン完了の最初のフレームでマウスを回復する
+	if (g_NeedRestoreMouseMode)
+	{
+		g_NeedRestoreMouseMode = false;
+		Mouse_ReacquireFocus();
+		// マウス復帰直後に残存する累積値による異常回転を防ぐため数フレーム入力を読み飛ばす
+		Camera* cam = GetCamera();
+		if (cam) cam->SkipNextInput(5);
+	}
 
 	UI_PauseMenu_Update();
 	if (UI_PauseMenu_IsPaused())
@@ -315,16 +431,22 @@ void Game_Update(void)
 #endif
 
 	// ゲージMAX判定：MAXになったらバスターズを階段へ走らせる
-	if (g_FloorExitState == FLOOR_EXIT_NONE && GetFadeState() == FADE_NONE)
+	// 驚かしアクション中(GS_SCARE)はアニメーション完了を待ってから判定する
 	{
-		if (UI_IsScareGaugeMax())
+		Ghost* ghostForGauge = GetGhost();
+		bool isScarePlaying = ghostForGauge &&
+			(ghostForGauge->GetState() == GS_SCARE || ghostForGauge->GetState() == GS_TRANSFORM);
+		if (g_FloorExitState == FLOOR_EXIT_NONE && GetFadeState() == FADE_NONE && !isScarePlaying)
 		{
-			SetupOverviewCamera();
-			g_FloorExitState = FLOOR_EXIT_OVERVIEW;
-			g_FloorExitTimer = 0;
-			g_OverviewFrameCount = 0;
-			g_FloorBeforeExit = Field_GetCurrentFloor();
-			Busters_StartFloorExitAnim();
+			if (UI_IsScareGaugeMax())
+			{
+				SetupOverviewCamera();
+				g_FloorExitState = FLOOR_EXIT_OVERVIEW;
+				g_FloorExitTimer = 0;
+				g_OverviewFrameCount = 0;
+				g_FloorBeforeExit = Field_GetCurrentFloor();
+				Busters_StartFloorExitAnim();
+			}
 		}
 	}
 
