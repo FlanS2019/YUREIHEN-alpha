@@ -238,15 +238,35 @@ MODEL* ModelLoad(const char* FileName)
 	hal::dout << ">> Model Loading: " << FileName << std::endl;
 	hal::dout << "========================================" << std::endl;
 
-	// Assimpのフラグを改善: Triangulateフラグで自動的に三角形化
-	model->AiScene = aiImportFile(FileName, 
-		aiProcessPreset_TargetRealtime_MaxQuality | 
+	// 拡張子を取得して小文字に変換
+	std::string ext = "";
+	size_t dotPos = modelPath.find_last_of('.');
+	if (dotPos != std::string::npos) {
+		ext = modelPath.substr(dotPos);
+		std::transform(ext.begin(), ext.end(), ext.begin(), ::tolower);
+	}
+	bool isGlb = (ext == ".glb" || ext == ".gltf");
+
+	// プロパティストアを作成
+	aiPropertyStore* props = aiCreatePropertyStore();
+
+	// Assimpのフラグ
+	unsigned int pFlags = aiProcessPreset_TargetRealtime_MaxQuality | 
 		aiProcess_ConvertToLeftHanded |
 		aiProcess_Triangulate |              // 四角形以上を三角形化
 		aiProcess_GenSmoothNormals |         // スムーズ法線生成
-		aiProcess_JoinIdenticalVertices      // 重複頂点削除
+		aiProcess_JoinIdenticalVertices;     // 重複頂点削除
 		// aiProcess_OptimizeGraph は除外（アニメーション対象ノードが消える可能性がある）
-	);
+
+	if (isGlb) {
+		// GLB/GLTFの場合はスケールを100倍にする
+		aiSetImportPropertyFloat(props, AI_CONFIG_GLOBAL_SCALE_FACTOR_KEY, 100.0f);
+		pFlags |= aiProcess_GlobalScale;
+	}
+
+	model->AiScene = aiImportFileExWithProperties(FileName, pFlags, nullptr, props);
+
+	aiReleasePropertyStore(props);
 
 	if (!model->AiScene)
 	{

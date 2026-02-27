@@ -90,8 +90,8 @@
 #define KEEP_STATE_TIME (120)		 // 発見状態を維持する時間
 #define BUSTERS_LURE_STAY_FRAMES (300)
 #define BUSTERS_STOP_RANGE (5.0f)
-#define BUSTERS_FOV_ANGLE 60.0f  // 視野角（度）
-#define BUSTERS_FOV_COS   0.5f   
+#define BUSTERS_FOV_ANGLE (60.0f)  // 視野角（度）
+#define BUSTERS_FOV_COS (0.5f)   
 
 //=== Ghost 関連定数 ===
 #define SCARE_RANGE (12.0f)		// 恐怖範囲
@@ -120,13 +120,13 @@
 #define SCARE_GAUGE_MAX (100.0f)// 恐怖ゲージの最大値
 #define SCORE_LURE (0.5f) // 引き寄せスコア
 #define SCORE_STOP (0.5f) // 停止スコア
-#define SCORE_SCARE (2.45f) // 驚かせスコア//2.45f勝てなさすぎるので一時変更
-#define BUSTER_GAUGE_REDUCTION (0.07f) // バスターに見つかったときのゲージ減少値（1フレームあたり）
+#define SCORE_SCARE (3.9f) // 驚かせスコア//2.45f勝てなさすぎるので一時変更
+#define BUSTER_GAUGE_REDUCTION (0.05f) // バスターに見つかったときのゲージ減少値（1フレームあたり）
 
 //=== UI_ScareCombo 関連定数 ===
 #define SCARECOMBO_POS_X (SCREEN_WIDTH - 110.0f)
 #define SCARECOMBO_POS_Y (170.0f)
 #define SCARECOMBO_MAX (5)
-#define SCARECOMBO_OVER_TIME (10000)// ミリ秒
+#define SCARECOMBO_OVER_TIME (15000)// ミリ秒
 #define SCARECOMBO_BAR_SIZE_X (140.0f)
 #define SCARECOMBO_BAR_POS_X (SCARECOMBO_POS_X - 70.0f)

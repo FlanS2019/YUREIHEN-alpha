@@ -5,6 +5,7 @@
 #include "texture.h"
 #include "component.h"
 #include "model.h"
+#include "glb_model.h"
 #include "debug_ostream.h"
 #include <DirectXMath.h>
 using namespace DirectX;
@@ -13,59 +14,106 @@ class Sprite3D : public Transform3D
 {
 protected:
 	MODEL* m_Model;
+	GlbModel* m_GlbModel;     // GLB用モデル (.glb 拡張子の場合に使用)
+	bool m_IsGlb;              // GLBモデルかどうか
 	XMFLOAT3 m_ModelSize;
-	XMFLOAT4 m_Color;           // 現在の色（R, G, B, A）
-	XMFLOAT4 m_OriginalColor;   // 元の色（リセット用）
-	bool m_UseOriginalColor;    // 元の色を使用するかどうかのフラグ
+	XMFLOAT4 m_Color;
+	XMFLOAT4 m_OriginalColor;
+	bool m_UseOriginalColor;
 
 public:
 	Sprite3D(const XMFLOAT3& pos, const XMFLOAT3& scale, const XMFLOAT3& rot, const char* pass)
-		: Transform3D(pos, rot, scale), m_Model(), m_Color(1.0f, 1.0f, 1.0f, 1.0f),
+		: Transform3D(pos, rot, scale), m_Model(nullptr), m_GlbModel(nullptr), m_IsGlb(false),
+		  m_Color(1.0f, 1.0f, 1.0f, 1.0f),
 		  m_OriginalColor(1.0f, 1.0f, 1.0f, 1.0f), m_UseOriginalColor(true)
 	{
-		m_Model = ModelLoad(pass);
-		m_ModelSize = ModelGetSize(m_Model);
-		m_OriginalColor = ModelGetAverageMaterialColor(m_Model);
+		// 拡張子で読み込みを分岐
+		if (IsGlbFile(pass))
+		{
+			m_IsGlb = true;
+			m_GlbModel = new GlbModel();
+			m_GlbModel->Load(pass, Direct3D_GetDevice(), Direct3D_GetDeviceContext());
+			// GLBはメートル単位なのでサイズも100倍してFBXと合わせる
+			XMFLOAT3 rawSize = m_GlbModel->GetSize();
+			m_ModelSize = XMFLOAT3(rawSize.x * 100.0f, rawSize.y * 100.0f, rawSize.z * 100.0f);
+			m_OriginalColor = m_GlbModel->GetAverageMaterialColor();
+		}
+		else
+		{
+			m_IsGlb = false;
+			m_Model = ModelLoad(pass);
+			m_ModelSize = ModelGetSize(m_Model);
+			m_OriginalColor = ModelGetAverageMaterialColor(m_Model);
+		}
 	}
 	~Sprite3D()
 	{
-		ModelRelease(m_Model);
+		if (m_IsGlb)
+		{
+			if (m_GlbModel)
+			{
+				m_GlbModel->Release();
+				delete m_GlbModel;
+				m_GlbModel = nullptr;
+			}
+		}
+		else
+		{
+			ModelRelease(m_Model);
+		}
 	}
 
 	virtual void Draw(void)
 	{
-		if (m_Model)
+		// 使用する色を決定
+		XMFLOAT4 drawColor = m_UseOriginalColor ? m_OriginalColor : m_Color;
+		bool shouldApplyColorReplace = !m_UseOriginalColor;
+
+		if (!shouldApplyColorReplace)
 		{
-			// 使用する色を決定
-			XMFLOAT4 drawColor = m_UseOriginalColor ? m_OriginalColor : m_Color;
-			//XMFLOAT4 drawColor = m_OriginalColor;
+			drawColor.w = 0.0f;
+		}
 
-			// ライト計算の有効化判定
-			// m_UseOriginalColor = true（ResetColor後）のときは useColorReplace = false（ライト有効）
-			// m_UseOriginalColor = false（SetColor後）のときは useColorReplace = true（色置き換え）
-			bool shouldApplyColorReplace = !m_UseOriginalColor;
-
-			// 光沢有効フラグを設定（w > 0.5 で有効）
-			// Game画面では光沢なし（w = 0.0）
-			// ライト有効時は光沢を無効化（ブロック、幽霊など）
-			if (!shouldApplyColorReplace)
+		if (m_IsGlb)
+		{
+			if (m_GlbModel && m_GlbModel->IsLoaded())
 			{
-				drawColor.w = 0.0f;  // 光沢無効
-			}
+				// GLBはメートル単位、FBXはセンチメートル単位なのでスケールを100倍
+				XMFLOAT3 glbScale = GetScale();
+				glbScale.x *= 100.0f;
+				glbScale.y *= 100.0f;
+				glbScale.z *= 100.0f;
 
-			// モデルを描画
-			ModelDraw(
-				m_Model,
-				GetPos(),
-				GetRot(),
-				GetScale(),
-				drawColor,
-				shouldApplyColorReplace
-			);
+				m_GlbModel->Draw(
+					GetPos(),
+					GetRot(),
+					glbScale,
+					drawColor,
+					shouldApplyColorReplace
+				);
+			}
+			else
+			{
+				hal::dout << "Sprite3D::Draw() : GLBモデルが読み込まれていません。" << std::endl;
+			}
 		}
 		else
 		{
-			hal::dout << "Sprite3D::Draw() : モデルが読み込まれていません。" << std::endl;
+			if (m_Model)
+			{
+				ModelDraw(
+					m_Model,
+					GetPos(),
+					GetRot(),
+					GetScale(),
+					drawColor,
+					shouldApplyColorReplace
+				);
+			}
+			else
+			{
+				hal::dout << "Sprite3D::Draw() : モデルが読み込まれていません。" << std::endl;
+			}
 		}
 	}
 
@@ -130,5 +178,12 @@ public:
 		);
 	}
 
-	XMFLOAT4 GetModelColor(void) const { return ModelGetAverageMaterialColor(m_Model); }
+	XMFLOAT4 GetModelColor(void) const
+	{
+		if (m_IsGlb)
+		{
+			return m_GlbModel ? m_GlbModel->GetAverageMaterialColor() : XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f);
+		}
+		return ModelGetAverageMaterialColor(m_Model);
+	}
 };
