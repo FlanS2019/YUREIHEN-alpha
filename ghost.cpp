@@ -610,7 +610,7 @@ void Ghost::ScareStart(void)
 	{
 		bool scared = false;
 
-		if (pBuster && distance <= currentRange)
+		if (Busters_IsAnyInRange(ghostPos, currentRange))
 		{
 			BustersScare();
 			scared = true;
@@ -659,10 +659,9 @@ void Ghost::ScareStart(void)
 
 	case ACTION_LURE:
 	{
-		if (!pBuster) break;
 		float lureRange = currentRange * 2.0f;
 
-		if (distance <= lureRange)
+		if (Busters_IsAnyInRange(ghostPos, lureRange))
 		{
 			BustersLured(ghostPos, lureRange);
 			if (!m_HasIncreasedMultiplier)
@@ -677,8 +676,7 @@ void Ghost::ScareStart(void)
 
 	case ACTION_STOP:
 
-		if (!pBuster) break;
-		if (distance <= BUSTERS_STOP_RANGE)
+		if (Busters_IsAnyInRange(ghostPos, BUSTERS_STOP_RANGE))
 		{
 			BustersStopped();
 			if (!m_HasIncreasedMultiplier)

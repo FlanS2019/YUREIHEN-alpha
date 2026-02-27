@@ -39,6 +39,9 @@ static ID3D11ShaderResourceView* g_TextureStairs;
 XMFLOAT3 rotateBox = XMFLOAT3(0, 0, 0);
 static std::vector<MAPDATA> g_MapList;
 
+// 2階描画時にZ=0～17の真下にFloor1を重ねて表示するためのリスト（当たり判定なし）
+static std::vector<MAPDATA> g_SubFloorMapList;
+
 static int g_CurrentFloor = START_FLOOR - 1;
 
 // 壁判定の有効/無効フラグ（デバッグシーン等で無効化する）
@@ -114,6 +117,7 @@ FIELD_TYPE ConvertMapID(int minecraftID)
 void LoadMapData(int floor)
 {
 	g_MapList.clear();
+	g_SubFloorMapList.clear();
 
 	float offsetX = MAP_W / 2.0f;
 	float offsetZ = MAP_H / 2.0f;
@@ -197,6 +201,80 @@ void LoadMapData(int floor)
 		if (aIsWall != bIsWall) return aIsWall < bIsWall;
 		return a.blockID < b.blockID;
 		});
+
+	// 2階の場合: マップチップZ=0～20の真下にFloor1を描画用リストとして構築
+	// 配列インデックス: idx = (MAP_LENGTH-1) - Z なので Z=0→idx=40, Z=20→idx=20
+	// Floor2の底面はpos.y=-1 (Y=0)。Floor1を8段下（1フロア分）に配置する
+	if (floor == 1)
+	{
+		const float SUB_Y_OFFSET = -8.0f; // 1フロア分 (MAP_HEIGHT=8) 下にずらす
+		const int SUB_Z_IDX_MIN = 20;     // マップチップZ=20 → 配列インデックス 40-20=20
+		const int SUB_Z_IDX_MAX = 40;     // マップチップZ=0  → 配列インデックス 40-0=40
+		const int SUB_X_MIN = 0;          // X=0
+		const int SUB_X_MAX = MAP_W - 1;  // X=52
+
+		for (int y = 0; y < MAP_HEIGHT; y++)
+		{
+			for (int z = SUB_Z_IDX_MIN; z <= SUB_Z_IDX_MAX; z++)
+			{
+				for (int x = SUB_X_MIN; x <= SUB_X_MAX; x++)
+				{
+					int mcID = Floor1[y][z][x];
+					if (mcID == 0) continue;
+
+					FIELD_TYPE type = ConvertMapID(mcID);
+					if (type == FIELD_NONE) continue;
+
+					// 隣接面の可視チェック（Floor1配列で完結）
+					auto isSubFaceVisible = [&](int ny, int nz, int nx) -> bool {
+						if (ny < 0 || ny >= MAP_HEIGHT) return true;
+						if (nz < 0 || nz >= MAP_H || nx < 0 || nx >= MAP_W) return true;
+						int nID = Floor1[ny][nz][nx];
+						if (nID == 0) return true;
+						if (ConvertMapID(nID) == FIELD_NONE) return true;
+						if (mcID == nID) return false;
+						if ((mcID == 2 || mcID == 3) && (nID == 2 || nID == 3)) return false;
+						if (mcID != 18 && nID == 18) return true;
+						return false;
+					};
+
+					MAPDATA data;
+					data.drawFace[0] = isSubFaceVisible(y, z + 1, x);
+					data.drawFace[1] = isSubFaceVisible(y, z, x + 1);
+					data.drawFace[2] = isSubFaceVisible(y - 1, z, x);
+					data.drawFace[3] = isSubFaceVisible(y, z - 1, x);
+					data.drawFace[4] = isSubFaceVisible(y, z, x - 1);
+					data.drawFace[5] = isSubFaceVisible(y + 1, z, x);
+
+					bool anyFace = false;
+					for (int i = 0; i < 6; i++) anyFace |= data.drawFace[i];
+					if (!anyFace) continue;
+
+					data.pos = XMFLOAT3(
+						(x - offsetX),
+						(float)y - 1.0f + SUB_Y_OFFSET,
+						(offsetZ - z)
+					);
+					data.no = type;
+					data.isHidden = false;
+					data.rotY = 0.0f;
+					data.blockID = mcID;
+					data.mapY = y;
+					data.currentScale = 1.0f;
+
+					g_SubFloorMapList.push_back(data);
+				}
+			}
+		}
+
+		std::sort(g_SubFloorMapList.begin(), g_SubFloorMapList.end(), [](const MAPDATA& a, const MAPDATA& b) {
+			bool aIsWall = (a.blockID == 2 || a.blockID == 3);
+			bool bIsWall = (b.blockID == 2 || b.blockID == 3);
+			if (aIsWall && bIsWall) return a.mapY < b.mapY;
+			if (aIsWall != bIsWall) return aIsWall < bIsWall;
+			return a.blockID < b.blockID;
+			});
+	}
 }
 
 void Field_Initialize(ID3D11Device* pDevice, ID3D11DeviceContext* pContext)
@@ -495,6 +573,74 @@ void Field_Draw(void)
 		}
 	}
 	FlushBatch();
+
+	// 2階の場合: Z=0～17真下のFloor1を描画（当たり判定なし）
+	if (!g_SubFloorMapList.empty())
+	{
+		currentSRV = nullptr;
+		for (int i = 0; i < 6; i++) batchListFace[i].clear();
+
+		for (const auto& mapData : g_SubFloorMapList)
+		{
+			XMVECTOR vPos = XMLoadFloat3(&mapData.pos);
+			XMVECTOR vToPos = XMVectorSubtract(vPos, vCamPos);
+
+			float distSq;
+			XMStoreFloat(&distSq, XMVector3LengthSq(vToPos));
+			if (distSq > 2500.0f) continue;
+
+			float dot;
+			XMStoreFloat(&dot, XMVector3Dot(vToPos, vForward));
+			if (dot < -2.0f) continue;
+
+			XMVECTOR vClipPos = XMVector3TransformCoord(vPos, VP);
+			XMFLOAT3 clipPos;
+			XMStoreFloat3(&clipPos, vClipPos);
+
+			float marginX = 0.2f;
+			float marginY = 0.8f;
+			if (clipPos.x < -1.0f - marginX || clipPos.x > 1.0f + marginX ||
+				clipPos.y < -1.0f - marginY || clipPos.y > 1.0f + marginY) continue;
+			if (clipPos.z < 0.0f || clipPos.z > 1.0f) continue;
+
+			ID3D11ShaderResourceView* nextSRV = nullptr;
+			if (mapData.no == FIELD_STAIRS_UP || mapData.no == FIELD_STAIRS_DOWN) {
+				nextSRV = g_TextureStairs;
+			}
+			else if (mapData.blockID == 2 || mapData.blockID == 3) {
+				if (mapData.mapY == 1) nextSRV = g_BlockTextures[2];
+				else if (mapData.mapY == 2) nextSRV = g_BlockTextures[3];
+				else nextSRV = g_BlockTextures[4];
+			}
+			else {
+				int id = mapData.blockID;
+				if (id <= 0 || id >= MAX_BLOCK_TYPES || g_BlockTextures[id] == nullptr) nextSRV = g_BlockTextures[0];
+				else nextSRV = g_BlockTextures[id];
+			}
+
+			bool overLimit = false;
+			for (int i = 0; i < 6; i++) {
+				if (batchListFace[i].size() >= MAX_INSTANCES - 1) overLimit = true;
+			}
+
+			if (nextSRV != currentSRV || overLimit)
+			{
+				FlushBatch();
+				currentSRV = nextSRV;
+			}
+
+			XMMATRIX world = XMMatrixTranslation(mapData.pos.x, mapData.pos.y, mapData.pos.z);
+			XMFLOAT4X4 m;
+			XMStoreFloat4x4(&m, XMMatrixTranspose(world));
+
+			for (int i = 0; i < 6; i++) {
+				if (mapData.drawFace[i]) {
+					batchListFace[i].push_back(m);
+				}
+			}
+		}
+		FlushBatch();
+	}
 }
 
 void Field_Finalize(void)
@@ -675,18 +821,22 @@ std::vector<XMFLOAT3> Field_FindPath(XMFLOAT3 start, XMFLOAT3 end)
 	}
 
 
-	if (ConvertMapID(GetMapBlockID(g_CurrentFloor, 1, endZ, endX)) == FIELD_BOX ||
-		ConvertMapID(GetMapBlockID(g_CurrentFloor, 1, endZ, endX)) == FIELD_WALL_PASS)
 	{
-		int dx[] = { 0, 0, 1, -1 };
-		int dz[] = { 1, -1, 0, 0 };
-		for (int i = 0; i < 4; i++) {
-			int nx = endX + dx[i];
-			int nz = endZ + dz[i];
-			if (nx >= 0 && nx < MAP_W && nz >= 0 && nz < MAP_H) {
-				FIELD_TYPE t = ConvertMapID(GetMapBlockID(g_CurrentFloor, 1, nz, nx));
-				if (t != FIELD_BOX && t != FIELD_WALL_PASS) {
-					endX = nx; endZ = nz; break;
+		FIELD_TYPE endType = ConvertMapID(GetMapBlockID(g_CurrentFloor, 1, endZ, endX));
+		if (endType == FIELD_BOX || endType == FIELD_WALL_PASS ||
+			endType == FIELD_STAIRS_UP || endType == FIELD_STAIRS_DOWN)
+		{
+			int dx[] = { 0, 0, 1, -1 };
+			int dz[] = { 1, -1, 0, 0 };
+			for (int i = 0; i < 4; i++) {
+				int nx = endX + dx[i];
+				int nz = endZ + dz[i];
+				if (nx >= 0 && nx < MAP_W && nz >= 0 && nz < MAP_H) {
+					FIELD_TYPE t = ConvertMapID(GetMapBlockID(g_CurrentFloor, 1, nz, nx));
+					if (t != FIELD_BOX && t != FIELD_WALL_PASS &&
+						t != FIELD_STAIRS_UP && t != FIELD_STAIRS_DOWN) {
+						endX = nx; endZ = nz; break;
+					}
 				}
 			}
 		}
@@ -701,6 +851,7 @@ std::vector<XMFLOAT3> Field_FindPath(XMFLOAT3 start, XMFLOAT3 end)
 
 	for (int i = 0; i < MAP_H; ++i) {
 		std::fill(closedList[i].begin(), closedList[i].end(), false);
+		std::fill(nodes[i].begin(), nodes[i].end(), Node{ 0, 0, 0.0f, 0.0f, 0, 0 });
 	}
 
 	Node startNode = { startX, startZ, 0.0f, 0.0f, -1, -1 };
@@ -709,7 +860,8 @@ std::vector<XMFLOAT3> Field_FindPath(XMFLOAT3 start, XMFLOAT3 end)
 
 	int dirX[] = { 0, 0, -1, 1, -1, 1, -1, 1 };  // 4方向 + 斜め4方向
 	int dirZ[] = { -1, 1, 0, 0, -1, -1, 1, 1 };
-	float dirCost[] = { 1.0f, 1.0f, 1.0f, 1.0f, 1.41f, 1.41f, 1.41f, 1.41f };
+	// 斜めコストを高めに設定して、障害物付近では直線移動を優先させる
+	float dirCost[] = { 1.0f, 1.0f, 1.0f, 1.0f, 1.8f, 1.8f, 1.8f, 1.8f };
 	bool found = false;
 	int maxCalculationSteps = 1000;
 
@@ -734,25 +886,28 @@ std::vector<XMFLOAT3> Field_FindPath(XMFLOAT3 start, XMFLOAT3 end)
 
 			if (nextX < 0 || nextX >= MAP_W || nextZ < 0 || nextZ >= MAP_H) continue;
 
-			// 壁判定（FIELD_BOXとFIELD_WALL_PASSの両方を壁として扱う）
+			// 壁・階段ブロックは通行不可（階段内部への迷い込みを防ぐ）
 			FIELD_TYPE nextType = ConvertMapID(GetMapBlockID(g_CurrentFloor, 1, nextZ, nextX));
-			if (nextType == FIELD_BOX || nextType == FIELD_WALL_PASS) continue;
+			if (nextType == FIELD_BOX || nextType == FIELD_WALL_PASS ||
+				nextType == FIELD_STAIRS_UP || nextType == FIELD_STAIRS_DOWN) continue;
 
 			// Y=0が空気（床なし）のマスは通行不可
 			if (GetMapBlockID(g_CurrentFloor, 0, nextZ, nextX) == 0) continue;
 
-			// 斜め移動の場合、両隣が通路であるか確認（コーナーにめり込まない）
+			// 斜め移動の場合、X方向・Z方向それぞれの隣接セルが通路であるか確認（コーナー通り抜け防止）
 			if (i >= 4)
 			{
-				int adjX = current.x + dirX[i];
-				int adjZ = current.z + dirZ[i];
-				int diagX = current.x + dirX[i];
-				int diagZ = current.z + dirZ[i];
-
-				FIELD_TYPE diagTypeX = ConvertMapID(GetMapBlockID(g_CurrentFloor, 1, current.z, diagX));
-				if (diagTypeX == FIELD_BOX || diagTypeX == FIELD_WALL_PASS) continue;
-				FIELD_TYPE diagTypeZ = ConvertMapID(GetMapBlockID(g_CurrentFloor, 1, diagZ, current.x));
-				if (diagTypeZ == FIELD_BOX || diagTypeZ == FIELD_WALL_PASS) continue;
+				// X方向の隣（同じZで横に移動したセル）
+				FIELD_TYPE sideTypeX = ConvertMapID(GetMapBlockID(g_CurrentFloor, 1, current.z, current.x + dirX[i]));
+				if (sideTypeX == FIELD_BOX || sideTypeX == FIELD_WALL_PASS ||
+					sideTypeX == FIELD_STAIRS_UP || sideTypeX == FIELD_STAIRS_DOWN) continue;
+				// Z方向の隣（同じXで縦に移動したセル）
+				FIELD_TYPE sideTypeZ = ConvertMapID(GetMapBlockID(g_CurrentFloor, 1, current.z + dirZ[i], current.x));
+				if (sideTypeZ == FIELD_BOX || sideTypeZ == FIELD_WALL_PASS ||
+					sideTypeZ == FIELD_STAIRS_UP || sideTypeZ == FIELD_STAIRS_DOWN) continue;
+				// Y=0（床なし）チェックも両隣に適用
+				if (GetMapBlockID(g_CurrentFloor, 0, current.z, current.x + dirX[i]) == 0) continue;
+				if (GetMapBlockID(g_CurrentFloor, 0, current.z + dirZ[i], current.x) == 0) continue;
 			}
 
 			if (closedList[nextZ][nextX]) continue;
@@ -763,9 +918,15 @@ std::vector<XMFLOAT3> Field_FindPath(XMFLOAT3 start, XMFLOAT3 end)
 			Node neighbor = { nextX, nextZ, newCost, h, current.x, current.z };
 			openList.push(neighbor);
 
-			if (nodes[nextZ][nextX].parentX == 0 && nodes[nextZ][nextX].parentZ == 0)
+			// より低コストのパスが見つかった場合のみ更新する
+			Node& existing = nodes[nextZ][nextX];
+			if (existing.parentX == 0 && existing.parentZ == 0 && !(nextX == startX && nextZ == startZ))
 			{
-				nodes[nextZ][nextX] = neighbor;
+				existing = neighbor;
+			}
+			else if (newCost < existing.cost)
+			{
+				existing = neighbor;
 			}
 		}
 	}
@@ -864,6 +1025,26 @@ std::vector<XMFLOAT3> Field_GetStairsExitPositions(int floor)
 		{
 			int mcID = GetMapBlockID(floor, 0, z, x);
 			if (mcID == 5 || mcID == 6)
+			{
+				float wx = GridToWorldX(x);
+				float wz = GridToWorldZ(z);
+				positions.push_back({ wx, PATROL_HEIGHT, wz });
+			}
+		}
+	}
+	return positions;
+}
+
+// 指定フロアのID4（1階出口ブロック）のワールド座標を全て取得する
+std::vector<XMFLOAT3> Field_GetFloor1ExitPositions(int floor)
+{
+	std::vector<XMFLOAT3> positions;
+	for (int z = 0; z < MAP_H; z++)
+	{
+		for (int x = 0; x < MAP_W; x++)
+		{
+			int mcID = GetMapBlockID(floor, 0, z, x);
+			if (mcID == 4)
 			{
 				float wx = GridToWorldX(x);
 				float wz = GridToWorldZ(z);

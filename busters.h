@@ -99,9 +99,14 @@ void BustersStopped(void);
 // ゲージMAX時の処理：trueならフロア降下アニメーション開始、falseなら勝利フェード済み
 bool Busters_CheckGaugeEvent(void);
 
+// 階段到着済みのバスターズを1体削除する（到着した順に削除）
+// 戻り値: true=削除した / false=到着済みバスターズなし
+bool Busters_DeleteFirstArrived(void);
+
 void Busters_SetLight(void);
 
 int Busters_GetCurrentFloorCount(void);
+bool Busters_IsAnyInRange(const XMFLOAT3& pos, float range); // 指定座標からrange以内に1人でもいるか
 
 // フロア降下アニメーション用
 void Busters_StartFloorExitAnim(void); // 全バスターズにID5/6階段まで走るよう指示（ランダム割り当て）

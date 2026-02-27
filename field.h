@@ -68,6 +68,9 @@ XMFLOAT3 Field_GetMarker97WorldPos(int floor);
 // 指定フロアのID5またはID6（階段ブロック）のワールド座標を全て取得する
 std::vector<XMFLOAT3> Field_GetStairsExitPositions(int floor);
 
+// 指定フロアのID4（1階出口ブロック）のワールド座標を全て取得する
+std::vector<XMFLOAT3> Field_GetFloor1ExitPositions(int floor);
+
 // 現在フロアの指定ワールド座標(Y=1レイヤー)の生マップIDを返す
 int Field_GetRawBlockID(float x, float z);
 // 壁判定の有効/無効を切り替える（デバッグシーン等で使用）

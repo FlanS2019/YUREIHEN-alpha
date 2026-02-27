@@ -344,9 +344,9 @@ void Busters::Update(void)
 		float distSq = dx * dx + dz * dz;
 		if (distSq <= 0.5f * 0.5f)
 		{
-			// 距離が近くても、実際にID5またはID6のマスの真上にいる場合のみ完了とする
+			// ID5/6（階段）またはID4（1階出口）のマスの真上にいる場合のみ完了とする
 			int blockID = Field_GetRawBlockID(m_Position.x, m_Position.z);
-			if (blockID == 5 || blockID == 6)
+			if (blockID == 5 || blockID == 6 || blockID == 4)
 			{
 				m_RunToStairsDone = true;
 			}
@@ -369,7 +369,7 @@ void Busters::Update(void)
 				if (mdx * mdx + mdz * mdz < 0.0001f)
 				{
 					m_StuckTimer++;
-					if (m_StuckTimer > 30)
+				if (m_StuckTimer > 30)
 					{
 						// パスを再計算して再挑戦
 						m_PathList.clear();
@@ -378,6 +378,7 @@ void Busters::Update(void)
 						{
 							std::reverse(m_PathList.begin(), m_PathList.end());
 							if (!m_PathList.empty()) m_PathList.erase(m_PathList.begin());
+							m_PathList = SmoothPath(m_PathList, 0.6f);
 						}
 						m_StuckTimer = 0;
 					}
@@ -1174,7 +1175,7 @@ void Busters::MoveTo(XMFLOAT3 targetPos)
 	float dirX = dx / dist;
 	float dirZ = dz / dist;
 
-	if ((m_State == BUSTERS_CHASE || m_State == BUSTERS_SUSPICION) && m_PathList.size() >= 2)
+	if ((m_State == BUSTERS_CHASE || m_State == BUSTERS_SUSPICION || m_State == BUSTERS_RUN_TO_STAIRS) && m_PathList.size() >= 2)
 	{
 		// 現在のノードと次のノードの方向をブレンドして滑らかにする
 		XMFLOAT3 nextNode = m_PathList[1];
@@ -1242,9 +1243,9 @@ void Busters::MoveTo(XMFLOAT3 targetPos)
 	
 	// 回転が大きく違う場合は移動を抑制（その場で回転）
 	float angleDiffAbs = fabsf(angleDiff);
-	if (m_State == BUSTERS_CHASE || m_State == BUSTERS_SUSPICION)
+	if (m_State == BUSTERS_CHASE || m_State == BUSTERS_SUSPICION || m_State == BUSTERS_RUN_TO_STAIRS)
 	{
-		// 追跡・警戒時は回転方向に沿って移動（旋回しながら走る）
+		// 追跡・警戒・階段移動時は回転方向に沿って移動（旋回しながら走る）
 		if (angleDiffAbs > 45.0f)
 		{
 			moveAmount *= 0.5f;
@@ -1353,6 +1354,8 @@ void Busters::StartRunToStairs(XMFLOAT3 stairsPos)
 	{
 		std::reverse(m_PathList.begin(), m_PathList.end());
 		if (!m_PathList.empty()) m_PathList.erase(m_PathList.begin()); // 始点自身を除去
+		// スムージングを適用して直線的に移動できる区間はノードをスキップ（半径を大きめにして障害物を回避）
+		m_PathList = SmoothPath(m_PathList, 0.6f);
 	}
 	this->SetColor(1.0f, 0.5f, 0.0f, 1.0f); // オレンジ
 }
@@ -1655,6 +1658,26 @@ void BustersStopped(void)
 	}
 }
 
+bool Busters_IsAnyInRange(const XMFLOAT3& pos, float range)
+{
+	float rangeSq = range * range;
+	int currentFloor = Field_GetCurrentFloor();
+	if (currentFloor >= 0 && currentFloor < MAP_FLOORS)
+	{
+		for (Busters* buster : g_BustersList[currentFloor])
+		{
+			XMFLOAT3 bPos = buster->GetPos();
+			float dx = bPos.x - pos.x;
+			float dz = bPos.z - pos.z;
+			if (dx * dx + dz * dz <= rangeSq)
+			{
+				return true;
+			}
+		}
+	}
+	return false;
+}
+
 
 // =================================================================
 // ゲージMAX時の処理
@@ -1748,6 +1771,26 @@ void Busters_DeleteCurrentFloor(void)
 	for (Busters* buster : g_BustersList[currentFloor])
 		delete buster;
 	g_BustersList[currentFloor].clear();
+}
+
+// 階段到着済みのバスターズを先頭から1体削除する
+// 戻り値: true=1体削除した / false=到着済みバスターズがいなかった
+bool Busters_DeleteFirstArrived(void)
+{
+	int currentFloor = Field_GetCurrentFloor();
+	if (currentFloor < 0 || currentFloor >= MAP_FLOORS) return false;
+
+	auto& list = g_BustersList[currentFloor];
+	for (auto it = list.begin(); it != list.end(); ++it)
+	{
+		if ((*it)->IsRunToStairsDone())
+		{
+			delete *it;
+			list.erase(it);
+			return true;
+		}
+	}
+	return false;
 }
 
 // 指定フロアにバスターズを生成する
@@ -1860,8 +1903,18 @@ void Busters_StartFloorExitAnim(void)
 	int currentFloor = Field_GetCurrentFloor();
 	if (currentFloor < 0 || currentFloor >= MAP_FLOORS) return;
 
-	// ID5・6（下付き階段）の座標一覧を取得し、バスターズ1体ずつにランダムで割り当てる
-	std::vector<XMFLOAT3> exits = Field_GetStairsExitPositions(currentFloor);
+	std::vector<XMFLOAT3> exits;
+	if (currentFloor == 0)
+	{
+		// 1階はID4（出口ブロック）へ誘導
+		exits = Field_GetFloor1ExitPositions(currentFloor);
+	}
+	else
+	{
+		// 2階以上はID5・6（下付き階段）へ誘導
+		exits = Field_GetStairsExitPositions(currentFloor);
+	}
+
 	if (exits.empty())
 	{
 		// フォールバック：97マーカーへ誘導
