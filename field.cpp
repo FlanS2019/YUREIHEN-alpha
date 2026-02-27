@@ -299,35 +299,27 @@ void LoadMapData(int floor)
 			{ 2, 0, 2 },
 			{ 1, 2, 1 },
 		};
-		// 四隅(1)のrotY: (z%3, x%3) の局山位置に応じて 0°/90°/180°/270°
-		// (0,0)=0°  (0,2)=90°  (2,2)=180°  (2,0)=270°
+
 		for (int z = 0; z < MAP_H; z++)
 		{
 			for (int x = 0; x < MAP_W; x++)
 			{
-			// 床あり判定：1階のみ適用。2階は床なしマスにも天井を描画する
+				// マップ外（建物外）判定：Y=0,1 がともに 0 のマスはマップ範囲外なので天井を置かない
 				int floorID = GetMapBlockID(floor, 0, z, x);
-				if (floor != 1 && floorID == 0) continue;
+				int wallID0  = GetMapBlockID(floor, 1, z, x);
+				if (floorID == 0 && wallID0 == 0) continue;
 
-			// Y=1 が壁ブロックの場合は天井を置かない（1階・2階共通）
-				int wallID = GetMapBlockID(floor, 1, z, x);
-				FIELD_TYPE wallType = ConvertMapID(wallID);
+				// Y=1 が壁ブロックの場合は天井を置かない（1階・2階共通）
+				FIELD_TYPE wallType = ConvertMapID(wallID0);
 				if (wallType == FIELD_BOX) continue;
 
-			// 吹き抜け判定：1階のみ。Y=2～MAP_HEIGHT-1 もすべて空洞なら天井を置かない
+			// 吹き抜け判定：1階のみ。天井層(Y=MAP_HEIGHT-1)に階段ブロックがあれば吹き抜けとして天井を置かない
 				// 2階は吹き抜けなしのため常に天井を描画する
 				if (floor == 0)
 				{
-					bool isAtrium = true;
-					for (int y = 2; y < MAP_HEIGHT; y++)
-					{
-						if (GetMapBlockID(floor, y, z, x) != 0)
-						{
-							isAtrium = false;
-							break;
-						}
-					}
-					if (isAtrium) continue;
+					int ceilID = GetMapBlockID(floor, MAP_HEIGHT - 1, z, x);
+					FIELD_TYPE ceilType = ConvertMapID(ceilID);
+					if (ceilType == FIELD_STAIRS_UP || ceilType == FIELD_STAIRS_DOWN) continue;
 				}
 
 				int px = x % 3;
@@ -347,7 +339,7 @@ void LoadMapData(int floor)
 					else if (pz == 2 && px == 2) rotY = XM_PI + XM_PIDIV2;
 					else if (pz == 2 && px == 0) rotY = 0.0f;
 				}
-			else if (patVal == 2)
+				else if (patVal == 2)
 				{
 					// 辺: (0,1)=上辺->180°, (1,0)=左辺->90°, (1,2)=右辺->270°, (2,1)=下辺->0°
 					if      (pz == 0 && px == 1) rotY = XM_PI;
