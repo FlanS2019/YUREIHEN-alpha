@@ -54,7 +54,7 @@ jobs:
         Copy-Item -Path "asset" -Destination "release" -Recurse -Force
         Copy-Item -Path "SchemToArray" -Destination "release" -Recurse -Force
         
-        Compress-Archive -Path "release/*" -DestinationPath "HEW_YUREIHEN_v${{ steps.version.outputs.number }}.zip" -Force
+        Compress-Archive -Path "release/*" -DestinationPath "HEW_YUREIHEN_BUILD_v${{ steps.version.outputs.number }}.zip" -Force
 
     - name: Create Release
       uses: softprops/action-gh-release@v2
