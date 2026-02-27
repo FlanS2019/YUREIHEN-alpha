@@ -367,6 +367,7 @@ void Game_Update(void)
 					// 下の階にバスターズを生成
 					Busters_SpawnOnFloor(nextFloor);
 					UI_ResetScareGauge();
+					UI_ResetTimer();
 					AddScareGauge(BUSTERS_DEFOURT_GAUGE);
 					Fade_StartIn();
 					// フェードイン完了後に通常処理が再開したタイミングでマウスを戻す
