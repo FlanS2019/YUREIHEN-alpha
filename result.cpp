@@ -227,7 +227,7 @@ void Result_Initialize(ID3D11Device* pDevice, ID3D11DeviceContext* pContext)
 		0.0f,
 		{ 1.0f, 1.0f, 1.0f, 1.0f },
 		BLENDSTATE_NONE,
-		L"asset\\yureihen\\Alpha_Tex\\siro.png"
+		L"asset\\yureihen\\Result\\yashiki.png"
 	);
 
 	g_pResult_gakubuti = new Sprite(
