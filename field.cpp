@@ -202,13 +202,13 @@ void LoadMapData(int floor)
 		return a.blockID < b.blockID;
 		});
 
-	// 2階の場合: マップチップZ=0～17の真下にFloor1を描画用リストとして構築
-	// 配列インデックス: idx = (MAP_LENGTH-1) - Z なので Z=0→idx=40, Z=17→idx=23
+	// 2階の場合: マップチップZ=0～20の真下にFloor1を描画用リストとして構築
+	// 配列インデックス: idx = (MAP_LENGTH-1) - Z なので Z=0→idx=40, Z=20→idx=20
 	// Floor2の底面はpos.y=-1 (Y=0)。Floor1を8段下（1フロア分）に配置する
 	if (floor == 1)
 	{
 		const float SUB_Y_OFFSET = -8.0f; // 1フロア分 (MAP_HEIGHT=8) 下にずらす
-		const int SUB_Z_IDX_MIN = 20;     // マップチップZ=17 → 配列インデックス 40-17=23
+		const int SUB_Z_IDX_MIN = 20;     // マップチップZ=20 → 配列インデックス 40-20=20
 		const int SUB_Z_IDX_MAX = 40;     // マップチップZ=0  → 配列インデックス 40-0=40
 		const int SUB_X_MIN = 0;          // X=0
 		const int SUB_X_MAX = MAP_W - 1;  // X=52
