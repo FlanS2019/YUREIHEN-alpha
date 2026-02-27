@@ -884,3 +884,16 @@ int Field_GetRawBlockID(float x, float z)
 	if (id == 0) id = GetMapBlockID(g_CurrentFloor, 0, gz, gx);
 	return id;
 }
+
+bool Field_IsNoFloor(float x, float z)
+{
+	int gx = WorldToGridX(x);
+	int gz = WorldToGridZ(z);
+	if (gx < 0 || gx >= MAP_W || gz < 0 || gz >= MAP_H) return true;
+	return (GetMapBlockID(g_CurrentFloor, 0, gz, gx) == 0);
+}
+
+void Field_SetWallCheckEnabled(bool enabled)
+{
+	g_WallCheckEnabled = enabled;
+}

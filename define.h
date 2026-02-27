@@ -21,7 +21,7 @@
 #define DIRECT_START (true) //trueならgameシーンから直接開始する
 #define DEBUG_DRAW (false) //trueならdebugdraw機能を有効にする
 #define DEBUG_BUSTERS_ROTATION (false) //trueならバスターズの回転デバッグモード（左右矢印で回転、移動・検知・勝敗判定停止）
-#define DEBUG_MODEL_SCENE (true) //trueならデバッグモデルビューアシーンから直接開始する（modelフォルダ内の全fbxを自動表示）
+#define DEBUG_MODEL_SCENE (false) //trueならデバッグモデルビューアシーンから直接開始する（modelフォルダ内の全fbxを自動表示）
 #else
 //==================================
 //          ここは触らない
