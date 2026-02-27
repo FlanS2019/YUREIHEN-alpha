@@ -8,6 +8,7 @@
 #include "font.h"
 #include "UI.h"
 #include "sound.h"
+#include "ScoreClient.h"	// ★ 追加
 #include <sstream>
 #include <iomanip>
 using namespace DirectX;
@@ -65,7 +66,7 @@ static const XMFLOAT2 COMBO_SMALL_LABEL_POS = { SCREEN_WIDTH / 2.0f + 230.0f, SC
 static const float    SCORE_LABEL_FONT = 40.0f;//フォントサイズ
 
 // SPACEガイドの座標・サイズ定数
-static const XMFLOAT2 SPACE_GUIDE_POS = { SCREEN_WIDTH / 2.0f, SCREEN_HEIGHT / 2.0f + 200};
+static const XMFLOAT2 SPACE_GUIDE_POS = { SCREEN_WIDTH / 2.0f, SCREEN_HEIGHT / 2.0f + 200 };
 static const float    SPACE_GUIDE_FONT = 35.0f;
 
 // -------------------------------------------------------
@@ -97,6 +98,9 @@ static SoundData* g_pBGM = nullptr;
 static ResultPhase g_ResultPhase = PHASE_TIME_BIG;
 static float       g_PhaseAlpha = 0.0f;
 static int         g_WaitCounter = 0;	// 待機フレームカウンタ
+
+// ★ スコア送信済みフラグ（1リザルト中に1回だけ送信するため）
+static bool g_ScoreSent = false;
 
 // -------------------------------------------------------
 // ヘルパー関数
@@ -214,6 +218,9 @@ void Result_Initialize(ID3D11Device* pDevice, ID3D11DeviceContext* pContext)
 	g_ResultPhase = PHASE_TIME_BIG;
 	g_PhaseAlpha = 0.0f;
 	g_WaitCounter = 0;
+
+	// ★ 送信フラグをリセット
+	g_ScoreSent = false;
 
 	// スコア値をリセット（前回プレイの値が残らないように）
 	g_pResultTime = 0.0f;
@@ -489,6 +496,12 @@ void Result_Update(void)
 
 			// --- スコアフェードイン ---
 		case PHASE_SCORE:
+			// ★ スコアが確定したタイミングで1回だけサーバーへ送信
+			if (!g_ScoreSent)
+			{
+				Score_SendToServer(GetResultScore());
+				g_ScoreSent = true;
+			}
 			g_PhaseAlpha += FADE_SPEED;
 			if (g_PhaseAlpha > 1.0f) g_PhaseAlpha = 1.0f;
 			SetScoreAlpha(g_PhaseAlpha);
