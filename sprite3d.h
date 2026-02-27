@@ -33,9 +33,8 @@ public:
 			m_IsGlb = true;
 			m_GlbModel = new GlbModel();
 			m_GlbModel->Load(pass, Direct3D_GetDevice(), Direct3D_GetDeviceContext());
-			// GLBはメートル単位なのでサイズも100倍してFBXと合わせる
-			XMFLOAT3 rawSize = m_GlbModel->GetSize();
-			m_ModelSize = XMFLOAT3(rawSize.x * 100.0f, rawSize.y * 100.0f, rawSize.z * 100.0f);
+			// GlbModel::Load() 内で aiProcess_GlobalScale (100倍) 適用済みなのでそのまま使用
+			m_ModelSize = m_GlbModel->GetSize();
 			m_OriginalColor = m_GlbModel->GetAverageMaterialColor();
 		}
 		else
@@ -78,16 +77,11 @@ public:
 		{
 			if (m_GlbModel && m_GlbModel->IsLoaded())
 			{
-				// GLBはメートル単位、FBXはセンチメートル単位なのでスケールを100倍
-				XMFLOAT3 glbScale = GetScale();
-				glbScale.x *= 100.0f;
-				glbScale.y *= 100.0f;
-				glbScale.z *= 100.0f;
-
+				// GlbModel::Load() 内で aiProcess_GlobalScale (100倍) 適用済みなので追加スケール不要
 				m_GlbModel->Draw(
 					GetPos(),
 					GetRot(),
-					glbScale,
+					GetScale(),
 					drawColor,
 					shouldApplyColorReplace
 				);
