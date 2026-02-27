@@ -1174,7 +1174,7 @@ void Busters::MoveTo(XMFLOAT3 targetPos)
 	float dirX = dx / dist;
 	float dirZ = dz / dist;
 
-	if ((m_State == BUSTERS_CHASE || m_State == BUSTERS_SUSPICION) && m_PathList.size() >= 2)
+	if ((m_State == BUSTERS_CHASE || m_State == BUSTERS_SUSPICION || m_State == BUSTERS_RUN_TO_STAIRS) && m_PathList.size() >= 2)
 	{
 		// 現在のノードと次のノードの方向をブレンドして滑らかにする
 		XMFLOAT3 nextNode = m_PathList[1];
@@ -1242,9 +1242,9 @@ void Busters::MoveTo(XMFLOAT3 targetPos)
 	
 	// 回転が大きく違う場合は移動を抑制（その場で回転）
 	float angleDiffAbs = fabsf(angleDiff);
-	if (m_State == BUSTERS_CHASE || m_State == BUSTERS_SUSPICION)
+	if (m_State == BUSTERS_CHASE || m_State == BUSTERS_SUSPICION || m_State == BUSTERS_RUN_TO_STAIRS)
 	{
-		// 追跡・警戒時は回転方向に沿って移動（旋回しながら走る）
+		// 追跡・警戒・階段移動時は回転方向に沿って移動（旋回しながら走る）
 		if (angleDiffAbs > 45.0f)
 		{
 			moveAmount *= 0.5f;
@@ -1353,6 +1353,8 @@ void Busters::StartRunToStairs(XMFLOAT3 stairsPos)
 	{
 		std::reverse(m_PathList.begin(), m_PathList.end());
 		if (!m_PathList.empty()) m_PathList.erase(m_PathList.begin()); // 始点自身を除去
+		// スムージングを適用して直線的に移動できる区間はノードをスキップ
+		m_PathList = SmoothPath(m_PathList, 0.4f);
 	}
 	this->SetColor(1.0f, 0.5f, 0.0f, 1.0f); // オレンジ
 }
