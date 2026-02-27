@@ -16,6 +16,7 @@ using namespace DirectX;
 enum BUSTERS_STATE
 {
 	BUSTERS_SEARCH,         // 家具を探して移動（探索）
+	BUSTERS_WAIT_RESELECT,  // スタック・経路失敗時の目的地再抽選待機
 	BUSTERS_SUSPICION,      // 怪しんで近づく（警戒）
 	BUSTERS_CHASE,          // 幽霊を見つけて追跡（確定）
 	BUSTERS_STUN,           // 気絶中

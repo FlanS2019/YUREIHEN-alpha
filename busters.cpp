@@ -131,6 +131,9 @@ void Busters::Update(void)
 		else
 			this->PlayAnimationByName("walk", true);
 		break;
+	case BUSTERS_WAIT_RESELECT:
+		this->PlayAnimationByName("walk", true);
+		break;
 	case BUSTERS_SUSPICION:
 		this->PlayAnimationByName("walk", true);
 		break;
@@ -277,7 +280,8 @@ void Busters::Update(void)
 
 		switch (m_State)
 		{
-		case BUSTERS_SEARCH:    // 探索
+		case BUSTERS_SEARCH:         // 探索
+		case BUSTERS_WAIT_RESELECT:  // 再抽選待機
 			range = 15.0f;
 			break;
 
@@ -308,23 +312,22 @@ void Busters::Update(void)
 		switch (m_State)
 		{
 		case BUSTERS_SEARCH:
-
 			if (m_WaitTimer > 0)
 			{
 				// 調査中（tyousa.png）
 				m_Icon->SetIcon(BILLBOARD_ICON::CHECK);
-
 			}
 			else
 			{
 				// 探索中（tansaku.png）
 				m_Icon->SetIcon(BILLBOARD_ICON::SEARCH);
 			}
-		break;		case BUSTERS_SUSPICION: m_Icon->SetIcon(BILLBOARD_ICON::QUESTION); break;
-		case BUSTERS_LURED:		m_Icon->SetIcon(BILLBOARD_ICON::QUESTION); break;
-		case BUSTERS_CHASE:     m_Icon->SetIcon(BILLBOARD_ICON::ALERT); break;
-		case BUSTERS_STUN:      m_Icon->SetIcon(BILLBOARD_ICON::STUN); break;
-
+			break;
+		case BUSTERS_WAIT_RESELECT: m_Icon->SetIcon(BILLBOARD_ICON::SEARCH); break;
+		case BUSTERS_SUSPICION:     m_Icon->SetIcon(BILLBOARD_ICON::QUESTION); break;
+		case BUSTERS_LURED:         m_Icon->SetIcon(BILLBOARD_ICON::QUESTION); break;
+		case BUSTERS_CHASE:         m_Icon->SetIcon(BILLBOARD_ICON::ALERT); break;
+		case BUSTERS_STUN:          m_Icon->SetIcon(BILLBOARD_ICON::STUN); break;
 		}
 
 		XMFLOAT3 iconPos = m_Position;
@@ -410,6 +413,15 @@ void Busters::Update(void)
 			m_WaitTimer--;
 		}
 
+		// 再抽選待機タイマーが終了したら探索ステートへ復帰
+		if (m_State == BUSTERS_WAIT_RESELECT && m_WaitTimer <= 0)
+		{
+			m_State = BUSTERS_SEARCH;
+			m_TargetFurnitureIndex = -1;
+			m_PathList.clear();
+			return;
+		}
+
 		if (m_State == BUSTERS_SUSPICION || m_State == BUSTERS_CHASE)
 		{
 			Ghost* ghost = GetGhost();
@@ -467,6 +479,10 @@ void Busters::Update(void)
 
 	switch (m_State)
 	{
+	case BUSTERS_WAIT_RESELECT: // 再抽選待機中はswitch内では何もしない
+		m_MoveSpeed = BUSTERS_MOVE_SPEED_SEARCH;
+		break;
+
 	case BUSTERS_SEARCH: // 探索
 
 		if (m_TargetFurnitureIndex == -1 || m_PathList.empty())
@@ -560,6 +576,7 @@ void Busters::Update(void)
 				{
 					// ドアを経由してもアクセス不可の場合は、このターゲットを諦める
 					m_TargetFurnitureIndex = -1;
+					m_State = BUSTERS_WAIT_RESELECT;
 					m_WaitTimer = 60;
 				}
 				else
@@ -569,7 +586,8 @@ void Busters::Update(void)
 					{
 						// 経路が見つからない（壁の中などで行けない）場合は、壁に突っ込まずに潔く諦める
 						m_TargetFurnitureIndex = -1;
-						m_WaitTimer = 60; // 諦めて少し待機してから、別の目標を探す
+						m_State = BUSTERS_WAIT_RESELECT;
+						m_WaitTimer = 60;
 					}
 				}
 			}
@@ -793,7 +811,7 @@ void Busters::Update(void)
 
 	MoveTo(nextStepPos);
 
-	if (m_State == BUSTERS_SEARCH && m_TargetFurnitureIndex != -1)
+	if ((m_State == BUSTERS_SEARCH || m_State == BUSTERS_WAIT_RESELECT) && m_TargetFurnitureIndex != -1)
 	{
 		Furniture* target = GetFurniture(m_TargetFurnitureIndex);
 		if (target)
@@ -824,6 +842,7 @@ void Busters::Update(void)
 				{
 					// 経路のないスタックも処理
 					m_TargetFurnitureIndex = -1;
+					m_State = BUSTERS_WAIT_RESELECT;
 					m_WaitTimer = 60;
 					m_StuckTimer = 0;
 				}
@@ -896,6 +915,9 @@ bool IsWallBlock(float x, float z)
 
 bool IsObstacle(float x, float z, float radius, int ignoreFurnitureIndex = -1)
 {
+	// 床なし（Y=0がID:0）のマスは通行不可
+	if (Field_IsNoFloor(x, z)) return true;
+
 	// 壁の判定 (中心と4隅をチェックしてめり込みを防ぐ)
 	float checkR = radius * 0.7f;
 	if (IsWallBlock(x, z) ||
@@ -968,7 +990,7 @@ void Busters::CheckState(void)
 		return;
 	}
 
-	if (m_State == BUSTERS_LURED)
+	if (m_State == BUSTERS_LURED || m_State == BUSTERS_WAIT_RESELECT)
 	{
 		return;
 	}
@@ -1699,15 +1721,14 @@ void Busters_DoFloorTransition(void)
 	{
 		if (nextFloor >= 0 && nextFloor < MAP_FLOORS)
 		{
-			float offsetX = (float)(rand() % 400 - 200) / 100.0f;
-			float offsetZ = (float)(rand() % 400 - 200) / 100.0f;
+			XMFLOAT3 newPos = GetRandomBusterPos(nextFloor);
 
-				Busters* newBuster = new Busters(
-					{ offsetX, BUSTERS_HEIGHT, offsetZ },
-					{ 0.12f, 0.12f, 0.12f },
-					{ 0.0f, 0.0f, 0.0f },
-					"asset\\model\\busters_v3.fbx"
-				);
+			Busters* newBuster = new Busters(
+				{ newPos.x, BUSTERS_HEIGHT, newPos.z },
+				{ 0.12f, 0.12f, 0.12f },
+				{ 0.0f, 0.0f, 0.0f },
+				"asset\\model\\busters_v3.fbx"
+			);
 
 			if (newBuster) {
 				newBuster->SetGroundLevel(PATROL_HEIGHT);
