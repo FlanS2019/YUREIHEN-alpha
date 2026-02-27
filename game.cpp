@@ -318,6 +318,7 @@ void Game_Update(void)
 					g_FloorExitAnimRequested = false;
 					g_FloorBeforeExit    = -1;
 					SetScene(SCENE_ANM_WIN);
+					Fade_StartIn(); // フェードイン開始（画面が真っ黒のまま止まるのを防ぐ）
 				}
 				else
 				{

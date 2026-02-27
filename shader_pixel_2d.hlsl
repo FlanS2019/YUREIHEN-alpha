@@ -46,7 +46,6 @@ float4 main(PS_INPUT ps_in) : SV_TARGET
 	float4 texColor = g_Texture.Sample(g_SamplerState, ps_in.texcoord);
 	float4 baseColor = texColor * MaterialColor * ps_in.color;
 
-	// ポイントライトが0個の場合はアンビエントのみ適用（2D描画の高速化）
 	int activeLights = min(PointLightCount, MAX_POINT_LIGHTS);
 	[branch]
 	if (activeLights == 0)
@@ -63,17 +62,8 @@ float4 main(PS_INPUT ps_in) : SV_TARGET
 	for (int i = 0; i < activeLights; ++i)
 	{
 		[branch]
-		if (!PointLights[i].enable)
-		{
-			continue;
-		}
-
-		float3 contribution = float3(0.0f, 0.0f, 0.0f);
-
-		[branch]
 		if (PointLights[i].Position.w > 0.5f)
 		{
-			// ポイントライト：距離チェックを先に行い範囲外なら即スキップ
 			float3 lightVec = PointLights[i].Position.xyz - worldPos;
 			float range = PointLights[i].Params.x;
 			float distSq = dot(lightVec, lightVec);
@@ -82,24 +72,22 @@ float4 main(PS_INPUT ps_in) : SV_TARGET
 			[branch]
 			if (distSq < rangeSq)
 			{
-				float dist = sqrt(distSq);
-				float3 lightDir = lightVec / max(dist, 0.001f);
-				float intensity = PointLights[i].Params.y;
-				float attenuation = 1.0f - (dist / max(range, 0.1f));
-				attenuation = attenuation * attenuation;
+				float invDist = rsqrt(max(distSq, 0.0001f));
+				float3 lightDir = lightVec * invDist;
+				float distNorm = distSq / max(rangeSq, 0.01f);
+				float attenuation = saturate(1.0f - distNorm);
+				attenuation *= attenuation;
 
 				float lambert = max(dot(normal, lightDir), 0.0f);
-				contribution = lambert * PointLights[i].Diffuse.rgb * attenuation * intensity;
+				diffuseAccum += lambert * PointLights[i].Diffuse.rgb * attenuation * PointLights[i].Params.y;
 			}
 		}
 		else
 		{
 			float3 lightDir = normalize(-PointLights[i].Direction.xyz);
 			float lambert = max(dot(normal, lightDir), 0.0f);
-			contribution = lambert * PointLights[i].Diffuse.rgb;
+			diffuseAccum += lambert * PointLights[i].Diffuse.rgb;
 		}
-
-		diffuseAccum += contribution;
 	}
 
 	baseColor.rgb *= (diffuseAccum + AmbientColor.rgb);

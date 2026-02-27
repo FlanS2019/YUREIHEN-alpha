@@ -179,7 +179,7 @@
 			"name": "green_concrete",
 			"names_ja": "ピアノ",
 			"default_id": 62,
-			"model": "asset\\model\\piano.fbx",
+			"model": "asset\\model\\piano.glb",
 			"action": "scare",
 			"scare_se": "asset\\sound\\se\\piano.m4a"
 		},

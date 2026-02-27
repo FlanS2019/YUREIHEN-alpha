@@ -95,9 +95,9 @@
 
 //=== Ghost 関連定数 ===
 #define SCARE_RANGE (12.0f)		// 恐怖範囲
-#define SCARE_COMBO_BASE_RADIUS (3.0f)
-#define SCARE_COMBO_RADIUS_STEP (1.0f)
-#define GHOST_MOVEMENT_SPEED (0.01f)
+#define SCARE_COMBO_BASE_RADIUS (5.0f)
+#define SCARE_COMBO_RADIUS_STEP (0.7f)
+#define GHOST_MOVEMENT_SPEED (0.01f
 #define GHOST_ACCELERATION (0.010f)
 #define GHOST_DECELERATION (0.98f)
 #define GHOST_MAX_SPEED (0.10f)
@@ -120,7 +120,7 @@
 #define SCARE_GAUGE_MAX (100.0f)// 恐怖ゲージの最大値
 #define SCORE_LURE (0.5f) // 引き寄せスコア
 #define SCORE_STOP (0.5f) // 停止スコア
-#define SCORE_SCARE (300.9f) // 驚かせスコア//2.45f勝てなさすぎるので一時変更
+#define SCORE_SCARE (3.9f) // 驚かせスコア//2.45f勝てなさすぎるので一時変更
 #define BUSTER_GAUGE_REDUCTION (0.05f) // バスターに見つかったときのゲージ減少値（1フレームあたり）
 
 //=== UI_ScareCombo 関連定数 ===
