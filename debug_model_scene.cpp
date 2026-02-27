@@ -1,7 +1,7 @@
 ﻿#pragma execution_character_set("utf-8")
 /*==============================================================================
    デバッグモデルビューアシーン [debug_model_scene.cpp]
-   asset\model フォルダ内の .fbx を自動列挙し、グリッド状に配置して表示する。
+   asset\model フォルダ内の .fbx / .glb を自動列挙し、グリッド状に配置して表示する。
    Ghost と家具憑依機能のみを残し、モデルに近づくとモデル名と
    block_definitions.json への登録状況を描画する。
 ==============================================================================*/
@@ -32,6 +32,8 @@ using namespace DirectX;
 #include "define.h"
 #include "UI_PauseMenu.h"
 #include "field.h"
+#include "texture.h"
+#include "box.h"
 
 // ======================================================
 // 内部構造体
@@ -62,9 +64,21 @@ static FontRenderer* g_pModelNameFont = nullptr;
 static FontRenderer* g_pSubInfoFont = nullptr;
 static FontRenderer* g_pControlHintFont = nullptr;
 
+// 床描画用
+static ID3D11Buffer* g_pFloorVB = nullptr;
+static ID3D11Buffer* g_pFloorIB = nullptr;
+static ID3D11ShaderResourceView* g_pFloorTexture = nullptr;
+
 // 配置パラメータ
 static const float MODEL_SPACING = 5.0f;  // モデル同士の間隔
 static const float LABEL_RANGE = 8.0f;  // この距離以内で名前を表示
+
+// 原点キューブ表示用
+static MODEL* g_pCubeModel = nullptr;
+static bool   g_ShowOriginCubes = false;
+
+// リロード用フラグ
+static bool g_ReloadRequested = false;
 
 // block_definitions.json のブロック情報
 struct BlockDefInfo
@@ -222,43 +236,109 @@ static void LoadBlockDefMap()
 }
 
 // ======================================================
-// asset\model フォルダを列挙して .fbx を集める
+// asset\model フォルダを列挙して .fbx / .glb を集める
 // ======================================================
 static void EnumerateModels()
 {
-	WIN32_FIND_DATAA fd;
-	HANDLE hFind = FindFirstFileA("asset\\model\\*.fbx", &fd);
-	if (hFind == INVALID_HANDLE_VALUE) return;
+	// 検索する拡張子パターン一覧
+	const char* patterns[] = {
+		"asset\\model\\*.fbx",
+		"asset\\model\\*.glb",
+	};
 
-	do
+	for (const char* pattern : patterns)
 	{
-		if (fd.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) continue;
+		WIN32_FIND_DATAA fd;
+		HANDLE hFind = FindFirstFileA(pattern, &fd);
+		if (hFind == INVALID_HANDLE_VALUE) continue;
 
-		DebugModelEntry entry;
-		entry.fileName = fd.cFileName;
-		entry.filePath = "asset\\model\\" + entry.fileName;
-		entry.worldPos = { 0, 0, 0 };
-		entry.isInBlockDef = false;
-		entry.blockDefNameEn = "";
-		entry.blockDefName = "";
-		entry.blockDefAction = "";
-		entry.blockDefID = -1;
-
-		// block_definitions.json にあるか確認
-		if (g_BlockDefModelMap.count(entry.filePath) > 0)
+		do
 		{
-			const BlockDefInfo& info = g_BlockDefModelMap[entry.filePath];
-			entry.isInBlockDef = true;
-			entry.blockDefNameEn = info.nameEn;
-			entry.blockDefName = info.nameJa;
-			entry.blockDefAction = info.action;
-			entry.blockDefID = info.id;
-		}
+			if (fd.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) continue;
 
-		g_Entries.push_back(entry);
-	} while (FindNextFileA(hFind, &fd));
+			DebugModelEntry entry;
+			entry.fileName = fd.cFileName;
+			entry.filePath = "asset\\model\\" + entry.fileName;
+			entry.worldPos = { 0, 0, 0 };
+			entry.isInBlockDef = false;
+			entry.blockDefNameEn = "";
+			entry.blockDefName = "";
+			entry.blockDefAction = "";
+			entry.blockDefID = -1;
 
-	FindClose(hFind);
+			// block_definitions.json にあるか確認
+			if (g_BlockDefModelMap.count(entry.filePath) > 0)
+			{
+				const BlockDefInfo& info = g_BlockDefModelMap[entry.filePath];
+				entry.isInBlockDef = true;
+				entry.blockDefNameEn = info.nameEn;
+				entry.blockDefName = info.nameJa;
+				entry.blockDefAction = info.action;
+				entry.blockDefID = info.id;
+			}
+
+			g_Entries.push_back(entry);
+		} while (FindNextFileA(hFind, &fd));
+
+		FindClose(hFind);
+	}
+}
+
+// ======================================================
+// モデルの再読み込み（家具とキャッシュを破棄して再構築）
+// ======================================================
+static void ReloadAllModels()
+{
+	// ゴーストの現在位置を保持
+	Ghost* ghost = GetGhost();
+	XMFLOAT3 ghostPos = { 0.0f, GHOST_POS_Y, -3.0f };
+	if (ghost) ghostPos = ghost->GetPos();
+
+	// 家具を全て破棄（内部で各モデルのModelRelease/GlbModel::Releaseも呼ばれる）
+	Furniture_Finalize();
+
+	// 原点キューブモデルを解放
+	if (g_pCubeModel) { ModelRelease(g_pCubeModel); g_pCubeModel = nullptr; }
+
+	// block_definitions.json を再解析
+	LoadBlockDefMap();
+
+	// モデル一覧を再列挙
+	g_Entries.clear();
+	EnumerateModels();
+
+	// グリッド配置 + 家具再生成
+	int cols = 6;
+	for (int i = 0; i < (int)g_Entries.size(); i++)
+	{
+		int row = i / cols;
+		int col = i % cols;
+		float x = (col - cols / 2.0f + 0.5f) * MODEL_SPACING;
+		float z = (float)row * MODEL_SPACING;
+		float y = 0.0f;
+
+		g_Entries[i].worldPos = { x, y, z };
+
+		CreateFurniture(
+			{ x, y, z },
+			{ 1.0f, 1.0f, 1.0f },
+			{ 0.0f, 0.0f, 0.0f },
+			g_Entries[i].filePath.c_str(),
+			ACTION_SCARE,
+			g_Entries[i].blockDefID >= 0 ? g_Entries[i].blockDefID : 0
+		);
+	}
+
+	// 原点キューブモデルを再読み込み
+	g_pCubeModel = ModelLoad("asset\\model\\cube.fbx");
+
+	// ゴーストの位置を復元
+	ghost = GetGhost();
+	if (ghost)
+	{
+		ghost->SetPos(ghostPos);
+		Camera_SetTargetPos(ghostPos);
+	}
 }
 
 // ======================================================
@@ -271,6 +351,14 @@ void DebugModelScene_Initialize(ID3D11Device* pDevice, ID3D11DeviceContext* pCon
 
 	// ライト
 	g_pAmbientLight = new AmbientLight(XMFLOAT4(0.5f, 0.5f, 0.5f, 1.0f));
+
+	// 床用バッファ・テクスチャの作成
+	CreateSimpleBox(pDevice, &g_pFloorVB, &g_pFloorIB);
+	g_pFloorTexture = LoadTexture(L"asset\\texture\\yuka.png");
+
+	// 原点表示用キューブモデルの読み込み
+	g_pCubeModel = ModelLoad("asset\\model\\cube.fbx");
+	g_ShowOriginCubes = false;
 
 	// block_definitions.json 解析
 	LoadBlockDefMap();
@@ -316,7 +404,7 @@ void DebugModelScene_Initialize(ID3D11Device* pDevice, ID3D11DeviceContext* pCon
 	// フォント
 	g_pModelNameFont = new FontRenderer({ SCREEN_WIDTH / 2.0f, SCREEN_HEIGHT - 140.0f }, 36.0f, 0.0f, { 1,1,1,1 }, "");
 	g_pSubInfoFont = new FontRenderer({ SCREEN_WIDTH / 2.0f, SCREEN_HEIGHT - 90.0f }, 28.0f, 0.0f, { 0.8f,0.8f,0.2f,1 }, "");
-	g_pControlHintFont = new FontRenderer({ SCREEN_WIDTH / 2.0f,                  30.0f }, 22.0f, 0.0f, { 0.6f,0.6f,0.6f,1 }, "WASD:Move  Mouse:Look  SPACE:Possess  E:Release");
+	g_pControlHintFont = new FontRenderer({ SCREEN_WIDTH / 2.0f,                  30.0f }, 22.0f, 0.0f, { 0.6f,0.6f,0.6f,1 }, "WASD:Move  Mouse:Look  SPACE:Possess  E:Release  B:OriginCube  R:Reload");
 	g_pControlHintFont->PreCacheGlyphs();
 
 	// ポーズメニュー初期化
@@ -333,6 +421,18 @@ void DebugModelScene_Update(void)
 	if (UI_PauseMenu_IsPaused())
 	{
 		return;
+	}
+
+	// Bキーで原点キューブ表示切り替え
+	if (Keyboard_IsKeyDownTrigger(KK_B))
+	{
+		g_ShowOriginCubes = !g_ShowOriginCubes;
+	}
+
+	// Rキーで全モデルを再読み込み
+	if (Keyboard_IsKeyDownTrigger(KK_R))
+	{
+		ReloadAllModels();
 	}
 
 	Camera_Update();
@@ -401,8 +501,74 @@ void DebugModelScene_Draw(void)
 	Shader_ClearPointLights();
 	Ghost_SetLight();
 
+	// --- 床の描画 ---
+	if (g_pFloorVB && g_pFloorIB && g_pFloorTexture)
+	{
+		Shader_Begin();
+
+		Camera* pCamera = GetCamera();
+		XMMATRIX view = pCamera->GetView();
+		XMMATRIX proj = pCamera->GetProjection();
+
+		ID3D11DeviceContext* pContext = Direct3D_GetDeviceContext();
+
+		// モデル配置範囲に合わせて床タイルを敷く
+		int cols = 6;
+		int rows = ((int)g_Entries.size() + cols - 1) / cols;
+		float halfW = (cols / 2.0f) * MODEL_SPACING + MODEL_SPACING;
+		float maxZ = (float)(rows) * MODEL_SPACING + MODEL_SPACING;
+		float minZ = -MODEL_SPACING;
+
+		float tileSize = 1.0f;
+		int tilesX = (int)((halfW * 2.0f) / tileSize) + 2;
+		int tilesZ = (int)((maxZ - minZ) / tileSize) + 2;
+		float startX = -halfW;
+		float startZ = minZ;
+
+		pContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+
+		UINT stride = sizeof(Vertex3D);
+		UINT offset = 0;
+		pContext->IASetVertexBuffers(0, 1, &g_pFloorVB, &stride, &offset);
+		pContext->IASetIndexBuffer(g_pFloorIB, DXGI_FORMAT_R32_UINT, 0);
+		pContext->PSSetShaderResources(0, 1, &g_pFloorTexture);
+
+		for (int iz = 0; iz < tilesZ; iz++)
+		{
+			for (int ix = 0; ix < tilesX; ix++)
+			{
+				float x = startX + ix * tileSize + tileSize * 0.5f;
+				float z = startZ + iz * tileSize + tileSize * 0.5f;
+				float y = -0.5f;
+
+				XMMATRIX world = XMMatrixScaling(tileSize, 0.01f, tileSize) * XMMatrixTranslation(x, y, z);
+				XMMATRIX wvp = world * view * proj;
+
+				Shader_SetMatrix(wvp);
+				Shader_SetWorldMatrix(world);
+				Shader_SetMaterialColor({ 1.0f, 1.0f, 1.0f, 1.0f });
+
+				pContext->DrawIndexed(36, 0, 0);
+			}
+		}
+	}
+
 	// 家具描画（展示モデル＋ビルボードアイコン含む）
 	Furniture_Draw();
+
+	// 原点キューブ描画
+	if (g_ShowOriginCubes && g_pCubeModel)
+	{
+		for (int i = 0; i < (int)g_Entries.size(); i++)
+		{
+			ModelDraw(
+				g_pCubeModel,
+				g_Entries[i].worldPos,
+				{ 0.0f, 0.0f, 0.0f },
+				{ 1.0f, 1.0f, 1.0f }
+			);
+		}
+	}
 
 	Ghost_Draw();
 
@@ -433,6 +599,14 @@ void DebugModelScene_Finalize(void)
 
 	if (g_pAmbientLight) { delete g_pAmbientLight; g_pAmbientLight = nullptr; }
 	if (g_pFloorLight) { delete g_pFloorLight;   g_pFloorLight = nullptr; }
+
+	// 原点キューブモデル解放
+	if (g_pCubeModel) { ModelRelease(g_pCubeModel); g_pCubeModel = nullptr; }
+
+	// 床リソース解放
+	if (g_pFloorVB) { g_pFloorVB->Release(); g_pFloorVB = nullptr; }
+	if (g_pFloorIB) { g_pFloorIB->Release(); g_pFloorIB = nullptr; }
+	SAFE_RELEASE(g_pFloorTexture);
 
 	if (g_pModelNameFont) { delete g_pModelNameFont;   g_pModelNameFont = nullptr; }
 	if (g_pSubInfoFont) { delete g_pSubInfoFont;     g_pSubInfoFont = nullptr; }

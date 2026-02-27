@@ -164,7 +164,7 @@
 			"name": "yellow_concrete",
 			"names_ja": "便器",
 			"default_id": 60,
-			"model": "asset\\model\\toilet.fbx",
+			"model": "asset\\model\\toilet.glb",
 			"action": "lure",
 			"scare_se": "asset\\sound\\se\\toilet.m4a"
 		},
