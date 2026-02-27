@@ -215,6 +215,10 @@ void Result_Initialize(ID3D11Device* pDevice, ID3D11DeviceContext* pContext)
 	g_PhaseAlpha = 0.0f;
 	g_WaitCounter = 0;
 
+	// スコア値をリセット（前回プレイの値が残らないように）
+	g_pResultTime = 0.0f;
+	g_pResultCombo = 1;
+
 	// 背景
 	g_pResultSprite = new Sprite(
 		{ SCREEN_WIDTH / 2.0f, SCREEN_HEIGHT / 2.0f },
