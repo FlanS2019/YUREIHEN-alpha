@@ -624,17 +624,18 @@ void Busters::Update(void)
 		{
 			float dx = GetGhost()->GetPos().x - m_Position.x;
 			float dz = GetGhost()->GetPos().z - m_Position.z;
-			float dist = sqrtf(dx * dx + dz * dz);
+			float distSq = dx * dx + dz * dz;
 			bool hasWall = Field_CheckWallBetween(m_Position, GetGhost()->GetPos());
 
 			// 壁がなく、かつ距離が近い場合
-			if (!hasWall && dist < 0.5f)
+			if (!hasWall && distSq < 0.25f)
 			{
 				m_PathList.clear();
 				nextStepPos = GetGhost()->GetPos();
 			}
 			else
 			{
+				float dist = sqrtf(distSq);
 
 				m_PathUpdateTimer++;
 
@@ -967,7 +968,7 @@ bool CanPassLine(const XMFLOAT3& start, const XMFLOAT3& end, float radius, int i
 
 	float ndx = dx / len;
 	float ndz = dz / len;
-	int steps = (int)(len / 0.5f) + 1;
+	int steps = (int)(len / 0.8f) + 1;
 
 	for (int i = 0; i <= steps; i++)
 	{

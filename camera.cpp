@@ -71,19 +71,6 @@ void Camera::Update()
 	Mouse_State mouseState;
 	Mouse_GetState(&mouseState);
 
-	// 60フレームに1回プレイヤー座標をデバッグ出力
-	static int s_posLogTimer = 0;
-	if (++s_posLogTimer >= 60)
-	{
-		s_posLogTimer = 0;
-		Ghost* ghost = GetGhost();
-		if (ghost)
-		{
-			XMFLOAT3 pos = ghost->GetPos();
-			hal::dout << "[PLAYER POS] x=" << pos.x << " y=" << pos.y << " z=" << pos.z << std::endl;
-		}
-	}
-
 	// 絶対座標モード中にクリックで相対モードへ切り替え（カーソル固定）
 	if (mouseState.positionMode == MOUSE_POSITION_MODE_ABSOLUTE)
 	{

@@ -127,6 +127,7 @@ void Furniture_Finalize(void);
 std::string GetBlockNameJa(int id);
 void CreateFurniture(XMFLOAT3 pos, XMFLOAT3 scale, XMFLOAT3 rot, const char* modelPath, FURNITURE_ACTION action, int blockID);
 Furniture* GetFurniture(int index);
+int GetFurnitureCount(void);
 bool FurnitureScareStart(int index);
 bool FurnitureScareEnded(int index);
 bool IsFurnitureBlock(int id);

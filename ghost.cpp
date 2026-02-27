@@ -412,52 +412,6 @@ void Ghost_Update(void)
 		hal::dout << "Scene: " << sceneName << " (" << (int)currentScene << ")" << std::endl;
 	}
 
-	// 60フレーム毎の自動デバッグログ
-	{
-		static int s_DebugLogTimer = 0;
-		s_DebugLogTimer++;
-		if (s_DebugLogTimer >= 60)
-		{
-			s_DebugLogTimer = 0;
-
-			if (g_Ghost)
-			{
-				// ゴーストステート文字列化
-				const char* stateNames[] = {
-					"GS_MOVING", "GS_FURNITURE_FOUND", "GS_TRANSFORM",
-					"GS_SCARE", "GS_CAUGHT"
-				};
-				GHOST_STATE gs = g_Ghost->GetState();
-				const char* gsName = (gs >= 0 && gs <= GS_CAUGHT) ? stateNames[gs] : "UNKNOWN";
-
-				XMFLOAT3 gPos   = g_Ghost->GetPos();
-				XMFLOAT3 prePos = g_Ghost->m_PreTransformPos;
-				bool invincible  = g_Ghost->IsInvincible();
-				int  invTimer    = g_Ghost->m_InvincibleTimer;
-				bool isTransformed = g_Ghost->GetIsTransformed();
-
-				// カメラ情報
-				Camera* cam = GetCamera();
-				XMFLOAT3 camPos   = cam ? cam->GetPos()   : XMFLOAT3(0,0,0);
-				XMFLOAT3 camAt    = cam ? cam->GetAtPos() : XMFLOAT3(0,0,0);
-				float camPitch    = cam ? cam->GetPitch() : 0.0f;
-				float camYaw      = cam ? cam->GetYaw()   : 0.0f;
-
-				hal::dout << "[AUTO-DBG] GhostState=" << gsName
-				          << " IsTransformed=" << isTransformed
-				          << " Invincible=" << invincible << "(" << invTimer << "f)"
-				          << std::endl;
-				hal::dout << "  GhostPos=(" << gPos.x << "," << gPos.y << "," << gPos.z << ")"
-				          << " PreTransformPos=(" << prePos.x << "," << prePos.y << "," << prePos.z << ")"
-				          << std::endl;
-				hal::dout << "  CamPos=(" << camPos.x << "," << camPos.y << "," << camPos.z << ")"
-				          << " CamAt=(" << camAt.x << "," << camAt.y << "," << camAt.z << ")"
-				          << " Pitch=" << camPitch << " Yaw=" << camYaw
-				          << std::endl;
-			}
-		}
-	}
-
 	if (g_Ghost)
 	{
 		// 俯瞰・補間中のみカメラ追従を止める
@@ -702,7 +656,8 @@ void Ghost::FurnitureSearch(void)
 	// 範囲内にある全ての家具のインデックスをリストアップする
 	std::vector<int> currentList;
 
-	for (int i = 0; i < FURNITURE_NUM; i++)
+	int furnitureCount = GetFurnitureCount();
+	for (int i = 0; i < furnitureCount; i++)
 	{
 		Furniture* pFurniture = GetFurniture(i);
 		if (pFurniture)

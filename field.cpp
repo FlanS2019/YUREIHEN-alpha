@@ -938,7 +938,7 @@ bool Field_CheckWallBetween(XMFLOAT3 start, XMFLOAT3 end)
 		float checkX = start.x + stepX * currentDist;
 		float checkZ = start.z + stepZ * currentDist;
 		if (Field_IsWall(checkX, checkZ)) return true;
-		currentDist += 0.5f;
+		currentDist += 0.8f;
 	}
 	return false;
 }
