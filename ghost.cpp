@@ -54,6 +54,32 @@ static float GetActionEffectiveRange(Furniture* pFurniture, float baseRange)
     }
 }
 
+// 変身解除後、壁や家具に埋まらない安全な位置を返すヘルパー関数
+// 元の座標から4方向(+Z,-Z,+X,-X)へ1マス(1.0f)ずつオフセットして
+// 壁・床なしでないグリッドを見つける。すべて失敗した場合は元の座標を返す。
+static XMFLOAT3 CalcSafeExitPos(XMFLOAT3 origin)
+{
+	const float STEP = 1.0f;
+	const float offsets[4][2] = { {0.0f, STEP}, {0.0f, -STEP}, {STEP, 0.0f}, {-STEP, 0.0f} };
+	const float r = 0.4f;
+	for (int i = 0; i < 4; ++i)
+	{
+		float cx = origin.x + offsets[i][0];
+		float cz = origin.z + offsets[i][1];
+		// 4隅すべてが壁でも床なしでもなければ安全
+		if (!Field_IsWall(cx + r, origin.y, cz + r) && !Field_IsWall(cx + r, origin.y, cz - r) &&
+			!Field_IsWall(cx - r, origin.y, cz + r) && !Field_IsWall(cx - r, origin.y, cz - r) &&
+			!Field_IsOuterWall(cx + r, cz + r) && !Field_IsOuterWall(cx + r, cz - r) &&
+			!Field_IsOuterWall(cx - r, cz + r) && !Field_IsOuterWall(cx - r, cz - r) &&
+			!Field_IsNoFloor(cx + r, cz + r) && !Field_IsNoFloor(cx + r, cz - r) &&
+			!Field_IsNoFloor(cx - r, cz + r) && !Field_IsNoFloor(cx - r, cz - r))
+		{
+			return { cx, origin.y, cz };
+		}
+	}
+	return origin;
+}
+
 // 円のサイズと位置を更新するヘルパー関数
 static void UpdateRangeCircleState()
 {
@@ -296,11 +322,8 @@ void Ghost_Update(void)
 
 			UpdateRangeCircleState();
 
-			// 変身解除後にゴーストが家具と同じXZ座標に残るため、
-			// FurnitureSearch()で即GS_FURNITURE_FOUNDに戻るのを防ぐため検知範囲外へ移動させる
-			XMFLOAT3 exitPos = g_Ghost->GetPos();
-			exitPos.z += FURNITURE_DETECTION_RANGE + 1.0f;
-			if (exitPos.z > MAP_MAX_Z) exitPos.z = g_Ghost->GetPos().z - (FURNITURE_DETECTION_RANGE + 1.0f);
+			// 変身解除後、壁や家具に埋まらない安全な隣接マスへ移動させる
+			XMFLOAT3 exitPos = CalcSafeExitPos(g_Ghost->GetPos());
 
 			g_Ghost->ResetPos();
 			g_Ghost->SetPos(exitPos);
@@ -317,10 +340,8 @@ void Ghost_Update(void)
 		{
 			UpdateRangeCircleState();
 
-			// 変身解除後にゴーストが家具と同じXZ座標に残るため検知範囲外へ移動させる
-			XMFLOAT3 scareExitPos = g_Ghost->GetPos();
-			scareExitPos.z += FURNITURE_DETECTION_RANGE + 1.0f;
-			if (scareExitPos.z > MAP_MAX_Z) scareExitPos.z = g_Ghost->GetPos().z - (FURNITURE_DETECTION_RANGE + 1.0f);
+			// 変身解除後、壁や家具に埋まらない安全な隣接マスへ移動させる
+			XMFLOAT3 scareExitPos = CalcSafeExitPos(g_Ghost->GetPos());
 
 			g_Ghost->ResetPos();
 			g_Ghost->SetPos(scareExitPos);
@@ -496,7 +517,10 @@ void Ghost::Transforming(void)
 	Furniture* pFurniture = GetFurniture(m_InRangeFurnitureNum);
 	if (pFurniture)
 	{
-		SetPos(pFurniture->GetPos());
+		// XZ座標のみ家具に合わせる（Y座標は変更しない）
+		XMFLOAT3 furniturePos = pFurniture->GetPos();
+		SetPosX(furniturePos.x);
+		SetPosZ(furniturePos.z);
 	}
 
 	Busters* pBuster = GetBusters();
@@ -788,7 +812,11 @@ void Ghost::Move(void)
 	if (Field_IsOuterWall(nextX + r, m_Position.z + r) ||
 		Field_IsOuterWall(nextX + r, m_Position.z - r) ||
 		Field_IsOuterWall(nextX - r, m_Position.z + r) ||
-		Field_IsOuterWall(nextX - r, m_Position.z - r))
+		Field_IsOuterWall(nextX - r, m_Position.z - r) ||
+		Field_IsNoFloor(nextX + r, m_Position.z + r) ||
+		Field_IsNoFloor(nextX + r, m_Position.z - r) ||
+		Field_IsNoFloor(nextX - r, m_Position.z + r) ||
+		Field_IsNoFloor(nextX - r, m_Position.z - r))
 	{
 		hitX = true;
 	}
@@ -802,7 +830,11 @@ void Ghost::Move(void)
 	if (Field_IsOuterWall(m_Position.x + r, nextZ + r) ||
 		Field_IsOuterWall(m_Position.x + r, nextZ - r) ||
 		Field_IsOuterWall(m_Position.x - r, nextZ + r) ||
-		Field_IsOuterWall(m_Position.x - r, nextZ - r))
+		Field_IsOuterWall(m_Position.x - r, nextZ - r) ||
+		Field_IsNoFloor(m_Position.x + r, nextZ + r) ||
+		Field_IsNoFloor(m_Position.x + r, nextZ - r) ||
+		Field_IsNoFloor(m_Position.x - r, nextZ + r) ||
+		Field_IsNoFloor(m_Position.x - r, nextZ - r))
 	{
 		hitZ = true;
 	}
@@ -885,14 +917,9 @@ void Ghost_ForceExitTransform(void)
 	UpdateRangeCircleState();
 	g_Ghost->ResetPos();
 
-	// 解除後もゴーストは家具と同じXZ座標にいるため、
-	// FurnitureSearch()で即座にGS_FURNITURE_FOUNDに戻るのを防ぐため
-	// 家具の検知範囲(FURNITURE_DETECTION_RANGE=5.0f)の外まで強制移動させる
+	// 解除後、壁や家具に埋まらない安全な隣接マスへ移動させる
 	{
-		XMFLOAT3 safePos = g_Ghost->GetPos();
-		safePos.z += FURNITURE_DETECTION_RANGE + 1.0f;
-		// マップ範囲外になる場合は逆方向にオフセット
-		if (safePos.z > MAP_MAX_Z) safePos.z = g_Ghost->GetPos().z - (FURNITURE_DETECTION_RANGE + 1.0f);
+		XMFLOAT3 safePos = CalcSafeExitPos(g_Ghost->GetPos());
 		g_Ghost->SetPos(safePos);
 	}
 

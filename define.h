@@ -104,8 +104,8 @@
 #define LURE_POSSESSED_SPEED_RATIO (0.5f)
 #define GHOST_START_POS_FLOOR1_X (-3.0f)
 #define GHOST_START_POS_FLOOR1_Z (-10.0f)
-#define GHOST_START_POS_FLOOR2_X (-3.0f)
-#define GHOST_START_POS_FLOOR2_Z (-10.0f)
+#define GHOST_START_POS_FLOOR2_X (-10.0f)
+#define GHOST_START_POS_FLOOR2_Z (-11.0f)
 #define GHOST_START_POS_FLOOR3_X (-4.0f)
 #define GHOST_START_POS_FLOOR3_Z (4.0f)
 
@@ -118,7 +118,7 @@
 #define SCARE_GAUGE_MAX (100.0f)
 #define SCORE_LURE (0.5f) // 引き寄せスコア
 #define SCORE_STOP (0.5f) // 停止スコア
-#define SCORE_SCARE (200.45f) // 驚かせスコア
+#define SCORE_SCARE (2.45f) // 驚かせスコア
 #define BUSTER_GAUGE_REDUCTION (0.07f) // バスターに見つかったときのゲージ減少値（1フレームあたり）
 
 //=== UI_ScareCombo 関連定数 ===

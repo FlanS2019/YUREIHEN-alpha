@@ -69,7 +69,6 @@ Busters::Busters(const XMFLOAT3& pos, const XMFLOAT3& scale, const XMFLOAT3& rot
 	m_TargetFurnitureIndex(-1),
 	m_WaitTimer(0),
 	m_DetectionGraceTimer(0),
-	m_Velocity(0.0f, 0.0f, 0.0f),
 	m_MoveSpeed(BUSTERS_MOVE_SPEED_SEARCH),
 	m_DistanceToGhost(0.0f),
 	m_ReactionCooldown(0),
@@ -90,9 +89,6 @@ Busters::Busters(const XMFLOAT3& pos, const XMFLOAT3& scale, const XMFLOAT3& rot
 	m_PathUpdateTimer = rand() % 15;
 	m_PrevPos = pos;
 	m_StuckTimer = 0;
-	m_RotationUpdateCounter = 0;
-	m_PrevTargetAngle = 0.0f;
-	m_AngleFlipCounter = 0;
 
 	// ヘッドライト初期化
 	m_pHeadlight = new PointLight(
@@ -823,7 +819,6 @@ void Busters::Update(void)
 			{
 			m_PathList.erase(m_PathList.begin());
 			m_StuckTimer = 0;
-			m_AngleFlipCounter = 0;
 			}
 				else if (m_State == BUSTERS_SEARCH && m_TargetFurnitureIndex != -1)
 				{
@@ -897,24 +892,6 @@ bool IsWallBlock(float x, float z)
 	if ((id >= 50 && id <= 69) || id == 98) return false;
 
 	return true; // それ以外（本物の壁）は true を返す
-}
-
-bool IsChokePoint(float x, float z)
-{
-	// 1マス(1.0f)の周囲の壁をチェック
-	bool wallL = IsWallBlock(x - 1.0f, z);
-	bool wallR = IsWallBlock(x + 1.0f, z);
-	bool wallU = IsWallBlock(x, z + 1.0f);
-	bool wallD = IsWallBlock(x, z - 1.0f);
-
-	// 左右が壁、または上下が壁（ドアや細い通路）
-	if (wallL && wallR) return true;
-	if (wallU && wallD) return true;
-
-	// L字の角（曲がり角）
-	if ((wallL || wallR) && (wallU || wallD)) return true;
-
-	return false;
 }
 
 bool IsObstacle(float x, float z, float radius, int ignoreFurnitureIndex = -1)
@@ -1156,7 +1133,6 @@ void Busters::MoveTo(XMFLOAT3 targetPos)
 	if (!m_PathList.empty() && dist < NODE_REACH_DISTANCE)
 	{
 		m_PathList.erase(m_PathList.begin());
-		m_AngleFlipCounter = 0;
 		
 		// 次のノードがあれば更新
 		if (!m_PathList.empty())
@@ -1508,91 +1484,6 @@ XMFLOAT3 GetRandomBusterPos(int floor)
 
 	// 見つからなかった場合の安全策 (原点)
 	return { 0.0f, PATROL_HEIGHT, 0.0f };
-}
-
-void DrawDebugFan(const XMFLOAT3& center, float rotY, float fovAngle, float range, const XMFLOAT4& color)
-{
-	// 簡易的な頂点構造体
-	struct DebugVertex {
-		XMFLOAT3 pos;
-		XMFLOAT4 col;
-	};
-
-	ID3D11Device* pDevice = Direct3D_GetDevice();
-	ID3D11DeviceContext* pContext = Direct3D_GetDeviceContext();
-
-	// ラインの頂点を作成
-	// ラインの頂点を作成
-	std::vector<DebugVertex> vertices;
-	XMFLOAT3 startPos = { center.x, center.y + 0.1f, center.z }; // 少し浮かせる
-
-	// 角度計算 (Degree -> Radian)
-	float radY = XMConvertToRadians(rotY);
-	float halfFovRad = XMConvertToRadians(fovAngle / 2.0f);
-
-	// 扇形の解像度（分割数）
-	const int segments = 10;
-
-	// 左端から右端までラインを引く
-	for (int i = 0; i <= segments; i++)
-	{
-		float progress = (float)i / segments; // 0.0 ～ 1.0
-		float currentAngle = radY - halfFovRad + (halfFovRad * 2.0f * progress);
-
-		// 終点計算
-		float dx = sinf(currentAngle);
-		float dz = cosf(currentAngle);
-		XMFLOAT3 endPos = {
-			startPos.x + dx * range,
-			startPos.y,
-			startPos.z + dz * range
-		};
-
-		// 中心から外周への線
-		if (i == 0 || i == segments) // 両端のみ描画
-		{
-			vertices.push_back({ startPos, color });
-			vertices.push_back({ endPos, color });
-		}
-
-		// 外周の弧を描画（ひとつ前の点と結ぶ）
-		if (i > 0)
-		{
-			float prevAngle = radY - halfFovRad + (halfFovRad * 2.0f * ((float)(i - 1) / segments));
-			XMFLOAT3 prevEndPos = {
-				startPos.x + sinf(prevAngle) * range,
-				startPos.y,
-				startPos.z + cosf(prevAngle) * range
-			};
-			vertices.push_back({ prevEndPos, color });
-			vertices.push_back({ endPos, color });
-		}
-	}
-
-	// 頂点バッファ作成・描画（一時的）
-	D3D11_BUFFER_DESC bd = {};
-	bd.Usage = D3D11_USAGE_DEFAULT;
-	bd.ByteWidth = sizeof(DebugVertex) * (UINT)vertices.size();
-	bd.BindFlags = D3D11_BIND_VERTEX_BUFFER;
-
-	D3D11_SUBRESOURCE_DATA initData = {};
-	initData.pSysMem = vertices.data();
-
-	ID3D11Buffer* pVertexBuffer = nullptr;
-	if (SUCCEEDED(pDevice->CreateBuffer(&bd, &initData, &pVertexBuffer)))
-	{
-		// シェーダー設定
-		UINT stride = sizeof(DebugVertex);
-		UINT offset = 0;
-		pContext->IASetVertexBuffers(0, 1, &pVertexBuffer, &stride, &offset);
-		pContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_LINELIST);
-
-		// 描画（マテリアルカラーを無視させるためシェーダー設定が必要な場合あり）
-// ここでは描画発行のみ
-		pContext->Draw((UINT)vertices.size(), 0);
-
-		pVertexBuffer->Release();
-	}
 }
 
 // =================================================================

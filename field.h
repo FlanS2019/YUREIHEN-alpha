@@ -43,6 +43,7 @@ FIELD_TYPE Field_GetBlockType(float x, float z);
 bool Field_IsWall(float x, float z);
 bool Field_IsWall(float x, float y, float z);
 bool Field_IsOuterWall(float x, float z);
+bool Field_IsNoFloor(float x, float z);
 float Field_GetFloorY(float x, float y, float z);
 
 float Field_CalculateRotationFromMarker(float x, float y, float z);

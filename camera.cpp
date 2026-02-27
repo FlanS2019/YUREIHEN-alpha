@@ -5,10 +5,10 @@ using namespace DirectX;
 #include "direct3d.h"
 #include "define.h"
 #include "shader.h"
-#include "keyboard.h"
 #include "mouse.h"
 #include "texture.h"
 #include "debug_ostream.h"
+#include "ghost.h"
 
 static Camera* CameraObject;
 
@@ -71,14 +71,18 @@ void Camera::Update()
 	Mouse_State mouseState;
 	Mouse_GetState(&mouseState);
 
-	// 毎フレームマウス内部状態をデバッグログに出力
-	Mouse_DebugLog();
-	hal::dout
-		<< "[CAMERA]"
-		<< " skipFrames=" << m_skipInputFrames
-		<< " yaw=" << m_yaw
-		<< " pitch=" << m_pitch
-		<< std::endl;
+	// 60フレームに1回プレイヤー座標をデバッグ出力
+	static int s_posLogTimer = 0;
+	if (++s_posLogTimer >= 60)
+	{
+		s_posLogTimer = 0;
+		Ghost* ghost = GetGhost();
+		if (ghost)
+		{
+			XMFLOAT3 pos = ghost->GetPos();
+			hal::dout << "[PLAYER POS] x=" << pos.x << " y=" << pos.y << " z=" << pos.z << std::endl;
+		}
+	}
 
 	//なにこれ
 	//if (mouseState.positionMode == MOUSE_POSITION_MODE_ABSOLUTE)

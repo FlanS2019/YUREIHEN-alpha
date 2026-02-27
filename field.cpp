@@ -547,6 +547,14 @@ bool Field_IsOuterWall(float x, float z)
 	return false;
 }
 
+bool Field_IsNoFloor(float x, float z)
+{
+	int gx = WorldToGridX(x);
+	int gz = WorldToGridZ(z);
+	if (gx < 0 || gx >= MAP_W || gz < 0 || gz >= MAP_H) return true;
+	return GetMapBlockID(g_CurrentFloor, 0, gz, gx) == 0;
+}
+
 bool Field_IsWall(float x, float y, float z)
 {
 	int gx = WorldToGridX(x);

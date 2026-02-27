@@ -20,7 +20,6 @@ enum BUSTERS_STATE
 	BUSTERS_CHASE,          // 幽霊を見つけて追跡（確定）
 	BUSTERS_STUN,           // 気絶中
 	BUSTERS_LURED,          // 誘引中
-	BUSTERS_HELP,
 	BUSTERS_RUN_TO_STAIRS,  // 階降下アニメーション：階段まで走る
 };
 
@@ -39,7 +38,6 @@ private:
 	std::vector<XMFLOAT3> m_PathList;
 	std::vector<int> m_IgnoredDoorIndices;
 
-	XMFLOAT3 m_Velocity;
 	float m_MoveSpeed;
 	float m_DistanceToGhost;
 
@@ -54,9 +52,6 @@ private:
 	XMFLOAT3 m_LastPathCalcGhostPos;
 	XMFLOAT3 m_PrevPos; // 前フレームの座標
 	int m_StuckTimer;   // 動いていない時間を計測
-	int m_RotationUpdateCounter; // 回転更新用カウンター
-	float m_PrevTargetAngle; // 前回の目標角度
-	int m_AngleFlipCounter;  // 角度反転カウンター
 
 	// 階降下アニメーション用
 	XMFLOAT3 m_StairsTargetPos;  // 目標の階段位置
