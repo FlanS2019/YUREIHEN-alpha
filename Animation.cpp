@@ -143,7 +143,7 @@ void Animation_Op_Update(void)
 	OpAnim_Update();
 
 	// ENTERキーでタイトル画面へ遷移
-	if (Keyboard_IsKeyDownTrigger(KK_ENTER))
+	if (Keyboard_IsKeyDownTrigger(KK_SPACE))
 	{
 		StartFade(SCENE_GAME);
 	}

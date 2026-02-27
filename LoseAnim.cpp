@@ -240,12 +240,12 @@ void Animation_Lose_Update(void)
 
 	if(elapsedSeconds >= 3.0f)	// 3秒経過後に入力受付開始
 	{
-		StartFade(SCENE_RESULT);
+		StartFade(SCENE_TITLE);
 	}
-	// ENTERキーでスキップ
-	if (Keyboard_IsKeyDownTrigger(KK_ENTER))
+	// ENTERキーでスキップデバッグ用
+	if (Keyboard_IsKeyDownTrigger(KK_SPACE))
 	{
-		StartFade(SCENE_RESULT);
+		StartFade(SCENE_TITLE);
 	}
 
 	// ENTERキーでゲームへ戻る

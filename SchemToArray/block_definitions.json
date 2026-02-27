@@ -73,33 +73,18 @@
 		},
 		{
 			"name": "spruce_planks",
-			"names_ja": "トウヒの板材",
+			"names_ja": "トウヒの板材（最下層の床）",
 			"default_id": 1
 		},
 		{
-			"name": "dark_oak_log",
-			"names_ja": "ダークオークの原木",
+			"name": "birch_planks",
+			"names_ja": "シラカバの板材（抜けられない壁）",
 			"default_id": 2
 		},
 		{
-			"name": "dark_oak_planks",
-			"names_ja": "ダークオークの板材",
+			"name": "brown_stained_glass",
+			"names_ja": "茶色の色付きガラス（抜けられる壁）",
 			"default_id": 3
-		},
-		{
-			"name": "birch_planks",
-			"names_ja": "シラカバの板材",
-			"default_id": 4
-		},
-		{
-			"name": "dark_oak_door",
-			"names_ja": "ダークオークのドア",
-			"default_id": 0
-		},
-		{
-			"name": "dark_oak_fence",
-			"names_ja": "ダークオークのフェンス",
-			"default_id": 0
 		},
 		{
 			"name": "glass_pane",
@@ -111,7 +96,8 @@
 			"names_ja": "キャビネット",
 			"default_id": 50,
 			"model": "asset\\model\\cabinet.fbx",
-			"action": "scare"
+			"action": "scare",
+			"scare_se": "asset\\sound\\se\\cabinet.m4a"
 		},
 		{
 			"name": "light_gray_concrete",
@@ -179,7 +165,8 @@
 			"names_ja": "便器",
 			"default_id": 60,
 			"model": "asset\\model\\toilet.fbx",
-			"action": "lure"
+			"action": "lure",
+			"scare_se": "asset\\sound\\se\\toilet.m4a"
 		},
 		{
 			"name": "lime_concrete",
@@ -193,7 +180,8 @@
 			"names_ja": "ピアノ",
 			"default_id": 62,
 			"model": "asset\\model\\piano.fbx",
-			"action": "scare"
+			"action": "scare",
+			"scare_se": "asset\\sound\\se\\piano.m4a"
 		},
 		{
 			"name": "cauldron",
@@ -250,6 +238,20 @@
 			"default_id": 70,
 			"model": "asset\\model\\wall_light.fbx",
 			"action": "none"
+		},
+		{
+			"name": "magenta_concrete",
+			"names_ja": "L字ソファー",
+			"default_id": 71,
+			"model": "asset\\model\\L_sofa.fbx",
+			"action": "scare"
+		},
+		{
+			"name": "pink_concrete",
+			"names_ja": "二段ベッド",
+			"default_id": 72,
+			"model": "asset\\model\\cube.fbx",
+			"action": "scare"
 		},
 		{
 			"name": "end_stone_brick_wall",

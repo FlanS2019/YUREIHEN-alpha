@@ -2,7 +2,7 @@
 Open Asset Import Library (assimp)
 ----------------------------------------------------------------------
 
-Copyright (c) 2006-2022, assimp team
+Copyright (c) 2006-2026, assimp team
 
 All rights reserved.
 
@@ -52,8 +52,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #endif
 
 #include <cstdio>
-#include "IOStream.hpp>
-#include "importerdesc.h"
+#include "assimp/IOStream.hpp"
+#include "assimp/importerdesc.h"
 
 namespace Assimp {
 
@@ -74,7 +74,7 @@ class ASSIMP_API DefaultIOStream : public IOStream {
 #endif // __ANDROID__
 
 protected:
-    /// @brief 
+    /// @brief
     DefaultIOStream() AI_NO_EXCEPT;
 
     /// @brief The class constructor with the file name and the stream.
@@ -84,7 +84,7 @@ protected:
 
 public:
     /** Destructor public to allow simple deletion to close the file. */
-    ~DefaultIOStream ();
+    ~DefaultIOStream () override;
 
     // -------------------------------------------------------------------
     /// Read from stream

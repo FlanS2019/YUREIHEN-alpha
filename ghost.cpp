@@ -807,16 +807,12 @@ void Ghost::Move(void)
 	float r = 0.4f;
 
 	float nextX = m_Position.x + m_Velocity.x;
-	bool hitX = false;
+	float hitX = false;
 
-	if (Field_IsOuterWall(nextX + r, m_Position.z + r) ||
-		Field_IsOuterWall(nextX + r, m_Position.z - r) ||
-		Field_IsOuterWall(nextX - r, m_Position.z + r) ||
-		Field_IsOuterWall(nextX - r, m_Position.z - r) ||
-		Field_IsNoFloor(nextX + r, m_Position.z + r) ||
-		Field_IsNoFloor(nextX + r, m_Position.z - r) ||
-		Field_IsNoFloor(nextX - r, m_Position.z + r) ||
-		Field_IsNoFloor(nextX - r, m_Position.z - r))
+	if (Field_IsWallForGhost(nextX + r, m_Position.z + r) ||
+		Field_IsWallForGhost(nextX + r, m_Position.z - r) ||
+		Field_IsWallForGhost(nextX - r, m_Position.z + r) ||
+		Field_IsWallForGhost(nextX - r, m_Position.z - r))
 	{
 		hitX = true;
 	}
@@ -827,14 +823,10 @@ void Ghost::Move(void)
 	float nextZ = m_Position.z + m_Velocity.z;
 	bool hitZ = false;
 
-	if (Field_IsOuterWall(m_Position.x + r, nextZ + r) ||
-		Field_IsOuterWall(m_Position.x + r, nextZ - r) ||
-		Field_IsOuterWall(m_Position.x - r, nextZ + r) ||
-		Field_IsOuterWall(m_Position.x - r, nextZ - r) ||
-		Field_IsNoFloor(m_Position.x + r, nextZ + r) ||
-		Field_IsNoFloor(m_Position.x + r, nextZ - r) ||
-		Field_IsNoFloor(m_Position.x - r, nextZ + r) ||
-		Field_IsNoFloor(m_Position.x - r, nextZ - r))
+	if (Field_IsWallForGhost(m_Position.x + r, nextZ + r) ||
+		Field_IsWallForGhost(m_Position.x + r, nextZ - r) ||
+		Field_IsWallForGhost(m_Position.x - r, nextZ + r) ||
+		Field_IsWallForGhost(m_Position.x - r, nextZ - r))
 	{
 		hitZ = true;
 	}

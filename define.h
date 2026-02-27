@@ -21,6 +21,7 @@
 #define DIRECT_START (true) //trueならgameシーンから直接開始する
 #define DEBUG_DRAW (false) //trueならdebugdraw機能を有効にする
 #define DEBUG_BUSTERS_ROTATION (false) //trueならバスターズの回転デバッグモード（左右矢印で回転、移動・検知・勝敗判定停止）
+#define DEBUG_MODEL_SCENE (true) //trueならデバッグモデルビューアシーンから直接開始する（modelフォルダ内の全fbxを自動表示）
 #else
 //==================================
 //          ここは触らない
@@ -29,6 +30,7 @@
 #define DIRECT_START (false) 
 #define DEBUG_DRAW (false)
 #define DEBUG_BUSTERS_ROTATION (false)
+#define DEBUG_MODEL_SCENE (false)
 //==================================
 //          ここは触らない
 //==================================
@@ -55,7 +57,7 @@
 //=== フィールド関連定数 ===
 #define MAP_FLOORS (3)
 #define START_FLOOR (2)// 階の数字をそのまま入れる（使用時に-1）
-#define END_FLOOR (3) // この階で恐怖ゲージMAXでクリア
+#define END_FLOOR (1) // この階で恐怖ゲージMAXでクリア
 
 //=== Camera 関連定数 ===
 #define PITCH_LIMIT_LOOK_UP    (25.0f)   // 上を見る限界（カメラが下がる限界）: 床埋まり防止
@@ -115,10 +117,10 @@
 #define VIEW_RANGE      (13) 
 
 //=== スコア関連定数 ===
-#define SCARE_GAUGE_MAX (100.0f)
+#define SCARE_GAUGE_MAX (100.0f)// 恐怖ゲージの最大値
 #define SCORE_LURE (0.5f) // 引き寄せスコア
 #define SCORE_STOP (0.5f) // 停止スコア
-#define SCORE_SCARE (2.45f) // 驚かせスコア
+#define SCORE_SCARE (2.45f) // 驚かせスコア//2.45f勝てなさすぎるので一時変更
 #define BUSTER_GAUGE_REDUCTION (0.07f) // バスターに見つかったときのゲージ減少値（1フレームあたり）
 
 //=== UI_ScareCombo 関連定数 ===

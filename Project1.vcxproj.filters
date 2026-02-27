@@ -42,6 +42,7 @@
     <ClCompile Include="Tutorial_Object.cpp" />
     <ClCompile Include="Tutorial_Pages.cpp" />
     <ClCompile Include="game.cpp" />
+    <ClCompile Include="debug_model_scene.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="animation.h" />
@@ -94,6 +95,7 @@
     <ClInclude Include="Tutorial_Object.h" />
     <ClInclude Include="UI_Tutorial_Internal.h" />
     <ClInclude Include="TutorialFlag.h" />
+    <ClInclude Include="debug_model_scene.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="convert_to_utf8bom.ps1" />

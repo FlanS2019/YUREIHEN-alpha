@@ -28,6 +28,9 @@ static Sprite* g_FloorNumberBG = nullptr;
 static Number* g_FloorNumber = nullptr;
 static Sprite* g_FloorTextF = nullptr;
 
+//// 残り時間表示用仮
+//static Number* g_RemainingTimeNum = nullptr;
+
 // クリックガイド用
 static Sprite* g_GuideClick = nullptr;
 
@@ -181,6 +184,19 @@ void UI_Initialize(void)
 		L"asset\\texture\\floor_f.png"
 	);
 
+	//// 残り時間の数字表示（仮実装）
+	//g_RemainingTimeNum = new Number(
+	//	{ CLOCK_POS_X + 30.0f, CLOCK_POS_Y - 10.0f },
+	//	{ 40.0f, 40.0f },
+	//	{ 1.0f, 1.0f, 0.0f, 1.0f },
+	//	BLENDSTATE_ALFA,
+	//	L"asset\\texture\\num.png",
+	//	5, 3,
+	//	28.0f,
+	//	2
+	//);
+	//g_RemainingTimeNum->SetNumber(static_cast<int>(CLOCK_MAX));
+
 	// ゲージ管理を初期化
 	for (int i = 0; i < MAP_FLOORS; i++)
 	{
@@ -207,7 +223,6 @@ void UI_Initialize(void)
 	);
 
 	//hal::dout << g_ScareGauge->GetValue() << std::endl;
-
 }
 
 //----------------------------
@@ -236,6 +251,7 @@ void UI_Update(void)
 		{
 			float remainingTime = CLOCK_MAX - g_Clock->GetTime();
 			if (remainingTime < 0.0f) remainingTime = 0.0f;
+			WinAnim_SetResultData(remainingTime, UI_ScareCombo_GetNumber());
 			hal::dout << "WIN! time=" << remainingTime << std::endl;
 		}
 		
@@ -250,11 +266,11 @@ void UI_Update(void)
 
 	if(timeEnded || g_ScareGauge->GetValue() <= 0.0f)
 	{
-		float remainingTime = CLOCK_MAX - g_Clock->GetTime();
-		if (remainingTime < 0.0f) remainingTime = 0.0f;
-		Result_SetTimerValue(remainingTime); // 結果画面にタイマーの値を渡す
-		Result_SetCombo(UI_ScareCombo_GetNumber()); // 結果画面にコンボ数を渡す
-		hal::dout << "LOSE! time=" << remainingTime << std::endl;
+		//float remainingTime = CLOCK_MAX - g_Clock->GetTime();
+		//if (remainingTime < 0.0f) remainingTime = 0.0f;
+		//Result_SetTimerValue(remainingTime); // 結果画面にタイマーの値を渡す
+		//Result_SetCombo(UI_ScareCombo_GetNumber()); // 結果画面にコンボ数を渡す
+		//hal::dout << "LOSE! time=" << remainingTime << std::endl;
 		StartFade(SCENE_ANM_LOSE);
 	}
 	//if (timeEnded || g_ScareGauge->GetValue() <= 0.0f)
@@ -270,6 +286,14 @@ void UI_Update(void)
 	{
 		g_FloorNumber->SetNumber(Field_GetCurrentFloor() + 1);
 	}
+
+	//// 残り時間の数字を更新//（仮実装：秒単位で表示）
+	//if (g_RemainingTimeNum && g_Clock)
+	//{
+	//	int remaining = static_cast<int>(CLOCK_MAX - g_Clock->GetTime());
+	//	if (remaining < 0) remaining = 0;
+	//	g_RemainingTimeNum->SetNumber(remaining);
+	//}
 
 	Ghost* ghost = GetGhost();
 
@@ -424,11 +448,33 @@ void UI_Update(void)
 		if (g_GuideClick)
 			g_GuideClick->SetColor(XMFLOAT4(1.0f, 1.0f, 1.0f, 0.0f));
 	}
+
+	//// 残り時間表示の更新//（仮実装：秒単位で表示）
+	//if (g_RemainingTimeNum)
+	//{
+	//	float remainingTime = CLOCK_MAX - g_Clock->GetTime();
+	//	if (remainingTime < 0.0f) remainingTime = 0.0f;
+	//	g_RemainingTimeNum->SetNumber((int)remainingTime);
+	//}
+
+	//if (Keyboard_IsKeyDownTrigger(KK_Q))
+	//{
+	//	// デバッグ用：ゲージを満タンにする
+	//	if (g_ScareGauge)
+	//	{
+	//		g_ScareGauge->SetValue(g_ScareGauge->GetMaxValue());
+	//	}
+	//}
+
+	if (Keyboard_IsKeyDownTrigger(KK_F))
+	{
+		//Debug用
+		StartFade(SCENE_ANM_WIN);
+	}
 }
 
 //----------------------------
 // UI描画
-
 //----------------------------
 void UI_Draw(void)
 {
@@ -440,21 +486,9 @@ void UI_Draw(void)
 
 	if (g_Clock) g_Clock->Draw();
 	if (g_ScareGauge) g_ScareGauge->Draw();
+	//if (g_RemainingTimeNum) g_RemainingTimeNum->Draw();
 
-	if (g_PossessGuideFont && g_PossessGuideText != "")
-	{
-		g_PossessGuideFont->Draw();
-	}
-
-	// クリックガイド
-	//if (g_GuideClick) g_GuideClick->Draw();
-
-	//// 階層移動ガイド
-	//if (g_ShowGuideFloor)
-	//{
-	//	if (g_GuideFloorNum) g_GuideFloorNum->Draw();
-	//	if (g_GuideFloorF) g_GuideFloorF->Draw();
-	//}
+	if (g_PossessGuideFont) g_PossessGuideFont->Draw();
 }
 
 //----------------------------
@@ -476,6 +510,7 @@ void UI_Finalize(void)
 	if (g_GuideClick) { delete g_GuideClick; g_GuideClick = nullptr; }
 	if (g_GuideFloorNum) { delete g_GuideFloorNum; g_GuideFloorNum = nullptr; }
 	if (g_GuideFloorF) { delete g_GuideFloorF; g_GuideFloorF = nullptr; }
+	//if (g_RemainingTimeNum) { delete g_RemainingTimeNum; g_RemainingTimeNum = nullptr; }
 }
 
 void AddScareGauge(float value)

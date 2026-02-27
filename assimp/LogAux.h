@@ -2,7 +2,7 @@
 Open Asset Import Library (assimp)
 ----------------------------------------------------------------------
 
-Copyright (c) 2006-2022, assimp team
+Copyright (c) 2006-2026, assimp team
 
 All rights reserved.
 
@@ -50,14 +50,14 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #   pragma GCC system_header
 #endif
 
-#include "TinyFormatter.h"
-#include "Exceptional.h"
-#include "DefaultLogger.hpp>
+#include "assimp/TinyFormatter.h"
+#include "assimp/Exceptional.h"
+#include "assimp/DefaultLogger.hpp"
 
 namespace Assimp {
 
 /// @brief Logger class, which will extend the class by log-functions.
-/// @tparam TDeriving 
+/// @tparam TDeriving
 template<class TDeriving>
 class LogFunctions {
 public:

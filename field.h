@@ -11,7 +11,8 @@ using namespace DirectX;
 enum FIELD_TYPE
 {
 	FIELD_NONE = 0,
-	FIELD_BOX,			// 壁・床
+	FIELD_BOX,			// 壁・床（抜けられない）
+	FIELD_WALL_PASS,	// 抜けられる壁（描画はするが当たり判定なし）
 	FIELD_STAIRS_UP,	// 上り階段 (踏むと上の階へ)
 	FIELD_STAIRS_DOWN,	// 下り階段 (踏むと下の階へ)
 	FIELD_MAX
@@ -26,6 +27,7 @@ public:
 	bool isHidden = false;
 
 	int blockID = 0;
+	int mapY = 0;		// マップ上のY座標（テクスチャ選択用）
 
 	float currentScale = 1.0f;
 
@@ -42,6 +44,7 @@ void LoadMapData(int floor);
 FIELD_TYPE Field_GetBlockType(float x, float z);
 bool Field_IsWall(float x, float z);
 bool Field_IsWall(float x, float y, float z);
+bool Field_IsWallForGhost(float x, float z);  // ゴースト用壁判定（FIELD_BOXのみ壁、FIELD_WALL_PASSは通過可能）
 bool Field_IsOuterWall(float x, float z);
 bool Field_IsNoFloor(float x, float z);
 float Field_GetFloorY(float x, float y, float z);
@@ -67,3 +70,5 @@ std::vector<XMFLOAT3> Field_GetStairsExitPositions(int floor);
 
 // 現在フロアの指定ワールド座標(Y=1レイヤー)の生マップIDを返す
 int Field_GetRawBlockID(float x, float z);
+// 壁判定の有効/無効を切り替える（デバッグシーン等で使用）
+void Field_SetWallCheckEnabled(bool enabled);

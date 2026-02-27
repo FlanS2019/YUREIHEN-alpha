@@ -3,7 +3,7 @@
 Open Asset Import Library (assimp)
 ---------------------------------------------------------------------------
 
-Copyright (c) 2006-2022, assimp team
+Copyright (c) 2006-2026, assimp team
 
 All rights reserved.
 
@@ -53,8 +53,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #   pragma message("pbrmaterial.h is deprecated. Please update to PBR materials in materials.h and glTF-specific items in GltfMaterial.h")
 #endif
 
-#include "material.h"
-#include "GltfMaterial.h"
+#include "assimp/material.h"
+#include "assimp/GltfMaterial.h"
 
 #define AI_MATKEY_GLTF_PBRMETALLICROUGHNESS_BASE_COLOR_FACTOR AI_MATKEY_BASE_COLOR
 #define AI_MATKEY_GLTF_PBRMETALLICROUGHNESS_BASE_COLOR_TEXTURE AI_MATKEY_BASE_COLOR_TEXTURE

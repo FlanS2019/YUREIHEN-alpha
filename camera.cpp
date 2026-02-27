@@ -84,16 +84,16 @@ void Camera::Update()
 		}
 	}
 
-	//なにこれ
-	//if (mouseState.positionMode == MOUSE_POSITION_MODE_ABSOLUTE)
-	//{
-	//	if (mouseState.leftButton)
-	//	{
-	//		Mouse_SetMode(MOUSE_POSITION_MODE_RELATIVE);
-	//		Mouse_SetVisible(false);
-	//	}
-	//	return;
-	//}
+	// 絶対座標モード中にクリックで相対モードへ切り替え（カーソル固定）
+	if (mouseState.positionMode == MOUSE_POSITION_MODE_ABSOLUTE)
+	{
+		if (mouseState.leftButton)
+		{
+			Mouse_SetMode(MOUSE_POSITION_MODE_RELATIVE);
+			Mouse_SetVisible(false);
+		}
+		return;
+	}
 
 	// フロア移行直後など gState に古い累積値が残る場合、指定フレーム数だけ入力を読み飛ばす
 	if (m_skipInputFrames > 0)

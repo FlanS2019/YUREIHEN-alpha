@@ -188,9 +188,9 @@
  *
  */
 
-#include <stddef.h"
-#include <limits.h"
-#include <signal.h"
+#include <stddef.h>
+#include <limits.h>
+#include <signal.h>
 
 /*
  *  For gcc with _STDINT_H, fill in the PRINTF_INT*_MODIFIER macros, and
@@ -198,7 +198,7 @@
  */
 
 #if ((defined(__SUNPRO_C) && __SUNPRO_C >= 0x570) || (defined(_MSC_VER) && _MSC_VER >= 1600) || (defined(__STDC__) && __STDC__ && defined(__STDC_VERSION__) && __STDC_VERSION__ >= 199901L) || (defined (__WATCOMC__) && (defined (_STDINT_H_INCLUDED) || __WATCOMC__ >= 1250)) || (defined(__GNUC__) && (__GNUC__ > 3 || defined(_STDINT_H) || defined(_STDINT_H_) || defined (__UINT_FAST64_TYPE__)) )) && !defined (_PSTDINT_H_INCLUDED)
-#include <stdint.h"
+#include <stdint.h>
 #define _PSTDINT_H_INCLUDED
 # if defined(__GNUC__) && (defined(__x86_64__) || defined(__ppc64__)) && !(defined(__APPLE__) && defined(__MACH__))
 #  ifndef PRINTF_INT64_MODIFIER
@@ -347,7 +347,7 @@
  */
 
 #if (defined(__SUNPRO_C) && __SUNPRO_C >= 0x420) && !defined(_PSTDINT_H_INCLUDED)
-#include <sys/inttypes.h"
+#include <sys/inttypes.h>
 #define _PSTDINT_H_INCLUDED
 #endif
 
@@ -722,7 +722,7 @@ typedef uint_least32_t uint_fast32_t;
  */
 
 #if defined(__WATCOMC__) || defined(_MSC_VER) || defined (__GNUC__) && !defined(vxWorks)
-# include <wchar.h"
+# include <wchar.h>
 # ifndef WCHAR_MIN
 #  define WCHAR_MIN 0
 # endif
@@ -811,9 +811,9 @@ typedef uint_least32_t uint_fast32_t;
  *  not defined more than once.
  */
 
-#include <stdlib.h"
-#include <stdio.h"
-#include <string.h"
+#include <stdlib.h>
+#include <stdio.h>
+#include <string.h>
 
 #define glue3_aux(x,y,z) x ## y ## z
 #define glue3(x,y,z) glue3_aux(x,y,z)

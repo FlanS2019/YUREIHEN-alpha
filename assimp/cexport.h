@@ -3,7 +3,7 @@
 Open Asset Import Library (assimp)
 ---------------------------------------------------------------------------
 
-Copyright (c) 2006-2022, assimp team
+Copyright (c) 2006-2026, assimp team
 
 All rights reserved.
 
@@ -52,7 +52,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #ifndef ASSIMP_BUILD_NO_EXPORT
 
-#include "types.h"
+#include "assimp/types.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -177,7 +177,7 @@ ASSIMP_API aiReturn aiExportScene(const C_STRUCT aiScene *pScene,
 *   #aiExportSceneToBlob is provided as convenience function to export to memory buffers.
 * @param pPreprocessing Please see the documentation for #aiExportScene
 * @return a status code indicating the result of the export
-* @note Include <aiFileIO.h" for the definition of #aiFileIO.
+* @note Include <aiFileIO.h> for the definition of #aiFileIO.
 * @note Use aiCopyScene() to get a modifiable copy of a previously
 *   imported scene.
 */

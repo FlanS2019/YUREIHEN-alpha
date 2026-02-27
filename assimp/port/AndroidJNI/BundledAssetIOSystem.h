@@ -45,12 +45,12 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #ifndef AI_BUNDLEDASSETIOSYSTEM_H_INC
 #define AI_BUNDLEDASSETIOSYSTEM_H_INC
 
-#include <android/asset_manager_jni.h"
+#include <android/asset_manager_jni.h>
 
-#include "DefaultIOSystem.h"
-#include "IOStream.hpp>
+#include "assimp/DefaultIOSystem.h"
+#include "assimp/IOStream.hpp"
 
-namespace Assimp        {
+namespace Assimp {
 
 class BundledAssetIOSystem : public Assimp::DefaultIOSystem {
 
