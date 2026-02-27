@@ -553,8 +553,6 @@ void Ghost::ScareStart(void)
 	Furniture* pFurniture = GetFurniture(m_InRangeFurnitureNum);
 	if (!pFurniture) return;
 
-	Busters* pBuster = GetBusters();
-
 	if (g_pScareSound)
 	{
 		PlaySound(g_pScareSound, false);
@@ -562,26 +560,26 @@ void Ghost::ScareStart(void)
 
 	XMFLOAT3 ghostPos = GetPos();
 
-	XMFLOAT3 busterPos = { 0.0f, 0.0f, 0.0f };
-	float distance = FLT_MAX;
-	if (pBuster)
-	{
-		busterPos = pBuster->GetPos();
-		XMVECTOR ghostVec = XMLoadFloat3(&ghostPos);
-		XMVECTOR busterVec = XMLoadFloat3(&busterPos);
-		XMVECTOR distVec = XMVectorSubtract(busterVec, ghostVec);
-		distance = XMVectorGetX(XMVector3Length(distVec));
-	}
-
 	FURNITURE_ACTION action = pFurniture->GetActionType();
 	float currentRange = GetCurrentScareRange();
 
 	float backScareAngle = 140.0f;      // 背後と判定する角度（180度にすると真横も背後扱いになります。少し狭めの140度を推奨）
 	float backScareMultiplier = 1.5f;   // 背後から驚かせた時のゲージ上昇倍率
+	float limitCos = cosf(XMConvertToRadians(backScareAngle / 2.0f));
 
+	// 範囲内にいるバスターズのうち1体でも背後なら背後ボーナス適用
 	bool isBackScare = false;
-	if (pBuster)
+	int busterCount = Busters_GetCurrentFloorCount();
+	for (int i = 0; i < busterCount; i++)
 	{
+		Busters* pBuster = GetBustersByIndex(i);
+		if (!pBuster) continue;
+
+		XMFLOAT3 busterPos = pBuster->GetPos();
+		float dx = busterPos.x - ghostPos.x;
+		float dz = busterPos.z - ghostPos.z;
+		if (dx * dx + dz * dz > currentRange * currentRange) continue; // 範囲外はスキップ
+
 		// バスターズの向いている角度から「正面」ベクトルを計算
 		float rotRad = XMConvertToRadians(pBuster->GetRot().y + 180.0f);
 		XMVECTOR forwardVec = XMVectorSet(sinf(rotRad), 0.0f, cosf(rotRad), 0.0f);
@@ -595,12 +593,11 @@ void Ghost::ScareStart(void)
 
 		// 内積で角度を判定（コサイン）
 		float dot = XMVectorGetX(XMVector3Dot(backwardVec, busterToGhost));
-		float limitCos = cosf(XMConvertToRadians(backScareAngle / 2.0f));
 
-		// 幽霊がバスターズの「背後設定角度」の範囲内にいればボーナス
 		if (dot >= limitCos)
 		{
 			isBackScare = true;
+			break;
 		}
 	}
 

@@ -1601,6 +1601,18 @@ Busters* GetBusters(void)
 	return NULL;
 }
 
+Busters* GetBustersByIndex(int index)
+{
+	int currentFloor = Field_GetCurrentFloor();
+	if (currentFloor >= 0 && currentFloor < MAP_FLOORS)
+	{
+		if (index >= 0 && index < (int)g_BustersList[currentFloor].size()) {
+			return g_BustersList[currentFloor][index];
+		}
+	}
+	return NULL;
+}
+
 int Busters_GetCurrentFloorCount(void)
 {
 	int currentFloor = Field_GetCurrentFloor();
