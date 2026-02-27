@@ -59,7 +59,7 @@ jobs:
     - name: Create Release
       uses: softprops/action-gh-release@v2
       with:
-        files: HEW_YUREIHEN_v${{ steps.version.outputs.number }}.zip
+        files: HEW_YUREIHEN_BUILD_v${{ steps.version.outputs.number }}.zip
         generate_release_notes: true
         tag_name: v${{ steps.version.outputs.number }}
         name: v${{ steps.version.outputs.number }}
