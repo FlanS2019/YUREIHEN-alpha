@@ -5,10 +5,10 @@ using namespace DirectX;
 #include "direct3d.h"
 #include "define.h"
 #include "shader.h"
-#include "keyboard.h"
 #include "mouse.h"
 #include "texture.h"
 #include "debug_ostream.h"
+#include "ghost.h"
 
 static Camera* CameraObject;
 
@@ -71,6 +71,19 @@ void Camera::Update()
 	Mouse_State mouseState;
 	Mouse_GetState(&mouseState);
 
+	// 60フレームに1回プレイヤー座標をデバッグ出力
+	static int s_posLogTimer = 0;
+	if (++s_posLogTimer >= 60)
+	{
+		s_posLogTimer = 0;
+		Ghost* ghost = GetGhost();
+		if (ghost)
+		{
+			XMFLOAT3 pos = ghost->GetPos();
+			hal::dout << "[PLAYER POS] x=" << pos.x << " y=" << pos.y << " z=" << pos.z << std::endl;
+		}
+	}
+
 	// 絶対座標モード中にクリックで相対モードへ切り替え（カーソル固定）
 	if (mouseState.positionMode == MOUSE_POSITION_MODE_ABSOLUTE)
 	{
@@ -82,10 +95,27 @@ void Camera::Update()
 		return;
 	}
 
-	if (mouseState.positionMode == MOUSE_POSITION_MODE_RELATIVE)
+	// フロア移行直後など gState に古い累積値が残る場合、指定フレーム数だけ入力を読み飛ばす
+	if (m_skipInputFrames > 0)
 	{
-		m_yaw += static_cast<float>(mouseState.x) * MOUSE_SENSITIVITY * m_sensitivity * 2;
-		m_pitch -= static_cast<float>(mouseState.y) * MOUSE_SENSITIVITY * m_sensitivity * 2;
+		m_skipInputFrames--;
+		// 入力はスキップするがカメラ位置計算は通常通り行う
+	}
+	else
+	// ポーズ中は Camera_Update() 自体が呼ばれないため、モードチェックは不要
+	// ただしフロア移行直後など gState に大きな累積値が残る場合があるため
+	// 1フレームあたりの入力量を上限でクランプして異常回転を防ぐ
+	{
+		const int MAX_MOUSE_DELTA = 200;
+		int mx = mouseState.x;
+		int my = mouseState.y;
+		if (mx >  MAX_MOUSE_DELTA) mx =  MAX_MOUSE_DELTA;
+		if (mx < -MAX_MOUSE_DELTA) mx = -MAX_MOUSE_DELTA;
+		if (my >  MAX_MOUSE_DELTA) my =  MAX_MOUSE_DELTA;
+		if (my < -MAX_MOUSE_DELTA) my = -MAX_MOUSE_DELTA;
+
+		m_yaw += static_cast<float>(mx) * MOUSE_SENSITIVITY * m_sensitivity * 2;
+		m_pitch -= static_cast<float>(my) * MOUSE_SENSITIVITY * m_sensitivity * 2;
 
 		if (m_pitch > PITCH_LIMIT_LOOK_UP)
 		{

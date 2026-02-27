@@ -16,6 +16,7 @@
 
 #include <windowsx.h>
 #include <assert.h>
+#include "debug_ostream.h"
 
 
 #define SAFE_CLOSEHANDLE(h) if(h){CloseHandle(h); h = NULL;}
@@ -383,5 +384,34 @@ void clipToWindow(void)
     rect.bottom = lr.y;
 
     ClipCursor(&rect);
+}
+
+void Mouse_DebugLog(void)
+{
+    const char* modeStr = (gMode == MOUSE_POSITION_MODE_RELATIVE) ? "RELATIVE" : "ABSOLUTE";
+    hal::dout
+        << "[MOUSE]"
+        << " mode=" << modeStr
+        << " state.x=" << gState.x
+        << " state.y=" << gState.y
+        << " lastX=" << gLastX
+        << " lastY=" << gLastY
+        << " relX=" << (gRelativeX == INT32_MAX ? -1 : gRelativeX)
+        << " relY=" << (gRelativeY == INT32_MAX ? -1 : gRelativeY)
+        << " inFocus=" << (int)gInFocus
+        << std::endl;
+}
+
+void Mouse_ReacquireFocus(void)
+{
+    // ポーズメニューの閉じる処理と同じ正規ルートを使ってRELATIVEモードに戻す。
+    // Mouse_SetMode は gMode が同じ場合スキップするため、
+    // 一度 ABSOLUTE にリセットしてから RELATIVE に切り替えることで
+    // Mouse_ProcessMessage 内の WAIT_OBJECT_0+2 ブランチを確実に通す。
+    // これにより gRelativeRead のリセット・gState.x/y の0クリア・
+    // gRelativeX/Y の INT32_MAX 初期化が正しく行われる。
+    gInFocus = true;
+    gMode = MOUSE_POSITION_MODE_ABSOLUTE; // 強制的にABSOLUTEにしてから
+    Mouse_SetMode(MOUSE_POSITION_MODE_RELATIVE); // 正規ルートでRELATIVEへ
 }
 

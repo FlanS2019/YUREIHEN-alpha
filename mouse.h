@@ -71,6 +71,12 @@ void Mouse_SetVisible(bool visible);
 // マウス制御のためのウィンドウメッセージプロシージャフック関数
 void Mouse_ProcessMessage(UINT message, WPARAM wParam, LPARAM lParam);
 
+// マウス内部状態をデバッグログに出力する（毎フレーム呼び出し用）
+void Mouse_DebugLog(void);
+
+// フォーカスを再取得し、RELATIVEモードでの入力を再開する
+void Mouse_ReacquireFocus(void);
+
 
 // 導入方法
 //

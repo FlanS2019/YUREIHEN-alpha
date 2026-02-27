@@ -12,6 +12,7 @@
 #include "field.h"
 #include "furniture.h"
 #include <stdlib.h>
+#include <cfloat>
 #include <algorithm>
 #include <vector>
 
@@ -25,7 +26,8 @@
 
 static std::vector<Busters*> g_BustersList[MAP_FLOORS];
 
-
+// 前方宣言
+bool CanPassLine(const XMFLOAT3& start, const XMFLOAT3& end, float radius, int ignoreFurnitureIndex = -1);
 
 // =================================================================
 // パススムージング: 直線で到達可能なノードをスキップして滑らかにする
@@ -67,7 +69,6 @@ Busters::Busters(const XMFLOAT3& pos, const XMFLOAT3& scale, const XMFLOAT3& rot
 	m_TargetFurnitureIndex(-1),
 	m_WaitTimer(0),
 	m_DetectionGraceTimer(0),
-	m_Velocity(0.0f, 0.0f, 0.0f),
 	m_MoveSpeed(BUSTERS_MOVE_SPEED_SEARCH),
 	m_DistanceToGhost(0.0f),
 	m_ReactionCooldown(0),
@@ -88,9 +89,6 @@ Busters::Busters(const XMFLOAT3& pos, const XMFLOAT3& scale, const XMFLOAT3& rot
 	m_PathUpdateTimer = rand() % 15;
 	m_PrevPos = pos;
 	m_StuckTimer = 0;
-	m_RotationUpdateCounter = 0;
-	m_PrevTargetAngle = 0.0f;
-	m_AngleFlipCounter = 0;
 
 	// ヘッドライト初期化
 	m_pHeadlight = new PointLight(
@@ -132,6 +130,9 @@ void Busters::Update(void)
 			this->PlayAnimationByName("chousa", true);
 		else
 			this->PlayAnimationByName("walk", true);
+		break;
+	case BUSTERS_WAIT_RESELECT:
+		this->PlayAnimationByName("walk", true);
 		break;
 	case BUSTERS_SUSPICION:
 		this->PlayAnimationByName("walk", true);
@@ -279,7 +280,8 @@ void Busters::Update(void)
 
 		switch (m_State)
 		{
-		case BUSTERS_SEARCH:    // 探索
+		case BUSTERS_SEARCH:         // 探索
+		case BUSTERS_WAIT_RESELECT:  // 再抽選待機
 			range = 15.0f;
 			break;
 
@@ -310,23 +312,22 @@ void Busters::Update(void)
 		switch (m_State)
 		{
 		case BUSTERS_SEARCH:
-
 			if (m_WaitTimer > 0)
 			{
 				// 調査中（tyousa.png）
 				m_Icon->SetIcon(BILLBOARD_ICON::CHECK);
-
 			}
 			else
 			{
 				// 探索中（tansaku.png）
 				m_Icon->SetIcon(BILLBOARD_ICON::SEARCH);
 			}
-		break;		case BUSTERS_SUSPICION: m_Icon->SetIcon(BILLBOARD_ICON::QUESTION); break;
-		case BUSTERS_LURED:		m_Icon->SetIcon(BILLBOARD_ICON::QUESTION); break;
-		case BUSTERS_CHASE:     m_Icon->SetIcon(BILLBOARD_ICON::ALERT); break;
-		case BUSTERS_STUN:      m_Icon->SetIcon(BILLBOARD_ICON::STUN); break;
-
+			break;
+		case BUSTERS_WAIT_RESELECT: m_Icon->SetIcon(BILLBOARD_ICON::SEARCH); break;
+		case BUSTERS_SUSPICION:     m_Icon->SetIcon(BILLBOARD_ICON::QUESTION); break;
+		case BUSTERS_LURED:         m_Icon->SetIcon(BILLBOARD_ICON::QUESTION); break;
+		case BUSTERS_CHASE:         m_Icon->SetIcon(BILLBOARD_ICON::ALERT); break;
+		case BUSTERS_STUN:          m_Icon->SetIcon(BILLBOARD_ICON::STUN); break;
 		}
 
 		XMFLOAT3 iconPos = m_Position;
@@ -343,7 +344,12 @@ void Busters::Update(void)
 		float distSq = dx * dx + dz * dz;
 		if (distSq <= 0.5f * 0.5f)
 		{
-			m_RunToStairsDone = true;
+			// 距離が近くても、実際にID5またはID6のマスの真上にいる場合のみ完了とする
+			int blockID = Field_GetRawBlockID(m_Position.x, m_Position.z);
+			if (blockID == 5 || blockID == 6)
+			{
+				m_RunToStairsDone = true;
+			}
 		}
 		else
 		{
@@ -407,6 +413,15 @@ void Busters::Update(void)
 			m_WaitTimer--;
 		}
 
+		// 再抽選待機タイマーが終了したら探索ステートへ復帰
+		if (m_State == BUSTERS_WAIT_RESELECT && m_WaitTimer <= 0)
+		{
+			m_State = BUSTERS_SEARCH;
+			m_TargetFurnitureIndex = -1;
+			m_PathList.clear();
+			return;
+		}
+
 		if (m_State == BUSTERS_SUSPICION || m_State == BUSTERS_CHASE)
 		{
 			Ghost* ghost = GetGhost();
@@ -464,6 +479,10 @@ void Busters::Update(void)
 
 	switch (m_State)
 	{
+	case BUSTERS_WAIT_RESELECT: // 再抽選待機中はswitch内では何もしない
+		m_MoveSpeed = BUSTERS_MOVE_SPEED_SEARCH;
+		break;
+
 	case BUSTERS_SEARCH: // 探索
 
 		if (m_TargetFurnitureIndex == -1 || m_PathList.empty())
@@ -557,6 +576,7 @@ void Busters::Update(void)
 				{
 					// ドアを経由してもアクセス不可の場合は、このターゲットを諦める
 					m_TargetFurnitureIndex = -1;
+					m_State = BUSTERS_WAIT_RESELECT;
 					m_WaitTimer = 60;
 				}
 				else
@@ -566,7 +586,8 @@ void Busters::Update(void)
 					{
 						// 経路が見つからない（壁の中などで行けない）場合は、壁に突っ込まずに潔く諦める
 						m_TargetFurnitureIndex = -1;
-						m_WaitTimer = 60; // 諦めて少し待機してから、別の目標を探す
+						m_State = BUSTERS_WAIT_RESELECT;
+						m_WaitTimer = 60;
 					}
 				}
 			}
@@ -790,7 +811,7 @@ void Busters::Update(void)
 
 	MoveTo(nextStepPos);
 
-	if (m_State == BUSTERS_SEARCH && m_TargetFurnitureIndex != -1)
+	if ((m_State == BUSTERS_SEARCH || m_State == BUSTERS_WAIT_RESELECT) && m_TargetFurnitureIndex != -1)
 	{
 		Furniture* target = GetFurniture(m_TargetFurnitureIndex);
 		if (target)
@@ -816,12 +837,12 @@ void Busters::Update(void)
 			{
 			m_PathList.erase(m_PathList.begin());
 			m_StuckTimer = 0;
-			m_AngleFlipCounter = 0;
 			}
 				else if (m_State == BUSTERS_SEARCH && m_TargetFurnitureIndex != -1)
 				{
 					// 経路のないスタックも処理
 					m_TargetFurnitureIndex = -1;
+					m_State = BUSTERS_WAIT_RESELECT;
 					m_WaitTimer = 60;
 					m_StuckTimer = 0;
 				}
@@ -892,26 +913,11 @@ bool IsWallBlock(float x, float z)
 	return true; // それ以外（本物の壁）は true を返す
 }
 
-bool IsChokePoint(float x, float z)
-{
-	// 1マス(1.0f)の周囲の壁をチェック
-	bool wallL = IsWallBlock(x - 1.0f, z);
-	bool wallR = IsWallBlock(x + 1.0f, z);
-	bool wallU = IsWallBlock(x, z + 1.0f);
-	bool wallD = IsWallBlock(x, z - 1.0f);
-
-	// 左右が壁、または上下が壁（ドアや細い通路）
-	if (wallL && wallR) return true;
-	if (wallU && wallD) return true;
-
-	// L字の角（曲がり角）
-	if ((wallL || wallR) && (wallU || wallD)) return true;
-
-	return false;
-}
-
 bool IsObstacle(float x, float z, float radius, int ignoreFurnitureIndex = -1)
 {
+	// 床なし（Y=0がID:0）のマスは通行不可
+	if (Field_IsNoFloor(x, z)) return true;
+
 	// 壁の判定 (中心と4隅をチェックしてめり込みを防ぐ)
 	float checkR = radius * 0.7f;
 	if (IsWallBlock(x, z) ||
@@ -984,7 +990,7 @@ void Busters::CheckState(void)
 		return;
 	}
 
-	if (m_State == BUSTERS_LURED)
+	if (m_State == BUSTERS_LURED || m_State == BUSTERS_WAIT_RESELECT)
 	{
 		return;
 	}
@@ -1149,7 +1155,6 @@ void Busters::MoveTo(XMFLOAT3 targetPos)
 	if (!m_PathList.empty() && dist < NODE_REACH_DISTANCE)
 	{
 		m_PathList.erase(m_PathList.begin());
-		m_AngleFlipCounter = 0;
 		
 		// 次のノードがあれば更新
 		if (!m_PathList.empty())
@@ -1503,91 +1508,6 @@ XMFLOAT3 GetRandomBusterPos(int floor)
 	return { 0.0f, PATROL_HEIGHT, 0.0f };
 }
 
-void DrawDebugFan(const XMFLOAT3& center, float rotY, float fovAngle, float range, const XMFLOAT4& color)
-{
-	// 簡易的な頂点構造体
-	struct DebugVertex {
-		XMFLOAT3 pos;
-		XMFLOAT4 col;
-	};
-
-	ID3D11Device* pDevice = Direct3D_GetDevice();
-	ID3D11DeviceContext* pContext = Direct3D_GetDeviceContext();
-
-	// ラインの頂点を作成
-	// ラインの頂点を作成
-	std::vector<DebugVertex> vertices;
-	XMFLOAT3 startPos = { center.x, center.y + 0.1f, center.z }; // 少し浮かせる
-
-	// 角度計算 (Degree -> Radian)
-	float radY = XMConvertToRadians(rotY);
-	float halfFovRad = XMConvertToRadians(fovAngle / 2.0f);
-
-	// 扇形の解像度（分割数）
-	const int segments = 10;
-
-	// 左端から右端までラインを引く
-	for (int i = 0; i <= segments; i++)
-	{
-		float progress = (float)i / segments; // 0.0 ～ 1.0
-		float currentAngle = radY - halfFovRad + (halfFovRad * 2.0f * progress);
-
-		// 終点計算
-		float dx = sinf(currentAngle);
-		float dz = cosf(currentAngle);
-		XMFLOAT3 endPos = {
-			startPos.x + dx * range,
-			startPos.y,
-			startPos.z + dz * range
-		};
-
-		// 中心から外周への線
-		if (i == 0 || i == segments) // 両端のみ描画
-		{
-			vertices.push_back({ startPos, color });
-			vertices.push_back({ endPos, color });
-		}
-
-		// 外周の弧を描画（ひとつ前の点と結ぶ）
-		if (i > 0)
-		{
-			float prevAngle = radY - halfFovRad + (halfFovRad * 2.0f * ((float)(i - 1) / segments));
-			XMFLOAT3 prevEndPos = {
-				startPos.x + sinf(prevAngle) * range,
-				startPos.y,
-				startPos.z + cosf(prevAngle) * range
-			};
-			vertices.push_back({ prevEndPos, color });
-			vertices.push_back({ endPos, color });
-		}
-	}
-
-	// 頂点バッファ作成・描画（一時的）
-	D3D11_BUFFER_DESC bd = {};
-	bd.Usage = D3D11_USAGE_DEFAULT;
-	bd.ByteWidth = sizeof(DebugVertex) * (UINT)vertices.size();
-	bd.BindFlags = D3D11_BIND_VERTEX_BUFFER;
-
-	D3D11_SUBRESOURCE_DATA initData = {};
-	initData.pSysMem = vertices.data();
-
-	ID3D11Buffer* pVertexBuffer = nullptr;
-	if (SUCCEEDED(pDevice->CreateBuffer(&bd, &initData, &pVertexBuffer)))
-	{
-		// シェーダー設定
-		UINT stride = sizeof(DebugVertex);
-		UINT offset = 0;
-		pContext->IASetVertexBuffers(0, 1, &pVertexBuffer, &stride, &offset);
-		pContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_LINELIST);
-
-		// 描画（マテリアルカラーを無視させるためシェーダー設定が必要な場合あり）
-// ここでは描画発行のみ
-		pContext->Draw((UINT)vertices.size(), 0);
-
-		pVertexBuffer->Release();
-	}
-}
-
 // =================================================================
 // グローバル関数
 // =================================================================
@@ -1617,6 +1537,7 @@ void Busters_Initialize(void)
 	}
 
 	// 2階 (Floor 1)
+	for (int i = 0; i < 2; i++)
 	{
 		XMFLOAT3 pos = GetRandomBusterPos(1);
 		Busters* b = new Busters(pos, { 0.12f, 0.12f, 0.12f }, { 0.0f, 0.0f, 0.0f }, "asset\\model\\busters_v3.fbx");
@@ -1800,15 +1721,14 @@ void Busters_DoFloorTransition(void)
 	{
 		if (nextFloor >= 0 && nextFloor < MAP_FLOORS)
 		{
-			float offsetX = (float)(rand() % 400 - 200) / 100.0f;
-			float offsetZ = (float)(rand() % 400 - 200) / 100.0f;
+			XMFLOAT3 newPos = GetRandomBusterPos(nextFloor);
 
-				Busters* newBuster = new Busters(
-					{ offsetX, BUSTERS_HEIGHT, offsetZ },
-					{ 0.12f, 0.12f, 0.12f },
-					{ 0.0f, 0.0f, 0.0f },
-					"asset\\model\\busters_v3.fbx"
-				);
+			Busters* newBuster = new Busters(
+				{ newPos.x, BUSTERS_HEIGHT, newPos.z },
+				{ 0.12f, 0.12f, 0.12f },
+				{ 0.0f, 0.0f, 0.0f },
+				"asset\\model\\busters_v3.fbx"
+			);
 
 			if (newBuster) {
 				newBuster->SetGroundLevel(PATROL_HEIGHT);
@@ -1817,13 +1737,43 @@ void Busters_DoFloorTransition(void)
 		}
 	}
 
-	// 幽霊も下の階へ自動移動
-	Ghost* ghost = GetGhost();
-	if (ghost)
+	// 幽霊の階層移動はアニメーション完了後（FADE_MAX時）にgame.cpp側で行う
+}
+
+// 現在フロアのバスターズを全削除する
+void Busters_DeleteCurrentFloor(void)
+{
+	int currentFloor = Field_GetCurrentFloor();
+	if (currentFloor < 0 || currentFloor >= MAP_FLOORS) return;
+	for (Busters* buster : g_BustersList[currentFloor])
+		delete buster;
+	g_BustersList[currentFloor].clear();
+}
+
+// 指定フロアにバスターズを生成する
+void Busters_SpawnOnFloor(int floorIndex)
+{
+	if (floorIndex < 0 || floorIndex >= MAP_FLOORS) return;
+
+	// 追加人数：1階(index0)は+2、2階(index1)は+1、それ以外はなし
+	int addCount = 0;
+	if (floorIndex == 1) addCount = 1;
+	if (floorIndex == 0) addCount = 2;
+
+	for (int i = 0; i < addCount; i++)
 	{
-		XMFLOAT3 ghostPos = ghost->GetPos();
-		Field_ChangeFloor(nextFloor);
-		ghost->SetPos(ghostPos);
+		XMFLOAT3 newPos = GetRandomBusterPos(floorIndex);
+		Busters* newBuster = new Busters(
+			{ newPos.x, BUSTERS_HEIGHT, newPos.z },
+			{ 0.12f, 0.12f, 0.12f },
+			{ 0.0f, 0.0f, 0.0f },
+			"asset\\model\\busters_v3.fbx"
+		);
+		if (newBuster)
+		{
+			newBuster->SetGroundLevel(PATROL_HEIGHT);
+			g_BustersList[floorIndex].push_back(newBuster);
+		}
 	}
 }
 
@@ -1905,14 +1855,40 @@ bool Busters::IsIgnoredRelayDoor(int furnitureIndex)
 // フロア降下アニメーション用グローバル関数
 // =================================================================
 
-void Busters_StartFloorExitAnim(XMFLOAT3 stairsPos)
+void Busters_StartFloorExitAnim(void)
 {
 	int currentFloor = Field_GetCurrentFloor();
 	if (currentFloor < 0 || currentFloor >= MAP_FLOORS) return;
 
+	// ID5・6（下付き階段）の座標一覧を取得し、バスターズ1体ずつにランダムで割り当てる
+	std::vector<XMFLOAT3> exits = Field_GetStairsExitPositions(currentFloor);
+	if (exits.empty())
+	{
+		// フォールバック：97マーカーへ誘導
+		XMFLOAT3 fallback = Field_GetMarker97WorldPos(currentFloor);
+		for (Busters* buster : g_BustersList[currentFloor])
+			buster->StartRunToStairs(fallback);
+		return;
+	}
+
 	for (Busters* buster : g_BustersList[currentFloor])
 	{
-		buster->StartRunToStairs(stairsPos);
+		// 各バスターズの現在位置から最も近い出口を選ぶ
+		XMFLOAT3 pos = buster->GetPos();
+		XMFLOAT3 nearest = exits[0];
+		float minDist = FLT_MAX;
+		for (const XMFLOAT3& exit : exits)
+		{
+			float dx = exit.x - pos.x;
+			float dz = exit.z - pos.z;
+			float dist = dx * dx + dz * dz;
+			if (dist < minDist)
+			{
+				minDist = dist;
+				nearest = exit;
+			}
+		}
+		buster->StartRunToStairs(nearest);
 	}
 }
 

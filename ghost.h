@@ -32,6 +32,8 @@ public:
 	bool m_IsDraw;				// 描画フラグ
 	bool m_HasIncreasedMultiplier; // 倍率を加算したか
 
+	XMFLOAT3 m_PreTransformPos;   // 変身直前のゴーストのワールド座標
+
 	bool m_IsIlluminated;     // 現在ライトに照らされているか
 	bool m_PrevIsIlluminated; // 前フレームで照らされていたか
 
@@ -60,6 +62,7 @@ public:
 		m_HasIncreasedMultiplier(false),
 		m_IsIlluminated(false),
 		m_PrevIsIlluminated(false),
+		m_PreTransformPos(0.0f, 0.0f, 0.0f),
 		m_EscapeTapCount(0),
 		m_CaughtPenaltyTimer(0),
 		m_pRangeCircle(nullptr),
@@ -127,6 +130,7 @@ void Ghost_Update(void);
 void Ghost_Draw(void);
 void Ghost_Finalize(void);
 void Ghost_SetLight(void);
+void Ghost_ForceExitTransform(void);  // 変身を強制解除してGS_MOVINGに戻す
 
 // Ghostのゲッター
 Ghost* GetGhost(void);

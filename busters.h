@@ -16,11 +16,11 @@ using namespace DirectX;
 enum BUSTERS_STATE
 {
 	BUSTERS_SEARCH,         // 家具を探して移動（探索）
+	BUSTERS_WAIT_RESELECT,  // スタック・経路失敗時の目的地再抽選待機
 	BUSTERS_SUSPICION,      // 怪しんで近づく（警戒）
 	BUSTERS_CHASE,          // 幽霊を見つけて追跡（確定）
 	BUSTERS_STUN,           // 気絶中
 	BUSTERS_LURED,          // 誘引中
-	BUSTERS_HELP,
 	BUSTERS_RUN_TO_STAIRS,  // 階降下アニメーション：階段まで走る
 };
 
@@ -39,7 +39,6 @@ private:
 	std::vector<XMFLOAT3> m_PathList;
 	std::vector<int> m_IgnoredDoorIndices;
 
-	XMFLOAT3 m_Velocity;
 	float m_MoveSpeed;
 	float m_DistanceToGhost;
 
@@ -54,9 +53,6 @@ private:
 	XMFLOAT3 m_LastPathCalcGhostPos;
 	XMFLOAT3 m_PrevPos; // 前フレームの座標
 	int m_StuckTimer;   // 動いていない時間を計測
-	int m_RotationUpdateCounter; // 回転更新用カウンター
-	float m_PrevTargetAngle; // 前回の目標角度
-	int m_AngleFlipCounter;  // 角度反転カウンター
 
 	// 階降下アニメーション用
 	XMFLOAT3 m_StairsTargetPos;  // 目標の階段位置
@@ -108,8 +104,8 @@ void Busters_SetLight(void);
 int Busters_GetCurrentFloorCount(void);
 
 // フロア降下アニメーション用
-void Busters_StartFloorExitAnim(XMFLOAT3 stairsPos); // 全バスターズに階段まで走るよう指示
+void Busters_StartFloorExitAnim(void); // 全バスターズにID5/6階段まで走るよう指示（ランダム割り当て）
 bool Busters_IsFloorExitAnimDone(void);               // 全バスターズが階段到着済みか
 void Busters_DoFloorTransition(void);                 // 実際のフロア移行処理を実行
-
-bool CanPassLine(const XMFLOAT3& start, const XMFLOAT3& end, float radius, int ignoreFurnitureIndex = -1);
+void Busters_DeleteCurrentFloor(void);                // 現在フロアのバスターズを全削除
+void Busters_SpawnOnFloor(int floorIndex);            // 指定フロアにバスターズを生成
