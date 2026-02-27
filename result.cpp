@@ -43,7 +43,7 @@ static const int   WAIT_FRAMES = 60;
 static const XMFLOAT2 TIME_BIG_POS = { SCREEN_WIDTH / 2.0f + 10, SCREEN_HEIGHT / 2.0f + 130.0f };//スコアの位置
 static const XMFLOAT2 TIME_BIG_SIZE = { 50.0f, 50.0f };//スコアの大きさ
 static const float    TIME_BIG_LABEL_FONT = 55.0f;//フォントサイズ
-static const XMFLOAT2 TIME_BIG_LABEL_POS = { SCREEN_WIDTH / 2.0f - 200.0f, SCREEN_HEIGHT / 2.0f + 130.0f };//スコアのラベル位置
+static const XMFLOAT2 TIME_BIG_LABEL_POS = { SCREEN_WIDTH / 2.0f - 130.0f, SCREEN_HEIGHT / 2.0f + 130.0f };//スコアのラベル位置
 
 // 下部の小さい最終位置　時間の結果
 static const XMFLOAT2 TIME_SMALL_POS = { SCREEN_WIDTH / 2.0f + 215.0f, SCREEN_HEIGHT / 2.0f - 13.0f };
@@ -119,15 +119,14 @@ static int GetDisplayTime(float time)
 // Time のアルファ・位置・サイズをまとめて適用
 static void ApplyTimeBig(float alpha)
 {
-	XMFLOAT4 col = { 1.0f, 1.0f, 1.0f, alpha };
 	if (g_pTimeLabelFont)
 	{
-		g_pTimeLabelFont->SetColor(col);
+		g_pTimeLabelFont->SetColor({ 0.0f, 0.0f, 0.0f, alpha });	// 黒
 		g_pTimeLabelFont->SetPos(TIME_BIG_LABEL_POS);
 	}
 	if (g_pTimeNum)
 	{
-		g_pTimeNum->SetColor(col);
+		g_pTimeNum->SetColor({ 1.0f, 1.0f, 1.0f, alpha });	// 画像色そのまま
 		g_pTimeNum->SetPos(TIME_BIG_POS);
 		g_pTimeNum->SetSize(TIME_BIG_SIZE);
 		g_pTimeNum->SetDigitSpacing(TIME_BIG_SIZE.x - 10.0f);
@@ -136,15 +135,14 @@ static void ApplyTimeBig(float alpha)
 
 static void ApplyTimeSmall(float alpha)
 {
-	XMFLOAT4 col = { 1.0f, 1.0f, 1.0f, alpha };
 	if (g_pTimeLabelFont)
 	{
-		g_pTimeLabelFont->SetColor(col);
+		g_pTimeLabelFont->SetColor({ 0.0f, 0.0f, 0.0f, alpha });	// 黒
 		g_pTimeLabelFont->SetPos(TIME_SMALL_LABEL_POS);
 	}
 	if (g_pTimeNum)
 	{
-		g_pTimeNum->SetColor(col);
+		g_pTimeNum->SetColor({ 1.0f, 1.0f, 1.0f, alpha });	// 画像色そのまま
 		g_pTimeNum->SetPos(TIME_SMALL_POS);
 		g_pTimeNum->SetSize(TIME_SMALL_SIZE);
 		g_pTimeNum->SetDigitSpacing(TIME_SMALL_SPACING);
@@ -154,20 +152,19 @@ static void ApplyTimeSmall(float alpha)
 // Combo のアルファ・位置・サイズをまとめて適用（大表示：g_pComboLabelFont を使用）
 static void ApplyComboBig(float alpha)
 {
-	XMFLOAT4 col = { 1.0f, 1.0f, 1.0f, alpha };
 	if (g_pComboLabelFont)
 	{
-		g_pComboLabelFont->SetColor(col);
+		g_pComboLabelFont->SetColor({ 0.0f, 0.0f, 0.0f, alpha });	// 黒
 		g_pComboLabelFont->SetPos(COMBO_BIG_LABEL_POS);
 	}
 	// 小表示用は非表示にしておく
 	if (g_pComboLabelFontSmall)
 	{
-		g_pComboLabelFontSmall->SetColor({ 1.0f, 1.0f, 1.0f, 0.0f });
+		g_pComboLabelFontSmall->SetColor({ 0.0f, 0.0f, 0.0f, 0.0f });
 	}
 	if (g_pComboNum)
 	{
-		g_pComboNum->SetColor(col);
+		g_pComboNum->SetColor({ 1.0f, 1.0f, 1.0f, alpha });	// 画像色そのまま
 		g_pComboNum->SetPos(COMBO_BIG_POS);
 		g_pComboNum->SetSize(COMBO_BIG_SIZE);
 		g_pComboNum->SetDigitSpacing(COMBO_BIG_SIZE.x - 10.0f);
@@ -177,20 +174,19 @@ static void ApplyComboBig(float alpha)
 // Combo 小表示（g_pComboLabelFontSmall を使用）
 static void ApplyComboSmall(float alpha)
 {
-	XMFLOAT4 col = { 1.0f, 1.0f, 1.0f, alpha };
 	// 大表示用は非表示にしておく
 	if (g_pComboLabelFont)
 	{
-		g_pComboLabelFont->SetColor({ 1.0f, 1.0f, 1.0f, 0.0f });
+		g_pComboLabelFont->SetColor({ 0.0f, 0.0f, 0.0f, 0.0f });
 	}
 	if (g_pComboLabelFontSmall)
 	{
-		g_pComboLabelFontSmall->SetColor(col);
+		g_pComboLabelFontSmall->SetColor({ 0.0f, 0.0f, 0.0f, alpha });	// 黒
 		g_pComboLabelFontSmall->SetPos(COMBO_SMALL_LABEL_POS);
 	}
 	if (g_pComboNum)
 	{
-		g_pComboNum->SetColor(col);
+		g_pComboNum->SetColor({ 1.0f, 1.0f, 1.0f, alpha });	// 画像色そのまま
 		g_pComboNum->SetPos(COMBO_SMALL_POS);
 		g_pComboNum->SetSize(COMBO_SMALL_SIZE);
 		g_pComboNum->SetDigitSpacing(COMBO_SMALL_SPACING);
@@ -199,9 +195,8 @@ static void ApplyComboSmall(float alpha)
 
 static void SetScoreAlpha(float alpha)
 {
-	XMFLOAT4 col = { 1.0f, 1.0f, 1.0f, alpha };
-	if (g_pResultNum)  g_pResultNum->SetColor(col);
-	if (g_pScoreFont)  g_pScoreFont->SetColor(col);
+	if (g_pResultNum)  g_pResultNum->SetColor({ 1.0f, 1.0f, 1.0f, alpha });	// 画像色そのまま
+	if (g_pScoreFont)  g_pScoreFont->SetColor({ 0.0f, 0.0f, 0.0f, alpha });	// 黒
 }
 
 // kakeru2.png のアルファを適用
@@ -219,6 +214,10 @@ void Result_Initialize(ID3D11Device* pDevice, ID3D11DeviceContext* pContext)
 	g_ResultPhase = PHASE_TIME_BIG;
 	g_PhaseAlpha = 0.0f;
 	g_WaitCounter = 0;
+
+	// スコア値をリセット（前回プレイの値が残らないように）
+	g_pResultTime = 0.0f;
+	g_pResultCombo = 1;
 
 	// 背景
 	g_pResultSprite = new Sprite(

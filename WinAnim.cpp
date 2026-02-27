@@ -16,6 +16,7 @@ static ID3D11Device* g_pDevice = NULL;
 static ID3D11DeviceContext* g_pContext = NULL;
 //sound
 static SoundData* g_pBGM = nullptr;
+static SoundData* g_pSE = nullptr;
 
 // 勝利結果の保存
 static bool g_HasResultData = false;
@@ -41,7 +42,7 @@ static const float LOGO_FINAL_W = 640.0f;		// ロゴの最終幅
 static const float LOGO_FINAL_H = 354.0f;		// ロゴの最終高さ
 
 // ロゴ自動フェードまでの時間（秒）
-static const float LOGO_AUTO_FADE_TIME = 3.0f; // 必要に応じて秒数を調整
+static const float LOGO_AUTO_FADE_TIME = 4.0f; // 必要に応じて秒数を調整
 
 //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // Win Animation (勝ちアニメーション)
@@ -96,6 +97,12 @@ void Animation_Win_Initialize(ID3D11Device* pDevice, ID3D11DeviceContext* pConte
 		PlaySound(g_pBGM, true);
 	}
 
+	// SE再生（ループなし・1回のみ）
+	g_pSE = LoadMP3("asset/sound/se/clear.m4a");
+	if (g_pSE) {
+		PlaySound(g_pSE, false);
+	}
+
 	// アニメーション画面ではマウスカーソルを表示・絶対モードに設定
 	Mouse_SetMode(MOUSE_POSITION_MODE_ABSOLUTE);
 	Mouse_SetVisible(true);
@@ -110,7 +117,7 @@ void Animation_Win_Update(void)
 	float elapsedSeconds = 0.0f;
 	if (g_WinStartTime != 0) {
 		DWORD current = timeGetTime();
-		elapsedSeconds = (current - g_WinStartTime) / 1000.0f;
+		elapsedSeconds = (current - g_WinStartTime) / 1000.0f;// ミリ秒から秒に変換
 	}
 
 	// --- Ghost：上下に浮かせるアニメーション ---
@@ -206,7 +213,15 @@ void Animation_Win_Finalize(void)
 		g_pBGM = nullptr;
 	}
 
+	// SE解放
+	if (g_pSE) {
+		StopSound(g_pSE);
+		UnloadSound(g_pSE);
+		g_pSE = nullptr;
+	}
+
 	// タイマーリセット
 	g_WinStartTime = 0;
-	g_HasResultData = false;
+	// ※ g_ResultTimeValue / g_ResultComboValue / g_HasResultData は
+	//   scene.cpp の Init(SCENE_RESULT) で使うためここではリセットしない
 }
