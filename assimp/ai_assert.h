@@ -3,7 +3,7 @@
 Open Asset Import Library (assimp)
 ---------------------------------------------------------------------------
 
-Copyright (c) 2006-2022, assimp team
+Copyright (c) 2006-2026, assimp team
 
 All rights reserved.
 
@@ -47,7 +47,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #ifndef AI_ASSERT_H_INC
 #define AI_ASSERT_H_INC
 
-#include "defs.h"
+#include "assimp/defs.h"
 
 #if defined(ASSIMP_BUILD_DEBUG)
 
@@ -55,7 +55,7 @@ namespace Assimp {
 
 /// @brief Assert violation behavior can be customized: see AssertHandler.h.
 /// @param failedExpression     The expression to validate.
-/// @param file                 The file location    
+/// @param file                 The file location
 /// @param line                 The line number
 ASSIMP_API void aiAssertViolation(const char* failedExpression, const char* file, int line);
 

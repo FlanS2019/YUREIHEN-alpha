@@ -41,6 +41,9 @@ static std::vector<MAPDATA> g_MapList;
 
 static int g_CurrentFloor = START_FLOOR - 1;
 
+// 壁判定の有効/無効フラグ（デバッグシーン等で無効化する）
+static bool g_WallCheckEnabled = true;
+
 #undef MAP_W
 #undef MAP_H
 #define MAP_W (MAP_WIDTH)
@@ -543,6 +546,8 @@ FIELD_TYPE Field_GetBlockType(float x, float z)
 
 bool Field_IsWall(float x, float z)
 {
+	if (!g_WallCheckEnabled) return false;
+
 	int gx = WorldToGridX(x);
 	int gz = WorldToGridZ(z);
 
@@ -561,6 +566,8 @@ bool Field_IsWall(float x, float z)
 
 bool Field_IsOuterWall(float x, float z)
 {
+	if (!g_WallCheckEnabled) return false;
+
 	int gx = WorldToGridX(x);
 	int gz = WorldToGridZ(z);
 	if (gx < 0 || gx >= MAP_W || gz < 0 || gz >= MAP_H) return true;
@@ -570,6 +577,8 @@ bool Field_IsOuterWall(float x, float z)
 
 bool Field_IsWallForGhost(float x, float z)
 {
+	if (!g_WallCheckEnabled) return false;
+
 	int gx = WorldToGridX(x);
 	int gz = WorldToGridZ(z);
 
@@ -602,6 +611,8 @@ bool Field_IsWall(float x, float y, float z)
 
 bool Field_CheckWallBetween(XMFLOAT3 start, XMFLOAT3 end)
 {
+	if (!g_WallCheckEnabled) return false;
+
 	float dx = end.x - start.x;
 	float dz = end.z - start.z;
 	float dist = sqrtf(dx * dx + dz * dz);
@@ -838,4 +849,9 @@ XMFLOAT3 Field_GetMarker97WorldPos(int floor)
 	}
 	// 97が見つからない場合は階段座標にフォールバック
 	return Field_GetStairsUpWorldPos(floor);
+}
+
+void Field_SetWallCheckEnabled(bool enabled)
+{
+	g_WallCheckEnabled = enabled;
 }

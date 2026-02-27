@@ -10,10 +10,13 @@
 #include "title.h"
 #include "result.h"
 #include "define.h"
+#include "debug_model_scene.h"
 using namespace DirectX;
 
 //DIRECT_STARTがtrueの場合、最初からゲームシーンにする
-#if DIRECT_START
+#if DEBUG_MODEL_SCENE
+static SCENE scene = SCENE_DEBUG_MODEL;
+#elif DIRECT_START
 static SCENE scene = SCENE_GAME;
 #else
 static SCENE scene = SCENE_ANM_LOGO;
@@ -46,6 +49,9 @@ void Init(void)
 		break;
 	case SCENE_ANM_LOSE_ED:
 		Animation_LoseED_Initialize(Direct3D_GetDevice(), Direct3D_GetDeviceContext());
+		break;
+	case SCENE_DEBUG_MODEL:
+		DebugModelScene_Initialize(Direct3D_GetDevice(), Direct3D_GetDeviceContext());
 		break;
 	default:
 		break;
@@ -80,6 +86,9 @@ void Update(void)
 	case SCENE_ANM_LOSE_ED:
 		Animation_LoseED_Update();
 		break;
+	case SCENE_DEBUG_MODEL:
+		DebugModelScene_Update();
+		break;
 	default:
 		break;
 	}
@@ -113,6 +122,9 @@ void Draw(void)
 	case SCENE_ANM_LOSE_ED:
 		Animation_LoseED_Draw();
 		break;
+	case SCENE_DEBUG_MODEL:
+		DebugModelScene_Draw();
+		break;
 	default:
 		break;
 	}
@@ -145,6 +157,9 @@ void Finalize(void)
 		break;
 	case SCENE_ANM_LOSE_ED:
 		Animation_LoseED_Finalize();
+		break;
+	case SCENE_DEBUG_MODEL:
+		DebugModelScene_Finalize();
 		break;
 	default:
 		break;

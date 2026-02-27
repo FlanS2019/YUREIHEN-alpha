@@ -166,5 +166,9 @@ void UI_ScareCombo_Reset(void)
 
 int UI_ScareCombo_GetNumber(void)
 {
+	if (!g_ScareCombo)
+	{
+		return 1; // 未初期化時はコンボ1（デフォルト値）を返す
+	}
 	return g_ScareCombo->GetNumber();
 }

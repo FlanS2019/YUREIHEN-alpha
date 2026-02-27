@@ -3,9 +3,7 @@
 Open Asset Import Library (assimp)
 ---------------------------------------------------------------------------
 
-Copyright (c) 2006-2022, assimp team
-
-
+Copyright (c) 2006-2026, assimp team
 
 All rights reserved.
 
@@ -53,7 +51,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #endif
 
 #ifdef __cplusplus
-#include "vector2.h"
+#include "assimp/vector2.h"
 
 #include <cmath>
 

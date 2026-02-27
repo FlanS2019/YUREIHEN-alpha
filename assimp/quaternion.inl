@@ -3,7 +3,7 @@
 Open Asset Import Library (assimp)
 ---------------------------------------------------------------------------
 
-Copyright (c) 2006-2022, assimp team
+Copyright (c) 2006-2026, assimp team
 
 
 
@@ -53,7 +53,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #endif
 
 #ifdef __cplusplus
-#include "quaternion.h"
+#include "assimp/quaternion.h"
 
 #include <cmath>
 
@@ -237,7 +237,8 @@ inline void aiQuaterniont<TReal>::Interpolate( aiQuaterniont& pOut, const aiQuat
 
     // Calculate coefficients
     TReal sclp, sclq;
-    if( (static_cast<TReal>(1.0) - cosom) > static_cast<TReal>(0.0001)) // 0.0001 -> some epsillon
+
+    if ((static_cast<TReal>(1.0) - cosom) > ai_epsilon) // 0.0001 -> some epsillon
     {
         // Standard case (slerp)
         TReal omega, sinom;

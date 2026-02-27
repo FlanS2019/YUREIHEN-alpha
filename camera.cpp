@@ -71,16 +71,16 @@ void Camera::Update()
 	Mouse_State mouseState;
 	Mouse_GetState(&mouseState);
 
-	//なにこれ
-	//if (mouseState.positionMode == MOUSE_POSITION_MODE_ABSOLUTE)
-	//{
-	//	if (mouseState.leftButton)
-	//	{
-	//		Mouse_SetMode(MOUSE_POSITION_MODE_RELATIVE);
-	//		Mouse_SetVisible(false);
-	//	}
-	//	return;
-	//}
+	// 絶対座標モード中にクリックで相対モードへ切り替え（カーソル固定）
+	if (mouseState.positionMode == MOUSE_POSITION_MODE_ABSOLUTE)
+	{
+		if (mouseState.leftButton)
+		{
+			Mouse_SetMode(MOUSE_POSITION_MODE_RELATIVE);
+			Mouse_SetVisible(false);
+		}
+		return;
+	}
 
 	if (mouseState.positionMode == MOUSE_POSITION_MODE_RELATIVE)
 	{

@@ -63,3 +63,6 @@ XMFLOAT3 Field_GetStairsUpWorldPos(int floor);
 
 // マップID97（バスターズ誘導マーカー）のワールド座標を返す
 XMFLOAT3 Field_GetMarker97WorldPos(int floor);
+
+// 壁判定の有効/無効を切り替える（デバッグシーン等で使用）
+void Field_SetWallCheckEnabled(bool enabled);

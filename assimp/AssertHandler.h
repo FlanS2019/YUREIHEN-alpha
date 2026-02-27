@@ -39,39 +39,48 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ----------------------------------------------------------------------
 */
 
-/** @file CreateAnimMesh.h
- *  Create AnimMesh from Mesh
- */
-#pragma once
-#ifndef INCLUDED_AI_CREATE_ANIM_MESH_H
-#define INCLUDED_AI_CREATE_ANIM_MESH_H
+/** @file Provides facilities to replace the default assert handler. */
 
-#ifdef __GNUC__
-#   pragma GCC system_header
-#endif
+#ifndef INCLUDED_AI_ASSERTHANDLER_H
+#define INCLUDED_AI_ASSERTHANDLER_H
 
-#include "assimp/mesh.h"
+#include "assimp/ai_assert.h"
+#include "assimp/defs.h"
 
 namespace Assimp {
 
+// ---------------------------------------------------------------------------
 /**
- *  Create aiAnimMesh from aiMesh.
- *  @param  mesh            The input mesh to create an animated mesh from.
- *  @param  needPositions   If true, positions will be copied from.
- *  @param  needNormals     If true, normals will be copied from.
- *  @param  needTangents    If true, tangents and bitangents will be copied from.
- *  @param  needColors      If true, colors will be copied from.
- *  @param  needTexCoords   If true, texCoords will be copied from.
- *  @return The new created animated mesh.
+ *  @brief  Signature of functions which handle assert violations.
  */
-ASSIMP_API aiAnimMesh *aiCreateAnimMesh(const aiMesh *mesh,
-                                        bool needPositions = true,
-                                        bool needNormals = true,
-                                        bool needTangents = true,
-                                        bool needColors = true,
-                                        bool needTexCoords = true);
+using AiAssertHandler = void (*)(const char* failedExpression, const char* file, int line);
+
+// ---------------------------------------------------------------------------
+/**
+ *  @brief  Set the assert handler.
+ *  @param  handler  The assertion handler to use.
+ */
+ASSIMP_API void setAiAssertHandler(AiAssertHandler handler);
+
+// ---------------------------------------------------------------------------
+/** The assert handler which is set by default.
+ *
+ *  @brief  This issues a message to stderr and calls abort.
+ *  @param failedExpression   The failed expression as a string.
+ *  @param file               The name of the source file.
+ *  @param line               The line in the source file.
+ */
+AI_WONT_RETURN ASSIMP_API void defaultAiAssertHandler(const char* failedExpression, const char* file, int line) AI_WONT_RETURN_SUFFIX;
+
+// ---------------------------------------------------------------------------
+/**
+ *  @brief Dispatches an assert violation to the assert handler.
+ *  @param failedExpression   The failed expression as a string.
+ *  @param file               The name of the source file.
+ *  @param line               The line in the source file.
+ */
+ASSIMP_API void aiAssertViolation(const char* failedExpression, const char* file, int line);
 
 } // end of namespace Assimp
 
-#endif // INCLUDED_AI_CREATE_ANIM_MESH_H
-
+#endif // INCLUDED_AI_ASSERTHANDLER_H

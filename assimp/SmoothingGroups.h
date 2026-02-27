@@ -2,8 +2,7 @@
 Open Asset Import Library (assimp)
 ----------------------------------------------------------------------
 
-Copyright (c) 2006-2022, assimp team
-
+Copyright (c) 2006-2026, assimp team
 
 All rights reserved.
 
@@ -51,9 +50,9 @@ http://www.jalix.org/ressources/graphics/3DS/_unofficials/3ds-unofficial.txt */
 #   pragma GCC system_header
 #endif
 
-#include "vector3.h"
+#include "assimp/vector3.h"
 
-#include <stdint.h"
+#include <stdint.h>
 #include <vector>
 
 // ---------------------------------------------------------------------------

@@ -2,8 +2,7 @@
 Open Asset Import Library (assimp)
 ----------------------------------------------------------------------
 
-Copyright (c) 2006-2022, assimp team
-
+Copyright (c) 2006-2026, assimp team
 
 All rights reserved.
 
@@ -57,9 +56,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #pragma GCC system_header
 #endif
 
-#include "StringComparison.h"
-#include "ai_assert.h"
-#include "defs.h"
+#include "assimp/ai_assert.h"
+#include "assimp/defs.h"
 
 #include <cstdint>
 #include <cstring>
