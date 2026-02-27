@@ -51,7 +51,6 @@ jobs:
         }
         Copy-Item -Path "x64/Release/*.dll" -Destination "release" -Force
         Copy-Item -Path "assimp-vc143-mt.dll" -Destination "release" -Force
-        Copy-Item -Path "assimp" -Destination "release" -Recurse -Force
         Copy-Item -Path "asset" -Destination "release" -Recurse -Force
         Copy-Item -Path "SchemToArray" -Destination "release" -Recurse -Force
         
