@@ -167,6 +167,7 @@
     <ClCompile Include="furniture.cpp" />
     <ClCompile Include="game.cpp" />
     <ClCompile Include="ghost.cpp" />
+    <ClCompile Include="glb_model.cpp" />
     <ClCompile Include="keyboard.cpp" />
     <ClCompile Include="light.cpp" />
     <ClCompile Include="LoseAnim.cpp" />
@@ -212,6 +213,7 @@
     <ClInclude Include="font.h" />
     <ClInclude Include="furniture.h" />
     <ClInclude Include="ghost.h" />
+    <ClInclude Include="glb_model.h" />
     <ClInclude Include="HoleSprite.h" />
     <ClInclude Include="keyboard.h" />
     <ClInclude Include="light.h" />

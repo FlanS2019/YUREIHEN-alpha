@@ -250,7 +250,7 @@
 			"name": "pink_concrete",
 			"names_ja": "二段ベッド",
 			"default_id": 72,
-			"model": "asset\\model\\cube.fbx",
+			"model": "asset\\model\\bunk_bed.glb",
 			"action": "scare"
 		},
 		{

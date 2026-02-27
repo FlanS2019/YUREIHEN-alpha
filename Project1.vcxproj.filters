@@ -1,4 +1,4 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup>
     <ClCompile Include="animation.cpp" />
@@ -13,6 +13,7 @@
     <ClCompile Include="field.cpp" />
     <ClCompile Include="furniture.cpp" />
     <ClCompile Include="ghost.cpp" />
+    <ClCompile Include="glb_model.cpp" />
     <ClCompile Include="keyboard.cpp" />
     <ClCompile Include="LoseAnim.cpp" />
     <ClCompile Include="main.cpp" />
@@ -43,6 +44,7 @@
     <ClCompile Include="Tutorial_Pages.cpp" />
     <ClCompile Include="game.cpp" />
     <ClCompile Include="debug_model_scene.cpp" />
+    <ClCompile Include="glb_model.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="animation.h" />
@@ -59,6 +61,7 @@
     <ClInclude Include="fade.h" />
     <ClInclude Include="furniture.h" />
     <ClInclude Include="ghost.h" />
+    <ClInclude Include="glb_model.h" />
     <ClInclude Include="keyboard.h" />
     <ClInclude Include="LoseAnim.h" />
     <ClInclude Include="main.h" />
@@ -96,6 +99,7 @@
     <ClInclude Include="UI_Tutorial_Internal.h" />
     <ClInclude Include="TutorialFlag.h" />
     <ClInclude Include="debug_model_scene.h" />
+    <ClInclude Include="glb_model.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="convert_to_utf8bom.ps1" />
