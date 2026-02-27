@@ -142,11 +142,20 @@ void Game_Update(void)
 		switch (g_FloorExitState)
 		{
 		case FLOOR_EXIT_OVERVIEW:
-			// 俯瞰カメラでバスターズを追いかけ、到着後に削除してカメラ補間へ
+			// 俯瞰カメラでバスターズを追いかけ、到着済みのバスターズを随時削除する
+			// 全員いなくなったらカメラ補間へ移行する
 			{
 				// Ghost_Update()は呼ばない: 変身中にTransforming()が家具位置へSetPos()し続けるため
 				// 変身状態はGhost_ForceExitTransform()で到着後に一括解除する
 				Busters_Update();
+
+				// 到着済みのバスターズを1体ずつ削除する（複数いる場合、先に着いた1人から順に消える）
+				if (g_OverviewFrameCount > 1)
+				{
+					Busters_DeleteFirstArrived();
+				}
+
+				// 残っているバスターズの中で先頭（次に到着しそう）を注視対象にする
 				XMFLOAT3 focusPos = { 0.0f, 0.0f, 0.0f };
 				Busters* buster = GetBusters();
 				if (buster) focusPos = buster->GetPos();
@@ -171,15 +180,13 @@ void Game_Update(void)
 					          << " CamPos=(" << camPos.x << "," << camPos.y << "," << camPos.z << ")"
 					          << std::endl;
 				}
-				if (g_OverviewFrameCount > 1 && Busters_IsFloorExitAnimDone())
+				// 全バスターズがいなくなったらカメラ補間へ移行
+				if (g_OverviewFrameCount > 1 && GetBusters() == nullptr)
 				{
-				// バスターズが階段に到着したら削除
-					Busters_DeleteCurrentFloor();
-
 					// 変身中の場合は強制解除する
 					Ghost_ForceExitTransform();
 
-					// 補間の開始注視点 = 俯瞰カメラが向いていた注視点（atPos = バスターズ位置付近）
+					// 補間の開始注視点 = 俯瞰カメラが向いていた注視点（atPos = 最後のバスターズ位置付近）
 					// ※ PreTransformPos に設定すると終点と同じになり補間が無意味になるため使わない
 					g_LerpStartAtPos = atPos;
 

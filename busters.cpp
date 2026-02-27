@@ -1655,6 +1655,26 @@ void BustersStopped(void)
 	}
 }
 
+bool Busters_IsAnyInRange(const XMFLOAT3& pos, float range)
+{
+	float rangeSq = range * range;
+	int currentFloor = Field_GetCurrentFloor();
+	if (currentFloor >= 0 && currentFloor < MAP_FLOORS)
+	{
+		for (Busters* buster : g_BustersList[currentFloor])
+		{
+			XMFLOAT3 bPos = buster->GetPos();
+			float dx = bPos.x - pos.x;
+			float dz = bPos.z - pos.z;
+			if (dx * dx + dz * dz <= rangeSq)
+			{
+				return true;
+			}
+		}
+	}
+	return false;
+}
+
 
 // =================================================================
 // ゲージMAX時の処理
@@ -1748,6 +1768,26 @@ void Busters_DeleteCurrentFloor(void)
 	for (Busters* buster : g_BustersList[currentFloor])
 		delete buster;
 	g_BustersList[currentFloor].clear();
+}
+
+// 階段到着済みのバスターズを先頭から1体削除する
+// 戻り値: true=1体削除した / false=到着済みバスターズがいなかった
+bool Busters_DeleteFirstArrived(void)
+{
+	int currentFloor = Field_GetCurrentFloor();
+	if (currentFloor < 0 || currentFloor >= MAP_FLOORS) return false;
+
+	auto& list = g_BustersList[currentFloor];
+	for (auto it = list.begin(); it != list.end(); ++it)
+	{
+		if ((*it)->IsRunToStairsDone())
+		{
+			delete *it;
+			list.erase(it);
+			return true;
+		}
+	}
+	return false;
 }
 
 // 指定フロアにバスターズを生成する
