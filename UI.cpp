@@ -559,3 +559,11 @@ void UI_DecreaseRemainingTime(float penaltySeconds)
 		g_Clock->SetTime(currentTime + penaltySeconds);
 	}
 }
+
+void UI_ResetTimer(void)
+{
+	if (g_Clock)
+	{
+		g_Clock->Reset();
+	}
+}

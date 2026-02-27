@@ -247,17 +247,19 @@ void Furniture::Update(void)
 		XMFLOAT3 ghostPos = pGhost->GetPos();
 		XMFLOAT3 furniturePos = GetPos();
 
-		// Y軸を除いた水平面での距離計算
-		float dx = furniturePos.x - ghostPos.x;
-		float dz = furniturePos.z - ghostPos.z;
-		m_DistanceToGhost = sqrtf(dx * dx + dz * dz);
-
-		// Y軸方向の距離制限チェック
+		// Y軸方向の距離制限チェック（先に判定して sqrtf を省略）
 		float dy = fabsf(furniturePos.y - ghostPos.y);
 		if (dy > 50.0f)
 		{
 			// Y軸が50を超えていれば検知範囲外の距離として設定
 			m_DistanceToGhost = FURNITURE_DETECTION_RANGE * 2.0f;
+		}
+		else
+		{
+			// Y軸を除いた水平面での距離計算
+			float dx = furniturePos.x - ghostPos.x;
+			float dz = furniturePos.z - ghostPos.z;
+			m_DistanceToGhost = sqrtf(dx * dx + dz * dz);
 		}
 	}
 
@@ -423,7 +425,7 @@ void CreateFurniture(XMFLOAT3 pos, XMFLOAT3 scale, XMFLOAT3 rot, const char* mod
 
 void Furniture_Update(void)
 {
-	for (int i = 0; i < FURNITURE_NUM; i++)
+	for (int i = 0; i < g_FurnitureCount; i++)
 	{
 		if (g_Furniture[i])
 		{
@@ -432,7 +434,7 @@ void Furniture_Update(void)
 		}
 	}
 
-	for (int i = 0; i < FURNITURE_NUM; i++)
+	for (int i = 0; i < g_FurnitureCount; i++)
 	{
 		if (g_Furniture[i]) g_Furniture[i]->Update();
 	}
@@ -449,7 +451,7 @@ void Furniture_Draw(void)
 	XMVECTOR vCamAt = XMLoadFloat3(&cameraAt);
 	XMVECTOR vForward = XMVector3Normalize(XMVectorSubtract(vCamAt, vCamPos));
 
-	for (int i = 0; i < FURNITURE_NUM; i++)
+	for (int i = 0; i < g_FurnitureCount; i++)
 	{
 		if (g_Furniture[i])
 		{
@@ -498,6 +500,11 @@ Furniture* GetFurniture(int index)
 {
 	if (index >= 0 && index < FURNITURE_NUM) return g_Furniture[index];
 	return nullptr;
+}
+
+int GetFurnitureCount(void)
+{
+	return g_FurnitureCount;
 }
 
 // 与えられた数字のIDから日本語名を返す

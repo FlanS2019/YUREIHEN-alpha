@@ -624,17 +624,18 @@ void Busters::Update(void)
 		{
 			float dx = GetGhost()->GetPos().x - m_Position.x;
 			float dz = GetGhost()->GetPos().z - m_Position.z;
-			float dist = sqrtf(dx * dx + dz * dz);
+			float distSq = dx * dx + dz * dz;
 			bool hasWall = Field_CheckWallBetween(m_Position, GetGhost()->GetPos());
 
 			// 壁がなく、かつ距離が近い場合
-			if (!hasWall && dist < 0.5f)
+			if (!hasWall && distSq < 0.25f)
 			{
 				m_PathList.clear();
 				nextStepPos = GetGhost()->GetPos();
 			}
 			else
 			{
+				float dist = sqrtf(distSq);
 
 				m_PathUpdateTimer++;
 
@@ -967,7 +968,7 @@ bool CanPassLine(const XMFLOAT3& start, const XMFLOAT3& end, float radius, int i
 
 	float ndx = dx / len;
 	float ndz = dz / len;
-	int steps = (int)(len / 0.5f) + 1;
+	int steps = (int)(len / 0.8f) + 1;
 
 	for (int i = 0; i <= steps; i++)
 	{
@@ -1152,7 +1153,8 @@ void Busters::MoveTo(XMFLOAT3 targetPos)
 	float dist = sqrtf(distSq);
 
 	// 3. ノード到達判定（NavMesh風：ノードに十分近づいたら次へ）
-	const float NODE_REACH_DISTANCE = 0.6f;
+	// RUN_TO_STAIRS時は角を曲がるタイミングを遅らせるため到達距離を小さくする
+	const float NODE_REACH_DISTANCE = (m_State == BUSTERS_RUN_TO_STAIRS) ? 0.25f : 0.6f;
 	if (!m_PathList.empty() && dist < NODE_REACH_DISTANCE)
 	{
 		m_PathList.erase(m_PathList.begin());
@@ -1175,7 +1177,7 @@ void Busters::MoveTo(XMFLOAT3 targetPos)
 	float dirX = dx / dist;
 	float dirZ = dz / dist;
 
-	if ((m_State == BUSTERS_CHASE || m_State == BUSTERS_SUSPICION || m_State == BUSTERS_RUN_TO_STAIRS) && m_PathList.size() >= 2)
+	if ((m_State == BUSTERS_CHASE || m_State == BUSTERS_SUSPICION) && m_PathList.size() >= 2)
 	{
 		// 現在のノードと次のノードの方向をブレンドして滑らかにする
 		XMFLOAT3 nextNode = m_PathList[1];
@@ -1596,6 +1598,18 @@ Busters* GetBusters(void)
 	{
 		if (!g_BustersList[currentFloor].empty()) {
 			return g_BustersList[currentFloor][0];
+		}
+	}
+	return NULL;
+}
+
+Busters* GetBustersByIndex(int index)
+{
+	int currentFloor = Field_GetCurrentFloor();
+	if (currentFloor >= 0 && currentFloor < MAP_FLOORS)
+	{
+		if (index >= 0 && index < (int)g_BustersList[currentFloor].size()) {
+			return g_BustersList[currentFloor][index];
 		}
 	}
 	return NULL;
