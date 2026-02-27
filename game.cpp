@@ -294,8 +294,18 @@ void Game_Update(void)
 						ghostLerp->SetPos(syncPos);
 						Camera_SetTargetPos(syncPos);
 					}
-					hal::dout << "[CAM_LERP] \u5b8c\u4e86(dist=" << sqrtf(distSq) << ") -> PLAYER_WALK" << std::endl;
-					g_FloorExitState = FLOOR_EXIT_PLAYER_WALK;
+					// 1階（最終フロア）の場合はプレイヤー操作を挟まず直接フェードしてリザルトへ
+					if (g_FloorBeforeExit == 0)
+					{
+						hal::dout << "[CAM_LERP] 完了(dist=" << sqrtf(distSq) << ") -> FADEIN (1F WIN)" << std::endl;
+						StartFade(SCENE_NONE);
+						g_FloorExitState = FLOOR_EXIT_FADEIN;
+					}
+					else
+					{
+						hal::dout << "[CAM_LERP] 完了(dist=" << sqrtf(distSq) << ") -> PLAYER_WALK" << std::endl;
+						g_FloorExitState = FLOOR_EXIT_PLAYER_WALK;
+					}
 				}
 			}
 			return;

@@ -344,9 +344,9 @@ void Busters::Update(void)
 		float distSq = dx * dx + dz * dz;
 		if (distSq <= 0.5f * 0.5f)
 		{
-			// 距離が近くても、実際にID5またはID6のマスの真上にいる場合のみ完了とする
+			// ID5/6（階段）またはID4（1階出口）のマスの真上にいる場合のみ完了とする
 			int blockID = Field_GetRawBlockID(m_Position.x, m_Position.z);
-			if (blockID == 5 || blockID == 6)
+			if (blockID == 5 || blockID == 6 || blockID == 4)
 			{
 				m_RunToStairsDone = true;
 			}
@@ -369,7 +369,7 @@ void Busters::Update(void)
 				if (mdx * mdx + mdz * mdz < 0.0001f)
 				{
 					m_StuckTimer++;
-					if (m_StuckTimer > 30)
+				if (m_StuckTimer > 30)
 					{
 						// パスを再計算して再挑戦
 						m_PathList.clear();
@@ -378,6 +378,7 @@ void Busters::Update(void)
 						{
 							std::reverse(m_PathList.begin(), m_PathList.end());
 							if (!m_PathList.empty()) m_PathList.erase(m_PathList.begin());
+							m_PathList = SmoothPath(m_PathList, 0.6f);
 						}
 						m_StuckTimer = 0;
 					}
@@ -1353,8 +1354,8 @@ void Busters::StartRunToStairs(XMFLOAT3 stairsPos)
 	{
 		std::reverse(m_PathList.begin(), m_PathList.end());
 		if (!m_PathList.empty()) m_PathList.erase(m_PathList.begin()); // 始点自身を除去
-		// スムージングを適用して直線的に移動できる区間はノードをスキップ
-		m_PathList = SmoothPath(m_PathList, 0.4f);
+		// スムージングを適用して直線的に移動できる区間はノードをスキップ（半径を大きめにして障害物を回避）
+		m_PathList = SmoothPath(m_PathList, 0.6f);
 	}
 	this->SetColor(1.0f, 0.5f, 0.0f, 1.0f); // オレンジ
 }
@@ -1902,8 +1903,18 @@ void Busters_StartFloorExitAnim(void)
 	int currentFloor = Field_GetCurrentFloor();
 	if (currentFloor < 0 || currentFloor >= MAP_FLOORS) return;
 
-	// ID5・6（下付き階段）の座標一覧を取得し、バスターズ1体ずつにランダムで割り当てる
-	std::vector<XMFLOAT3> exits = Field_GetStairsExitPositions(currentFloor);
+	std::vector<XMFLOAT3> exits;
+	if (currentFloor == 0)
+	{
+		// 1階はID4（出口ブロック）へ誘導
+		exits = Field_GetFloor1ExitPositions(currentFloor);
+	}
+	else
+	{
+		// 2階以上はID5・6（下付き階段）へ誘導
+		exits = Field_GetStairsExitPositions(currentFloor);
+	}
+
 	if (exits.empty())
 	{
 		// フォールバック：97マーカーへ誘導

@@ -821,18 +821,22 @@ std::vector<XMFLOAT3> Field_FindPath(XMFLOAT3 start, XMFLOAT3 end)
 	}
 
 
-	if (ConvertMapID(GetMapBlockID(g_CurrentFloor, 1, endZ, endX)) == FIELD_BOX ||
-		ConvertMapID(GetMapBlockID(g_CurrentFloor, 1, endZ, endX)) == FIELD_WALL_PASS)
 	{
-		int dx[] = { 0, 0, 1, -1 };
-		int dz[] = { 1, -1, 0, 0 };
-		for (int i = 0; i < 4; i++) {
-			int nx = endX + dx[i];
-			int nz = endZ + dz[i];
-			if (nx >= 0 && nx < MAP_W && nz >= 0 && nz < MAP_H) {
-				FIELD_TYPE t = ConvertMapID(GetMapBlockID(g_CurrentFloor, 1, nz, nx));
-				if (t != FIELD_BOX && t != FIELD_WALL_PASS) {
-					endX = nx; endZ = nz; break;
+		FIELD_TYPE endType = ConvertMapID(GetMapBlockID(g_CurrentFloor, 1, endZ, endX));
+		if (endType == FIELD_BOX || endType == FIELD_WALL_PASS ||
+			endType == FIELD_STAIRS_UP || endType == FIELD_STAIRS_DOWN)
+		{
+			int dx[] = { 0, 0, 1, -1 };
+			int dz[] = { 1, -1, 0, 0 };
+			for (int i = 0; i < 4; i++) {
+				int nx = endX + dx[i];
+				int nz = endZ + dz[i];
+				if (nx >= 0 && nx < MAP_W && nz >= 0 && nz < MAP_H) {
+					FIELD_TYPE t = ConvertMapID(GetMapBlockID(g_CurrentFloor, 1, nz, nx));
+					if (t != FIELD_BOX && t != FIELD_WALL_PASS &&
+						t != FIELD_STAIRS_UP && t != FIELD_STAIRS_DOWN) {
+						endX = nx; endZ = nz; break;
+					}
 				}
 			}
 		}
@@ -847,6 +851,7 @@ std::vector<XMFLOAT3> Field_FindPath(XMFLOAT3 start, XMFLOAT3 end)
 
 	for (int i = 0; i < MAP_H; ++i) {
 		std::fill(closedList[i].begin(), closedList[i].end(), false);
+		std::fill(nodes[i].begin(), nodes[i].end(), Node{ 0, 0, 0.0f, 0.0f, 0, 0 });
 	}
 
 	Node startNode = { startX, startZ, 0.0f, 0.0f, -1, -1 };
@@ -855,7 +860,8 @@ std::vector<XMFLOAT3> Field_FindPath(XMFLOAT3 start, XMFLOAT3 end)
 
 	int dirX[] = { 0, 0, -1, 1, -1, 1, -1, 1 };  // 4方向 + 斜め4方向
 	int dirZ[] = { -1, 1, 0, 0, -1, -1, 1, 1 };
-	float dirCost[] = { 1.0f, 1.0f, 1.0f, 1.0f, 1.41f, 1.41f, 1.41f, 1.41f };
+	// 斜めコストを高めに設定して、障害物付近では直線移動を優先させる
+	float dirCost[] = { 1.0f, 1.0f, 1.0f, 1.0f, 1.8f, 1.8f, 1.8f, 1.8f };
 	bool found = false;
 	int maxCalculationSteps = 1000;
 
@@ -880,25 +886,28 @@ std::vector<XMFLOAT3> Field_FindPath(XMFLOAT3 start, XMFLOAT3 end)
 
 			if (nextX < 0 || nextX >= MAP_W || nextZ < 0 || nextZ >= MAP_H) continue;
 
-			// 壁判定（FIELD_BOXとFIELD_WALL_PASSの両方を壁として扱う）
+			// 壁・階段ブロックは通行不可（階段内部への迷い込みを防ぐ）
 			FIELD_TYPE nextType = ConvertMapID(GetMapBlockID(g_CurrentFloor, 1, nextZ, nextX));
-			if (nextType == FIELD_BOX || nextType == FIELD_WALL_PASS) continue;
+			if (nextType == FIELD_BOX || nextType == FIELD_WALL_PASS ||
+				nextType == FIELD_STAIRS_UP || nextType == FIELD_STAIRS_DOWN) continue;
 
 			// Y=0が空気（床なし）のマスは通行不可
 			if (GetMapBlockID(g_CurrentFloor, 0, nextZ, nextX) == 0) continue;
 
-			// 斜め移動の場合、両隣が通路であるか確認（コーナーにめり込まない）
+			// 斜め移動の場合、X方向・Z方向それぞれの隣接セルが通路であるか確認（コーナー通り抜け防止）
 			if (i >= 4)
 			{
-				int adjX = current.x + dirX[i];
-				int adjZ = current.z + dirZ[i];
-				int diagX = current.x + dirX[i];
-				int diagZ = current.z + dirZ[i];
-
-				FIELD_TYPE diagTypeX = ConvertMapID(GetMapBlockID(g_CurrentFloor, 1, current.z, diagX));
-				if (diagTypeX == FIELD_BOX || diagTypeX == FIELD_WALL_PASS) continue;
-				FIELD_TYPE diagTypeZ = ConvertMapID(GetMapBlockID(g_CurrentFloor, 1, diagZ, current.x));
-				if (diagTypeZ == FIELD_BOX || diagTypeZ == FIELD_WALL_PASS) continue;
+				// X方向の隣（同じZで横に移動したセル）
+				FIELD_TYPE sideTypeX = ConvertMapID(GetMapBlockID(g_CurrentFloor, 1, current.z, current.x + dirX[i]));
+				if (sideTypeX == FIELD_BOX || sideTypeX == FIELD_WALL_PASS ||
+					sideTypeX == FIELD_STAIRS_UP || sideTypeX == FIELD_STAIRS_DOWN) continue;
+				// Z方向の隣（同じXで縦に移動したセル）
+				FIELD_TYPE sideTypeZ = ConvertMapID(GetMapBlockID(g_CurrentFloor, 1, current.z + dirZ[i], current.x));
+				if (sideTypeZ == FIELD_BOX || sideTypeZ == FIELD_WALL_PASS ||
+					sideTypeZ == FIELD_STAIRS_UP || sideTypeZ == FIELD_STAIRS_DOWN) continue;
+				// Y=0（床なし）チェックも両隣に適用
+				if (GetMapBlockID(g_CurrentFloor, 0, current.z, current.x + dirX[i]) == 0) continue;
+				if (GetMapBlockID(g_CurrentFloor, 0, current.z + dirZ[i], current.x) == 0) continue;
 			}
 
 			if (closedList[nextZ][nextX]) continue;
@@ -909,9 +918,15 @@ std::vector<XMFLOAT3> Field_FindPath(XMFLOAT3 start, XMFLOAT3 end)
 			Node neighbor = { nextX, nextZ, newCost, h, current.x, current.z };
 			openList.push(neighbor);
 
-			if (nodes[nextZ][nextX].parentX == 0 && nodes[nextZ][nextX].parentZ == 0)
+			// より低コストのパスが見つかった場合のみ更新する
+			Node& existing = nodes[nextZ][nextX];
+			if (existing.parentX == 0 && existing.parentZ == 0 && !(nextX == startX && nextZ == startZ))
 			{
-				nodes[nextZ][nextX] = neighbor;
+				existing = neighbor;
+			}
+			else if (newCost < existing.cost)
+			{
+				existing = neighbor;
 			}
 		}
 	}
@@ -1010,6 +1025,26 @@ std::vector<XMFLOAT3> Field_GetStairsExitPositions(int floor)
 		{
 			int mcID = GetMapBlockID(floor, 0, z, x);
 			if (mcID == 5 || mcID == 6)
+			{
+				float wx = GridToWorldX(x);
+				float wz = GridToWorldZ(z);
+				positions.push_back({ wx, PATROL_HEIGHT, wz });
+			}
+		}
+	}
+	return positions;
+}
+
+// 指定フロアのID4（1階出口ブロック）のワールド座標を全て取得する
+std::vector<XMFLOAT3> Field_GetFloor1ExitPositions(int floor)
+{
+	std::vector<XMFLOAT3> positions;
+	for (int z = 0; z < MAP_H; z++)
+	{
+		for (int x = 0; x < MAP_W; x++)
+		{
+			int mcID = GetMapBlockID(floor, 0, z, x);
+			if (mcID == 4)
 			{
 				float wx = GridToWorldX(x);
 				float wz = GridToWorldZ(z);
