@@ -351,15 +351,18 @@ void Game_Update(void)
 				}
 				else
 				{
-					// フロア移行：プレイヤーを下の階へ移動
+				// フロア移行：プレイヤーを下の階へ移動
 					int nextFloor = g_FloorBeforeExit - 1;
 					Ghost* ghost = GetGhost();
 					if (ghost)
 					{
-						XMFLOAT3 ghostPos = ghost->GetPos();
+						float ghostY = ghost->GetPos().y;
 						Field_ChangeFloor(nextFloor);
-						ghost->SetPos(ghostPos);
-						Camera_SetTargetPos(ghostPos);
+						XMFLOAT3 spawnPos = (nextFloor == 0)
+							? XMFLOAT3(0.0f, ghostY, -11.0f)
+							: ghost->GetPos();
+						ghost->SetPos(spawnPos);
+						Camera_SetTargetPos(spawnPos);
 					}
 					// 下の階にバスターズを生成
 					Busters_SpawnOnFloor(nextFloor);

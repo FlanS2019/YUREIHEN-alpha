@@ -305,14 +305,30 @@ void LoadMapData(int floor)
 		{
 			for (int x = 0; x < MAP_W; x++)
 			{
-				// 床あり判定
+			// 床あり判定：1階のみ適用。2階は床なしマスにも天井を描画する
 				int floorID = GetMapBlockID(floor, 0, z, x);
-				if (floorID == 0) continue;
+				if (floor != 1 && floorID == 0) continue;
 
-				// Y=1 が通行可能なマス（部屋の内部）にのみ天井を置く
+			// Y=1 が壁ブロックの場合は天井を置かない（1階・2階共通）
 				int wallID = GetMapBlockID(floor, 1, z, x);
 				FIELD_TYPE wallType = ConvertMapID(wallID);
 				if (wallType == FIELD_BOX) continue;
+
+			// 吹き抜け判定：1階のみ。Y=2～MAP_HEIGHT-1 もすべて空洞なら天井を置かない
+				// 2階は吹き抜けなしのため常に天井を描画する
+				if (floor == 0)
+				{
+					bool isAtrium = true;
+					for (int y = 2; y < MAP_HEIGHT; y++)
+					{
+						if (GetMapBlockID(floor, y, z, x) != 0)
+						{
+							isAtrium = false;
+							break;
+						}
+					}
+					if (isAtrium) continue;
+				}
 
 				int px = x % 3;
 				int pz = z % 3;

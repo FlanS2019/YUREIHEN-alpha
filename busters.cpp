@@ -1152,7 +1152,8 @@ void Busters::MoveTo(XMFLOAT3 targetPos)
 	float dist = sqrtf(distSq);
 
 	// 3. ノード到達判定（NavMesh風：ノードに十分近づいたら次へ）
-	const float NODE_REACH_DISTANCE = 0.6f;
+	// RUN_TO_STAIRS時は角を曲がるタイミングを遅らせるため到達距離を小さくする
+	const float NODE_REACH_DISTANCE = (m_State == BUSTERS_RUN_TO_STAIRS) ? 0.25f : 0.6f;
 	if (!m_PathList.empty() && dist < NODE_REACH_DISTANCE)
 	{
 		m_PathList.erase(m_PathList.begin());
@@ -1175,7 +1176,7 @@ void Busters::MoveTo(XMFLOAT3 targetPos)
 	float dirX = dx / dist;
 	float dirZ = dz / dist;
 
-	if ((m_State == BUSTERS_CHASE || m_State == BUSTERS_SUSPICION || m_State == BUSTERS_RUN_TO_STAIRS) && m_PathList.size() >= 2)
+	if ((m_State == BUSTERS_CHASE || m_State == BUSTERS_SUSPICION) && m_PathList.size() >= 2)
 	{
 		// 現在のノードと次のノードの方向をブレンドして滑らかにする
 		XMFLOAT3 nextNode = m_PathList[1];
