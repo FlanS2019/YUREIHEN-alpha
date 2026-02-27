@@ -110,7 +110,7 @@
 			"name": "gray_concrete",
 			"names_ja": "ソファー",
 			"default_id": 52,
-			"model": "asset\\model\\sofa.fbx",
+			"model": "asset\\model\\sofa.glb",
 			"action": "scare"
 		},
 		{
@@ -131,7 +131,7 @@
 			"name": "jukebox",
 			"names_ja": "蓄音機",
 			"default_id": 55,
-			"model": "asset\\model\\phonograph.fbx",
+			"model": "asset\\model\\phonograph.glb",
 			"action": "stop"
 		},
 		{
@@ -143,7 +143,7 @@
 			"name": "campfire",
 			"names_ja": "暖炉",
 			"default_id": 57,
-			"model": "asset\\model\\danro.fbx",
+			"model": "asset\\model\\danro.glb",
 			"action": "lure"
 		},
 		{
@@ -172,7 +172,7 @@
 			"name": "lime_concrete",
 			"names_ja": "ベッド",
 			"default_id": 61,
-			"model": "asset\\model\\cube.fbx",
+			"model": "asset\\model\\bed.glb",
 			"action": "stop"
 		},
 		{
@@ -187,7 +187,7 @@
 			"name": "cauldron",
 			"names_ja": "シンク",
 			"default_id": 63,
-			"model": "asset\\model\\sink.fbx",
+			"model": "asset\\model\\sink.glb",
 			"action": "scare"
 		},
 		{
@@ -215,14 +215,14 @@
 			"name": "cyan_concrete",
 			"names_ja": "振り子時計",
 			"default_id": 67,
-			"model": "asset\\model\\grandfather_clock.fbx",
+			"model": "asset\\model\\grandfather_clock.glb",
 			"action": "lure"
 		},
 		{
 			"name": "light_blue_concrete",
 			"names_ja": "椅子",
 			"default_id": 68,
-			"model": "asset\\model\\cube.fbx",
+			"model": "asset\\model\\chair.glb",
 			"action": "none"
 		},
 		{
@@ -243,7 +243,7 @@
 			"name": "magenta_concrete",
 			"names_ja": "L字ソファー",
 			"default_id": 71,
-			"model": "asset\\model\\L_sofa.fbx",
+			"model": "asset\\model\\L_sofa.glb",
 			"action": "scare"
 		},
 		{
