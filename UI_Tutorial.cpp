@@ -15,6 +15,8 @@
 #include <windows.h>
 #include "debug_ostream.h"
 #include "UI_Tutorial_Internal.h"
+#include "shader.h"
+#include "light.h"
 using namespace DirectX;
 
 // ==========================================
@@ -218,6 +220,8 @@ void AddPage_Camera(const XMFLOAT2& holeCenter, float holeRadius,
 	page.cameraOverride = true;
 	page.cameraPos = targetPos;
 	page.cameraAt = targetAt;
+	page.hasPointLight = true;
+	page.pointLightPos = targetAt;
 }
 
 // カメラの注視点を変える（通し番号カウント対象、ページ番号はカウントしない）
@@ -791,7 +795,7 @@ void UI_Tutorial_Draw(void)
 				if (s) {
 					XMFLOAT4 col = s->GetColor();
 					s->SetColor({ col.x, col.y, col.z, col.w * newAlpha });
-					s->Draw();
+				 s->Draw();
 					s->SetColor(col);
 				}
 			}
@@ -970,4 +974,25 @@ void UI_Tutorial_End()
 
 	Mouse_SetMode(MOUSE_POSITION_MODE_RELATIVE);
 	Mouse_SetVisible(false);
+}
+
+// チュートリアルカメラページ用ポイントライト
+static PointLight g_TutorialPointLight;
+
+void UI_Tutorial_SetLight(void)
+{
+	if (!g_IsTutorial && !g_IsWaiting) return;
+	if (g_CurrentPage < 0 || g_CurrentPage >= (int)g_Pages.size()) return;
+
+	const TutorialPage& page = g_Pages[g_CurrentPage];
+	if (!page.hasPointLight) return;
+
+	g_TutorialPointLight.enable = TRUE;
+	g_TutorialPointLight.position = XMFLOAT4(page.pointLightPos.x, page.pointLightPos.y + 0.5f, page.pointLightPos.z, 1.0f);
+	g_TutorialPointLight.direction = XMFLOAT4(0.0f, -1.0f, 0.0f, 0.0f);
+	g_TutorialPointLight.diffuse = XMFLOAT4(1.0f, 0.95f, 0.8f, 1.0f);
+	g_TutorialPointLight.range = 8.0f;
+	g_TutorialPointLight.intensity = 2.0f;
+
+	Shader_AddPointLight(&g_TutorialPointLight);
 }

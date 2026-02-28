@@ -20,26 +20,26 @@ void AddPage(
     const XMFLOAT2& holeCenter, float holeRadius,
     const std::vector<std::string>& texts,
     XMFLOAT2 textPos = { SCREEN_WIDTH * 0.5f, SCREEN_HEIGHT * 0.5f },
-    float fontSize = 40.0f);
+    float fontSize = 50.0f);
 
 void AddPage_Play(
     const std::vector<std::string>& texts, bool* pFlag,
     XMFLOAT2 textPos = { SCREEN_WIDTH * 0.5f, SCREEN_HEIGHT * 0.5f },
-    float fontSize = 40.0f,
+    float fontSize = 50.0f,
     int delayFrames = 0);
 
 // FlagWithDelay を受け取るオーバーロード
 void AddPage_Play(
     const std::vector<std::string>& texts, FlagWithDelay flagWithDelay,
     XMFLOAT2 textPos = { SCREEN_WIDTH * 0.5f, SCREEN_HEIGHT * 0.5f },
-    float fontSize = 40.0f);
+    float fontSize = 50.0f);
 
 void AddPage_Camera(
     const XMFLOAT2& holeCenter, float holeRadius,
     const std::vector<std::string>& texts,
     const XMFLOAT3& targetPos, const XMFLOAT3& targetAt,
     XMFLOAT2 textPos = { SCREEN_WIDTH * 0.5f, SCREEN_HEIGHT * 0.5f },
-    float fontSize = 40.0f);
+    float fontSize = 50.0f);
 
 void SetCameraFocusPoint(const XMFLOAT3& pos);
 
