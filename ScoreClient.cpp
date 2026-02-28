@@ -8,15 +8,74 @@
 #include <winsock2.h>
 #pragma comment(lib, "ws2_32.lib")
 
+#include <fstream>
+#include <string>
 #include "ScoreClient.h"
 #include "debug_ostream.h"
 
-// ★ サーバーのIPアドレスとポートをここで設定
-static const char* SERVER_IP   = "192.168.10.19";
-static const int   SERVER_PORT = 5000;
+// デフォルト値（設定ファイルが読めなかった場合のフォールバック）
+static const char* DEFAULT_IP = "192.168.10.19";
+static const int   DEFAULT_PORT = 5000;
+
+// server_config.txt からIPとポートを読み込む
+// 書式:
+//   1行目: IPアドレス（例: 192.168.10.19）
+//   2行目: ポート番号（例: 5000）
+static bool LoadServerConfig(std::string& outIP, int& outPort)
+{
+	std::ifstream file("server_config.txt");
+	if (!file.is_open())
+	{
+		hal::dout << "[ScoreClient] server_config.txt が見つかりません。デフォルト値を使用します。" << std::endl;
+		return false;
+	}
+
+	std::string ip;
+	int port = 0;
+
+	if (!std::getline(file, ip) || ip.empty())
+	{
+		hal::dout << "[ScoreClient] IPアドレスの読み込みに失敗しました。" << std::endl;
+		return false;
+	}
+
+	// 末尾の改行・空白を除去（Windowsの \r\n 対策）
+	while (!ip.empty() && (ip.back() == '\r' || ip.back() == '\n' || ip.back() == ' '))
+	{
+		ip.pop_back();
+	}
+
+	std::string portStr;
+	if (!std::getline(file, portStr) || portStr.empty())
+	{
+		hal::dout << "[ScoreClient] ポート番号の読み込みに失敗しました。" << std::endl;
+		return false;
+	}
+
+	try
+	{
+		port = std::stoi(portStr);
+	}
+	catch (...)
+	{
+		hal::dout << "[ScoreClient] ポート番号のパースに失敗しました。" << std::endl;
+		return false;
+	}
+
+	outIP = ip;
+	outPort = port;
+	return true;
+}
 
 bool Score_SendToServer(int score)
 {
+	// 設定ファイルを読み込む（失敗時はデフォルト値を使用）
+	std::string serverIP = DEFAULT_IP;
+	int         serverPort = DEFAULT_PORT;
+	LoadServerConfig(serverIP, serverPort);
+
+	hal::dout << "[ScoreClient] 接続先: " << serverIP << ":" << serverPort << std::endl;
+
 	WSADATA wsaData;
 	if (WSAStartup(MAKEWORD(2, 2), &wsaData) != 0)
 	{
@@ -33,9 +92,9 @@ bool Score_SendToServer(int score)
 	}
 
 	sockaddr_in serverAddr{};
-	serverAddr.sin_family      = AF_INET;
-	serverAddr.sin_port        = htons(SERVER_PORT);
-	serverAddr.sin_addr.s_addr = inet_addr(SERVER_IP);
+	serverAddr.sin_family = AF_INET;
+	serverAddr.sin_port = htons(serverPort);
+	serverAddr.sin_addr.s_addr = inet_addr(serverIP.c_str());
 
 	if (connect(sock, (sockaddr*)&serverAddr, sizeof(serverAddr)) == SOCKET_ERROR)
 	{
