@@ -8,7 +8,7 @@
 #include "font.h"
 #include "UI.h"
 #include "sound.h"
-#include "ScoreClient.h"	// ★ 追加
+#include "ScoreClient.h"
 #include <sstream>
 #include <iomanip>
 using namespace DirectX;
