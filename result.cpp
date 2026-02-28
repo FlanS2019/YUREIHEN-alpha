@@ -218,11 +218,7 @@ void Result_Initialize(ID3D11Device* pDevice, ID3D11DeviceContext* pContext)
 	g_ResultPhase = PHASE_TIME_BIG;
 	g_PhaseAlpha = 0.0f;
 	g_WaitCounter = 0;
-
-	// ★ 送信フラグをリセット
 	g_ScoreSent = false;
-
-	// スコア値をリセット（前回プレイの値が残らないように）
 	g_pResultTime = 0.0f;
 	g_pResultCombo = 1;
 
