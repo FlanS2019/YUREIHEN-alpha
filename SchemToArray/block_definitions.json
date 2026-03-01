@@ -89,17 +89,17 @@
 		{
 			"name": "prismarine",
 			"names_ja": "チュートリアル用１つ目の壁",
-			"default_id": 7
+			"default_id": 13
 		},
 		{
 			"name": "prismarine_bricks",
 			"names_ja": "チュートリアル用２つ目の壁",
-			"default_id": 8
+			"default_id": 14
 		},
 		{
 			"name": "dark_prismarine",
 			"names_ja": "チュートリアル用３つ目の壁",
-			"default_id": 9
+			"default_id": 15
 		},
 		{
 			"name": "glass_pane",
