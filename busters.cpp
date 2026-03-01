@@ -1306,6 +1306,7 @@ void Busters::MoveTo(XMFLOAT3 targetPos)
 
 void Busters::OnScared(void)
 {
+	SetGroundLevel(BUSTERS_HEIGHT);
 	JumpStart();
 	m_TargetFurnitureIndex = -1;
 	m_WaitTimer = 120;

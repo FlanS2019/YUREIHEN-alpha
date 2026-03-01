@@ -66,6 +66,12 @@ namespace {
 	float g_SkipHoldTime = 0.0f;
 	const float SKIP_HOLD_REQUIRED = 1.5f;
 
+#if defined(DEBUG) || defined(_DEBUG)
+	const bool kEnableTutorialSkip = true;
+#else
+	const bool kEnableTutorialSkip = false;
+#endif
+
 	const float CROSSFADE_SPEED = 0.04f;
 
 	// ページ番号カウンター（InitPages内でリセット）
@@ -490,7 +496,10 @@ void UI_Tutorial_Initialize(ID3D11Device* pDevice, ID3D11DeviceContext* pContext
 		"ページ 1 / 1"
 	);
 
-	InitSkipUI();
+	if (kEnableTutorialSkip)
+	{
+		InitSkipUI();
+	}
 	ApplyPageHole();
 }
 
@@ -617,7 +626,7 @@ void UI_Tutorial_Update(void)
 		if (Keyboard_IsKeyDown(KK_SPACE))
 		{
 			g_SkipHoldTime += 1.0f / FPS;
-			if (g_SkipHoldTime >= SKIP_HOLD_REQUIRED)
+			if (kEnableTutorialSkip && g_SkipHoldTime >= SKIP_HOLD_REQUIRED)
 			{
 				UI_Tutorial_End();
 				return;
@@ -883,7 +892,7 @@ void UI_Tutorial_Draw(void)
 		g_pGuideFont->SetColor(col);
 	}
 
-	if (g_IsTutorial && g_pSkipBarBG && g_pSkipBarFG && g_pSkipGuideFont)
+	if (g_IsTutorial && kEnableTutorialSkip && g_pSkipBarBG && g_pSkipBarFG && g_pSkipGuideFont)
 	{
 		{
 			XMFLOAT4 col = g_pSkipBarBG->GetColor();
