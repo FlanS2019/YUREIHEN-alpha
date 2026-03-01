@@ -39,6 +39,15 @@ static bool LoadServerConfig(std::string& outIP, int& outPort)
 		return false;
 	}
 
+	// 先頭のUTF-8 BOM（EF BB BF）を除去
+	if (ip.size() >= 3 &&
+		(unsigned char)ip[0] == 0xEF &&
+		(unsigned char)ip[1] == 0xBB &&
+		(unsigned char)ip[2] == 0xBF)
+	{
+		ip.erase(0, 3);
+	}
+
 	// 末尾の改行・空白を除去（Windowsの \r\n 対策）
 	while (!ip.empty() && (ip.back() == '\r' || ip.back() == '\n' || ip.back() == ' '))
 	{
