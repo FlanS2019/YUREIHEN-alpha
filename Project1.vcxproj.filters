@@ -106,8 +106,7 @@
     <None Include="DirectXTex.inl" />
     <None Include=".github\workflows\release.yml" />
     <None Include="SchemToArray\block_definitions.json" />
-    <None Include="docs\PointLight_Implementation.md" />
-    <None Include="PointLight_Implementation.md" />
+    <None Include="docs\PointLight_Summary.md" />
   </ItemGroup>
   <ItemGroup>
     <FxCompile Include="shader_pixel_2d.hlsl" />
