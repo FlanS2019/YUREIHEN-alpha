@@ -55,6 +55,9 @@ static int g_CurrentFloor = START_FLOOR - 1;
 // 壁判定の有効/無効フラグ（デバッグシーン等で無効化する）
 static bool g_WallCheckEnabled = true;
 
+// チュートリアル壁ごとの当たり判定有効フラグ（インデックス0=壁1/ID13, 1=壁2/ID14, 2=壁3/ID15）
+static bool g_TutorialWallEnabled[3] = { true, true, true };
+
 #undef MAP_W
 #undef MAP_H
 #define MAP_W (MAP_WIDTH)
@@ -71,13 +74,32 @@ static int GetMapBlockID(int floor, int y, int z, int x)
 	// 配列外参照チェック
 	if (y < 0 || y >= MAP_HEIGHT || z < 0 || z >= MAP_H || x < 0 || x >= MAP_W) return 0;
 
+	int id;
 	switch (floor)
 	{
-	case 0: return Floor1[y][z][x]; // 1階
-	case 1: return Floor2[y][z][x]; // 2階
-	case 2: return Floor3[y][z][x]; // 3階
+	case 0: id = Floor1[y][z][x]; break;
+	case 1: id = Floor2[y][z][x]; break;
+	case 2: id = Floor3[y][z][x]; break;
 	default: return 0;
 	}
+
+	// 負の値は無効（旧バックアップ方式の名残）
+	if (id < 0) return 0;
+
+	// チュートリアル壁は当たり判定フラグが false の場合は 0（空気）として扱う
+	if (id == 13 && !g_TutorialWallEnabled[0]) return 0;
+	if (id == 14 && !g_TutorialWallEnabled[1]) return 0;
+	if (id == 15 && !g_TutorialWallEnabled[2]) return 0;
+
+	return id;
+}
+
+static void ResetTutorialWallsOnFloor3()
+{
+	// Floor3 配列は書き換えず、当たり判定フラグをリセットするのみ
+	g_TutorialWallEnabled[0] = true;
+	g_TutorialWallEnabled[1] = true;
+	g_TutorialWallEnabled[2] = true;
 }
 
 FIELD_TYPE ConvertMapID(int minecraftID)
@@ -90,8 +112,9 @@ FIELD_TYPE ConvertMapID(int minecraftID)
 	case 1:  // トウヒの板材
 	case 2:  // ダークオークの原木（抜けられない壁）
 	case 4:  // シラカバの板材
-	case 14: // ダークオークフェンス
-	case 15: // オークフェンス
+	case 13: // チュートリアル用１つ目の壁（描画なし・当たり判定のみ）
+	case 14: // チュートリアル用２つ目の壁（描画なし・当たり判定のみ）
+	case 15: // チュートリアル用３つ目の壁（描画なし・当たり判定のみ）
 	case 16: // ダイアモンド
 	case 17: // カーペット
 	case 18: // 窓ガラス
@@ -108,7 +131,7 @@ FIELD_TYPE ConvertMapID(int minecraftID)
 	case 9: case 10: case 11: case 12: // 上付き階段
 		return FIELD_STAIRS_DOWN;
 
-	case 98: case 13: // 方向指示ブロック・ドア
+	case 98: // 方向指示ブロック
 		return FIELD_NONE;
 
 	default:
@@ -139,6 +162,9 @@ void LoadMapData(int floor)
 				int mcID = GetMapBlockID(floor, y, z, x);
 				if (mcID == 0) continue;
 
+				// チュートリアル壁（ID 13/14/15）は描画リストに追加しない（見えない壁）
+				if (mcID == 13 || mcID == 14 || mcID == 15) continue;
+
 				FIELD_TYPE type = ConvertMapID(mcID);
 
 				if (type == FIELD_NONE) continue;
@@ -146,15 +172,16 @@ void LoadMapData(int floor)
 				auto isFaceVisible = [&](int myID, int targetY, int targetZ, int targetX) -> bool {
 					int neighborID = GetMapBlockID(floor, targetY, targetZ, targetX);
 
-					if (neighborID == 0) return true; // 隣が空気なら絶対に面を描画する
+					if (neighborID == 0 || neighborID == 13 || neighborID == 14 || neighborID == 15) return true; // 隣が空気なら絶対に面を描画する
 
 					if (ConvertMapID(neighborID) == FIELD_NONE) return true;
 
 					// 透過ブロック(ガラス等)を並べた時、隣が同じブロックなら接合面を消す
 					if (myID == neighborID) return false;
 
-					// ID:2とID:3は同じ壁テクスチャなので、隣接時は接合面を消す
-					if ((myID == 2 || myID == 3) && (neighborID == 2 || neighborID == 3)) return false;
+					// ID:2/3/13/14/15 は同じ壁テクスチャ系として隣接時の接合面を消す
+					if ((myID == 2 || myID == 3 ) &&
+						(neighborID == 2 || neighborID == 3)) return false;
 
 					// 自分が不透明ブロックで、隣が透過ブロックの場合は面を描画する
 					// 他に透過ブロックIDがあれば || neighborID == XX を追加
@@ -202,9 +229,9 @@ void LoadMapData(int floor)
 
 	// テクスチャバッチング用にソート（blockIDベース）
 	std::sort(g_MapList.begin(), g_MapList.end(), [](const MAPDATA& a, const MAPDATA& b) {
-		// 壁ブロック(ID:2,3)はy軸でテクスチャが決まるのでmapYでソート
-		bool aIsWall = (a.blockID == 2 || a.blockID == 3);
-		bool bIsWall = (b.blockID == 2 || b.blockID == 3);
+		// 壁ブロック(ID:2,3,13,14,15)はy軸でテクスチャが決まるのでmapYでソート
+		bool aIsWall = (a.blockID == 2 || a.blockID == 3 || a.blockID == 13 || a.blockID == 14 || a.blockID == 15);
+		bool bIsWall = (b.blockID == 2 || b.blockID == 3 || b.blockID == 13 || b.blockID == 14 || b.blockID == 15);
 		if (aIsWall && bIsWall) return a.mapY < b.mapY;
 		if (aIsWall != bIsWall) return aIsWall < bIsWall;
 		return a.blockID < b.blockID;
@@ -382,6 +409,7 @@ void Field_Initialize(ID3D11Device* pDevice, ID3D11DeviceContext* pContext)
 	g_BlockTextures[4] = LoadTexture(L"asset\\texture\\kabeue.png");	 // ID 4
 	g_BlockTextures[13] = LoadTexture(L"asset\\texture\\wood.png");      // ID 13
 	g_BlockTextures[14] = LoadTexture(L"asset\\texture\\wood.png");      // ID 14
+	g_BlockTextures[15] = LoadTexture(L"asset\\texture\\wood.png");      // ID 15
 	g_BlockTextures[16] = LoadTexture(L"asset\\texture\\green.png");	 // ID 16
 	g_BlockTextures[17] = LoadTexture(L"asset\\texture\\tairu.png");	 // ID 17
 	g_BlockTextures[18] = LoadTexture(L"asset\\texture\\garasu.png");	 // ID 18
@@ -396,6 +424,7 @@ void Field_Initialize(ID3D11Device* pDevice, ID3D11DeviceContext* pContext)
 	g_CeilingTextures[2] = LoadTexture(L"asset\\texture\\tenjou_hen.png");
 
 	g_CurrentFloor = START_FLOOR - 1; // 3階スタート
+	ResetTutorialWallsOnFloor3();
 	LoadMapData(g_CurrentFloor);
 
 	if (!g_MapList.empty()) {
@@ -629,7 +658,7 @@ void Field_Draw(void)
 		if (mapData.no == FIELD_STAIRS_UP || mapData.no == FIELD_STAIRS_DOWN) {
 			nextSRV = g_TextureStairs;
 		}
-		else if (mapData.blockID == 2 || mapData.blockID == 3) {
+		else if (mapData.blockID == 2 || mapData.blockID == 3 || mapData.blockID == 13 || mapData.blockID == 14 || mapData.blockID == 15) {
 			// 壁ブロックはy軸でテクスチャを選択
 			if (mapData.mapY == 1) nextSRV = g_BlockTextures[2];       // kabesita.png
 			else if (mapData.mapY == 2) nextSRV = g_BlockTextures[3];  // tunagime.png
@@ -813,6 +842,10 @@ void Field_Finalize(void)
 void Field_ChangeFloor(int floorIndex)
 {
 	g_CurrentFloor = floorIndex;
+	if (g_CurrentFloor == 2)
+	{
+		ResetTutorialWallsOnFloor3();
+	}
 	LoadMapData(g_CurrentFloor);
 
 	Furniture_Initialize();
@@ -1180,8 +1213,9 @@ std::vector<XMFLOAT3> Field_GetStairsExitPositions(int floor)
 	{
 		for (int x = 0; x < MAP_W; x++)
 		{
-			int mcID = GetMapBlockID(floor, 0, z, x);
-			if (mcID == 5 || mcID == 6)
+			int mcID0 = GetMapBlockID(floor, 0, z, x);
+			int mcID1 = GetMapBlockID(floor, 1, z, x);
+			if (mcID0 == 5 || mcID0 == 6 || mcID1 == 5 || mcID1 == 6)
 			{
 				float wx = GridToWorldX(x);
 				float wz = GridToWorldZ(z);
@@ -1200,8 +1234,9 @@ std::vector<XMFLOAT3> Field_GetFloor1ExitPositions(int floor)
 	{
 		for (int x = 0; x < MAP_W; x++)
 		{
-			int mcID = GetMapBlockID(floor, 0, z, x);
-			if (mcID == 4)
+			int mcID0 = GetMapBlockID(floor, 0, z, x);
+			int mcID1 = GetMapBlockID(floor, 1, z, x);
+			if (mcID0 == 4 || mcID1 == 4)
 			{
 				float wx = GridToWorldX(x);
 				float wz = GridToWorldZ(z);
@@ -1234,4 +1269,19 @@ bool Field_IsNoFloor(float x, float z)
 void Field_SetWallCheckEnabled(bool enabled)
 {
 	g_WallCheckEnabled = enabled;
+}
+
+void Field_SetTutorialWall(int wallNumber, bool enabled)
+{
+	// wallNumber: 1→ID13, 2→ID14, 3→ID15
+	if (wallNumber < 1 || wallNumber > 3) return;
+	int targetID = 12 + wallNumber; // 13, 14, 15
+
+	g_TutorialWallEnabled[wallNumber - 1] = enabled;
+
+	// マップデータを再構築して描画リスト・壁判定を更新
+	if (g_CurrentFloor == 2)
+	{
+		LoadMapData(g_CurrentFloor);
+	}
 }

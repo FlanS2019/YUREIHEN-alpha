@@ -34,6 +34,10 @@ void Tutorial_Pages_Init()
 		{ SCREEN_WIDTH / 2, SCREEN_HEIGHT - 100.0f }
 	);
 
+
+	// 壁番号1（ID:13）を無効化する（次ページのonEnterで実行される）
+	SetTutorialWall(1, false);
+
 	SetTutorialMarker(false);
 	SetEnbanVisible(false);
 	AddPage({ SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2 }, 0.0f, {
@@ -55,6 +59,9 @@ void Tutorial_Pages_Init()
 		TutorialObject_GetPianoPossessedPtr(),
 		{ SCREEN_WIDTH / 2, SCREEN_HEIGHT - 100.0f }
 	);
+
+	//最初の壁を有効に
+	SetTutorialWall(1, true);
 
 	AddPage({ SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2 }, 0.0f, {
 		"憑依できたね！ おや？この影は？"
@@ -125,11 +132,24 @@ void Tutorial_Pages_Init()
 		{ SCREEN_WIDTH / 2, SCREEN_HEIGHT - 170.0f }
 	);
 
+	// 壁番号2（ID:14）を無効化する
+	SetTutorialWall(2, false);
+
+	// 最後の部屋に通常の探索機能付きバスターズを出現させる
+	StartNormalBusters({ -10.0f, BUSTERS_HEIGHT, -5.0f });
+
+	// 壁番号3（ID:15）を無効化する
+	SetTutorialWall(3, false);
+
 	AddPage({ SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2 }, 0.0f, {
 		"ちょっと説明長くなっちゃった……",
 		"話し込んでたら、バスターずは隣の部屋に行ったみたい。",
 		"チュートリアルだしダメージは減らないようにしとく。色々試してみて！",
 		});
+
+	//// 壁番号3（ID:15）を無効化する
+	//SetTutorialWall(3, false);
+
 
 
 	//AddPage({ 120.0f, 120.0f }, 150.0f, {

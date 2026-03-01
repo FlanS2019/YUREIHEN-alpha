@@ -526,8 +526,8 @@ void TutorialBusters::StartExit(const XMFLOAT3& exitPos)
 void TutorialObject_Initialize(void)
 {
 	g_pEnban = new Sprite3D(
-		{ -5.0f, 0.5f, 17.0f },
-		{ 4.0f, 1.0f, 4.0f },
+		{ -4.5f, 0.0f, 17.0f },
+		{ 8.0f, 13.0f, 8.0f },
 		{ 0.0f, 0.0f, 0.0f },
 		"asset\\model\\enban.fbx"
 	);

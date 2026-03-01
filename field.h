@@ -75,3 +75,6 @@ std::vector<XMFLOAT3> Field_GetFloor1ExitPositions(int floor);
 int Field_GetRawBlockID(float x, float z);
 // 壁判定の有効/無効を切り替える（デバッグシーン等で使用）
 void Field_SetWallCheckEnabled(bool enabled);
+
+// チュートリアル用壁の有効/無効を切り替える（wallNumber: 1～3, enabled: true=壁あり, false=壁なし）
+void Field_SetTutorialWall(int wallNumber, bool enabled);

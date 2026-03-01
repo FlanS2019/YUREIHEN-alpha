@@ -12,6 +12,7 @@
 #include "ghost.h"
 #include "camera.h"
 #include "Tutorial_Object.h"
+#include "busters.h"
 #include <windows.h>
 #include "debug_ostream.h"
 #include "UI_Tutorial_Internal.h"
@@ -301,6 +302,22 @@ void StartTutorialBusterExit(const XMFLOAT3& exitPos)
 {
 	s_PendingOnEnter.push_back([exitPos]() {
 		TutorialObject_StartBusterExit(exitPos);
+	});
+}
+
+// チュートリアル用壁の有効/無効を設定（次ページの onEnter に積む）
+void SetTutorialWall(int wallNumber, bool enabled)
+{
+	s_PendingOnEnter.push_back([wallNumber, enabled]() {
+		Field_SetTutorialWall(wallNumber, enabled);
+	});
+}
+
+// 通常の探索機能付きバスターズを指定座標に出現させる（次ページの onEnter に積む）
+void StartNormalBusters(const XMFLOAT3& pos)
+{
+	s_PendingOnEnter.push_back([pos]() {
+		Busters_SpawnAt(pos, 2);
 	});
 }
 
@@ -966,6 +983,21 @@ void UI_Tutorial_Start()
 
 void UI_Tutorial_End()
 {
+	// 余っている未登録の pending 処理があれば実行
+	for (auto& fn : s_PendingOnEnter) {
+		fn();
+	}
+	s_PendingOnEnter.clear();
+
+	// 残っている onEnter を全て実行してゲーム可能な最終状態にする（スキップ対応）
+	for (int i = g_CurrentPage; i < (int)g_Pages.size(); ++i)
+	{
+		if (g_Pages[i].onEnter) {
+			g_Pages[i].onEnter();
+			g_Pages[i].onEnter = nullptr;
+		}
+	}
+
 	if (g_CameraOverrideActive)
 	{
 		Camera* cam = GetCamera();

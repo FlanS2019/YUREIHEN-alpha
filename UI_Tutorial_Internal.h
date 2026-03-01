@@ -57,6 +57,12 @@ void SetTutorialBusterTarget(const XMFLOAT3& pos);
 // バスターズを退場させる（次ページの onEnter に積まれる）
 void StartTutorialBusterExit(const XMFLOAT3& exitPos);
 
+// チュートリアル用壁の有効/無効を設定する（次ページの onEnter に積まれる）
+void SetTutorialWall(int wallNumber, bool enabled);
+
+// 通常の探索機能付きバスターズを指定座標に出現させる（次ページの onEnter に積まれる）
+void StartNormalBusters(const XMFLOAT3& pos);
+
 // ------------------------------------------
 // Tutorial_Pages.cpp が実装する関数
 // ------------------------------------------
