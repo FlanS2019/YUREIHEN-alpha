@@ -92,6 +92,8 @@ void Tutorial_Pages_Init()
 		"驚かせが連鎖すると、恐怖ゲージの上昇幅は増え、驚かせ範囲は広くなるよ！",
 	});
 
+	StartTutorialBusterExit({ -23.0f, BUSTERS_HEIGHT, -8.0f });
+
 	AddPage({ SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2 }, 0.0f, {
 		"次は、家具できること！"
 		"家具は大きく分けて「３種類」があるんだ。"

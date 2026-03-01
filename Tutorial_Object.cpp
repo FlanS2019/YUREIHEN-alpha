@@ -112,6 +112,8 @@ TutorialBusters::TutorialBusters(const XMFLOAT3& pos, const XMFLOAT3& scale, con
 	, m_KeepStateTimer(0)
 	, m_HasTarget(false)
 	, m_TargetPos(0.0f, 0.0f, 0.0f)
+	, m_IsExiting(false)
+	, m_ExitTargetPos(0.0f, 0.0f, 0.0f)
 {
 	m_Icon = new Billboard();
 	m_Icon->Initialize({ 0.0f, 0.0f, 0.0f }, { 0.7f, 0.7f }, { 0.0f, 0.0f, 0.0f }, true);
@@ -291,7 +293,78 @@ void TutorialBusters::Update(void)
 	const float dt = 1.0f / 60.0f;
 	this->UpdateAnimation(dt);
 
+	// 状態に応じたモーション切り替え（本元Bustersと同様）
+	if (m_IsExiting)
+	{
+		this->PlayAnimationByName("walk", true);
+	}
+	else
+	{
+		switch (m_State)
+		{
+		case TB_IDLE:
+			this->PlayAnimationByName("walk", true);
+			break;
+		case TB_SUSPICION:
+			if (m_WaitTimer > 0 && m_HasTarget)
+				this->PlayAnimationByName("chousa", true);
+			else
+				this->PlayAnimationByName("walk", true);
+			break;
+		case TB_CHASE:
+			// hakkenが再生中なら終了を待ち、終わったらhakkendashへ
+			if (m_AnimState.currentAnimName == "hakken")
+			{
+				if (!this->IsAnimationPlaying())
+				{
+					this->PlayAnimationByName("hakkendash", true);
+					m_WaitTimer = 0;
+				}
+			}
+			else if (m_AnimState.currentAnimName != "hakkendash")
+			{
+				// CHASE状態に入った直後：まずhakkenを非ループで再生
+				this->PlayAnimationByName("hakken", false);
+			}
+			break;
+		case TB_STUN:
+			this->PlayAnimationByName("kizetsu", true);
+			break;
+		}
+	}
+
 	JumpUpdate(*(Transform3D*)this);
+
+	// 退場中は退場先へ歩くだけ
+	if (m_IsExiting)
+	{
+		float dx = m_ExitTargetPos.x - m_Position.x;
+		float dz = m_ExitTargetPos.z - m_Position.z;
+		float distSq = dx * dx + dz * dz;
+
+		if (distSq <= m_MoveSpeed * m_MoveSpeed)
+		{
+			// 到着 → 非表示にする
+			m_IsExiting = false;
+			TutorialObject_SetBustersVisible(false);
+		}
+		else
+		{
+			MoveTo(m_ExitTargetPos);
+		}
+
+		UpdateHeadlight();
+
+		if (m_Icon)
+		{
+			m_Icon->SetIcon(BILLBOARD_ICON::NONE);
+			XMFLOAT3 iconPos = m_Position;
+			iconPos.y += 3.25f;
+			m_Icon->SetPos(iconPos);
+			m_Icon->Update();
+		}
+		return;
+	}
 
 	// 硬直タイマー
 	if (m_WaitTimer > 0)
@@ -432,6 +505,18 @@ void TutorialBusters::OnScared(void)
 	SetState(TB_STUN);
 	m_WaitTimer      = 180; // 3秒間スタン
 	m_KeepStateTimer = 0;
+}
+
+// 退場開始
+void TutorialBusters::StartExit(const XMFLOAT3& exitPos)
+{
+	m_IsExiting = true;
+	m_ExitTargetPos = exitPos;
+	m_HasTarget = false;
+	m_WaitTimer = 0;
+	m_KeepStateTimer = 0;
+	m_MoveSpeed = BUSTERS_MOVE_SPEED_SEARCH;
+	SetState(TB_IDLE);
 }
 
 // =================================================================
@@ -607,6 +692,14 @@ TutorialBusters* GetTutorialBusters(void)
 TutorialMarker* GetTutorialMarker(void)
 {
 	return g_pTutorialMarker;
+}
+
+void TutorialObject_StartBusterExit(const XMFLOAT3& exitPos)
+{
+	if (g_pTutorialBusters)
+	{
+		g_pTutorialBusters->StartExit(exitPos);
+	}
 }
 
 void TutorialBusters_SetLight(void)

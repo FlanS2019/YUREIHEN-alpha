@@ -54,6 +54,9 @@ void SetEnbanVisible(bool visible);
 // バスターズに調査対象座標を設定する（次ページの onEnter に積まれる）
 void SetTutorialBusterTarget(const XMFLOAT3& pos);
 
+// バスターズを退場させる（次ページの onEnter に積まれる）
+void StartTutorialBusterExit(const XMFLOAT3& exitPos);
+
 // ------------------------------------------
 // Tutorial_Pages.cpp が実装する関数
 // ------------------------------------------

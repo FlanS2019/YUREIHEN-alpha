@@ -296,6 +296,14 @@ void SetTutorialBusterTarget(const XMFLOAT3& pos)
 	});
 }
 
+// バスターズを退場させる（次ページの onEnter に積む）
+void StartTutorialBusterExit(const XMFLOAT3& exitPos)
+{
+	s_PendingOnEnter.push_back([exitPos]() {
+		TutorialObject_StartBusterExit(exitPos);
+	});
+}
+
 // ==========================================
 // ページ遷移・カメラ処理
 // ==========================================
