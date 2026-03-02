@@ -47,7 +47,7 @@ static const float    TIME_BIG_LABEL_FONT = 55.0f;//フォントサイズ
 static const XMFLOAT2 TIME_BIG_LABEL_POS = { SCREEN_WIDTH / 2.0f - 130.0f, SCREEN_HEIGHT / 2.0f + 130.0f };//スコアのラベル位置
 
 // 下部の小さい最終位置　時間の結果
-static const XMFLOAT2 TIME_SMALL_POS = { SCREEN_WIDTH / 2.0f + 215.0f, SCREEN_HEIGHT / 2.0f - 13.0f };
+static const XMFLOAT2 TIME_SMALL_POS = { SCREEN_WIDTH / 2.0f + 265.0f, SCREEN_HEIGHT / 2.0f - 13.0f };
 static const XMFLOAT2 TIME_SMALL_SIZE = { 35.0f, 35.0f };
 static const float    TIME_SMALL_SPACING = 30.0f;//桁間のスペース
 static const float    TIME_SMALL_LABEL_FONT = 33.0f;//フォントサイズ
@@ -219,8 +219,7 @@ void Result_Initialize(ID3D11Device* pDevice, ID3D11DeviceContext* pContext)
 	g_PhaseAlpha = 0.0f;
 	g_WaitCounter = 0;
 	g_ScoreSent = false;
-	g_pResultTime = 0.0f;
-	g_pResultCombo = 1;
+	// g_pResultTime と g_pResultCombo は WinAnim から渡された値を保持するためリセットしない
 
 	// 背景
 	g_pResultSprite = new Sprite(
@@ -278,7 +277,7 @@ void Result_Initialize(ID3D11Device* pDevice, ID3D11DeviceContext* pContext)
 
 	// スコア数字：アルファ 0
 	g_pResultNum = new Number(
-		{ SCREEN_WIDTH / 2.0f + 10.0f, SCREEN_HEIGHT / 2.0f + 130.0f },
+		{ SCREEN_WIDTH / 2.0f + 60.0f, SCREEN_HEIGHT / 2.0f + 130.0f },
 		{ 50.0f, 50.0f },
 		{ 1.0f, 1.0f, 1.0f, 0.0f },
 		BLENDSTATE_ALFA,
