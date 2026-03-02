@@ -606,6 +606,7 @@ void UI_Tutorial_Update(void)
 				g_Pages[g_CurrentPage].onEnter)
 			{
 				g_Pages[g_CurrentPage].onEnter();
+				g_Pages[g_CurrentPage].onEnter = nullptr;
 			}
 		}
 		ApplyPageHole();
@@ -675,6 +676,7 @@ void UI_Tutorial_Update(void)
 				g_Pages[g_CurrentPage].onEnter)
 			{
 				g_Pages[g_CurrentPage].onEnter();
+				g_Pages[g_CurrentPage].onEnter = nullptr;
 			}
 
 			if (g_CurrentPage >= 0 && g_CurrentPage < (int)g_Pages.size() && !g_Pages[g_CurrentPage].cameraOverride)
