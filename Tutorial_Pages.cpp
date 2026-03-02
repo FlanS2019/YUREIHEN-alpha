@@ -34,6 +34,10 @@ void Tutorial_Pages_Init()
 		{ SCREEN_WIDTH / 2, SCREEN_HEIGHT - 100.0f }
 	);
 
+
+	// 壁番号1（ID:13）を無効化する（次ページのonEnterで実行される）
+	SetTutorialWall(1, false);
+
 	SetTutorialMarker(false);
 	SetEnbanVisible(false);
 	AddPage({ SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2 }, 0.0f, {
@@ -55,6 +59,9 @@ void Tutorial_Pages_Init()
 		TutorialObject_GetPianoPossessedPtr(),
 		{ SCREEN_WIDTH / 2, SCREEN_HEIGHT - 100.0f }
 	);
+
+	//最初の壁を有効に
+	SetTutorialWall(1, true);
 
 	AddPage({ SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2 }, 0.0f, {
 		"憑依できたね！ おや？この影は？"
@@ -83,30 +90,77 @@ void Tutorial_Pages_Init()
 
 	AddPage({ 1050.0f, 83.0f }, 50.0f, {
 		"バスターズをうまく驚かせられると、右上の「恐怖ゲージ」が溜まっていくよ。",
-		"MAXまでいくとステージクリア！次の階へ進もう"
+		"MAXまでいくとステージクリア！次の階へ進もう",
+		"全部なくなっちゃうと負けだから気を付けてね！",
 	});
 
 	AddPage({ 1163.0f, 201.0f }, 90.0f, {
 		"あと、「恐怖コンボ」ってのも上がる。",
 		"驚かせが連鎖すると、恐怖ゲージの上昇幅は増え、驚かせ範囲は広くなるよ！",
-		"",
-		"じゃあ早速恐怖コンボを……"
 	});
+
+	StartTutorialBusterExit({ -23.0f, BUSTERS_HEIGHT, -8.0f });
 
 	AddPage({ SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2 }, 0.0f, {
-	"ってあれ？バスターズが隣の部屋に行っちゃった！",
-	"とりあえず次の部屋まで移動しようか。",
-	});
+		"次は、家具できること！"
+		"家具は大きく分けて「３種類」があるんだ。"
+		});
 
-	AddPage({ 120.0f, 120.0f }, 150.0f, {
-		"制限時間はにつき２分。過ぎると強制的に負けちゃうよ"
-	});
+	//幽撃
+	AddPage_Camera({ SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2 - 100.0f }, 250.0f,
+		{ "「幽撃」の家具",
+		  "！のアイコンだよ。バスターずを驚かせられる！" },
+		{ -20.0f, 2.0f, 12.5f }, { -10.0f, 2.0f, 12.5f },
+		{ SCREEN_WIDTH / 2, SCREEN_HEIGHT - 100.0f }
+	);
 
-	AddPage({ 147.0f, 563.0f }, 150.0f, {
-		"これはミニマップ。動きの参考にしよう"
-	});
+	//誘引
+	AddPage_Camera({ SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2 - 100.0f }, 220.0f,
+		{ "「誘引」の家具",
+		  "？のアイコンだよ。バスターずを引き寄せられる！",
+		  "家具状態でもちょっと移動できる。「幽撃」の家具の近くに移動して引き寄せよう" },
+		{ -13.5f, 3.0f, 14.5f }, { -13.5f, 0.2f, 10.5f },
+		{ SCREEN_WIDTH / 2, SCREEN_HEIGHT - 170.0f }
+	);
 
-	AddPage({ SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2 }, 150.0f, {
-		"あとは実際にやってみるターンを作る。一旦ゲームスタート（仮テキスト）"
-	});
+	//混乱
+	AddPage_Camera({ SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2 - 100.0f }, 220.0f,
+		{ "「混乱」の家具",
+		  "☆彡のアイコンだよ。バスターずの行動を止められる！",
+		  "誘引で引き寄せて、混乱で止め、幽撃で驚かす！！" },
+		{ -14.0f, 2.0f, 13.0f }, { -17.5f, -0.15f, 10.0f },
+		{ SCREEN_WIDTH / 2, SCREEN_HEIGHT - 170.0f }
+	);
+
+	// 壁番号2（ID:14）を無効化する
+	SetTutorialWall(2, false);
+
+	// 最後の部屋に通常の探索機能付きバスターズを出現させる
+	StartNormalBusters({ -10.0f, BUSTERS_HEIGHT, -5.0f });
+
+	// 壁番号3（ID:15）を無効化する
+	SetTutorialWall(3, false);
+
+	AddPage({ SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2 }, 0.0f, {
+		"ちょっと説明長くなっちゃった……",
+		"話し込んでたら、バスターずは隣の部屋に行ったみたい。",
+		"チュートリアルだしダメージは減らないようにしとく。色々試してみて！",
+		});
+
+	//// 壁番号3（ID:15）を無効化する
+	//SetTutorialWall(3, false);
+
+
+
+	//AddPage({ 120.0f, 120.0f }, 150.0f, {
+	//	"制限時間はにつき２分。過ぎると強制的に負けちゃうよ"
+	//	});
+
+	//AddPage({ 147.0f, 563.0f }, 150.0f, {
+	//	"これはミニマップ。動きの参考にしよう"
+	//	});
+
+	//AddPage({ SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2 }, 150.0f, {
+	//	"あとは実際にやってみるターンを作る。一旦ゲームスタート（仮テキスト）"
+	//	});
 }

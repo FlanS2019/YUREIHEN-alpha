@@ -87,6 +87,21 @@
 			"default_id": 3
 		},
 		{
+			"name": "prismarine",
+			"names_ja": "チュートリアル用１つ目の壁",
+			"default_id": 13
+		},
+		{
+			"name": "prismarine_bricks",
+			"names_ja": "チュートリアル用２つ目の壁",
+			"default_id": 14
+		},
+		{
+			"name": "dark_prismarine",
+			"names_ja": "チュートリアル用３つ目の壁",
+			"default_id": 15
+		},
+		{
 			"name": "glass_pane",
 			"names_ja": "窓ガラス",
 			"default_id": 18
@@ -95,7 +110,7 @@
 			"name": "white_concrete",
 			"names_ja": "キャビネット",
 			"default_id": 50,
-			"model": "asset\\model\\cabinet.fbx",
+			"model": "asset\\model\\cabinet.glb",
 			"action": "scare",
 			"scare_se": "asset\\sound\\se\\cabinet.m4a"
 		},
@@ -103,35 +118,35 @@
 			"name": "light_gray_concrete",
 			"names_ja": "高い本棚",
 			"default_id": 51,
-			"model": "asset\\model\\tall_bookshelf.fbx",
+			"model": "asset\\model\\tall_bookshelf.glb",
 			"action": "scare"
 		},
 		{
 			"name": "gray_concrete",
 			"names_ja": "ソファー",
 			"default_id": 52,
-			"model": "asset\\model\\sofa.fbx",
+			"model": "asset\\model\\sofa.glb",
 			"action": "scare"
 		},
 		{
 			"name": "black_concrete",
 			"names_ja": "シャンデリア",
 			"default_id": 53,
-			"model": "asset\\model\\chandelier.fbx",
+			"model": "asset\\model\\chandelier.glb",
 			"action": "scare"
 		},
 		{
 			"name": "brown_concrete",
 			"names_ja": "ロッキングチェア",
 			"default_id": 54,
-			"model": "asset\\model\\rockingchair.fbx",
+			"model": "asset\\model\\rockingchair.glb",
 			"action": "lure"
 		},
 		{
 			"name": "jukebox",
 			"names_ja": "蓄音機",
 			"default_id": 55,
-			"model": "asset\\model\\phonograph.fbx",
+			"model": "asset\\model\\phonograph.glb",
 			"action": "stop"
 		},
 		{
@@ -143,7 +158,7 @@
 			"name": "campfire",
 			"names_ja": "暖炉",
 			"default_id": 57,
-			"model": "asset\\model\\danro.fbx",
+			"model": "asset\\model\\danro.glb",
 			"action": "lure"
 		},
 		{
@@ -157,14 +172,14 @@
 			"name": "orange_concrete",
 			"names_ja": "キッチン",
 			"default_id": 59,
-			"model": "asset\\model\\kitchen.fbx",
+			"model": "asset\\model\\kitchen.glb",
 			"action": "scare"
 		},
 		{
 			"name": "yellow_concrete",
 			"names_ja": "便器",
 			"default_id": 60,
-			"model": "asset\\model\\toilet.fbx",
+			"model": "asset\\model\\toilet.glb",
 			"action": "lure",
 			"scare_se": "asset\\sound\\se\\toilet.m4a"
 		},
@@ -172,14 +187,14 @@
 			"name": "lime_concrete",
 			"names_ja": "ベッド",
 			"default_id": 61,
-			"model": "asset\\model\\cube.fbx",
+			"model": "asset\\model\\bed.glb",
 			"action": "stop"
 		},
 		{
 			"name": "green_concrete",
 			"names_ja": "ピアノ",
 			"default_id": 62,
-			"model": "asset\\model\\piano.fbx",
+			"model": "asset\\model\\piano.glb",
 			"action": "scare",
 			"scare_se": "asset\\sound\\se\\piano.m4a"
 		},
@@ -187,7 +202,7 @@
 			"name": "cauldron",
 			"names_ja": "シンク",
 			"default_id": 63,
-			"model": "asset\\model\\sink.fbx",
+			"model": "asset\\model\\sink.glb",
 			"action": "scare"
 		},
 		{
@@ -205,31 +220,31 @@
 			"action": "scare"
 		},
 		{
-			"name": "mangrove_door",
+			"name": "mangrove_trapdoor",
 			"names_ja": "偽扉",
 			"default_id": 66,
-			"model": "asset\\model\\cube.fbx",
+			"model": "asset\\model\\fake_door.glb",
 			"action": "scare"
 		},
 		{
 			"name": "cyan_concrete",
 			"names_ja": "振り子時計",
 			"default_id": 67,
-			"model": "asset\\model\\grandfather_clock.fbx",
+			"model": "asset\\model\\grandfather_clock.glb",
 			"action": "lure"
 		},
 		{
 			"name": "light_blue_concrete",
 			"names_ja": "椅子",
 			"default_id": 68,
-			"model": "asset\\model\\cube.fbx",
+			"model": "asset\\model\\chair.glb",
 			"action": "none"
 		},
 		{
 			"name": "blue_concrete",
 			"names_ja": "ダイニングテーブル",
 			"default_id": 69,
-			"model": "asset\\model\\cube.fbx",
+			"model": "asset\\model\\big_table.glb",
 			"action": "none"
 		},
 		{
@@ -243,7 +258,7 @@
 			"name": "magenta_concrete",
 			"names_ja": "L字ソファー",
 			"default_id": 71,
-			"model": "asset\\model\\L_sofa.fbx",
+			"model": "asset\\model\\L_sofa.glb",
 			"action": "scare"
 		},
 		{
@@ -254,6 +269,42 @@
 			"action": "scare"
 		},
 		{
+			"name": "鎧（剣なし）",
+			"names_ja": "oxidized_copper_golem_statue",
+			"default_id": 73,
+			"model": "asset\\model\\armour_normal.glb"
+		},
+		{
+			"name": "鎧（剣あり）",
+			"names_ja": "copper_golem_statue",
+			"default_id": 74,
+			"model": "asset\\model\\armour_luxury.glb"
+		},
+		{
+			"name": "blue_glazed_terracotta",
+			"names_ja": "大きな鏡",
+			"default_id": 75,
+			"model": "asset\\model\\toiletmirror.glb"
+		},
+		{
+			"name": "brown_glazed_terracotta",
+			"names_ja": "ベッドサイドテーブル",
+			"default_id": 76,
+			"model": "asset\\model\\bedside_table.glb"
+		},
+		{
+			"name": "red_glazed_terracotta",
+			"names_ja": "大きなチェスト",
+			"default_id": 77,
+			"model": "asset\\model\\longchest.glb"
+		},
+		{
+			"name": "pink_glazed_terracotta",
+			"names_ja": "小さなチェスト",
+			"default_id": 78,
+			"model": "asset\\model\\short_chest.glb"
+		},
+		{
 			"name": "end_stone_brick_wall",
 			"names_ja": "方向指示ブロック（エンドストーンの壁）",
 			"default_id": 98
@@ -262,6 +313,30 @@
 			"name": "barrier",
 			"names_ja": "新しいブロックはこれを複製して追加する",
 			"default_id": 39
+		},
+		{
+			"name": "carpet",
+			"names_ja": "carpet",
+			"default_id": 999,
+			"model": "asset\\model\\carpet.glb"
+		},
+		{
+			"name": "low_bookshelf",
+			"names_ja": "low_bookshelf",
+			"default_id": 999,
+			"model": "asset\\model\\low_bookshelf.glb"
+		},
+		{
+			"name": "sofa_original",
+			"names_ja": "sofa_original",
+			"default_id": 999,
+			"model": "asset\\model\\sofa_original.glb"
+		},
+		{
+			"name": "wallpanel",
+			"names_ja": "wallpanel",
+			"default_id": 999,
+			"model": "asset\\model\\wallpanel.fbx"
 		},
 		{
 			"name": "air",

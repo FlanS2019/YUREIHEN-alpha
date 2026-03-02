@@ -412,52 +412,6 @@ void Ghost_Update(void)
 		hal::dout << "Scene: " << sceneName << " (" << (int)currentScene << ")" << std::endl;
 	}
 
-	// 60フレーム毎の自動デバッグログ
-	{
-		static int s_DebugLogTimer = 0;
-		s_DebugLogTimer++;
-		if (s_DebugLogTimer >= 60)
-		{
-			s_DebugLogTimer = 0;
-
-			if (g_Ghost)
-			{
-				// ゴーストステート文字列化
-				const char* stateNames[] = {
-					"GS_MOVING", "GS_FURNITURE_FOUND", "GS_TRANSFORM",
-					"GS_SCARE", "GS_CAUGHT"
-				};
-				GHOST_STATE gs = g_Ghost->GetState();
-				const char* gsName = (gs >= 0 && gs <= GS_CAUGHT) ? stateNames[gs] : "UNKNOWN";
-
-				XMFLOAT3 gPos   = g_Ghost->GetPos();
-				XMFLOAT3 prePos = g_Ghost->m_PreTransformPos;
-				bool invincible  = g_Ghost->IsInvincible();
-				int  invTimer    = g_Ghost->m_InvincibleTimer;
-				bool isTransformed = g_Ghost->GetIsTransformed();
-
-				// カメラ情報
-				Camera* cam = GetCamera();
-				XMFLOAT3 camPos   = cam ? cam->GetPos()   : XMFLOAT3(0,0,0);
-				XMFLOAT3 camAt    = cam ? cam->GetAtPos() : XMFLOAT3(0,0,0);
-				float camPitch    = cam ? cam->GetPitch() : 0.0f;
-				float camYaw      = cam ? cam->GetYaw()   : 0.0f;
-
-				hal::dout << "[AUTO-DBG] GhostState=" << gsName
-				          << " IsTransformed=" << isTransformed
-				          << " Invincible=" << invincible << "(" << invTimer << "f)"
-				          << std::endl;
-				hal::dout << "  GhostPos=(" << gPos.x << "," << gPos.y << "," << gPos.z << ")"
-				          << " PreTransformPos=(" << prePos.x << "," << prePos.y << "," << prePos.z << ")"
-				          << std::endl;
-				hal::dout << "  CamPos=(" << camPos.x << "," << camPos.y << "," << camPos.z << ")"
-				          << " CamAt=(" << camAt.x << "," << camAt.y << "," << camAt.z << ")"
-				          << " Pitch=" << camPitch << " Yaw=" << camYaw
-				          << std::endl;
-			}
-		}
-	}
-
 	if (g_Ghost)
 	{
 		// 俯瞰・補間中のみカメラ追従を止める
@@ -553,8 +507,6 @@ void Ghost::ScareStart(void)
 	Furniture* pFurniture = GetFurniture(m_InRangeFurnitureNum);
 	if (!pFurniture) return;
 
-	Busters* pBuster = GetBusters();
-
 	if (g_pScareSound)
 	{
 		PlaySound(g_pScareSound, false);
@@ -562,26 +514,26 @@ void Ghost::ScareStart(void)
 
 	XMFLOAT3 ghostPos = GetPos();
 
-	XMFLOAT3 busterPos = { 0.0f, 0.0f, 0.0f };
-	float distance = FLT_MAX;
-	if (pBuster)
-	{
-		busterPos = pBuster->GetPos();
-		XMVECTOR ghostVec = XMLoadFloat3(&ghostPos);
-		XMVECTOR busterVec = XMLoadFloat3(&busterPos);
-		XMVECTOR distVec = XMVectorSubtract(busterVec, ghostVec);
-		distance = XMVectorGetX(XMVector3Length(distVec));
-	}
-
 	FURNITURE_ACTION action = pFurniture->GetActionType();
 	float currentRange = GetCurrentScareRange();
 
 	float backScareAngle = 140.0f;      // 背後と判定する角度（180度にすると真横も背後扱いになります。少し狭めの140度を推奨）
 	float backScareMultiplier = 1.5f;   // 背後から驚かせた時のゲージ上昇倍率
+	float limitCos = cosf(XMConvertToRadians(backScareAngle / 2.0f));
 
+	// 範囲内にいるバスターズのうち1体でも背後なら背後ボーナス適用
 	bool isBackScare = false;
-	if (pBuster)
+	int busterCount = Busters_GetCurrentFloorCount();
+	for (int i = 0; i < busterCount; i++)
 	{
+		Busters* pBuster = GetBustersByIndex(i);
+		if (!pBuster) continue;
+
+		XMFLOAT3 busterPos = pBuster->GetPos();
+		float dx = busterPos.x - ghostPos.x;
+		float dz = busterPos.z - ghostPos.z;
+		if (dx * dx + dz * dz > currentRange * currentRange) continue; // 範囲外はスキップ
+
 		// バスターズの向いている角度から「正面」ベクトルを計算
 		float rotRad = XMConvertToRadians(pBuster->GetRot().y + 180.0f);
 		XMVECTOR forwardVec = XMVectorSet(sinf(rotRad), 0.0f, cosf(rotRad), 0.0f);
@@ -595,12 +547,11 @@ void Ghost::ScareStart(void)
 
 		// 内積で角度を判定（コサイン）
 		float dot = XMVectorGetX(XMVector3Dot(backwardVec, busterToGhost));
-		float limitCos = cosf(XMConvertToRadians(backScareAngle / 2.0f));
 
-		// 幽霊がバスターズの「背後設定角度」の範囲内にいればボーナス
 		if (dot >= limitCos)
 		{
 			isBackScare = true;
+			break;
 		}
 	}
 
@@ -705,7 +656,8 @@ void Ghost::FurnitureSearch(void)
 	// 範囲内にある全ての家具のインデックスをリストアップする
 	std::vector<int> currentList;
 
-	for (int i = 0; i < FURNITURE_NUM; i++)
+	int furnitureCount = GetFurnitureCount();
+	for (int i = 0; i < furnitureCount; i++)
 	{
 		Furniture* pFurniture = GetFurniture(i);
 		if (pFurniture)
@@ -838,53 +790,9 @@ void Ghost::Move(void)
 void Ghost::FloorMove(void)
 {
 
-	if (m_FloorCooldown > 0.0f)
-	{
-		m_FloorCooldown -= 1.0f / 60.0f;
-	}
-
-	if (m_FloorCooldown <= 0.0f)
-	{
-		FIELD_TYPE blockType = Field_GetBlockType(m_Position.x, m_Position.z);
-
-		if (blockType == FIELD_STAIRS_UP || blockType == FIELD_STAIRS_DOWN)
-		{
-			if (m_FloorCooldown > 0.0f) SetColor(1.0f, 0.5f, 0.5f, 1.0f);
-			else SetColor(0.7f, 1.0f, 0.7f, 1.0f);
-
-			bool isClicked = (GetAsyncKeyState(VK_LBUTTON) & 0x8000) != 0;
-
-			if (isClicked)
-			{
-				if (blockType == FIELD_STAIRS_UP)
-				{
-					int currentFloor = Field_GetCurrentFloor();
-					if (currentFloor < MAP_FLOORS - 1)
-					{
-						Field_ChangeFloor(currentFloor + 1);
-						m_Position.z += 1.2f;
-						SetPos(m_Position);
-						m_FloorCooldown = FLOOR_COOLDOWN_TIME;
-					}
-				}
-				else if (blockType == FIELD_STAIRS_DOWN)
-				{
-					int currentFloor = Field_GetCurrentFloor();
-					if (currentFloor > 0)
-					{
-						Field_ChangeFloor(currentFloor - 1);
-						m_Position.z -= 1.2f;
-						SetPos(m_Position);
-						m_FloorCooldown = FLOOR_COOLDOWN_TIME;
-					}
-				}
-			}
-		}
-		else
-		{
-			ResetColor();
-		}
-	}
+	// 階段接近＋左クリックでの階層移動処理は無効化
+	m_FloorCooldown = 0.0f;
+	ResetColor();
 }
 
 void Ghost::ResetPos(void)

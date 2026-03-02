@@ -304,6 +304,7 @@ void UI_Update(void);
 void UI_Draw(void);
 
 void UI_DecreaseRemainingTime(float penaltySeconds);
+void UI_ResetTimer(void);
 
 // 現在の階層を取得（看板用）
 int UI_GetCurrentFloor(void);

@@ -261,7 +261,12 @@ void UI_Update(void)
 #if STOP_TIMER_BUSTER
 	bool timeEnded = false;
 #else
-	bool timeEnded = g_Clock->Update();
+	// 3階（index:2 / START_FLOOR-1）は時間制限なし
+	bool timeEnded = false;
+	if (currentFloor != (START_FLOOR - 1))
+	{
+		timeEnded = g_Clock->Update();
+	}
 #endif
 
 	if(timeEnded || g_ScareGauge->GetValue() <= 0.0f)
@@ -557,5 +562,13 @@ void UI_DecreaseRemainingTime(float penaltySeconds)
 		// 現在の経過時間を取得して、ペナルティ分を加算
 		float currentTime = g_Clock->GetTime();
 		g_Clock->SetTime(currentTime + penaltySeconds);
+	}
+}
+
+void UI_ResetTimer(void)
+{
+	if (g_Clock)
+	{
+		g_Clock->Reset();
 	}
 }

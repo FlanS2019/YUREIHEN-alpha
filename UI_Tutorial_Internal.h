@@ -20,26 +20,26 @@ void AddPage(
     const XMFLOAT2& holeCenter, float holeRadius,
     const std::vector<std::string>& texts,
     XMFLOAT2 textPos = { SCREEN_WIDTH * 0.5f, SCREEN_HEIGHT * 0.5f },
-    float fontSize = 40.0f);
+    float fontSize = 50.0f);
 
 void AddPage_Play(
     const std::vector<std::string>& texts, bool* pFlag,
     XMFLOAT2 textPos = { SCREEN_WIDTH * 0.5f, SCREEN_HEIGHT * 0.5f },
-    float fontSize = 40.0f,
+    float fontSize = 50.0f,
     int delayFrames = 0);
 
 // FlagWithDelay を受け取るオーバーロード
 void AddPage_Play(
     const std::vector<std::string>& texts, FlagWithDelay flagWithDelay,
     XMFLOAT2 textPos = { SCREEN_WIDTH * 0.5f, SCREEN_HEIGHT * 0.5f },
-    float fontSize = 40.0f);
+    float fontSize = 50.0f);
 
 void AddPage_Camera(
     const XMFLOAT2& holeCenter, float holeRadius,
     const std::vector<std::string>& texts,
     const XMFLOAT3& targetPos, const XMFLOAT3& targetAt,
     XMFLOAT2 textPos = { SCREEN_WIDTH * 0.5f, SCREEN_HEIGHT * 0.5f },
-    float fontSize = 40.0f);
+    float fontSize = 50.0f);
 
 void SetCameraFocusPoint(const XMFLOAT3& pos);
 
@@ -53,6 +53,15 @@ void SetEnbanVisible(bool visible);
 
 // バスターズに調査対象座標を設定する（次ページの onEnter に積まれる）
 void SetTutorialBusterTarget(const XMFLOAT3& pos);
+
+// バスターズを退場させる（次ページの onEnter に積まれる）
+void StartTutorialBusterExit(const XMFLOAT3& exitPos);
+
+// チュートリアル用壁の有効/無効を設定する（次ページの onEnter に積まれる）
+void SetTutorialWall(int wallNumber, bool enabled);
+
+// 通常の探索機能付きバスターズを指定座標に出現させる（次ページの onEnter に積まれる）
+void StartNormalBusters(const XMFLOAT3& pos);
 
 // ------------------------------------------
 // Tutorial_Pages.cpp が実装する関数

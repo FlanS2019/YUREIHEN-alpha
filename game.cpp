@@ -25,6 +25,7 @@ using namespace DirectX;
 #include "mouse.h"
 #include "light.h"
 #include "model.h"
+#include "UI_ScareCombo.h"
 #include <windows.h>
 #include <string>
 #include <cmath>
@@ -166,20 +167,6 @@ void Game_Update(void)
 				if (cam) cam->UpdateView(camPos, atPos);
 				Shader_SetCameraPos(camPos);
 				g_OverviewFrameCount++;
-				// 60フレーム毎デバッグログ
-				if (g_OverviewFrameCount % 60 == 0)
-				{
-					Ghost* dbgGhost = GetGhost();
-					XMFLOAT3 gp = dbgGhost ? dbgGhost->GetPos() : XMFLOAT3(0,0,0);
-					XMFLOAT3 pp = dbgGhost ? dbgGhost->m_PreTransformPos : XMFLOAT3(0,0,0);
-					const char* gsName = "N/A";
-					if (dbgGhost) { const char* n[]={"MOVING","FURN_FOUND","TRANSFORM","SCARE","CAUGHT"}; int s=(int)dbgGhost->GetState(); gsName=(s>=0&&s<=4)?n[s]:"?"; }
-					hal::dout << "[OVERVIEW F=" << g_OverviewFrameCount << "] GhostState=" << gsName
-					          << " GPos=(" << gp.x << "," << gp.y << "," << gp.z << ")"
-					          << " PrePos=(" << pp.x << "," << pp.y << "," << pp.z << ")"
-					          << " CamPos=(" << camPos.x << "," << camPos.y << "," << camPos.z << ")"
-					          << std::endl;
-				}
 				// 全バスターズがいなくなったらカメラ補間へ移行
 				if (g_OverviewFrameCount > 1 && GetBusters() == nullptr)
 				{
@@ -265,20 +252,6 @@ void Game_Update(void)
 				if (cam) cam->UpdateView(camPos, atPos);
 				Shader_SetCameraPos(camPos);
 
-				// 60フレーム毎にログ出力
-				{
-					static int s_LerpLogTimer = 0;
-					s_LerpLogTimer++;
-					if (s_LerpLogTimer >= 60)
-					{
-						s_LerpLogTimer = 0;
-						hal::dout << "[CAM_LERP] T=" << g_CamLerpT
-						          << " CamPos=(" << camPos.x << "," << camPos.y << "," << camPos.z << ")"
-						          << " Dst=(" << dstCamPos.x << "," << dstCamPos.y << "," << dstCamPos.z << ")"
-						          << std::endl;
-					}
-				}
-
 				// 終了判定：カメラ位置が終点から2m以内 or T>=1.0 になったら
 				// ゴーストとカメラtargetPosをPreTransformPosに同期して通常カメラに戻す
 				float ex = camPos.x - dstCamPos.x;
@@ -297,13 +270,11 @@ void Game_Update(void)
 					// 1階（最終フロア）の場合はプレイヤー操作を挟まず直接フェードしてリザルトへ
 					if (g_FloorBeforeExit == 0)
 					{
-						hal::dout << "[CAM_LERP] 完了(dist=" << sqrtf(distSq) << ") -> FADEIN (1F WIN)" << std::endl;
 						StartFade(SCENE_NONE);
 						g_FloorExitState = FLOOR_EXIT_FADEIN;
 					}
 					else
 					{
-						hal::dout << "[CAM_LERP] 完了(dist=" << sqrtf(distSq) << ") -> PLAYER_WALK" << std::endl;
 						g_FloorExitState = FLOOR_EXIT_PLAYER_WALK;
 					}
 				}
@@ -348,22 +319,27 @@ void Game_Update(void)
 					g_FloorExitAnimRequested = false;
 					g_FloorBeforeExit    = -1;
 					SetScene(SCENE_ANM_WIN);
+					Fade_StartIn(); // フェードイン開始（画面が真っ黒のまま止まるのを防ぐ）
 				}
 				else
 				{
-					// フロア移行：プレイヤーを下の階へ移動
+				// フロア移行：プレイヤーを下の階へ移動
 					int nextFloor = g_FloorBeforeExit - 1;
 					Ghost* ghost = GetGhost();
 					if (ghost)
 					{
-						XMFLOAT3 ghostPos = ghost->GetPos();
+						float ghostY = ghost->GetPos().y;
 						Field_ChangeFloor(nextFloor);
-						ghost->SetPos(ghostPos);
-						Camera_SetTargetPos(ghostPos);
+						XMFLOAT3 spawnPos = (nextFloor == 0)
+							? XMFLOAT3(0.0f, ghostY, -11.0f)
+							: ghost->GetPos();
+						ghost->SetPos(spawnPos);
+						Camera_SetTargetPos(spawnPos);
 					}
 					// 下の階にバスターズを生成
 					Busters_SpawnOnFloor(nextFloor);
 					UI_ResetScareGauge();
+					UI_ResetTimer();
 					AddScareGauge(BUSTERS_DEFOURT_GAUGE);
 					Fade_StartIn();
 					// フェードイン完了後に通常処理が再開したタイミングでマウスを戻す
@@ -428,6 +404,7 @@ void Game_Update(void)
 			Field_Update();
 			Ghost_Update();
 			Furniture_Update();
+			UI_ScareCombo_Update();
 			return;
 		}
 
@@ -479,6 +456,8 @@ void Game_Draw(void)
 	Ghost_SetLight();
 	Busters_SetLight();
 	Furniture_SetLight();
+	TutorialBusters_SetLight();
+	UI_Tutorial_SetLight();
 
 	Field_Draw();
 	Busters_Draw();

@@ -107,6 +107,7 @@ void Busters_SetLight(void);
 
 int Busters_GetCurrentFloorCount(void);
 bool Busters_IsAnyInRange(const XMFLOAT3& pos, float range); // 指定座標からrange以内に1人でもいるか
+Busters* GetBustersByIndex(int index); // インデックス指定でバスターズを取得
 
 // フロア降下アニメーション用
 void Busters_StartFloorExitAnim(void); // 全バスターズにID5/6階段まで走るよう指示（ランダム割り当て）
@@ -114,3 +115,4 @@ bool Busters_IsFloorExitAnimDone(void);               // 全バスターズが�
 void Busters_DoFloorTransition(void);                 // 実際のフロア移行処理を実行
 void Busters_DeleteCurrentFloor(void);                // 現在フロアのバスターズを全削除
 void Busters_SpawnOnFloor(int floorIndex);            // 指定フロアにバスターズを生成
+void Busters_SpawnAt(const XMFLOAT3& pos, int floorIndex); // 指定座標・フロアにバスターズを1体生成

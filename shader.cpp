@@ -154,6 +154,9 @@ bool Shader_Initialize(ID3D11Device* pDevice, ID3D11DeviceContext* pContext)
 	g_CurrentLightData.ambient = { 0.3f, 0.3f, 0.3f, 1.0f };
 	UpdateLightBuffer();
 
+	// ライト候補バッファを事前確保
+	g_LightCandidates.reserve(64);
+
 	// マテリアル色バッファの作成
 	buffer_desc.ByteWidth = sizeof(XMFLOAT4);
 	g_pDevice->CreateBuffer(&buffer_desc, nullptr, &g_pMaterialColorBuffer);
@@ -308,10 +311,7 @@ void Shader_SetWorldMatrix(const DirectX::XMMATRIX& matrix)
 
 void Shader_ClearPointLights()
 {
-	for (int i = 0; i < MAX_POINT_LIGHTS; ++i)
-	{
-		g_CurrentLightData.pointLights[i] = {};
-	}
+	memset(g_CurrentLightData.pointLights, 0, sizeof(g_CurrentLightData.pointLights));
 	g_CurrentLightData.lightCount = 0;
 	g_LightCandidates.clear();
 	g_LightBufferDirty = true;
@@ -319,15 +319,15 @@ void Shader_ClearPointLights()
 
 void Shader_AddPointLight(PointLight* light)
 {
-	if (!light)
+	if (!light || !light->enable)
 	{
 		return;
 	}
 
-	// 候補キューに追加（上限なし）
+	// 候補キューに追加
 	LightCandidate candidate;
-	candidate.data = {};
 	candidate.data.enable = light->enable;
+	candidate.data.dummy[0] = candidate.data.dummy[1] = candidate.data.dummy[2] = 0;
 	candidate.data.position = light->position;
 	candidate.data.direction = light->direction;
 	candidate.data.diffuse = light->diffuse;
@@ -380,26 +380,32 @@ void Shader_FlushLights()
 {
 	if (g_LightBufferDirty)
 	{
-		// 候補ライトをカメラ距離の近い順にソート
-		std::sort(g_LightCandidates.begin(), g_LightCandidates.end(),
-			[](const LightCandidate& a, const LightCandidate& b) {
-				return a.distSqToCamera < b.distSqToCamera;
-			});
+		int candidateCount = (int)g_LightCandidates.size();
+
+		// 候補がMAX_POINT_LIGHTSより多い場合のみソートが必要
+		if (candidateCount > MAX_POINT_LIGHTS)
+		{
+			std::partial_sort(g_LightCandidates.begin(),
+				g_LightCandidates.begin() + MAX_POINT_LIGHTS,
+				g_LightCandidates.end(),
+				[](const LightCandidate& a, const LightCandidate& b) {
+					return a.distSqToCamera < b.distSqToCamera;
+				});
+		}
 
 		// 上位 MAX_POINT_LIGHTS 個だけ g_CurrentLightData に詰める
-		int count = (int)g_LightCandidates.size();
+		int count = candidateCount;
 		if (count > MAX_POINT_LIGHTS) count = MAX_POINT_LIGHTS;
 
-		for (int i = 0; i < MAX_POINT_LIGHTS; ++i)
+		for (int i = 0; i < count; ++i)
 		{
-			if (i < count)
-			{
-				g_CurrentLightData.pointLights[i] = g_LightCandidates[i].data;
-			}
-			else
-			{
-				g_CurrentLightData.pointLights[i] = {};
-			}
+			g_CurrentLightData.pointLights[i] = g_LightCandidates[i].data;
+		}
+		// 残りをゼロクリア
+		if (count < MAX_POINT_LIGHTS)
+		{
+			memset(&g_CurrentLightData.pointLights[count], 0,
+				sizeof(PointLightData) * (MAX_POINT_LIGHTS - count));
 		}
 		g_CurrentLightData.lightCount = count;
 

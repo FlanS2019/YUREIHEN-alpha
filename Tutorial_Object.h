@@ -43,6 +43,10 @@ private:
 	bool     m_HasTarget;
 	XMFLOAT3 m_TargetPos;
 
+	// 退場用
+	bool     m_IsExiting;
+	XMFLOAT3 m_ExitTargetPos;
+
 public:
 	TutorialBusters(const XMFLOAT3& pos, const XMFLOAT3& scale, const XMFLOAT3& rot, const char* pass);
 	~TutorialBusters();
@@ -66,6 +70,10 @@ public:
 	// 調査対象座標を設定（この座標へ警戒状態で向かう）
 	void SetTarget(const XMFLOAT3& pos) { m_TargetPos = pos; m_HasTarget = true; }
 	void ClearTarget(void)              { m_HasTarget = false; }
+
+	// 退場：指定座標へ歩き、到達したら非表示にする
+	void StartExit(const XMFLOAT3& exitPos);
+	bool IsExiting(void) const { return m_IsExiting; }
 
 private:
 	void CheckState(void);
@@ -125,6 +133,9 @@ bool* TutorialObject_GetBustersStunnedPtr(void);
 FlagWithDelay TutorialObject_GetBustersStunnedPtr(int delayFrames);
 
 TutorialBusters* GetTutorialBusters(void);
+
+// チュートリアル用バスターズの退場を開始する
+void TutorialObject_StartBusterExit(const XMFLOAT3& exitPos);
 
 // 目的地マーカーのゲッター
 TutorialMarker* GetTutorialMarker(void);
