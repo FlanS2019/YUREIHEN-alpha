@@ -26,6 +26,8 @@ using namespace DirectX;
 #include "light.h"
 #include "model.h"
 #include "UI_ScareCombo.h"
+#include "WinAnim.h"
+#include "UI_ScareCombo.h"
 #include <windows.h>
 #include <string>
 #include <cmath>
@@ -366,8 +368,17 @@ void Game_Update(void)
 			if (fadeState == FADE_MAX)
 			{
 				SetFloorExitMarkerVisible(false);
-				if (g_FloorBeforeExit == END_FLOOR - 1 || g_FloorBeforeExit == 0)
+		if (g_FloorBeforeExit == END_FLOOR - 1 || g_FloorBeforeExit == 0)
 				{
+					// クリア階の残り時間を累積してからリザルトへ
+					UI_AccumulateFloorTime();
+					// ★ 累積時間とコンボをWinAnimに渡す（修正：ここで明示的に呼ぶ）
+					{
+						extern float UI_GetAccumulatedTime(void);
+						extern int UI_ScareCombo_GetNumber(void);
+						WinAnim_SetResultData(UI_GetAccumulatedTime(), UI_ScareCombo_GetNumber());
+					}
+
 					// クリア階 or 1階 → 勝利シーンへ遷移
 					g_FloorExitState     = FLOOR_EXIT_NONE;
 					g_FloorExitTimer     = 0;
@@ -382,6 +393,11 @@ void Game_Update(void)
 				{
 				// フロア移行：プレイヤーを下の階へ移動
 					int nextFloor = g_FloorBeforeExit - 1;
+					// ★ 3階（チュートリアル階）はタイマーが動いていないため累積しない
+					if (g_FloorBeforeExit != (START_FLOOR - 1))
+					{
+						UI_AccumulateFloorTime();
+					}
 					Ghost* ghost = GetGhost();
 					if (ghost)
 					{
