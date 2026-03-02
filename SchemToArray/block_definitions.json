@@ -87,6 +87,11 @@
 			"default_id": 3
 		},
 		{
+			"name": "magenta_glazed_terracotta",
+			"names_ja": "１階用出口ブロック",
+			"default_id": 4
+		},
+		{
 			"name": "prismarine",
 			"names_ja": "チュートリアル用１つ目の壁",
 			"default_id": 13
