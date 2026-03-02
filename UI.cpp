@@ -219,7 +219,7 @@ void UI_Initialize(void)
 
 	g_PossessGuideFont = new FontRenderer(
 		{ SCREEN_WIDTH / 2.0f, SCREEN_HEIGHT - 100.0f },
-		40.0f,
+		52.0f,
 		0.0f,
 		{ 1.0f, 1.0f, 1.0f, 1.0f },
 		""
