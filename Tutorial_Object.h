@@ -132,6 +132,24 @@ void TutorialObject_SetEnbanVisible(bool visible);
 // バスターズの表示フラグを設定する
 void TutorialObject_SetBustersVisible(bool visible);
 
+// チュートリアル中の憑依制御（true: ピアノのみ憑依可 / false: 全家具憑依可）
+void TutorialObject_SetPossessionOnlyPiano(bool onlyPiano);
+
+// チュートリアル中の驚かせ制御（true: スペースで驚かせ可）
+void TutorialObject_SetScareEnabled(bool enabled);
+
+// チュートリアル中の驚かせ入力条件（true: 範囲内にバスターズがいる時のみスペース有効）
+void TutorialObject_SetScareRequireBusterInRange(bool enabled);
+
+// 現在の憑依可否判定（blockIDベース）
+bool TutorialObject_CanPossessFurnitureBlock(int blockID);
+
+// 現在の驚かせ可否
+bool TutorialObject_IsScareEnabled(void);
+
+// 現在の驚かせ入力条件
+bool TutorialObject_IsScareRequireBusterInRange(void);
+
 // ピアノ憑依フラグのポインタを返す
 bool* TutorialObject_GetPianoPossessedPtr(void);
 

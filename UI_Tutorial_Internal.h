@@ -51,6 +51,11 @@ void SetTutorialMarker(bool use, const XMFLOAT3& pos = { 0.0f, 0.0f, 0.0f });
 void SetTutorialBuster(bool use, const XMFLOAT3& pos = { 0.0f, 0.0f, 0.0f });
 void SetEnbanVisible(bool visible);
 
+// チュートリアル中の憑依/驚かせ制御（次ページの onEnter に積まれる）
+void SetTutorialPossessionOnlyPiano(bool onlyPiano);
+void SetTutorialScareEnabled(bool enabled);
+void SetTutorialScareRequireBusterInRange(bool enabled);
+
 // バスターズに調査対象座標を設定する（次ページの onEnter に積まれる）
 void SetTutorialBusterTarget(const XMFLOAT3& pos);
 

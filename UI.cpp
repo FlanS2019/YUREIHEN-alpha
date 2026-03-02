@@ -25,6 +25,7 @@ static DWORD g_LastScoreUpdateTime = 0;
 
 static FontRenderer* g_PossessGuideFont = nullptr;
 static std::string g_PossessGuideText = "";
+static Sprite* g_PossessGuideBG = nullptr;
 
 static Sprite* g_FloorNumberBG = nullptr;
 static Number* g_FloorNumber = nullptr;
@@ -224,6 +225,15 @@ void UI_Initialize(void)
 		""
 	);
 
+	g_PossessGuideBG = new Sprite(
+		{ SCREEN_WIDTH / 2.0f, SCREEN_HEIGHT - 100.0f },
+		{ 980.0f, 95.0f },
+		0.0f,
+		{ 0.0f, 0.0f, 0.0f, 0.0f },
+		BLENDSTATE_ALFA,
+		L"asset\\texture\\fade.png"
+	);
+
 	//hal::dout << g_ScareGauge->GetValue() << std::endl;
 }
 
@@ -315,7 +325,11 @@ void UI_Update(void)
 		GHOST_STATE state = ghost->GetState();
 		int furnitureIdx = ghost->GetInRangeNum();
 
-		if (state == GS_FURNITURE_FOUND)
+		if (state == GS_CAUGHT)
+		{
+			g_PossessGuideText = "スペース連打で逃げろ！";
+		}
+		else if (state == GS_FURNITURE_FOUND)
 		{
 			Furniture* pFurniture = GetFurniture(furnitureIdx);
 			if (pFurniture)
@@ -385,6 +399,18 @@ void UI_Update(void)
 		{
 			g_PossessGuideFont->SetText(g_PossessGuideText);
 			g_LastPossessGuideText = g_PossessGuideText; // 記憶更新
+		}
+	}
+
+	if (g_PossessGuideBG)
+	{
+		if (!g_PossessGuideText.empty())
+		{
+			g_PossessGuideBG->SetColor({ 0.0f, 0.0f, 0.0f, 0.55f });
+		}
+		else
+		{
+			g_PossessGuideBG->SetColor({ 0.0f, 0.0f, 0.0f, 0.0f });
 		}
 	}
 
@@ -499,6 +525,7 @@ void UI_Draw(void)
 	if (g_ScareGauge) g_ScareGauge->Draw();
 	//if (g_RemainingTimeNum) g_RemainingTimeNum->Draw();
 
+	if (g_PossessGuideBG) g_PossessGuideBG->Draw();
 	if (g_PossessGuideFont) g_PossessGuideFont->Draw();
 
 	TutorialObject_Draw2D();
@@ -515,6 +542,7 @@ void UI_Finalize(void)
 	UI_ScareCombo_Finalize();
 
 	if (g_PossessGuideFont) { delete g_PossessGuideFont; g_PossessGuideFont = nullptr; }
+	if (g_PossessGuideBG) { delete g_PossessGuideBG; g_PossessGuideBG = nullptr; }
 
 	if (g_FloorNumberBG) { delete g_FloorNumberBG; g_FloorNumberBG = nullptr; }
 	if (g_FloorNumber) { delete g_FloorNumber; g_FloorNumber = nullptr; }

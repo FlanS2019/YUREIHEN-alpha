@@ -102,6 +102,43 @@ static void UpdateRangeCircleState()
 	}
 }
 
+static bool CanTriggerScareNow(void)
+{
+	if (!TutorialObject_IsScareRequireBusterInRange())
+	{
+		return true;
+	}
+
+	if (!g_Ghost)
+	{
+		return false;
+	}
+
+	Furniture* pFurniture = GetFurniture(g_Ghost->GetInRangeNum());
+	float currentRange = GetCurrentScareRange();
+	float actionRange = GetActionEffectiveRange(pFurniture, currentRange);
+	XMFLOAT3 ghostPos = g_Ghost->GetPos();
+
+	if (Busters_IsAnyInRange(ghostPos, actionRange))
+	{
+		return true;
+	}
+
+	TutorialBusters* pTutBuster = GetTutorialBusters();
+	if (pTutBuster && pTutBuster->GetState() != TB_STUN)
+	{
+		XMFLOAT3 tutPos = pTutBuster->GetPos();
+		float dx = tutPos.x - ghostPos.x;
+		float dz = tutPos.z - ghostPos.z;
+		if (dx * dx + dz * dz <= actionRange * actionRange)
+		{
+			return true;
+		}
+	}
+
+	return false;
+}
+
 static void UpdateLureFurnitureMovement()
 {
     if (!g_Ghost)
@@ -313,8 +350,11 @@ void Ghost_Update(void)
 
 		if (Keyboard_IsKeyDownTrigger(KK_SPACE))
 		{
-			g_Ghost->SetState(GS_SCARE);
-			g_Ghost->ScareStart();
+			if (TutorialObject_IsScareEnabled() && CanTriggerScareNow())
+			{
+				g_Ghost->SetState(GS_SCARE);
+				g_Ghost->ScareStart();
+			}
 		}
 
 		if (Keyboard_IsKeyDownTrigger(KK_E))
@@ -664,6 +704,7 @@ void Ghost::FurnitureSearch(void)
 		{
 			if (pFurniture->IsCoolingDown()) continue;
 			if (pFurniture->GetActionType() == ACTION_NONE) continue;
+			if (!TutorialObject_CanPossessFurnitureBlock(pFurniture->GetBlockID())) continue;
 
 			// 範囲内にいればリストに追加
 			if (pFurniture->GetDistanceToGhost() <= FURNITURE_DETECTION_RANGE)

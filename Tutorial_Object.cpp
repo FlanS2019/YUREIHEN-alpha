@@ -23,6 +23,9 @@ static bool      g_EnbanVisible   = false;
 static bool      g_PianoPossessed = false;
 static bool      g_BustersVisible = false;
 static bool      g_BustersStunned = false; // バスターズをスタンさせたフラグ
+static bool      g_PossessionOnlyPiano = false;
+static bool      g_ScareEnabled = true;
+static bool      g_ScareRequireBusterInRange = false;
 
 // =================================================================
 // グローバル変数
@@ -78,7 +81,7 @@ void TutorialMarker::Initialize(const XMFLOAT3& pos)
 
 	m_ScreenArrow = new Sprite(
 		{ SCREEN_WIDTH * 0.5f, SCREEN_HEIGHT * 0.5f },
-		{ 80.0f, 80.0f },
+		{ 160.0f, 160.0f },
 		0.0f,
 		{ 1.0f, 1.0f, 1.0f, 1.0f },
 		BLENDSTATE_ALFA,
@@ -164,8 +167,10 @@ void TutorialMarker::Draw(void)
 {
 	if (!m_Arrow || !m_Visible || m_UseScreenArrow) return;
 
+	SetDepthTest(false);
 	Shader_Begin();
 	m_Arrow->Draw();
+	SetDepthTest(true);
 }
 
 void TutorialMarker::Draw2D(void)
@@ -617,6 +622,9 @@ void TutorialObject_Initialize(void)
 	g_EnbanTouched   = false;
 	g_PianoPossessed = false;
 	g_BustersStunned = false; // 追加：バスターズスタンフラグのリセット
+	g_PossessionOnlyPiano = false;
+	g_ScareEnabled = true;
+	g_ScareRequireBusterInRange = false;
 
 	if (g_pTutorialBusters)
 	{
@@ -716,7 +724,6 @@ void TutorialObject_Draw(void)
 
 void TutorialObject_Draw2D(void)
 {
-	if (Field_GetCurrentFloor() != 2) return;
 	if (g_pTutorialMarker)
 	{
 		g_pTutorialMarker->Draw2D();
@@ -731,6 +738,9 @@ void TutorialObject_Finalize(void)
 	g_EnbanVisible   = false;
 	g_BustersVisible = false;
 	g_PianoPossessed = false;
+	g_PossessionOnlyPiano = false;
+	g_ScareEnabled = true;
+	g_ScareRequireBusterInRange = false;
 
 	if (g_pTutorialBusters)
 	{
@@ -758,6 +768,40 @@ void TutorialObject_SetEnbanVisible(bool visible)
 void TutorialObject_SetBustersVisible(bool visible)
 {
 	g_BustersVisible = visible;
+}
+
+void TutorialObject_SetPossessionOnlyPiano(bool onlyPiano)
+{
+	g_PossessionOnlyPiano = onlyPiano;
+}
+
+void TutorialObject_SetScareEnabled(bool enabled)
+{
+	g_ScareEnabled = enabled;
+}
+
+void TutorialObject_SetScareRequireBusterInRange(bool enabled)
+{
+	g_ScareRequireBusterInRange = enabled;
+}
+
+bool TutorialObject_CanPossessFurnitureBlock(int blockID)
+{
+	if (!g_PossessionOnlyPiano)
+	{
+		return true;
+	}
+	return (blockID == 62);
+}
+
+bool TutorialObject_IsScareEnabled(void)
+{
+	return g_ScareEnabled;
+}
+
+bool TutorialObject_IsScareRequireBusterInRange(void)
+{
+	return g_ScareRequireBusterInRange;
 }
 
 bool* TutorialObject_GetPianoPossessedPtr(void)

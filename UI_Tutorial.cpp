@@ -294,6 +294,27 @@ void SetEnbanVisible(bool visible)
 	});
 }
 
+void SetTutorialPossessionOnlyPiano(bool onlyPiano)
+{
+	s_PendingOnEnter.push_back([onlyPiano]() {
+		TutorialObject_SetPossessionOnlyPiano(onlyPiano);
+	});
+}
+
+void SetTutorialScareEnabled(bool enabled)
+{
+	s_PendingOnEnter.push_back([enabled]() {
+		TutorialObject_SetScareEnabled(enabled);
+	});
+}
+
+void SetTutorialScareRequireBusterInRange(bool enabled)
+{
+	s_PendingOnEnter.push_back([enabled]() {
+		TutorialObject_SetScareRequireBusterInRange(enabled);
+	});
+}
+
 // バスターズの調査対象座標を設定（次ページの onEnter に積む）
 void SetTutorialBusterTarget(const XMFLOAT3& pos)
 {

@@ -5,6 +5,27 @@
 #include "Tutorial_Object.h"
 #include "define.h"
 
+static void TutorialPage_EnablePianoOnlyPossessionPhase()
+{
+	SetTutorialPossessionOnlyPiano(true);
+	SetTutorialScareEnabled(false);
+	SetTutorialScareRequireBusterInRange(false);
+}
+
+static void TutorialPage_EnableBustersScarePhase()
+{
+	SetTutorialPossessionOnlyPiano(true);
+	SetTutorialScareEnabled(true);
+	SetTutorialScareRequireBusterInRange(true);
+}
+
+static void TutorialPage_EnableAllFurniturePossessionPhase()
+{
+	SetTutorialPossessionOnlyPiano(false);
+	SetTutorialScareEnabled(true);
+	SetTutorialScareRequireBusterInRange(false);
+}
+
 // ==========================================
 // チュートリアルページ登録
 // ここがあなたが触る部分です。
@@ -52,6 +73,10 @@ void Tutorial_Pages_Init()
 		{ SCREEN_WIDTH / 2, SCREEN_HEIGHT - 100.0f }
 	);
 
+	//ここでピアノのみに憑依できるようにする
+	//まだスペースキーで驚かせはできない状態	
+	TutorialPage_EnablePianoOnlyPossessionPhase();
+
 	// --- ピアノ憑依テストプレイ ---
 	SetCameraFocusPoint({ -15.0f, 3.0f, 16.5f });
 	AddPage_Play(
@@ -77,7 +102,10 @@ void Tutorial_Pages_Init()
 	);
 
 	// バスターズへの驚かせテストプレイ
+	//このページで、バスターズが入ってきたらスペースキーで驚かせられるようにする
+
 	SetTutorialBusterTarget({ -24.5f, 0.5f, 16.5f });
+	TutorialPage_EnableBustersScarePhase();
 	AddPage_Play(
 		{ "近づいてくるまで待ち、[スペースキー]で驚かせる" },
 		TutorialObject_GetBustersStunnedPtr(30),
@@ -140,6 +168,9 @@ void Tutorial_Pages_Init()
 
 	// 壁番号3（ID:15）を無効化する
 	SetTutorialWall(3, false);
+
+	//ここで全ての家具に憑依できるようにする
+	TutorialPage_EnableAllFurniturePossessionPhase();
 
 	AddPage({ SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2 }, 0.0f, {
 		"ちょっと説明長くなっちゃった……",
