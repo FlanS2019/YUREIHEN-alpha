@@ -419,7 +419,11 @@ void Game_Update(void)
 	Furniture_Update();
 	Ghost_Update();
 #if !STOP_TIMER_BUSTER
-	Busters_Update();
+	// 3階のチュートリアル中（ページ表示中・テストプレイ待機中）は通常バスターズを更新しない
+	if (!(Field_GetCurrentFloor() == 2 && (UI_Tutorial_IsActive() || UI_Tutorial_IsWaiting())))
+	{
+		Busters_Update();
+	}
 #endif
 
 	// ゲージMAX判定：MAXになったらバスターズを階段へ走らせる
@@ -458,7 +462,11 @@ void Game_Draw(void)
 	UI_Tutorial_SetLight();
 
 	Field_Draw();
-	Busters_Draw();
+	// 3階のチュートリアル中（ページ表示中・テストプレイ待機中）は通常バスターズを描画しない
+	if (!(Field_GetCurrentFloor() == 2 && (UI_Tutorial_IsActive() || UI_Tutorial_IsWaiting())))
+	{
+		Busters_Draw();
+	}
 
 	if (Field_GetCurrentFloor() == 2)
 	{

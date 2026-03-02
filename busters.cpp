@@ -1544,7 +1544,7 @@ void Busters_Initialize(void)
 		}
 	}
 
-	// 3階 (Floor 2) - チュートリアル用バスターズはTutorial_Bustarsで管理
+	// 3階 (Floor 2) - チュートリアル用バスターズはTutorial_Objectで別管理。通常バスターズは生成しない
 }
 
 void Busters_Update(void)
@@ -1829,16 +1829,24 @@ bool Busters_DeleteFirstArrived(void)
 }
 
 // 指定フロアにバスターズを生成する
+// 既存のバスターズをすべて削除してから、フロアに応じた人数で新規生成する
 void Busters_SpawnOnFloor(int floorIndex)
 {
 	if (floorIndex < 0 || floorIndex >= MAP_FLOORS) return;
 
-	// 追加人数：1階(index0)は+2、2階(index1)は+1、それ以外はなし
+	// 既存バスターズを全削除してから生成する（重複防止）
+	for (Busters* buster : g_BustersList[floorIndex])
+		delete buster;
+	g_BustersList[floorIndex].clear();
+
+	// 生成人数：基本1体 + 階層ごとの増加分
+	// 2階(index1)へ：1+1=2体、1階(index0)へ：1+2=3体
 	int addCount = 0;
 	if (floorIndex == 1) addCount = 1;
 	if (floorIndex == 0) addCount = 2;
+	int spawnCount = 1 + addCount;
 
-	for (int i = 0; i < addCount; i++)
+	for (int i = 0; i < spawnCount; i++)
 	{
 		XMFLOAT3 newPos = GetRandomBusterPos(floorIndex);
 		Busters* newBuster = new Busters(
