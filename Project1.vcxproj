@@ -179,6 +179,7 @@
     <ClCompile Include="mouse.cpp" />
     <ClCompile Include="opanim.cpp" />
     <ClCompile Include="result.cpp" />
+    <ClCompile Include="ScoreClient.cpp" />
     <ClCompile Include="shader.cpp" />
     <ClCompile Include="scene.cpp" />
     <ClCompile Include="shader_2d.cpp" />
@@ -228,6 +229,7 @@
     <ClInclude Include="opanim.h" />
     <ClInclude Include="scene.h" />
     <ClInclude Include="result.h" />
+    <ClInclude Include="ScoreClient.h" />
     <ClInclude Include="shader.h" />
     <ClInclude Include="shader_2d.h" />
     <ClInclude Include="sound.h" />
