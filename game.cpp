@@ -25,6 +25,7 @@ using namespace DirectX;
 #include "mouse.h"
 #include "light.h"
 #include "model.h"
+#include "UI_ScareCombo.h"
 #include <windows.h>
 #include <string>
 #include <cmath>
@@ -403,6 +404,7 @@ void Game_Update(void)
 			Field_Update();
 			Ghost_Update();
 			Furniture_Update();
+			UI_ScareCombo_Update();
 			return;
 		}
 
