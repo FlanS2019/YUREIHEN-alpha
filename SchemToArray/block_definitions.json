@@ -283,25 +283,25 @@
 		{
 			"name": "blue_glazed_terracotta",
 			"names_ja": "大きな鏡",
-			"default_id": 74,
+			"default_id": 75,
 			"model": "asset\\model\\toiletmirror.glb"
 		},
 		{
 			"name": "brown_glazed_terracotta",
 			"names_ja": "ベッドサイドテーブル",
-			"default_id": 78,
+			"default_id": 76,
 			"model": "asset\\model\\bedside_table.glb"
 		},
 		{
 			"name": "red_glazed_terracotta",
 			"names_ja": "大きなチェスト",
-			"default_id": 79,
+			"default_id": 77,
 			"model": "asset\\model\\longchest.glb"
 		},
 		{
 			"name": "pink_glazed_terracotta",
 			"names_ja": "小さなチェスト",
-			"default_id": 80,
+			"default_id": 78,
 			"model": "asset\\model\\short_chest.glb"
 		},
 		{
