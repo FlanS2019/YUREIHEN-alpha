@@ -19,6 +19,7 @@ using namespace DirectX;
 static SplitSprite* g_pTitleSprite = nullptr;
 static FontRenderer* g_pTitleFont2 = nullptr;
 static ClickFont* g_pStartClickFont = nullptr;
+static ClickFont* g_pModelViewerClickFont = nullptr;
 static Sprite* g_pSizeComparisonSprite = nullptr;
 static Sprite* g_pinazuma = nullptr;
 static SoundData* g_pBGM = nullptr;
@@ -99,6 +100,20 @@ void Title_Initialize(ID3D11Device* pDevice, ID3D11DeviceContext* pContext)
 	g_pStartClickFont->SetHitSize({ 900.0f, 90.0f });
 	g_pStartClickFont->SetOnClick([]() {
 		StartFade(SCENE_ANM_OP);
+	});
+
+	// モデルビューワシーンへのClickFont（左上）
+	g_pModelViewerClickFont = new ClickFont(
+		{ SCREEN_WIDTH - 130.0f, 20.0f },
+		22.0f,
+		0.0f,
+		{ 0.7f, 0.7f, 0.7f, 1.0f },
+		{ 0.3f, 0.9f, 1.0f, 1.0f },
+		"[Debug] ModelViewer"
+	);
+	g_pModelViewerClickFont->SetHitSize({ 260.0f, 30.0f });
+	g_pModelViewerClickFont->SetOnClick([]() {
+		StartFade(SCENE_DEBUG_MODEL);
 	});
 
 	//日本語フォント描画
@@ -200,6 +215,7 @@ void Title_Update(void)
 	}
 
 	if (g_pStartClickFont) g_pStartClickFont->Update();
+	if (g_pModelViewerClickFont) g_pModelViewerClickFont->Update();
 
 	// ③適当な処理　アニメーションなどもここで
 	if (Keyboard_IsKeyDownTrigger(KK_SPACE))
@@ -231,6 +247,7 @@ void Title_Draw(void)
 	g_pTitleSprite->Draw();
 	//g_pSizeComparisonSprite->Draw();
 	if (g_pStartClickFont) g_pStartClickFont->Draw();
+	if (g_pModelViewerClickFont) g_pModelViewerClickFont->Draw();
 	//g_pTitleFont2->Draw();
 	g_pinazuma->Draw();
 	if (g_pInazumaSprite) g_pInazumaSprite->Draw();	// 稲妻描画
@@ -257,6 +274,10 @@ void Title_Finalize(void)
 	if (g_pStartClickFont) {
 		delete g_pStartClickFont;
 		g_pStartClickFont = nullptr;
+	}
+	if (g_pModelViewerClickFont) {
+		delete g_pModelViewerClickFont;
+		g_pModelViewerClickFont = nullptr;
 	}
 
 	// BGM解放
