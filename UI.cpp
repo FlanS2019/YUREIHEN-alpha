@@ -14,6 +14,8 @@
 #include "furniture.h"
 #include "result.h"
 #include "WinAnim.h"
+#include "game.h"
+#include "Tutorial_Object.h"
 
 // グローバル変数
 static Timer* g_Clock = nullptr;
@@ -263,7 +265,7 @@ void UI_Update(void)
 #else
 	// 3階（index:2 / START_FLOOR-1）は時間制限なし
 	bool timeEnded = false;
-	if (currentFloor != (START_FLOOR - 1))
+	if (currentFloor != (START_FLOOR - 1) && !Game_IsFloorExitAnimActive())
 	{
 		timeEnded = g_Clock->Update();
 	}
@@ -304,7 +306,11 @@ void UI_Update(void)
 
 	// 家具憑依・アクションガイドの表示制御
 	g_PossessGuideText = "";
-	if (ghost)
+	if (Game_IsFloorExitAnimActive())
+	{
+		g_PossessGuideText = "下の階に逃げたバスターズを追いかけよう！";
+	}
+	else if (ghost)
 	{
 		GHOST_STATE state = ghost->GetState();
 		int furnitureIdx = ghost->GetInRangeNum();
@@ -494,6 +500,8 @@ void UI_Draw(void)
 	//if (g_RemainingTimeNum) g_RemainingTimeNum->Draw();
 
 	if (g_PossessGuideFont) g_PossessGuideFont->Draw();
+
+	TutorialObject_Draw2D();
 }
 
 //----------------------------

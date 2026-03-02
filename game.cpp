@@ -62,6 +62,42 @@ static XMFLOAT3 g_LerpStartAtPos    = { 0.0f, 0.0f, 0.0f };
 static float    g_CamLerpT          = 0.0f;
 static const float CAM_LERP_SPEED   = 0.012f;
 
+// 現在位置から最も近い下り階段(ID5/6)座標を取得
+static XMFLOAT3 GetNearestExitStairsPos(const XMFLOAT3& fromPos, int floor)
+{
+	std::vector<XMFLOAT3> stairs = Field_GetStairsExitPositions(floor);
+	if (stairs.empty())
+	{
+		return Field_GetMarker97WorldPos(floor);
+	}
+
+	XMFLOAT3 nearest = stairs[0];
+	float minDistSq = 99999999.0f;
+	for (const auto& p : stairs)
+	{
+		float dx = p.x - fromPos.x;
+		float dz = p.z - fromPos.z;
+		float distSq = dx * dx + dz * dz;
+		if (distSq < minDistSq)
+		{
+			minDistSq = distSq;
+			nearest = p;
+		}
+	}
+	return nearest;
+}
+
+static void SetFloorExitMarkerVisible(bool visible)
+{
+	TutorialMarker* marker = GetTutorialMarker();
+	if (!marker) return;
+	if (visible)
+	{
+		marker->SetPos(g_StairsPosForAnim);
+	}
+	marker->SetVisible(visible);
+}
+
 // バスターズの真上に俯瞰カメラをセット
 static void SetupOverviewCamera(void)
 {
@@ -106,6 +142,21 @@ bool* Game_GetEnbanTouchedPtr(void)
 
 void Game_Initialize(ID3D11Device* pDevice, ID3D11DeviceContext* pContext)
 {
+	// フロア降下アニメ関連の状態を毎回初期化
+	g_NextFloorID = -1;
+	g_FloorExitState = FLOOR_EXIT_NONE;
+	g_FloorExitTimer = 0;
+	g_FloorTransferDone = false;
+	g_FloorExitAnimRequested = false;
+	g_NeedRestoreMouseMode = false;
+	g_OverviewFrameCount = 0;
+	g_OverviewCameraPos = { 0.0f, 0.0f, 0.0f };
+	g_StairsPosForAnim = { 0.0f, 0.0f, 0.0f };
+	g_FloorBeforeExit = -1;
+	g_LerpStartCamPos = { 0.0f, 0.0f, 0.0f };
+	g_LerpStartAtPos = { 0.0f, 0.0f, 0.0f };
+	g_CamLerpT = 0.0f;
+
 	g_pAmbientLight = new AmbientLight(XMFLOAT4(0.3f, 0.3f, 0.3f, 1.0f));
 
 	Camera_Initialize();
@@ -118,6 +169,7 @@ void Game_Initialize(ID3D11Device* pDevice, ID3D11DeviceContext* pContext)
 	DebugDraw_Initialize();
 
 	TutorialObject_Initialize();
+	SetFloorExitMarkerVisible(false);
 
 	g_pBGM = LoadMP3("asset/sound/bgm/HauntedHalloween.mp3");
 	if (g_pBGM) PlaySound(g_pBGM, true);
@@ -208,6 +260,7 @@ void Game_Update(void)
 			// 俯瞰位置からプレイヤー（PreTransformPos）視点へ補間。
 			// カメラ位置が終点に近づいたら補間を終了し通常カメラに戻す。
 			{
+				SetFloorExitMarkerVisible(false);
 				g_CamLerpT += CAM_LERP_SPEED;
 				if (g_CamLerpT > 1.0f) g_CamLerpT = 1.0f;
 
@@ -275,6 +328,7 @@ void Game_Update(void)
 					}
 					else
 					{
+						SetFloorExitMarkerVisible(true);
 						g_FloorExitState = FLOOR_EXIT_PLAYER_WALK;
 					}
 				}
@@ -284,11 +338,12 @@ void Game_Update(void)
 		case FLOOR_EXIT_PLAYER_WALK:
 			// プレイヤーが操作して階段(ID5/6)の上に乗ったらフェードして移行
 			{
+				SetFloorExitMarkerVisible(true);
 				Camera_Update();
 				Shader_SetCameraPos(GetCamera()->GetPos());
 				Field_Update();
 				UI_Update();
-				Furniture_Update();
+				TutorialObject_Update();
 				Ghost_Update();
 
 				Ghost* ghost = GetGhost();
@@ -298,6 +353,7 @@ void Game_Update(void)
 					int blockID = Field_GetRawBlockID(gp.x, gp.z);
 					if (blockID == 5 || blockID == 6)
 					{
+						SetFloorExitMarkerVisible(false);
 						StartFade(SCENE_NONE);
 						g_FloorExitState = FLOOR_EXIT_FADEIN;
 					}
@@ -309,6 +365,7 @@ void Game_Update(void)
 			// フェードアウト完了後にフロア移行＋バスターズ生成してフェードイン
 			if (fadeState == FADE_MAX)
 			{
+				SetFloorExitMarkerVisible(false);
 				if (g_FloorBeforeExit == END_FLOOR - 1 || g_FloorBeforeExit == 0)
 				{
 					// クリア階 or 1階 → 勝利シーンへ遷移
@@ -434,6 +491,10 @@ void Game_Update(void)
 		{
 			if (UI_IsScareGaugeMax())
 			{
+				Ghost* ghostForExit = GetGhost();
+				XMFLOAT3 basePos = ghostForExit ? ghostForExit->GetPos() : XMFLOAT3(0.0f, 0.0f, 0.0f);
+				g_StairsPosForAnim = GetNearestExitStairsPos(basePos, Field_GetCurrentFloor());
+				SetFloorExitMarkerVisible(false);
 				SetupOverviewCamera();
 				g_FloorExitState = FLOOR_EXIT_OVERVIEW;
 				g_FloorExitTimer = 0;
@@ -488,6 +549,7 @@ void Game_Draw(void)
 
 void Game_Finalize(void)
 {
+	SetFloorExitMarkerVisible(false);
 	if (g_pBGM) {
 		StopSound(g_pBGM);
 		UnloadSound(g_pBGM);

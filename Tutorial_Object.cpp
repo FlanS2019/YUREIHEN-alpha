@@ -12,6 +12,7 @@ using namespace DirectX;
 #include "define.h"
 #include "keyboard.h"
 #include "light.h"
+#include "camera.h"
 
 // ==========================================
 // 円盤（enban）Sprite3D
@@ -36,8 +37,12 @@ static TutorialMarker*  g_pTutorialMarker  = nullptr;
 TutorialMarker::TutorialMarker()
 	: m_BasePos(0.0f, 0.0f, 0.0f)
 	, m_Arrow(nullptr)
+	, m_ScreenArrow(nullptr)
 	, m_BobTimer(0.0f)
 	, m_Visible(true)
+	, m_UseScreenArrow(false)
+	, m_ScreenArrowPos(0.0f, 0.0f)
+	, m_ScreenArrowRot(0.0f)
 {
 }
 
@@ -48,6 +53,11 @@ TutorialMarker::~TutorialMarker()
 		delete m_Arrow;
 		m_Arrow = nullptr;
 	}
+	if (m_ScreenArrow)
+	{
+		delete m_ScreenArrow;
+		m_ScreenArrow = nullptr;
+	}
 }
 
 void TutorialMarker::Initialize(const XMFLOAT3& pos)
@@ -55,6 +65,7 @@ void TutorialMarker::Initialize(const XMFLOAT3& pos)
 	m_BasePos  = pos;
 	m_BobTimer = 0.0f;
 	m_Visible  = false;
+	m_UseScreenArrow = false;
 
 	m_Arrow = new Billboard();
 	m_Arrow->Initialize(
@@ -64,6 +75,15 @@ void TutorialMarker::Initialize(const XMFLOAT3& pos)
 		true
 	);
 	m_Arrow->SetIcon(BILLBOARD_ICON::DESTINATION);
+
+	m_ScreenArrow = new Sprite(
+		{ SCREEN_WIDTH * 0.5f, SCREEN_HEIGHT * 0.5f },
+		{ 80.0f, 80.0f },
+		0.0f,
+		{ 1.0f, 1.0f, 1.0f, 1.0f },
+		BLENDSTATE_ALFA,
+		L"asset\\texture\\icon_shitayazirusi.png"
+	);
 }
 
 void TutorialMarker::Update(void)
@@ -82,14 +102,76 @@ void TutorialMarker::Update(void)
 	};
 	m_Arrow->SetPos(arrowPos);
 	m_Arrow->Update();
+
+	m_UseScreenArrow = false;
+
+	Camera* cam = GetCamera();
+	if (!cam || !m_ScreenArrow) return;
+
+	XMMATRIX view = cam->GetView();
+	XMMATRIX proj = cam->GetProjection();
+	XMMATRIX viewProj = view * proj;
+
+	XMVECTOR posVec = XMVectorSet(m_BasePos.x, m_BasePos.y + TUTORIAL_MARKER_BASE_HEIGHT, m_BasePos.z, 1.0f);
+	XMVECTOR clipPos = XMVector3TransformCoord(posVec, viewProj);
+
+	XMFLOAT3 ndc;
+	XMStoreFloat3(&ndc, clipPos);
+
+	bool isBehind = (ndc.z < 0.0f || ndc.z > 1.0f);
+	bool outOfScreen = (ndc.x < -1.0f || ndc.x > 1.0f || ndc.y < -1.0f || ndc.y > 1.0f);
+
+	if (isBehind || outOfScreen)
+	{
+		m_UseScreenArrow = true;
+
+		float screenX = (ndc.x + 1.0f) * 0.5f * SCREEN_WIDTH;
+		float screenY = (1.0f - ndc.y) * 0.5f * SCREEN_HEIGHT;
+
+		float cx = SCREEN_WIDTH * 0.5f;
+		float cy = SCREEN_HEIGHT * 0.5f;
+		float vx = screenX - cx;
+		float vy = screenY - cy;
+
+		if (isBehind)
+		{
+			vx = -vx;
+			vy = -vy;
+		}
+
+		if (fabsf(vx) < 0.001f && fabsf(vy) < 0.001f)
+		{
+			vy = -1.0f;
+		}
+
+		const float margin = 70.0f;
+		float halfW = SCREEN_WIDTH * 0.5f - margin;
+		float halfH = SCREEN_HEIGHT * 0.5f - margin;
+
+		float tx = (fabsf(vx) > 0.001f) ? (halfW / fabsf(vx)) : 99999.0f;
+		float ty = (fabsf(vy) > 0.001f) ? (halfH / fabsf(vy)) : 99999.0f;
+		float t = (tx < ty) ? tx : ty;
+
+		m_ScreenArrowPos = { cx + vx * t, cy + vy * t };
+		m_ScreenArrowRot = XMConvertToDegrees(atan2f(vy, vx)) + 270.0f;
+
+		m_ScreenArrow->SetPos(m_ScreenArrowPos);
+		m_ScreenArrow->SetRot(m_ScreenArrowRot);
+	}
 }
 
 void TutorialMarker::Draw(void)
 {
-	if (!m_Arrow || !m_Visible) return;
+	if (!m_Arrow || !m_Visible || m_UseScreenArrow) return;
 
 	Shader_Begin();
 	m_Arrow->Draw();
+}
+
+void TutorialMarker::Draw2D(void)
+{
+	if (!m_Visible || !m_UseScreenArrow || !m_ScreenArrow) return;
+	m_ScreenArrow->Draw();
 }
 
 void TutorialMarker::SetPos(const XMFLOAT3& pos)
@@ -629,6 +711,15 @@ void TutorialObject_Draw(void)
 	if (g_pEnban && g_EnbanVisible)
 	{
 		g_pEnban->Draw();
+	}
+}
+
+void TutorialObject_Draw2D(void)
+{
+	if (Field_GetCurrentFloor() != 2) return;
+	if (g_pTutorialMarker)
+	{
+		g_pTutorialMarker->Draw2D();
 	}
 }
 

@@ -5,6 +5,7 @@
 
 #include <DirectXMath.h>
 #include "sprite3d.h"
+#include "sprite.h"
 #include "anim_sprite3d.h"
 #include "billboard.h"
 #include "light.h"
@@ -90,8 +91,12 @@ class TutorialMarker
 private:
 	XMFLOAT3 m_BasePos;     // マーカーのワールド座標（地面位置）
 	Billboard* m_Arrow;     // 下向き矢印ビルボード
+	Sprite* m_ScreenArrow;  // 画面外時の2D矢印
 	float m_BobTimer;       // バウンスアニメーション用タイマー
 	bool  m_Visible;        // 表示フラグ
+	bool  m_UseScreenArrow; // 画面外表示中か
+	XMFLOAT2 m_ScreenArrowPos;
+	float m_ScreenArrowRot;
 
 	// 定数は define.h のマクロを使用
 	// TUTORIAL_MARKER_SIZE / TUTORIAL_MARKER_BOB_AMP
@@ -104,6 +109,7 @@ public:
 	void Initialize(const XMFLOAT3& pos);
 	void Update(void);
 	void Draw(void);
+	void Draw2D(void);
 
 	void SetPos(const XMFLOAT3& pos);
 	void SetVisible(bool visible) { m_Visible = visible; }
@@ -114,6 +120,7 @@ public:
 void TutorialObject_Initialize(void);
 void TutorialObject_Update(void);
 void TutorialObject_Draw(void);
+void TutorialObject_Draw2D(void);
 void TutorialObject_Finalize(void);
 
 // 円盤接触フラグのポインタを返す
