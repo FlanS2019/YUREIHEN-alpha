@@ -305,8 +305,12 @@ void UI_Draw(void);
 
 void UI_DecreaseRemainingTime(float penaltySeconds);
 void UI_ResetTimer(void);
+void UI_AccumulateFloorTime(void);	// 現在?の残り時間を累積する（リセット前に呼ぶ）
 
 // 現在の階層を取得（看板用）
 int UI_GetCurrentFloor(void);
 
 bool UI_CheckWinCondition(void);
+
+// ファイル末尾（#pragma once ブロック内）に追加
+float UI_GetAccumulatedTime(void);
