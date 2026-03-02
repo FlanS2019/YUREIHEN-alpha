@@ -115,3 +115,4 @@ bool Busters_IsFloorExitAnimDone(void);               // 全バスターズが�
 void Busters_DoFloorTransition(void);                 // 実際のフロア移行処理を実行
 void Busters_DeleteCurrentFloor(void);                // 現在フロアのバスターズを全削除
 void Busters_SpawnOnFloor(int floorIndex);            // 指定フロアにバスターズを生成
+void Busters_SpawnAt(const XMFLOAT3& pos, int floorIndex); // 指定座標・フロアにバスターズを1体生成

@@ -353,6 +353,29 @@ void Busters::Update(void)
 		}
 		else
 		{
+			// 1階出口(ID4)は中心に乗り切れない場合があるため、目標付近でも到達扱いにする
+			int targetBlockID = Field_GetRawBlockID(m_StairsTargetPos.x, m_StairsTargetPos.z);
+			if (targetBlockID == 4 && distSq <= 1.0f * 1.0f)
+			{
+				m_RunToStairsDone = true;
+			}
+		}
+
+		if (m_RunToStairsDone)
+		{
+			m_PrevPos = m_Position;
+			if (m_Icon)
+			{
+				m_Icon->SetIcon(BILLBOARD_ICON::ALERT);
+				XMFLOAT3 iconPos = m_Position;
+				iconPos.y += 3.25f;
+				m_Icon->SetPos(iconPos);
+				m_Icon->Update();
+			}
+			return;
+		}
+
+		{
 			m_MoveSpeed = BUSTERS_MOVE_SPEED_CHASE;
 			if (!m_PathList.empty())
 			{
@@ -692,13 +715,11 @@ void Busters::Update(void)
 								{
 									float d1x = dPos.x - m_Position.x;
 									float d1z = dPos.z - m_Position.z;
-									float distToDoor = sqrtf(d1x * d1x + d1z * d1z);
 
 									float d2x = ghostPos.x - dPos.x;
 									float d2z = ghostPos.z - dPos.z;
-									float distToGhost = sqrtf(d2x * d2x + d2z * d2z);
 
-									float totalDist = distToDoor + distToGhost;
+									float totalDist = (sqrtf(d1x * d1x + d1z * d1z)) + (sqrtf(d2x * d2x + d2z * d2z));
 
 									if (totalDist < minDist)
 									{
@@ -836,10 +857,10 @@ void Busters::Update(void)
 			if (m_StuckTimer > 15)
 			{
 			if (!m_PathList.empty())
-			{
-			m_PathList.erase(m_PathList.begin());
-			m_StuckTimer = 0;
-			}
+				{
+				m_PathList.erase(m_PathList.begin());
+				m_StuckTimer = 0;
+				}
 				else if (m_State == BUSTERS_SEARCH && m_TargetFurnitureIndex != -1)
 				{
 					// 経路のないスタックも処理
@@ -878,40 +899,10 @@ void Busters::Update(void)
 	}
 }
 
-int GetBlockIDFromWorldPos(float x, float z)
-{
-	// ワールド座標 -> グリッド座標(gx, gz) への変換
-	// GetRandomBusterPos の逆算: gx = wx + MAP_WIDTH / 2.0f
-	// 四捨五入するために +0.5f して int にキャスト
-	int gx = (int)(x + MAP_WIDTH / 2.0f + 0.5f);
-	int gz = (int)(MAP_LENGTH / 2.0f - z + 0.5f);
-
-	// 配列外参照防止
-	if (gx < 0 || gx >= MAP_WIDTH || gz < 0 || gz >= MAP_LENGTH) return 1; // 範囲外は壁扱い
-
-	int floor = Field_GetCurrentFloor();
-
-	// Y=1 (壁レイヤー) の情報を参照
-	switch (floor)
-	{
-	case 0: return Floor1[1][gz][gx];
-	case 1: return Floor2[1][gz][gx];
-	case 2: return Floor3[1][gz][gx];
-	default: return 1;
-	}
-}
-
 bool IsWallBlock(float x, float z)
 {
-	int id = GetBlockIDFromWorldPos(x, z);
-
-	// 0(空気)、13(ドア)、17(カーペット) は通り抜け可能
-	if (id == 0 || id == 13 || id == 17) return false;
-
-	// 50〜69(家具マーカー) や 98(方向指定マーカー) もマップチップの壁としては扱わない
-	if ((id >= 50 && id <= 69) || id == 98) return false;
-
-	return true; // それ以外（本物の壁）は true を返す
+	// Field_IsWall を使うことでチュートリアル壁フラグ（g_TutorialWallEnabled）が反映される
+	return Field_IsWall(x, z);
 }
 
 bool IsObstacle(float x, float z, float radius, int ignoreFurnitureIndex = -1)
@@ -920,7 +911,8 @@ bool IsObstacle(float x, float z, float radius, int ignoreFurnitureIndex = -1)
 	if (Field_IsNoFloor(x, z)) return true;
 
 	// 壁の判定 (中心と4隅をチェックしてめり込みを防ぐ)
-	float checkR = radius * 0.7f;
+	// 1マスの狭い通路で引っかからないよう、コーナー判定の半径を少し小さくする
+	float checkR = radius * 0.4f;
 	if (IsWallBlock(x, z) ||
 		IsWallBlock(x + checkR, z + checkR) ||
 		IsWallBlock(x + checkR, z - checkR) ||
@@ -967,7 +959,8 @@ bool CanPassLine(const XMFLOAT3& start, const XMFLOAT3& end, float radius, int i
 
 	float ndx = dx / len;
 	float ndz = dz / len;
-	int steps = (int)(len / 0.8f) + 1;
+	// 精密にチェックするため、ステップサイズを0.2fに変更（角抜け防止）
+	int steps = (int)(len / 0.2f) + 1;
 
 	for (int i = 0; i <= steps; i++)
 	{
@@ -1151,8 +1144,7 @@ void Busters::MoveTo(XMFLOAT3 targetPos)
 	float distSq = dx * dx + dz * dz;
 	float dist = sqrtf(distSq);
 
-	// 3. ノード到達判定（NavMesh風：ノードに十分近づいたら次へ）
-	// RUN_TO_STAIRS時は角を曲がるタイミングを遅らせるため到達距離を小さくする
+	// 3. ノード到達判定（NavMesh風：ノードに十分近づいたら次へ）　
 	const float NODE_REACH_DISTANCE = (m_State == BUSTERS_RUN_TO_STAIRS) ? 0.25f : 0.6f;
 	if (!m_PathList.empty() && dist < NODE_REACH_DISTANCE)
 	{
@@ -1229,7 +1221,7 @@ void Busters::MoveTo(XMFLOAT3 targetPos)
 	
 	float newRot = currentRot + angleDiff;
 	while (newRot > 180.0f) newRot -= 360.0f;
-	while (newRot < -180.0f) newRot += 360.0f;
+	if (newRot < -180.0f) newRot += 360.0f;
 	SetRotY(newRot);
 
 	// 7. 移動処理（追跡・警戒時は実際の回転方向に沿って移動する）
@@ -1313,6 +1305,7 @@ void Busters::MoveTo(XMFLOAT3 targetPos)
 
 void Busters::OnScared(void)
 {
+	SetGroundLevel(BUSTERS_HEIGHT);
 	JumpStart();
 	m_TargetFurnitureIndex = -1;
 	m_WaitTimer = 120;
@@ -1721,7 +1714,7 @@ bool Busters_CheckGaugeEvent(void)
 	else
 	{
 		// 1階の場合 -> 逃げ場なし（プレイヤーの勝利）
-		StartFade(SCENE_ANM_WIN);
+// 		StartFade(SCENE_ANM_WIN);
 		return false;
 	}
 }
@@ -1745,30 +1738,59 @@ void Busters_DoFloorTransition(void)
 	if (nextFloor == 1) addCount = 1; // 2階へ行くとき： +1人
 	if (nextFloor == 0) addCount = 2; // 1階へ行くとき： +2人
 
-	for (Busters* buster : g_BustersList[currentFloor])
+	if (currentFloor == 2)
 	{
-		XMFLOAT3 newPos = GetRandomBusterPos(nextFloor);
-		buster->SetPos(newPos);
-		g_BustersList[nextFloor].push_back(buster);
-	}
-	g_BustersList[currentFloor].clear();
+		// 3階からの遷移：チュートリアル用スポーンのバスターズが混在しているため
+		// 全員削除して次の階に新規スポーンする
+		for (Busters* buster : g_BustersList[currentFloor])
+			delete buster;
+		g_BustersList[currentFloor].clear();
 
-	for (int i = 0; i < addCount; i++)
-	{
-		if (nextFloor >= 0 && nextFloor < MAP_FLOORS)
+		// 次の階の人数分だけ新規生成（通常フロア遷移と同じ増加分を適用） 
+		int spawnCount = 1 + addCount; // 元々いた1人分 + 増加分
+		for (int i = 0; i < spawnCount; i++)
 		{
 			XMFLOAT3 newPos = GetRandomBusterPos(nextFloor);
-
 			Busters* newBuster = new Busters(
 				{ newPos.x, BUSTERS_HEIGHT, newPos.z },
 				{ 0.12f, 0.12f, 0.12f },
 				{ 0.0f, 0.0f, 0.0f },
 				"asset\\model\\busters_v3.fbx"
 			);
-
-			if (newBuster) {
+			if (newBuster)
+			{
 				newBuster->SetGroundLevel(PATROL_HEIGHT);
 				g_BustersList[nextFloor].push_back(newBuster);
+			}
+		}
+	}
+	else
+	{
+		for (Busters* buster : g_BustersList[currentFloor])
+		{
+			XMFLOAT3 newPos = GetRandomBusterPos(nextFloor);
+			buster->SetPos(newPos);
+			g_BustersList[nextFloor].push_back(buster);
+		}
+		g_BustersList[currentFloor].clear();
+
+		for (int i = 0; i < addCount; i++)
+		{
+			if (nextFloor >= 0 && nextFloor < MAP_FLOORS)
+			{
+				XMFLOAT3 newPos = GetRandomBusterPos(nextFloor);
+
+				Busters* newBuster = new Busters(
+					{ newPos.x, BUSTERS_HEIGHT, newPos.z },
+					{ 0.12f, 0.12f, 0.12f },
+					{ 0.0f, 0.0f, 0.0f },
+					"asset\\model\\busters_v3.fbx"
+				);
+
+				if (newBuster) {
+					newBuster->SetGroundLevel(PATROL_HEIGHT);
+					g_BustersList[nextFloor].push_back(newBuster);
+				}
 			}
 		}
 	}
@@ -1833,6 +1855,25 @@ void Busters_SpawnOnFloor(int floorIndex)
 	}
 }
 
+// 指定座標・フロアにバスターズを1体生成する
+void Busters_SpawnAt(const XMFLOAT3& pos, int floorIndex)
+{
+	if (floorIndex < 0 || floorIndex >= MAP_FLOORS) return;
+
+	Busters* newBuster = new Busters(
+		{ pos.x, BUSTERS_HEIGHT, pos.z },
+		{ 0.12f, 0.12f, 0.12f },
+		{ 0.0f, 0.0f, 0.0f },
+		"asset\\model\\busters_v3.fbx"
+	);
+
+	if (newBuster)
+	{
+		newBuster->SetGroundLevel(PATROL_HEIGHT);
+		g_BustersList[floorIndex].push_back(newBuster);
+	}
+}
+
 
 
 void Busters::Draw(void)
@@ -1846,7 +1887,7 @@ void Busters::Draw(void)
 		// ここで通常のシェーダー（ボーン無し）に戻す
 		Shader_Begin();
 
-		// ビルボード描画
+			// ビルボード描画
 		m_Icon->Draw();
 	}
 
@@ -1890,7 +1931,7 @@ void Busters::AddIgnoreRelayDoor(int furnitureIndex)
 	m_IgnoredDoorIndices.push_back(furnitureIndex);
 }
 
-// 目標に到着した時にリストを空にする
+// 目標に到達した時にリストを空にする
 void Busters::ClearIgnoreRelayDoors(void)
 {
 	m_IgnoredDoorIndices.clear();

@@ -790,53 +790,9 @@ void Ghost::Move(void)
 void Ghost::FloorMove(void)
 {
 
-	if (m_FloorCooldown > 0.0f)
-	{
-		m_FloorCooldown -= 1.0f / 60.0f;
-	}
-
-	if (m_FloorCooldown <= 0.0f)
-	{
-		FIELD_TYPE blockType = Field_GetBlockType(m_Position.x, m_Position.z);
-
-		if (blockType == FIELD_STAIRS_UP || blockType == FIELD_STAIRS_DOWN)
-		{
-			if (m_FloorCooldown > 0.0f) SetColor(1.0f, 0.5f, 0.5f, 1.0f);
-			else SetColor(0.7f, 1.0f, 0.7f, 1.0f);
-
-			bool isClicked = (GetAsyncKeyState(VK_LBUTTON) & 0x8000) != 0;
-
-			if (isClicked)
-			{
-				if (blockType == FIELD_STAIRS_UP)
-				{
-					int currentFloor = Field_GetCurrentFloor();
-					if (currentFloor < MAP_FLOORS - 1)
-					{
-						Field_ChangeFloor(currentFloor + 1);
-						m_Position.z += 1.2f;
-						SetPos(m_Position);
-						m_FloorCooldown = FLOOR_COOLDOWN_TIME;
-					}
-				}
-				else if (blockType == FIELD_STAIRS_DOWN)
-				{
-					int currentFloor = Field_GetCurrentFloor();
-					if (currentFloor > 0)
-					{
-						Field_ChangeFloor(currentFloor - 1);
-						m_Position.z -= 1.2f;
-						SetPos(m_Position);
-						m_FloorCooldown = FLOOR_COOLDOWN_TIME;
-					}
-				}
-			}
-		}
-		else
-		{
-			ResetColor();
-		}
-	}
+	// 階段接近＋左クリックでの階層移動処理は無効化
+	m_FloorCooldown = 0.0f;
+	ResetColor();
 }
 
 void Ghost::ResetPos(void)

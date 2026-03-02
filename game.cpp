@@ -454,6 +454,8 @@ void Game_Draw(void)
 	Ghost_SetLight();
 	Busters_SetLight();
 	Furniture_SetLight();
+	TutorialBusters_SetLight();
+	UI_Tutorial_SetLight();
 
 	Field_Draw();
 	Busters_Draw();

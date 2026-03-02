@@ -12,9 +12,12 @@
 #include "ghost.h"
 #include "camera.h"
 #include "Tutorial_Object.h"
+#include "busters.h"
 #include <windows.h>
 #include "debug_ostream.h"
 #include "UI_Tutorial_Internal.h"
+#include "shader.h"
+#include "light.h"
 using namespace DirectX;
 
 // ==========================================
@@ -62,6 +65,12 @@ namespace {
 
 	float g_SkipHoldTime = 0.0f;
 	const float SKIP_HOLD_REQUIRED = 1.5f;
+
+#if defined(DEBUG) || defined(_DEBUG)
+	const bool kEnableTutorialSkip = true;
+#else
+	const bool kEnableTutorialSkip = false;
+#endif
 
 	const float CROSSFADE_SPEED = 0.04f;
 
@@ -218,6 +227,8 @@ void AddPage_Camera(const XMFLOAT2& holeCenter, float holeRadius,
 	page.cameraOverride = true;
 	page.cameraPos = targetPos;
 	page.cameraAt = targetAt;
+	page.hasPointLight = true;
+	page.pointLightPos = targetAt;
 }
 
 // カメラの注視点を変える（通し番号カウント対象、ページ番号はカウントしない）
@@ -289,6 +300,30 @@ void SetTutorialBusterTarget(const XMFLOAT3& pos)
 	s_PendingOnEnter.push_back([pos]() {
 		TutorialBusters* b = GetTutorialBusters();
 		if (b) b->SetTarget(pos);
+	});
+}
+
+// バスターズを退場させる（次ページの onEnter に積む）
+void StartTutorialBusterExit(const XMFLOAT3& exitPos)
+{
+	s_PendingOnEnter.push_back([exitPos]() {
+		TutorialObject_StartBusterExit(exitPos);
+	});
+}
+
+// チュートリアル用壁の有効/無効を設定（次ページの onEnter に積む）
+void SetTutorialWall(int wallNumber, bool enabled)
+{
+	s_PendingOnEnter.push_back([wallNumber, enabled]() {
+		Field_SetTutorialWall(wallNumber, enabled);
+	});
+}
+
+// 通常の探索機能付きバスターズを指定座標に出現させる（次ページの onEnter に積む）
+void StartNormalBusters(const XMFLOAT3& pos)
+{
+	s_PendingOnEnter.push_back([pos]() {
+		Busters_SpawnAt(pos, 2);
 	});
 }
 
@@ -461,7 +496,10 @@ void UI_Tutorial_Initialize(ID3D11Device* pDevice, ID3D11DeviceContext* pContext
 		"ページ 1 / 1"
 	);
 
-	InitSkipUI();
+	if (kEnableTutorialSkip)
+	{
+		InitSkipUI();
+	}
 	ApplyPageHole();
 }
 
@@ -588,7 +626,7 @@ void UI_Tutorial_Update(void)
 		if (Keyboard_IsKeyDown(KK_SPACE))
 		{
 			g_SkipHoldTime += 1.0f / FPS;
-			if (g_SkipHoldTime >= SKIP_HOLD_REQUIRED)
+			if (kEnableTutorialSkip && g_SkipHoldTime >= SKIP_HOLD_REQUIRED)
 			{
 				UI_Tutorial_End();
 				return;
@@ -791,7 +829,7 @@ void UI_Tutorial_Draw(void)
 				if (s) {
 					XMFLOAT4 col = s->GetColor();
 					s->SetColor({ col.x, col.y, col.z, col.w * newAlpha });
-					s->Draw();
+				 s->Draw();
 					s->SetColor(col);
 				}
 			}
@@ -854,7 +892,7 @@ void UI_Tutorial_Draw(void)
 		g_pGuideFont->SetColor(col);
 	}
 
-	if (g_IsTutorial && g_pSkipBarBG && g_pSkipBarFG && g_pSkipGuideFont)
+	if (g_IsTutorial && kEnableTutorialSkip && g_pSkipBarBG && g_pSkipBarFG && g_pSkipGuideFont)
 	{
 		{
 			XMFLOAT4 col = g_pSkipBarBG->GetColor();
@@ -954,6 +992,21 @@ void UI_Tutorial_Start()
 
 void UI_Tutorial_End()
 {
+	// 余っている未登録の pending 処理があれば実行
+	for (auto& fn : s_PendingOnEnter) {
+		fn();
+	}
+	s_PendingOnEnter.clear();
+
+	// 残っている onEnter を全て実行してゲーム可能な最終状態にする（スキップ対応）
+	for (int i = g_CurrentPage; i < (int)g_Pages.size(); ++i)
+	{
+		if (g_Pages[i].onEnter) {
+			g_Pages[i].onEnter();
+			g_Pages[i].onEnter = nullptr;
+		}
+	}
+
 	if (g_CameraOverrideActive)
 	{
 		Camera* cam = GetCamera();
@@ -970,4 +1023,25 @@ void UI_Tutorial_End()
 
 	Mouse_SetMode(MOUSE_POSITION_MODE_RELATIVE);
 	Mouse_SetVisible(false);
+}
+
+// チュートリアルカメラページ用ポイントライト
+static PointLight g_TutorialPointLight;
+
+void UI_Tutorial_SetLight(void)
+{
+	if (!g_IsTutorial && !g_IsWaiting) return;
+	if (g_CurrentPage < 0 || g_CurrentPage >= (int)g_Pages.size()) return;
+
+	const TutorialPage& page = g_Pages[g_CurrentPage];
+	if (!page.hasPointLight) return;
+
+	g_TutorialPointLight.enable = TRUE;
+	g_TutorialPointLight.position = XMFLOAT4(page.pointLightPos.x, page.pointLightPos.y + 0.5f, page.pointLightPos.z, 1.0f);
+	g_TutorialPointLight.direction = XMFLOAT4(0.0f, -1.0f, 0.0f, 0.0f);
+	g_TutorialPointLight.diffuse = XMFLOAT4(1.0f, 0.95f, 0.8f, 1.0f);
+	g_TutorialPointLight.range = 8.0f;
+	g_TutorialPointLight.intensity = 2.0f;
+
+	Shader_AddPointLight(&g_TutorialPointLight);
 }

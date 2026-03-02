@@ -32,6 +32,10 @@ struct TutorialPage
 	XMFLOAT3  cameraPos;               // 目標カメラ位置
 	XMFLOAT3  cameraAt;                // 目標注視点
 
+	// カメラ注視点ポイントライト
+	bool      hasPointLight = false;   // trueのとき注視点にポイントライトを配置
+	XMFLOAT3  pointLightPos;           // ポイントライト位置
+
 	// ページ番号カウント対象か（AddPage系はtrue、SetCamera/SetMarkerはfalse）
 	bool isPageType = false;
 
@@ -62,4 +66,7 @@ void UI_Tutorial_ResumeFromWait(void);
 
 // 条件待機中か取得
 bool UI_Tutorial_IsWaiting(void);
+
+// チュートリアルカメラページ用ポイントライトをシェーダーに登録する
+void UI_Tutorial_SetLight(void);
 
