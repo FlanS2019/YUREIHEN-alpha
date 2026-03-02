@@ -862,9 +862,8 @@ void Busters::Update(void)
 	{
 		XMFLOAT3 gPos = GetGhost()->GetPos();
 		float dx = gPos.x - m_Position.x;
-		float dy = gPos.y - m_Position.y;
 		float dz = gPos.z - m_Position.z;
-		float dist = sqrtf(dx * dx + dy * dy + dz * dz);
+		float dist = sqrtf(dx * dx + dz * dz);
 
 		GHOST_STATE ghostState = GetGhost()->GetState();
 
