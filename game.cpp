@@ -545,6 +545,7 @@ void Game_Draw(void)
 	Sprite_BeginDraw2D();
 	UI_Draw();
 	Minimap_Draw();
+	TutorialObject_Draw2D();
 
 	if (Field_GetCurrentFloor() == 2)
 	{

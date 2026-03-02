@@ -12,6 +12,16 @@ using namespace DirectX;
 
 static Camera* CameraObject;
 
+namespace
+{
+	float NormalizeAngle180(float angle)
+	{
+		while (angle > 180.0f) angle -= 360.0f;
+		while (angle < -180.0f) angle += 360.0f;
+		return angle;
+	}
+}
+
 void Camera_Initialize(void)
 {
 	CameraObject = new Camera(
@@ -44,6 +54,12 @@ void Camera_Draw(void)
 void Camera_SetTargetPos(XMFLOAT3 targetPos)
 {
 	CameraObject->SetTargetPos(targetPos);
+}
+
+void Camera_LookAtPoint(XMFLOAT3 pointPos)
+{
+	if (!CameraObject) return;
+	CameraObject->LookAtPoint(pointPos);
 }
 
 float Camera_GetYaw(void)
@@ -82,8 +98,35 @@ void Camera::Update()
 		return;
 	}
 
+	// 注視方向のイージング遷移中は、入力よりも補間を優先する
+	if (m_isLookTransition)
+	{
+		const float dt = 1.0f / 60.0f;
+		m_lookTransitionTime += dt;
+
+		float t = (m_lookTransitionDuration > 0.0f)
+			? (m_lookTransitionTime / m_lookTransitionDuration)
+			: 1.0f;
+		if (t > 1.0f) t = 1.0f;
+
+		float smoothT = t * t * (3.0f - 2.0f * t);
+		float yawDelta = NormalizeAngle180(m_lookEndYaw - m_lookStartYaw);
+
+		m_yaw = NormalizeAngle180(m_lookStartYaw + yawDelta * smoothT);
+		m_pitch = m_lookStartPitch + (m_lookEndPitch - m_lookStartPitch) * smoothT;
+
+		if (t >= 1.0f)
+		{
+			m_isLookTransition = false;
+			m_yaw = NormalizeAngle180(m_lookEndYaw);
+			m_pitch = m_lookEndPitch;
+		}
+
+		m_lastPitch = m_pitch;
+		m_lastYaw = m_yaw;
+	}
 	// フロア移行直後など gState に古い累積値が残る場合、指定フレーム数だけ入力を読み飛ばす
-	if (m_skipInputFrames > 0)
+	else if (m_skipInputFrames > 0)
 	{
 		m_skipInputFrames--;
 		// 入力はスキップするがカメラ位置計算は通常通り行う
@@ -142,4 +185,46 @@ void Camera::SetTargetPos(XMFLOAT3 targetPos)
 	m_targetPos.x = targetPos.x;
 	m_targetPos.y = targetPos.y + CAMERA_OFFSET_Y;
 	m_targetPos.z = targetPos.z;
+}
+
+void Camera::LookAtPoint(const XMFLOAT3& pointPos, float duration)
+{
+	XMFLOAT3 dir = {
+		pointPos.x - m_targetPos.x,
+		pointPos.y - m_targetPos.y,
+		pointPos.z - m_targetPos.z
+	};
+
+	float lenSq = dir.x * dir.x + dir.y * dir.y + dir.z * dir.z;
+	if (lenSq <= 0.000001f)
+	{
+		return;
+	}
+
+	float targetYaw = m_yaw;
+	float flatLen = sqrtf(dir.x * dir.x + dir.z * dir.z);
+	if (flatLen > 0.000001f)
+	{
+		targetYaw = XMConvertToDegrees(atan2f(dir.x, dir.z));
+	}
+
+	float targetPitch = XMConvertToDegrees(atan2f(dir.y, (flatLen > 0.000001f) ? flatLen : 0.000001f));
+	if (targetPitch > PITCH_LIMIT_LOOK_UP)
+	{
+		targetPitch = PITCH_LIMIT_LOOK_UP;
+	}
+	else if (targetPitch < PITCH_LIMIT_LOOK_DOWN)
+	{
+		targetPitch = PITCH_LIMIT_LOOK_DOWN;
+	}
+
+	m_lookStartYaw = NormalizeAngle180(m_yaw);
+	m_lookStartPitch = m_pitch;
+	m_lookEndYaw = NormalizeAngle180(targetYaw);
+	m_lookEndPitch = targetPitch;
+	m_lookTransitionTime = 0.0f;
+	m_lookTransitionDuration = (duration > 0.0f) ? duration : 0.001f;
+	m_isLookTransition = true;
+
+	m_skipInputFrames = 0;
 }

@@ -3,6 +3,7 @@
 #include "texture.h"
 #include "shader.h"
 #include "Camera.h"
+#include "field.h"
 #include <vector>
 
 struct BILLBOARD_VERTEX
@@ -173,7 +174,8 @@ void Billboard::Draw(void)
 
 	// 状態の設定
 	SetBlendState(BLENDSTATE_ALFA);
-	SetDepthWrite(false);
+	SetDepthTest(false);
+	Direct3D_SetViewport3D();
 
 	Shader_Begin();
 
@@ -205,8 +207,14 @@ void Billboard::Draw(void)
 	Shader_SetMatrix(wvp);
 	Shader_SetWorldMatrix(world);
 
-	// Billboard のマテリアルカラーを白に設定（ライティング影響を最小化）
-	Shader_SetMaterialColor({ 1.0f, 1.0f, 1.0f, 1.0f });
+	// 壁裏にいる場合は半透明にする
+	float alpha = 1.0f;
+	Camera* cam = GetCamera();
+	if (cam && Field_CheckWallBetween(cam->GetPos(), m_Pos))
+	{
+		alpha = 0.45f;
+	}
+	Shader_SetMaterialColor({ 1.0f, 1.0f, 1.0f, alpha });
 
 	// 4. 描画
 	ID3D11DeviceContext* context = Direct3D_GetDeviceContext();
@@ -219,5 +227,5 @@ void Billboard::Draw(void)
 	context->Draw(m_VertexCount, 0);
 
 	// 状態を戻す
-	SetDepthWrite(true);
+	SetDepthTest(true);
 }

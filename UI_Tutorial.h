@@ -42,6 +42,9 @@ struct TutorialPage
 	// このページのページ番号（isPageType==true のページのみ有効）
 	int pageNumber = 0;
 
+	// ページ遷移開始時（CrossFade開始時）に呼ばれるコールバック
+	std::function<void()> onTransitionStart;
+
 	// ページ遷移時（表示開始直前）に呼ばれるコールバック
 	std::function<void()> onEnter;
 };

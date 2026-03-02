@@ -527,8 +527,6 @@ void UI_Draw(void)
 
 	if (g_PossessGuideBG) g_PossessGuideBG->Draw();
 	if (g_PossessGuideFont) g_PossessGuideFont->Draw();
-
-	TutorialObject_Draw2D();
 }
 
 //----------------------------

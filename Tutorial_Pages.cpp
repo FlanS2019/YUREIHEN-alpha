@@ -35,6 +35,10 @@ static void TutorialPage_EnableAllFurniturePossessionPhase()
 // ==========================================
 void Tutorial_Pages_Init()
 {
+	//ここでピアノのみに憑依できるようにする
+	//まだスペースキーで驚かせはできない状態	
+	TutorialPage_EnablePianoOnlyPossessionPhase();
+
 	// --- ウェルカムメッセージ ---
 	AddPage({ SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2 }, 0.0f, {
 		"遊んでくれてありがとう！「幽霊変」の遊び方を説明していくね！"
@@ -55,10 +59,8 @@ void Tutorial_Pages_Init()
 		{ SCREEN_WIDTH / 2, SCREEN_HEIGHT - 100.0f }
 	);
 
-
 	// 壁番号1（ID:13）を無効化する（次ページのonEnterで実行される）
 	SetTutorialWall(1, false);
-
 	SetTutorialMarker(false);
 	SetEnbanVisible(false);
 	AddPage({ SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2 }, 0.0f, {
@@ -69,16 +71,13 @@ void Tutorial_Pages_Init()
 	AddPage_Camera({ SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2 }, 300.0f,
 		{ "これが家具の一つのピアノ。"
 		  "[スペースキー]で憑依だよ！" },
-		{ -15.0f, 3.0f, 16.5f }, { -24.5f, 0.5f, 16.5f },
+		{ -13.0f, 3.0f, 16.5f }, { -22.0f, 0.5f, 16.5f },
 		{ SCREEN_WIDTH / 2, SCREEN_HEIGHT - 100.0f }
 	);
 
-	//ここでピアノのみに憑依できるようにする
-	//まだスペースキーで驚かせはできない状態	
-	TutorialPage_EnablePianoOnlyPossessionPhase();
-
 	// --- ピアノ憑依テストプレイ ---
-	SetCameraFocusPoint({ -15.0f, 3.0f, 16.5f });
+	SetTutorialMarker(true, { -23.0f, 2.0f, 16.5f });
+	SetCameraFocusPoint({ -15.0f, 1.0f, 16.5f });
 	AddPage_Play(
 		{ "[W][A][S][D]移動・[マウス]視点・[スペースキー]憑依" },
 		TutorialObject_GetPianoPossessedPtr(),
@@ -87,6 +86,7 @@ void Tutorial_Pages_Init()
 
 	//最初の壁を有効に
 	SetTutorialWall(1, true);
+	SetTutorialMarker(false);
 
 	AddPage({ SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2 }, 0.0f, {
 		"憑依できたね！ おや？この影は？"
@@ -114,18 +114,18 @@ void Tutorial_Pages_Init()
 
 	AddPage({ SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2 }, 0.0f, {
 		"ナイス！驚かせに成功したね！",
-	});
+		});
 
 	AddPage({ 1050.0f, 83.0f }, 50.0f, {
 		"バスターズをうまく驚かせられると、右上の「恐怖ゲージ」が溜まっていくよ。",
 		"MAXまでいくとステージクリア！次の階へ進もう",
 		"全部なくなっちゃうと負けだから気を付けてね！",
-	});
+		});
 
 	AddPage({ 1163.0f, 201.0f }, 90.0f, {
 		"あと、「恐怖コンボ」ってのも上がる。",
 		"驚かせが連鎖すると、恐怖ゲージの上昇幅は増え、驚かせ範囲は広くなるよ！",
-	});
+		});
 
 	StartTutorialBusterExit({ -23.0f, BUSTERS_HEIGHT, -8.0f });
 

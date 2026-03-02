@@ -79,6 +79,8 @@ namespace {
 
 	// 次に追加するページの onEnter に積むコールバックキュー
 	std::vector<std::function<void()>> s_PendingOnEnter;
+	// 次に追加するページの onTransitionStart に積むコールバックキュー
+	std::vector<std::function<void()>> s_PendingOnTransitionStart;
 }
 
 // テキストガイド用フォント
@@ -149,6 +151,17 @@ static void FlushPendingOnEnter(TutorialPage& page)
 	};
 }
 
+// 保留中のコールバックをページの onTransitionStart に適用するヘルパー
+static void FlushPendingOnTransitionStart(TutorialPage& page)
+{
+	if (s_PendingOnTransitionStart.empty()) return;
+	auto captured = s_PendingOnTransitionStart;
+	s_PendingOnTransitionStart.clear();
+	page.onTransitionStart = [captured]() {
+		for (auto& fn : captured) fn();
+	};
+}
+
 // 通常ページ追加
 void AddPage(const XMFLOAT2& holeCenter, float holeRadius,
 	const std::vector<std::string>& texts,
@@ -162,6 +175,7 @@ void AddPage(const XMFLOAT2& holeCenter, float holeRadius,
 	page.isPageType = true;
 	page.pageNumber = ++s_PageCounter;
 
+	FlushPendingOnTransitionStart(page);
 	FlushPendingOnEnter(page);
 
 	float yOffset = 0.0f;
@@ -190,6 +204,7 @@ void AddPage_Play(const std::vector<std::string>& texts, bool* pFlag,
 	page.pageNumber = ++s_PageCounter;
 	page.conditionDelayFrames = delayFrames;
 
+	FlushPendingOnTransitionStart(page);
 	FlushPendingOnEnter(page);
 
 	float yOffset = 0.0f;
@@ -231,23 +246,30 @@ void AddPage_Camera(const XMFLOAT2& holeCenter, float holeRadius,
 	page.pointLightPos = targetAt;
 }
 
-// カメラの注視点を変える（通し番号カウント対象、ページ番号はカウントしない）
+// カメラの注視点を変える（次ページの onTransitionStart に積む）
 void SetCameraFocusPoint(const XMFLOAT3& pos)
 {
-	g_Pages.emplace_back();
-	TutorialPage& page = g_Pages.back();
-	page.holeCenter = { SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2 };
-	page.holeRadius = 0.0f;
-	page.isPageType = false; // ページ番号カウントしない
-	page.cameraOverride = true;
-	page.cameraPos = pos;
-	page.cameraAt = pos; // 注視点として使用
+	s_PendingOnTransitionStart.push_back([pos]() {
+		Ghost* ghost = GetGhost();
+		if (ghost)
+		{
+			XMFLOAT3 gpos = ghost->GetPos();
+			ghost->SetVelocity({ 0.0f, 0.0f, 0.0f });
 
-	// このページはテキストなし・自動で即次へ…ではなく
-	// カメラオーバーライドエントリとして機能させるため autoWait=false, waitCondition=nullptr
-	// （実際にはAddPage_Playの前段として登録し、そちらにカメラを委ねる設計）
-	page.waitCondition = nullptr;
-	page.autoWait = false;
+			float dx = pos.x - gpos.x;
+			float dz = pos.z - gpos.z;
+			if (dx * dx + dz * dz > 0.0001f)
+			{
+				float moveAngle = atan2f(dx, dz);
+				float moveYaw = XMConvertToDegrees(moveAngle);
+				ghost->SetRot({ 0.0f, moveYaw - 180.0f, 0.0f });
+			}
+
+			Camera_SetTargetPos(gpos);
+		}
+
+		Camera_LookAtPoint(pos);
+	});
 }
 
 // チュートリアルマーカーの表示・非表示と位置を設定（次ページの onEnter に積む）
@@ -359,6 +381,12 @@ static void SetupCameraTransition(int fromPage, int toPage)
 
 	bool toOverride = (toPage >= 0 && toPage < (int)g_Pages.size() && g_Pages[toPage].cameraOverride);
 	bool fromOverride = (fromPage >= 0 && fromPage < (int)g_Pages.size() && g_Pages[fromPage].cameraOverride);
+
+	if (toPage >= 0 && toPage < (int)g_Pages.size() && g_Pages[toPage].onTransitionStart)
+	{
+		g_Pages[toPage].onTransitionStart();
+		g_Pages[toPage].onTransitionStart = nullptr;
+	}
 
 	if (toOverride || fromOverride)
 	{
@@ -1020,10 +1048,18 @@ void UI_Tutorial_End()
 		fn();
 	}
 	s_PendingOnEnter.clear();
+	for (auto& fn : s_PendingOnTransitionStart) {
+		fn();
+	}
+	s_PendingOnTransitionStart.clear();
 
 	// 残っている onEnter を全て実行してゲーム可能な最終状態にする（スキップ対応）
 	for (int i = g_CurrentPage; i < (int)g_Pages.size(); ++i)
 	{
+		if (g_Pages[i].onTransitionStart) {
+			g_Pages[i].onTransitionStart();
+			g_Pages[i].onTransitionStart = nullptr;
+		}
 		if (g_Pages[i].onEnter) {
 			g_Pages[i].onEnter();
 			g_Pages[i].onEnter = nullptr;

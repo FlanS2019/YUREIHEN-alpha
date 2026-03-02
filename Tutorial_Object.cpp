@@ -147,7 +147,7 @@ void TutorialMarker::Update(void)
 			vy = -1.0f;
 		}
 
-		const float margin = 70.0f;
+		const float margin = 110.0f;
 		float halfW = SCREEN_WIDTH * 0.5f - margin;
 		float halfH = SCREEN_HEIGHT * 0.5f - margin;
 
@@ -704,16 +704,18 @@ void TutorialObject_Update(void)
 
 void TutorialObject_Draw(void)
 {
+	// マーカーは全フロアで描画（階段誘導Billboardを常時機能させる）
+	if (g_pTutorialMarker)
+	{
+		g_pTutorialMarker->Draw();
+	}
+
+	// 3階専用オブジェクトは従来どおり3階のみ描画
 	if (Field_GetCurrentFloor() != 2) return;
 
 	if (g_pTutorialBusters && g_BustersVisible)
 	{
 		g_pTutorialBusters->Draw();
-	}
-
-	if (g_pTutorialMarker)
-	{
-		g_pTutorialMarker->Draw();
 	}
 
 	if (g_pEnban && g_EnbanVisible)

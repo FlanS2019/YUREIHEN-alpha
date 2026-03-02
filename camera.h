@@ -25,6 +25,13 @@ protected:
 	XMFLOAT3 m_targetPos;
 	float m_sensitivity;
 	int m_skipInputFrames;
+	bool m_isLookTransition;
+	float m_lookTransitionTime;
+	float m_lookTransitionDuration;
+	float m_lookStartYaw;
+	float m_lookStartPitch;
+	float m_lookEndYaw;
+	float m_lookEndPitch;
 
 public:
 	Camera(
@@ -38,7 +45,9 @@ public:
 		:m_Pos(pos), m_AtPos(atpos), m_UpVec(upvec),
 		m_Fov(fov), m_Aspect(aspect), m_Near(near_), m_Far(far_),
 		m_pitch(0.0f), m_yaw(0.0f), m_lastPitch(0.0f), m_lastYaw(0.0f),
-		m_targetPos(0.0f, 0.0f, 0.0f), m_sensitivity(0.1f), m_skipInputFrames(0)
+		m_targetPos(0.0f, 0.0f, 0.0f), m_sensitivity(0.1f), m_skipInputFrames(0),
+		m_isLookTransition(false), m_lookTransitionTime(0.0f), m_lookTransitionDuration(0.0f),
+		m_lookStartYaw(0.0f), m_lookStartPitch(0.0f), m_lookEndYaw(0.0f), m_lookEndPitch(0.0f)
 	{
 		m_View = XMMatrixLookAtLH(
 			XMVectorSet(m_Pos.x, m_Pos.y, m_Pos.z, 0.0f),
@@ -75,6 +84,7 @@ public:
 	XMMATRIX GetProjection(void) const { return m_Projection; }
 	
 	void SetTargetPos(XMFLOAT3 targetPos);
+	void LookAtPoint(const XMFLOAT3& pointPos, float duration = 0.25f);
 	float GetYaw(void) const { return m_yaw; }
 	float GetPitch(void) const { return m_pitch; }
 	void SetSensitivity(float sensitivity) { m_sensitivity = sensitivity; }
@@ -89,6 +99,7 @@ void Camera_Update(void);
 void Camera_Draw(void);
 float Camera_GetYaw(void);
 void Camera_SetTargetPos(XMFLOAT3 targetPos);  // 注視対象位置を設定
+void Camera_LookAtPoint(XMFLOAT3 pointPos);    // 現在の注視対象基準で向きを指定点へ合わせる
 Camera* GetCamera(void);
 
 //マウス感度設定
