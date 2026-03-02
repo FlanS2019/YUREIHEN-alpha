@@ -269,14 +269,14 @@
 			"action": "scare"
 		},
 		{
-			"name": "鎧（剣なし）",
-			"names_ja": "oxidized_copper_golem_statue",
+			"name": "oxidized_copper_golem_statue",
+			"names_ja": "鎧（剣なし）",
 			"default_id": 73,
 			"model": "asset\\model\\armour_normal.glb"
 		},
 		{
-			"name": "鎧（剣あり）",
-			"names_ja": "copper_golem_statue",
+			"name": "copper_golem_statue",
+			"names_ja": "鎧（剣あり）",
 			"default_id": 74,
 			"model": "asset\\model\\armour_luxury.glb"
 		},
