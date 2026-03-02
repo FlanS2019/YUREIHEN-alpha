@@ -42,7 +42,7 @@ static std::vector<MAPDATA> g_MapList;
 // 2階描画時にZ=0～17の真下にFloor1を重ねて表示するためのリスト（当たり判定なし）
 static std::vector<MAPDATA> g_SubFloorMapList;
 
-// 天井描画用リスト（1階・2階のみ、描画専用・当たり判定なし）
+// 天井描画用リスト（1階・2階・3階、描画専用・当たり判定なし）
 static std::vector<MAPDATA> g_CeilingList;
 
 // 天井テクスチャ（3種類）
@@ -311,9 +311,9 @@ void LoadMapData(int floor)
 			});
 	}
 
-	// 1階・2階の天井を生成（描画専用、室内から見上げると見える下面をY=7の高さに配置）
+	// 1階・2階・3階の天井を生成（描画専用、室内から見上げると見える下面をY=7の高さに配置）
 	g_CeilingList.clear();
-	if (floor == 0 || floor == 1)
+	if (floor == 0 || floor == 1 || floor == 2)
 	{
 		// pos.y = Y-1.0f → Y=7 なら 6.0f
 		// 下面（face[2]）を有効にすることで、山上からは見えず室内から見上げると見える
@@ -336,12 +336,12 @@ void LoadMapData(int floor)
 				int wallID0  = GetMapBlockID(floor, 1, z, x);
 				if (floorID == 0 && wallID0 == 0) continue;
 
-				// Y=1 が壁ブロックの場合は天井を置かない（1階・2階共通）
+				// Y=1 が壁ブロックの場合は天井を置かない（1階・2階・3階共通）
 				FIELD_TYPE wallType = ConvertMapID(wallID0);
 				if (wallType == FIELD_BOX) continue;
 
 			// 吹き抜け判定：1階のみ。天井層(Y=MAP_HEIGHT-1)に階段ブロックがあれば吹き抜けとして天井を置かない
-				// 2階は吹き抜けなしのため常に天井を描画する
+				// 2階・3階は吹き抜けなしのため常に天井を描画する
 				if (floor == 0)
 				{
 					int ceilID = GetMapBlockID(floor, MAP_HEIGHT - 1, z, x);
@@ -774,7 +774,7 @@ void Field_Draw(void)
 		FlushBatch();
 	}
 
-	// 天井描画（1階・2階のみ）
+	// 天井描画（1階・2階・3階）
 	if (!g_CeilingList.empty())
 	{
 		currentSRV = nullptr;

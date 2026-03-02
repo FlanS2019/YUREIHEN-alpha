@@ -15,6 +15,10 @@
 #define WIN32_LEAN_AND_MEAN	//32bitアプリには不要な情報を無視
 #define FPS (60)
 
+//=== Sound 関連定数 ===
+#define SOUND_BGM_VOLUME (0.2f)
+#define SOUND_SE_VOLUME  (0.7f)
+
 #if defined(_DEBUG)
 //=== デバッグ関連定数 ===
 #define STOP_TIMER_BUSTER (false) //trueならタイマーとバスターズのupdateを停止させる

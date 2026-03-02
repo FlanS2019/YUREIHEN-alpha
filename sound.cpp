@@ -1,7 +1,46 @@
 ﻿// sound.cpp
 #include "sound.h"
+#include "define.h"
 #include <vector>
 #include <Windows.h>
+#include <algorithm>
+#include <cctype>
+#include <cwctype>
+
+namespace
+{
+    bool ContainsTokenLower(const std::string& text, const std::string& token)
+    {
+        return text.find(token) != std::string::npos;
+    }
+
+    bool IsBGMPath(const std::string& filename)
+    {
+        std::string lower = filename;
+        std::transform(lower.begin(), lower.end(), lower.begin(), [](unsigned char c) {
+            return static_cast<char>(tolower(c));
+        });
+        return ContainsTokenLower(lower, "\\bgm\\") || ContainsTokenLower(lower, "/bgm/");
+    }
+
+    bool IsBGMPath(const wchar_t* filename)
+    {
+        if (!filename) return false;
+        std::wstring lower = filename;
+        std::transform(lower.begin(), lower.end(), lower.begin(), [](wchar_t c) {
+            return static_cast<wchar_t>(towlower(c));
+        });
+        return (lower.find(L"\\bgm\\") != std::wstring::npos) ||
+            (lower.find(L"/bgm/") != std::wstring::npos);
+    }
+
+    float ClampVolume(float volume)
+    {
+        if (volume < 0.0f) return 0.0f;
+        if (volume > 1.0f) return 1.0f;
+        return volume;
+    }
+}
 
 // グローバル変数
 static IXAudio2* g_pXAudio2 = nullptr;
@@ -37,6 +76,7 @@ void UninitSound() {
 // MP3読み込み
 SoundData* LoadMP3(const wchar_t* filename) {
     SoundData* data = new SoundData();
+    data->isBGM = IsBGMPath(filename);
 
     // SourceReader作成
     HRESULT hr = MFCreateSourceReaderFromURL(filename, NULL, &data->pReader);
@@ -110,7 +150,12 @@ SoundData* LoadMP3(const std::string& filename) {
     int size = MultiByteToWideChar(CP_UTF8, 0, filename.c_str(), -1, NULL, 0);
     std::wstring wfilename(size - 1, 0);
     MultiByteToWideChar(CP_UTF8, 0, filename.c_str(), -1, &wfilename[0], size);
-    return LoadMP3(wfilename.c_str());
+    SoundData* data = LoadMP3(wfilename.c_str());
+    if (data)
+    {
+        data->isBGM = IsBGMPath(filename);
+    }
+    return data;
 }
 
 // サウンド解放
@@ -138,6 +183,9 @@ void PlaySound(SoundData* data, bool loop) {
     data->loop = loop;
     data->pSourceVoice->Stop();
     data->pSourceVoice->FlushSourceBuffers();
+
+    const float volume = data->isBGM ? SOUND_BGM_VOLUME : SOUND_SE_VOLUME;
+    data->pSourceVoice->SetVolume(ClampVolume(volume));
 
     XAUDIO2_BUFFER buffer = { 0 };
     buffer.AudioBytes = data->bufferSize;

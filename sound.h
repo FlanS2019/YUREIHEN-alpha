@@ -20,6 +20,7 @@ struct SoundData {
     BYTE* pBuffer = nullptr;
     UINT32 bufferSize = 0;
     bool loop = false;
+    bool isBGM = false;
 };
 
 // 初期化・終了
