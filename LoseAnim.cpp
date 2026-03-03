@@ -118,7 +118,7 @@ void Animation_Lose_Initialize(ID3D11Device* pDevice, ID3D11DeviceContext* pCont
 	);
 
 	// サウンド再生
-	g_pBGM = LoadMP3("asset/sound/bgm/HauntedHalloween.mp3");
+	g_pBGM = LoadMP3("asset/sound/bgm/sad _loose_or result .mp3");
 	if (g_pBGM) {
 		PlaySound(g_pBGM, true);
 	}
