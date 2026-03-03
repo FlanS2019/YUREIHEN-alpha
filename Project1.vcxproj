@@ -190,6 +190,7 @@
     <ClCompile Include="Tutorial_Object.cpp" />
     <ClCompile Include="Tutorial_Pages.cpp" />
     <ClCompile Include="UI.cpp" />
+    <ClCompile Include="UI_messageframe.h" />
     <ClCompile Include="UI_PauseMenu.cpp" />
     <ClCompile Include="UI_scarecombo.cpp" />
     <ClCompile Include="UI_Tutorial.cpp" />
