@@ -573,9 +573,6 @@ void Busters::Update(void)
 					if (bestDoorIndex != -1) {
 						// 最適なドアを中継地点に設定する
 						destination = GetFurniture(bestDoorIndex)->GetPos();
-
-						// このドアを次から中継地点にしない状態にする
-						AddIgnoreRelayDoor(bestDoorIndex);
 					}
 				}
 
@@ -608,10 +605,16 @@ void Busters::Update(void)
 					m_PathList = Field_FindPath(m_Position, destination);
 					if (m_PathList.empty())
 					{
-						// 経路が見つからない（壁の中などで行けない）場合は、壁に突っ込まずに潔く諦める
+						// 経路が見つからない（壁の中などで行けない）場合は、壁に究っ込まずに潔く諦める
 						m_TargetFurnitureIndex = -1;
 						m_State = BUSTERS_WAIT_RESELECT;
 						m_WaitTimer = 60;
+						ClearIgnoreRelayDoors();
+					}
+					else if (bestDoorIndex != -1)
+					{
+						// 経路生成に成功した時だけドアを除外リストに追加する
+						AddIgnoreRelayDoor(bestDoorIndex);
 					}
 				}
 			}
