@@ -196,6 +196,7 @@ void Animation_Lose_Update(void)
 				float inkAlpha = progress;
 				g_LoseAnimeLogoSprite->SetColor({ 1.0f, 1.0f, 1.0f, inkAlpha });
 			}
+
 			else
 			{
 				// 降下完了後は完全表示・位置固定
