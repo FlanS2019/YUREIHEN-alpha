@@ -218,8 +218,7 @@ void Result_Initialize(ID3D11Device* pDevice, ID3D11DeviceContext* pContext)
 	g_ResultPhase = PHASE_TIME_BIG;
 	g_PhaseAlpha = 0.0f;
 	g_WaitCounter = 0;
-	g_ScoreSent = false;
-	// g_pResultTime と g_pResultCombo は WinAnim から渡された値を保持するためリセットしない
+	g_ScoreSent = false;// スコア送信済みフラグをリセット
 
 	// 背景
 	g_pResultSprite = new Sprite(
@@ -332,7 +331,7 @@ void Result_Initialize(ID3D11Device* pDevice, ID3D11DeviceContext* pContext)
 	);
 
 	// 凶、恐、虚の絵
-	g_pkyou1 = new Sprite(
+	g_pkyou1 = new Sprite(//nomal//0-400
 		{ SCREEN_WIDTH / 2.0f - 30, SCREEN_HEIGHT / 2.0f - 10 },
 		{ 250,250 },
 		0.0f,
@@ -340,16 +339,16 @@ void Result_Initialize(ID3D11Device* pDevice, ID3D11DeviceContext* pContext)
 		BLENDSTATE_ALFA,
 		L"asset\\yureihen\\Result\\Result_Normal.png"
 	);
-	g_pkyou2 = new Sprite(
-		{ SCREEN_WIDTH / 2.0f + 10, SCREEN_HEIGHT / 2.0f - 10 },
+	g_pkyou2 = new Sprite(//good//401-1000
+		{ SCREEN_WIDTH / 2.0f - 30, SCREEN_HEIGHT / 2.0f - 10 },
 		{ 300,300 },
 		0.0f,
 		{ 1.0f, 1.0f, 1.0f, 1.0f },
 		BLENDSTATE_ALFA,
 		L"asset\\yureihen\\Result\\Result_Good.png"
 	);
-	g_pkyou3 = new Sprite(
-		{ SCREEN_WIDTH / 2.0f + 10, SCREEN_HEIGHT / 2.0f - 10 },
+	g_pkyou3 = new Sprite(//excellent//1001-1200
+		{ SCREEN_WIDTH / 2.0f - 30, SCREEN_HEIGHT / 2.0f - 10 },
 		{ 300,300 },
 		0.0f,
 		{ 1.0f, 1.0f, 1.0f, 1.0f },
@@ -541,15 +540,15 @@ void Result_Draw(void)
 
 	// スコアに応じた画像を表示
 	int resultScore = GetResultScore();
-	if (resultScore >= 0 && resultScore <= 200)
+	if (resultScore >= 0 && resultScore <= 400)
 	{
 		if (g_pkyou1) g_pkyou1->Draw();
 	}
-	else if (resultScore >= 201 && resultScore <= 400)
+	else if (resultScore >= 401 && resultScore <= 1000)
 	{
 		if (g_pkyou2) g_pkyou2->Draw();
 	}
-	else if (resultScore >= 401 && resultScore <= 600)
+	else if (resultScore >= 1001 && resultScore <= 1200)
 	{
 		if (g_pkyou3) g_pkyou3->Draw();
 	}

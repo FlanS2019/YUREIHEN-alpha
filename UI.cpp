@@ -55,6 +55,8 @@ static std::string g_LastPossessGuideText = "";//文字列記憶
 static float g_FloorGaugeValues[MAP_FLOORS];
 // 前フレームの階層を記憶しておく変数
 static int g_LastFrameFloor = 0;
+// 全階の残り時	間の累計（リザルト用）
+static float	 g_AccumulatedTime		 = 0.0f;
 
 
 // 3D座標 -> 2Dスクリーン座標変換
@@ -216,6 +218,7 @@ void UI_Initialize(void)
 
 	g_LastFrameFloor = Field_GetCurrentFloor();
 	g_ScareGauge->SetValue(g_FloorGaugeValues[g_LastFrameFloor]);
+	g_AccumulatedTime = 0.0f;
 
 	g_PossessGuideFont = new FontRenderer(
 		{ SCREEN_WIDTH / 2.0f, SCREEN_HEIGHT - 100.0f },
@@ -257,16 +260,7 @@ void UI_Update(void)
 		{
 			g_ScareGauge->SetValue(g_FloorGaugeValues[currentFloor]);
 		}
-		
-		// WIN 判定：前フレームが 1 階以上で現在 0 階 = クリア
-		if (g_LastFrameFloor > 0 && currentFloor == 0)
-		{
-			float remainingTime = CLOCK_MAX - g_Clock->GetTime();
-			if (remainingTime < 0.0f) remainingTime = 0.0f;
-			WinAnim_SetResultData(remainingTime, UI_ScareCombo_GetNumber());
-			hal::dout << "WIN! time=" << remainingTime << std::endl;
-		}
-		
+				
 		g_LastFrameFloor = currentFloor;
 	}
 	// --- 敗北条件 ---
@@ -523,7 +517,7 @@ void UI_Draw(void)
 
 	if (g_Clock) g_Clock->Draw();
 	if (g_ScareGauge) g_ScareGauge->Draw();
-	//if (g_RemainingTimeNum) g_RemainingTimeNum->Draw();
+	//if (g_RemainingTimeNum) g_RemainingTimeNum->Draw();//（仮実装：残り時間表示）
 
 	if (g_PossessGuideBG) g_PossessGuideBG->Draw();
 	if (g_PossessGuideFont) g_PossessGuideFont->Draw();
@@ -549,7 +543,7 @@ void UI_Finalize(void)
 	if (g_GuideClick) { delete g_GuideClick; g_GuideClick = nullptr; }
 	if (g_GuideFloorNum) { delete g_GuideFloorNum; g_GuideFloorNum = nullptr; }
 	if (g_GuideFloorF) { delete g_GuideFloorF; g_GuideFloorF = nullptr; }
-	//if (g_RemainingTimeNum) { delete g_RemainingTimeNum; g_RemainingTimeNum = nullptr; }
+	//if (g_RemainingTimeNum) { delete g_RemainingTimeNum; g_RemainingTimeNum = nullptr; }//（仮実装：残り時間表示）
 }
 
 void AddScareGauge(float value)
@@ -605,4 +599,20 @@ void UI_ResetTimer(void)
 	{
 		g_Clock->Reset();
 	}
+}
+
+void UI_AccumulateFloorTime(void)
+{
+	if (g_Clock)
+	{
+		float remainingTime = CLOCK_MAX - g_Clock->GetTime();
+		if (remainingTime < 0.0f) remainingTime = 0.0f;
+		g_AccumulatedTime += remainingTime;
+		hal::dout << "AccumulateFloorTime: " << remainingTime << " total=" << g_AccumulatedTime << std::endl;
+	}
+}
+
+float UI_GetAccumulatedTime(void)
+{
+	return g_AccumulatedTime;
 }
