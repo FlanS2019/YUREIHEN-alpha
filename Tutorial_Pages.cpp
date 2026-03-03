@@ -173,9 +173,9 @@ void Tutorial_Pages_Init()
 	TutorialPage_EnableAllFurniturePossessionPhase();
 
 	AddPage({ SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2 }, 0.0f, {
-		"ちょっと説明長くなっちゃった……",
-		"話し込んでたら、バスターずは隣の部屋に行ったみたい。",
-		"チュートリアルだしダメージは減らないようにしとく。色々試してみて！",
+		"チュートリアルはここまで！。"
+		"どうやらバスターずは隣の部屋に行ったみたい。",
+		"次の部屋で憑依したり引き寄せたり……色々試してみて！",
 		});
 
 	//// 壁番号3（ID:15）を無効化する

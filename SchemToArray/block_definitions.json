@@ -277,7 +277,8 @@
 			"name": "oxidized_copper_golem_statue",
 			"names_ja": "鎧（剣なし）",
 			"default_id": 73,
-			"model": "asset\\model\\armour_normal.glb"
+			"model": "asset\\model\\armour_normal.glb",
+			"action": "scare"
 		},
 		{
 			"name": "copper_golem_statue",
