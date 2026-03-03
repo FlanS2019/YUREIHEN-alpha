@@ -127,6 +127,10 @@
 #define SCORE_SCARE (3.9f) // 驚かせスコア//2.45f勝てなさすぎるので一時変更
 #define BUSTER_GAUGE_REDUCTION (0.05f) // バスターに見つかったときのゲージ減少値（1フレームあたり）
 
+//=== 家具耐性（慣れ）関連定数 ===
+#define FURNITURE_RESISTANCE_DECAY  (0.8f)  // 同じ家具IDで使うたびに掛かる減衰率（1回目100%→2回目80%→...）
+#define FURNITURE_RESISTANCE_MIN    (0.2f)  // 減衰の下限（最低でもこの倍率は保証する）
+
 //=== UI_ScareCombo 関連定数 ===
 #define SCARECOMBO_POS_X (SCREEN_WIDTH - 110.0f)
 #define SCARECOMBO_POS_Y (170.0f)

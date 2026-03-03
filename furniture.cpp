@@ -19,6 +19,11 @@ Furniture* g_Furniture[FURNITURE_NUM]{};
 
 static int g_FurnitureCount = 0;
 
+// 家具IDごとのアクション使用回数（耐性計算用）
+static std::map<int, int> g_FurnitureUseCount;
+
+
+
 static std::map<int, std::string> g_BlockNameJaMap;
 static bool g_FileLoadFailed = false; // 読み込み失敗フラグ
 static bool g_BlockDefinitionsLoaded = false; // 読み込み完了フラグ
@@ -180,6 +185,7 @@ void Furniture_Initialize(void)
 
 	// 1. カウントをリセット
 	g_FurnitureCount = 0;
+	g_FurnitureUseCount.clear();
 
 	int currentFloor = Field_GetCurrentFloor();
 
@@ -494,6 +500,7 @@ void Furniture_Finalize(void)
 		}
 	}
 	g_FurnitureSEMap.clear();
+	g_FurnitureUseCount.clear();
 }
 
 Furniture* GetFurniture(int index)
@@ -526,6 +533,24 @@ std::string GetBlockNameJa(int id)
 	}
 
 	return "不明";
+}
+
+float Furniture_GetResistanceMultiplier(int blockID)
+{
+	if (g_FurnitureUseCount.count(blockID) == 0) return 1.0f;
+	int uses = g_FurnitureUseCount[blockID];
+	float mult = 1.0f;
+	for (int i = 0; i < uses; i++)
+	{
+		mult *= FURNITURE_RESISTANCE_DECAY;
+	}
+	if (mult < FURNITURE_RESISTANCE_MIN) mult = FURNITURE_RESISTANCE_MIN;
+	return mult;
+}
+
+void Furniture_IncrementUseCount(int blockID)
+{
+	g_FurnitureUseCount[blockID]++;
 }
 
 bool FurnitureScareStart(int index)

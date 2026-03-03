@@ -547,6 +547,12 @@ void Ghost::ScareStart(void)
 	Furniture* pFurniture = GetFurniture(m_InRangeFurnitureNum);
 	if (!pFurniture) return;
 
+	// 家具IDごとの耐性倍率を取得し、使用回数をインクリメント
+	int furnitureBlockID = pFurniture->GetBlockID();
+	float resistanceMult = Furniture_GetResistanceMultiplier(furnitureBlockID);
+	Furniture_IncrementUseCount(furnitureBlockID);
+
+
 	if (g_pScareSound)
 	{
 		PlaySound(g_pScareSound, false);
@@ -642,7 +648,16 @@ void Ghost::ScareStart(void)
 			else if (busterCount >= 3) {
 				addScore *= 0.6f; // 3人なら 60% にさらにダウン
 			}
-			AddScareGauge(addScore);
+			addScore *= resistanceMult; // 家具耐性による減衰
+			{
+				float prevGauge = UI_GetScareGauge();
+				AddScareGauge(addScore);
+				float nextGauge = UI_GetScareGauge();
+				float actualAdd = nextGauge - prevGauge;
+				hal::dout << "[SCARE] FurnitureID=" << furnitureBlockID
+					<< " Gauge: " << prevGauge << " -> " << nextGauge
+					<< " (+" << actualAdd << ")" << std::endl;
+			}
 			// ゲージMAXの判定は Game_Update 内の通常ループで倒す
 		}
 		break;
@@ -655,12 +670,21 @@ void Ghost::ScareStart(void)
 		if (Busters_IsAnyInRange(ghostPos, lureRange))
 		{
 			BustersLured(ghostPos, lureRange);
-			if (!m_HasIncreasedMultiplier)
+				if (!m_HasIncreasedMultiplier)
+				{
+					ScareComboUP();
+					m_HasIncreasedMultiplier = true;
+				}
 			{
-				ScareComboUP();
-				m_HasIncreasedMultiplier = true;
+				float lureAdd = SCORE_LURE * UI_ScareCombo_GetNumber() * resistanceMult;
+				float prevGauge = UI_GetScareGauge();
+				AddScareGauge(lureAdd);
+				float nextGauge = UI_GetScareGauge();
+				float actualAdd = nextGauge - prevGauge;
+				hal::dout << "[LURE] FurnitureID=" << furnitureBlockID
+					<< " Gauge: " << prevGauge << " -> " << nextGauge
+					<< " (+" << actualAdd << ")" << std::endl;
 			}
-			AddScareGauge(SCORE_LURE * UI_ScareCombo_GetNumber());
 		}
 		break;
 	}
@@ -670,12 +694,21 @@ void Ghost::ScareStart(void)
 		if (Busters_IsAnyInRange(ghostPos, BUSTERS_STOP_RANGE))
 		{
 			BustersStopped();
-			if (!m_HasIncreasedMultiplier)
+				if (!m_HasIncreasedMultiplier)
+				{
+					ScareComboUP();
+					m_HasIncreasedMultiplier = true;
+				}
 			{
-				ScareComboUP();
-				m_HasIncreasedMultiplier = true;
+				float stopAdd = SCORE_STOP * UI_ScareCombo_GetNumber() * resistanceMult;
+				float prevGauge = UI_GetScareGauge();
+				AddScareGauge(stopAdd);
+				float nextGauge = UI_GetScareGauge();
+				float actualAdd = nextGauge - prevGauge;
+				hal::dout << "[STOP] FurnitureID=" << furnitureBlockID
+					<< " Gauge: " << prevGauge << " -> " << nextGauge
+					<< " (+" << actualAdd << ")" << std::endl;
 			}
-			AddScareGauge(SCORE_STOP * UI_ScareCombo_GetNumber());
 		}
 		break;
 	}
