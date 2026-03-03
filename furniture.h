@@ -132,3 +132,5 @@ bool FurnitureScareStart(int index);
 bool FurnitureScareEnded(int index);
 bool IsFurnitureBlock(int id);
 void Furniture_SetLight(void);
+float Furniture_GetResistanceMultiplier(int blockID);
+void Furniture_IncrementUseCount(int blockID);

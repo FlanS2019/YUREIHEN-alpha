@@ -32,7 +32,7 @@ static ClickFont* g_pLeftArrowFont = nullptr;
 static ClickFont* g_pRightArrowFont = nullptr;
 
 // 設定値
-static float g_Volume = 1.0f;
+static float g_Volume = 0.5f;
 static float g_MouseSensitivity = 1.0f;
 static float g_Brightness = 0.4f; // MainLightの環境光初期値に合わせる
 
@@ -71,10 +71,13 @@ void UI_PauseMenu_Initialize(ID3D11Device* pDevice, ID3D11DeviceContext* pContex
 	// ポーズ用初期化
 	g_IsPause = false;
 	g_PauseCursor = 0;
-	g_Volume = 1.0f;
+	g_Volume = 0.5f;
 	g_MouseSensitivity = 1.0f;
 	g_Brightness = 0.4f;
 	g_PauseMouseStateChangedFlag = false;
+
+	// 初期音量を反映
+	SetMasterVolume(g_Volume);
 
 	// カメラに初期マウス感度を反映
 	Camera_SetSensitivity(g_MouseSensitivity);
@@ -144,7 +147,7 @@ void UI_PauseMenu_Initialize(ID3D11Device* pDevice, ID3D11DeviceContext* pContex
 	g_pLeftArrowFont->SetHitSize({ ARROW_HIT_MARGIN_X * 2.0f, ARROW_HIT_MARGIN_Y * 2.0f });
 	g_pLeftArrowFont->SetOnClick([]() {
 		if (g_PauseCursor == 1) {
-			g_Volume -= 0.05f;
+			g_Volume -= 0.02f;
 			if (g_Volume < 0.0f) g_Volume = 0.0f;
 			SetMasterVolume(g_Volume);
 		}
@@ -163,7 +166,7 @@ void UI_PauseMenu_Initialize(ID3D11Device* pDevice, ID3D11DeviceContext* pContex
 	g_pRightArrowFont->SetHitSize({ ARROW_HIT_MARGIN_X * 2.0f, ARROW_HIT_MARGIN_Y * 2.0f });
 	g_pRightArrowFont->SetOnClick([]() {
 		if (g_PauseCursor == 1) {
-			g_Volume += 0.05f;
+			g_Volume += 0.02f;
 			if (g_Volume > 1.0f) g_Volume = 1.0f;
 			SetMasterVolume(g_Volume);
 		}
@@ -304,6 +307,60 @@ void UI_PauseMenu_Update(void)
 	}
 
 	// ボタン色はClickFont内蔵（通常色/ホバー色）に任せる
+
+	// 上下キーで項目選択
+	if (Keyboard_IsKeyDownTrigger(KK_UP))
+	{
+		g_PauseCursor--;
+		if (g_PauseCursor < 0) g_PauseCursor = 4;
+	}
+	if (Keyboard_IsKeyDownTrigger(KK_DOWN))
+	{
+		g_PauseCursor++;
+		if (g_PauseCursor > 4) g_PauseCursor = 0;
+	}
+
+	// 左右キーで値変更（音量・マウス感度・明るさ選択中のみ）
+	if (Keyboard_IsKeyDown(KK_LEFT))
+	{
+		if (g_PauseCursor == 1)
+		{
+			g_Volume -= 0.02f;
+			if (g_Volume < 0.0f) g_Volume = 0.0f;
+			SetMasterVolume(g_Volume);
+		}
+		else if (g_PauseCursor == 2)
+		{
+			g_MouseSensitivity -= 0.05f;
+			if (g_MouseSensitivity < 0.1f) g_MouseSensitivity = 0.1f;
+			Camera_SetSensitivity(g_MouseSensitivity);
+		}
+		else if (g_PauseCursor == 3)
+		{
+			g_Brightness -= 0.05f;
+			if (g_Brightness < 0.0f) g_Brightness = 0.0f;
+		}
+	}
+	if (Keyboard_IsKeyDown(KK_RIGHT))
+	{
+		if (g_PauseCursor == 1)
+		{
+			g_Volume += 0.02f;
+			if (g_Volume > 1.0f) g_Volume = 1.0f;
+			SetMasterVolume(g_Volume);
+		}
+		else if (g_PauseCursor == 2)
+		{
+			g_MouseSensitivity += 0.05f;
+			if (g_MouseSensitivity > 2.0f) g_MouseSensitivity = 2.0f;
+			Camera_SetSensitivity(g_MouseSensitivity);
+		}
+		else if (g_PauseCursor == 3)
+		{
+			g_Brightness += 0.05f;
+			if (g_Brightness > 1.0f) g_Brightness = 1.0f;
+		}
+	}
 
 	switch (g_PauseCursor) {
 	case 0:
