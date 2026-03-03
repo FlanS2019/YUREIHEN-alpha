@@ -206,7 +206,11 @@ void Animation_Lose_Update(void)
 			}
 		}
 	}
-
+	//自動でタイトルに戻る（約4秒後）
+	if(elapsed > 4.0f)
+	{
+		StartFade(SCENE_TITLE);
+	}
 	// スペースキーでタイトルへ
 	if (Keyboard_IsKeyDownTrigger(KK_SPACE))
 	{
