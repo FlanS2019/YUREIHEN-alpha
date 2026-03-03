@@ -13,7 +13,7 @@
 #include "ScoreClient.h"
 #include "debug_ostream.h"
 
-// デフォルト値（設定ファイルが読めなかった場合のフォールバック）
+// デフォルト値（設定ファイルが読めなかった場合のフォールバック
 static const char* DEFAULT_IP = "192.168.10.19";
 static const int   DEFAULT_PORT = 5000;
 
