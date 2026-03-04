@@ -53,7 +53,7 @@
 #define TUT_PAGECOUNT_OFFSET_Y (-65.0f)                 // バーからページ数表示へのYオフセット
 
 //=== TutorialMarker 関連定数 ===
-#define TUTORIAL_MARKER_SIZE        (2.4f)  // 矢印ビルボードのサイズ（幅・高さ）
+#define TUTORIAL_MARKER_SIZE        (1.4f)  // 矢印ビルボードのサイズ（幅・高さ）
 #define TUTORIAL_MARKER_BOB_AMP     (0.25f) // バウンス振幅（上下の振れ幅）
 #define TUTORIAL_MARKER_BOB_SPEED   (3.0f)  // バウンス速度（rad/s）
 #define TUTORIAL_MARKER_BASE_HEIGHT (2.0f)  // 地面からの基本高さ
@@ -73,6 +73,11 @@
 //=== Furniture 関連定数 ===
 #define FURNITURE_NUM (500)
 #define FURNITURE_DETECTION_RANGE (5.0f) // Ghost検出範囲
+
+// 暖炉の炎パラメータ（ここで一元管理）
+#define CAMPFIRE_FIRE_SIZE_W   (2.0f)  // 炎の横サイズ
+#define CAMPFIRE_FIRE_SIZE_H   (2.0f)  // 炎の縦サイズ
+#define CAMPFIRE_FIRE_OFFSET_Y (0.5f)  // 暖炉基準の Y オフセット
 
 //=== Busters 関連定数 ===
 #define BUSTERS_MOVE_SPEED_SEARCH    (0.05f) // 探索速度
@@ -101,16 +106,16 @@
 #define SCARE_RANGE (12.0f)		// 恐怖範囲
 #define SCARE_COMBO_BASE_RADIUS (5.0f)
 #define SCARE_COMBO_RADIUS_STEP (0.7f)
-#define GHOST_MOVEMENT_SPEED (0.01f
+#define GHOST_MOVEMENT_SPEED (0.01f)
 #define GHOST_ACCELERATION (0.010f)
 #define GHOST_DECELERATION (0.98f)
 #define GHOST_MAX_SPEED (0.10f)
 #define FLOOR_COOLDOWN_TIME (2.0f) // 階層移動のクールダウン時間（秒）
 #define GHOST_POS_Y (0.5f)
 #define LURE_POSSESSED_SPEED_RATIO (0.5f)
-#define GHOST_START_POS_FLOOR1_X (-3.0f)
-#define GHOST_START_POS_FLOOR1_Z (-10.0f)
-#define GHOST_START_POS_FLOOR2_X (-10.0f)
+#define GHOST_START_POS_FLOOR1_X (-1.0f)
+#define GHOST_START_POS_FLOOR1_Z (-12.0f)
+#define GHOST_START_POS_FLOOR2_X (-11.0f)
 #define GHOST_START_POS_FLOOR2_Z (-11.0f)
 #define GHOST_START_POS_FLOOR3_X (-4.0f)
 #define GHOST_START_POS_FLOOR3_Z (4.0f)
@@ -126,6 +131,10 @@
 #define SCORE_STOP (0.5f) // 停止スコア
 #define SCORE_SCARE (3.9f) // 驚かせスコア//2.45f勝てなさすぎるので一時変更
 #define BUSTER_GAUGE_REDUCTION (0.05f) // バスターに見つかったときのゲージ減少値（1フレームあたり）
+
+//=== 家具耐性（慣れ）関連定数 ===
+#define FURNITURE_RESISTANCE_DECAY  (0.8f)  // 同じ家具IDで使うたびに掛かる減衰率（1回目100%→2回目80%→...）
+#define FURNITURE_RESISTANCE_MIN    (0.2f)  // 減衰の下限（最低でもこの倍率は保証する）
 
 //=== UI_ScareCombo 関連定数 ===
 #define SCARECOMBO_POS_X (SCREEN_WIDTH - 110.0f)

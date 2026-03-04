@@ -45,6 +45,9 @@
     <ClCompile Include="game.cpp" />
     <ClCompile Include="debug_model_scene.cpp" />
     <ClCompile Include="glb_model.cpp" />
+    <ClCompile Include="ScoreClient.cpp" />
+    <ClCompile Include="UI_messageframe.h" />
+    <ClCompile Include="vote.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="animation.h" />
@@ -100,6 +103,8 @@
     <ClInclude Include="TutorialFlag.h" />
     <ClInclude Include="debug_model_scene.h" />
     <ClInclude Include="glb_model.h" />
+    <ClInclude Include="ScoreClient.h" />
+    <ClInclude Include="vote.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="convert_to_utf8bom.ps1" />
@@ -107,6 +112,7 @@
     <None Include=".github\workflows\release.yml" />
     <None Include="SchemToArray\block_definitions.json" />
     <None Include="docs\PointLight_Summary.md" />
+    <None Include="SchemToArray\SchemToArray.py" />
   </ItemGroup>
   <ItemGroup>
     <FxCompile Include="shader_pixel_2d.hlsl" />

@@ -1,4 +1,4 @@
-﻿#define NOMINMAX
+#define NOMINMAX
 
 #include "model.h"
 #include "texture.h"
@@ -233,10 +233,6 @@ MODEL* ModelLoad(const char* FileName)
 	}
 
 	// ===== モデルファイルの読み込み開始 =====
-	hal::dout << std::endl;
-	hal::dout << "========================================" << std::endl;
-	hal::dout << ">> Model Loading: " << FileName << std::endl;
-	hal::dout << "========================================" << std::endl;
 
 	// 拡張子を取得して小文字に変換
 	std::string ext = "";
@@ -273,10 +269,6 @@ MODEL* ModelLoad(const char* FileName)
 		// エラー内容を取得
 		const char* errorString = aiGetErrorString();
 
-		hal::dout << "ERROR: Model loading failed!" << std::endl;
-		hal::dout << "  File: " << FileName << std::endl;
-		hal::dout << "  Assimp Error: " << errorString << std::endl;
-		hal::dout << "========================================" << std::endl;
 
 		std::string msg = "モデルの読み込みに失敗しました。\n";
 		msg += "ファイルパス: " + std::string(FileName) + "\n";
@@ -289,11 +281,6 @@ MODEL* ModelLoad(const char* FileName)
 //		delete model;
 		return nullptr;
 	}
-
-	hal::dout << "  Scene loaded. Meshes: " << model->AiScene->mNumMeshes 
-			  << ", Materials: " << model->AiScene->mNumMaterials
-			  << ", Textures: " << model->AiScene->mNumTextures << std::endl;
-	hal::dout << std::endl;
 
 	model->VertexBuffer = new ID3D11Buffer * [model->AiScene->mNumMeshes];
 	model->IndexBuffer = new ID3D11Buffer * [model->AiScene->mNumMeshes];
@@ -329,7 +316,6 @@ MODEL* ModelLoad(const char* FileName)
 	}
 	if (model->HasSkinning)
 	{
-		hal::dout << "  Skinning: " << model->TotalBoneCount << " unique bones found" << std::endl;
 	}
 
 	for (unsigned int m = 0; m < model->AiScene->mNumMeshes; m++)
@@ -361,8 +347,6 @@ MODEL* ModelLoad(const char* FileName)
 					{
 						diffuseColor = baseColor;
 						foundFallback = true;
-						hal::dout << "  Mesh[" << m << "]: Using BASE_COLOR as fallback ("
-								  << baseColor.r << ", " << baseColor.g << ", " << baseColor.b << ")" << std::endl;
 					}
 				}
 
@@ -376,8 +360,6 @@ MODEL* ModelLoad(const char* FileName)
 						{
 							diffuseColor = ambientColor;
 							foundFallback = true;
-							hal::dout << "  Mesh[" << m << "]: Using AMBIENT color as fallback ("
-									  << ambientColor.r << ", " << ambientColor.g << ", " << ambientColor.b << ")" << std::endl;
 						}
 					}
 				}
@@ -392,18 +374,15 @@ MODEL* ModelLoad(const char* FileName)
 					{
 						// テクスチャがあるのでマテリアル色は白（テクスチャ色 × 白 = テクスチャ色）
 						diffuseColor = aiColor4D(1.0f, 1.0f, 1.0f, 1.0f);
-						hal::dout << "  Mesh[" << m << "]: Diffuse black but has texture -> set white" << std::endl;
 					}
 					else if (colorResult != AI_SUCCESS)
 					{
 						// Diffuse色自体が取得できなかった場合のみ白をデフォルトにする
 						diffuseColor = aiColor4D(1.0f, 1.0f, 1.0f, 1.0f);
-						hal::dout << "  Mesh[" << m << "]: Material color not found -> set white" << std::endl;
 					}
 					else
 					{
 						// Diffuse色が黒(0,0,0)でテクスチャもないが、Assimpが返した色をそのまま使用
-						hal::dout << "  Mesh[" << m << "]: Diffuse is black, no texture -> keeping original color" << std::endl;
 					}
 				}
 			}
@@ -415,17 +394,6 @@ MODEL* ModelLoad(const char* FileName)
 			}
 
 			model->MeshMaterials[m].diffuseColor = XMFLOAT4(diffuseColor.r, diffuseColor.g, diffuseColor.b, diffuseColor.a);
-
-			// マテリアル名とシェーディングモデルをデバッグ出力
-			aiString matName;
-			if (AI_SUCCESS == material->Get(AI_MATKEY_NAME, matName))
-			{
-				int shadingModel = 0;
-				material->Get(AI_MATKEY_SHADING_MODEL, shadingModel);
-				hal::dout << "  Mesh[" << m << "]: Material=\"" << matName.data
-						  << "\" Shading=" << shadingModel
-						  << " Color=(" << diffuseColor.r << ", " << diffuseColor.g << ", " << diffuseColor.b << ", " << diffuseColor.a << ")" << std::endl;
-			}
 
 			// テクスチャ情報の取得
 			aiString texturePath;
@@ -484,7 +452,6 @@ MODEL* ModelLoad(const char* FileName)
 			// 頂点数の検証
 			if (mesh->mNumVertices == 0)
 			{
-				hal::dout << "ERROR: Mesh " << m << " has 0 vertices" << std::endl;
 				delete[] vertex;
 				return nullptr;
 			}
@@ -503,18 +470,11 @@ MODEL* ModelLoad(const char* FileName)
 			HRESULT hr = Direct3D_GetDevice()->CreateBuffer(&bd, &sd, &model->VertexBuffer[m]);
 			if (FAILED(hr))
 			{
-				hal::dout << "ERROR: Failed to create vertex buffer for mesh " << m << std::endl;
 				delete[] vertex;
 				return nullptr;
 			}
 
 			delete[] vertex;
-
-			// デバッグ情報出力
-			hal::dout << "  Mesh[" << m << "]: " << mesh->mNumVertices << " vertices, "
-					  << (mesh->HasNormals() ? "WITH" : "WITHOUT") << " normals, "
-					  << (mesh->HasTextureCoords(0) ? "WITH" : "WITHOUT") << " UVs"
-					  << (mesh->HasBones() ? ", WITH bones" : "") << std::endl;
 		}
 
 		// ===== スキニング用頂点バッファ生成 =====
@@ -583,7 +543,6 @@ MODEL* ModelLoad(const char* FileName)
 			HRESULT hr = Direct3D_GetDevice()->CreateBuffer(&bd, &sd, &model->SkinnedVertexBuffer[m]);
 			if (FAILED(hr))
 			{
-				hal::dout << "ERROR: Failed to create skinned vertex buffer for mesh " << m << std::endl;
 			}
 
 			delete[] skinVertex;
@@ -613,14 +572,9 @@ MODEL* ModelLoad(const char* FileName)
 			// インデックス数を保存
 			model->MeshIndexCounts[m] = indexCount;
 
-			hal::dout << "  Mesh[" << m << "]: " << indexCount << " indices (" 
-					  << mesh->mNumFaces << " faces)" << std::endl;
-
 			// インデックス数が0の場合、ダミーバッファを作成
 			if (indexCount == 0)
 			{
-				hal::dout << "  WARNING: Mesh[" << m << "] has 0 indices, creating dummy index buffer" << std::endl;
-				
 				// ダミーインデックス（1つの無効なインデックス）を作成
 				unsigned int dummyIndex = 0;
 				D3D11_BUFFER_DESC bd;
@@ -637,7 +591,6 @@ MODEL* ModelLoad(const char* FileName)
 				HRESULT hr = Direct3D_GetDevice()->CreateBuffer(&bd, &sd, &model->IndexBuffer[m]);
 				if (FAILED(hr))
 				{
-					hal::dout << "ERROR: Failed to create dummy index buffer for mesh " << m << std::endl;
 					return nullptr;
 				}
 				continue;  // 次のメッシュへ
@@ -675,7 +628,6 @@ MODEL* ModelLoad(const char* FileName)
 			HRESULT hr = Direct3D_GetDevice()->CreateBuffer(&bd, &sd, &model->IndexBuffer[m]);
 			if (FAILED(hr))
 			{
-				hal::dout << "ERROR: Failed to create index buffer for mesh " << m << std::endl;
 				delete[] index;
 				return nullptr;
 			}
@@ -685,7 +637,6 @@ MODEL* ModelLoad(const char* FileName)
 	}
 
 	// ===== テクスチャ読み込み =====
-	hal::dout << "Loading embedded textures..." << std::endl;
 	for (unsigned int i = 0; i < model->AiScene->mNumTextures; i++)
 	{
 		aiTexture* aitexture = model->AiScene->mTextures[i];
@@ -708,20 +659,14 @@ MODEL* ModelLoad(const char* FileName)
 					hr = CreateShaderResourceView(Direct3D_GetDevice(), image.GetImages(), image.GetImageCount(), metadata, &texture);
 					if (FAILED(hr))
 					{
-						hal::dout << "ERROR: Failed to create SRV for embedded texture: " 
-								  << (aitexture->mFilename.data ? aitexture->mFilename.data : "(unknown)") << std::endl;
 					}
 				}
 				else
 				{
-					hal::dout << "ERROR: Failed to load embedded compressed texture: " 
-							  << (aitexture->mFilename.data ? aitexture->mFilename.data : "(unknown)") << std::endl;
 				}
 			}
 			else
 			{
-				hal::dout << "ERROR: Embedded texture has no data: " 
-						  << (aitexture->mFilename.data ? aitexture->mFilename.data : "(unknown)") << std::endl;
 			}
 		}
 		else
@@ -741,26 +686,18 @@ MODEL* ModelLoad(const char* FileName)
 						hr = CreateShaderResourceView(Direct3D_GetDevice(), image.GetImages(), image.GetImageCount(), metadata, &texture);
 						if (FAILED(hr))
 						{
-							hal::dout << "ERROR: Failed to create SRV for raw embedded texture: " 
-									  << (aitexture->mFilename.data ? aitexture->mFilename.data : "(unknown)") << std::endl;
 						}
 					}
 					else
 					{
-						hal::dout << "ERROR: ScratchImage pixel buffer not available for: " 
-								  << (aitexture->mFilename.data ? aitexture->mFilename.data : "(unknown)") << std::endl;
 					}
 				}
 				else
 				{
-					hal::dout << "ERROR: Failed to initialize ScratchImage for: " 
-							  << (aitexture->mFilename.data ? aitexture->mFilename.data : "(unknown)") << std::endl;
 				}
 			}
 			else
 			{
-				hal::dout << "ERROR: Invalid embedded raw texture data: " 
-					  << (aitexture->mFilename.data ? aitexture->mFilename.data : "(unknown)") << std::endl;
 			}
 		}
 
@@ -770,8 +707,6 @@ MODEL* ModelLoad(const char* FileName)
 		}
 		else
 		{
-			hal::dout << "WARN: Embedded texture skipped: " 
-				  << (aitexture->mFilename.data ? aitexture->mFilename.data : "(unknown)") << std::endl;
 		}
 	}
 
@@ -779,7 +714,6 @@ MODEL* ModelLoad(const char* FileName)
 	model->WhiteTexture = LoadTexture(L"asset\\texture\\fade.png");
 	if (!model->WhiteTexture)
 	{
-		hal::dout << "WARN: Failed to load white texture (fade.png)" << std::endl;
 	}
 
 	// メッシュごとのテクスチャをプリキャッシュ
@@ -804,18 +738,6 @@ MODEL* ModelLoad(const char* FileName)
 			model->NodeToAnimIndex[anim->mChannels[c]->mNodeName.data] = c;
 		}
 	}
-
-	hal::dout << std::endl;
-	hal::dout << "========================================" << std::endl;
-	hal::dout << "<< Model Loading Complete: " << FileName << std::endl;
-	hal::dout << "========================================" << std::endl;
-
-	XMFLOAT3 modelSize = ModelGetSize(model);
-	XMFLOAT4 avgColor = ModelGetAverageMaterialColor(model);
-	hal::dout << "  Model Size: (" << modelSize.x << ", " << modelSize.y << ", " << modelSize.z << ")" << std::endl;
-	hal::dout << "  Average Material Color: (" << avgColor.x << ", " << avgColor.y << ", " << avgColor.z << ", " << avgColor.w << ")" << std::endl;
-	hal::dout << "========================================" << std::endl;
-	hal::dout << std::endl;
 
 	g_ModelCache[FileName] = model;
 

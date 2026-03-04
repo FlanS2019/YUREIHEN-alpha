@@ -30,7 +30,7 @@ void UI_ScareCombo_Initialize(void)
 	);
 
 	g_ScareCombo = new Number(
-		{ SCARECOMBO_POS_X + 25.0f, SCARECOMBO_POS_Y + 40.0f },	// 位置
+		{ SCARECOMBO_POS_X, SCARECOMBO_POS_Y + 40.0f },	// 位置
 		{ 70.0f, 70.0f },					// サイズ
 		{ 1.0f, 1.0f, 1.0f, 1.0f },			// RGBA
 		BLENDSTATE_ALFA,					// BlendState

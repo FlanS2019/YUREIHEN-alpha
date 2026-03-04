@@ -212,9 +212,7 @@ static void SetKakeruAlpha(float alpha)
 // -------------------------------------------------------
 void Result_Initialize(ID3D11Device* pDevice, ID3D11DeviceContext* pContext)
 {
-	hal::dout << "Result Initialize Called" << std::endl;
-
-	// フェード演出をリセット
+// フェード演出をリセット
 	g_ResultPhase = PHASE_TIME_BIG;
 	g_PhaseAlpha = 0.0f;
 	g_WaitCounter = 0;
@@ -523,10 +521,10 @@ void Result_Update(void)
 		}
 	}
 
-	// 演出完了後のみタイトルへ遷移
+	// 演出完了後のみ投票シーンへ遷移
 	if (g_ResultPhase == PHASE_DONE && Keyboard_IsKeyDown(KK_SPACE))
 	{
-		StartFade(SCENE_TITLE);
+		StartFade(SCENE_VOTE);
 	}
 }
 

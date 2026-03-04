@@ -9,6 +9,7 @@
 #include "texture.h"
 #include "title.h"
 #include "result.h"
+#include "vote.h"
 #include "define.h"
 #include "debug_model_scene.h"
 using namespace DirectX;
@@ -53,6 +54,9 @@ void Init(void)
 	case SCENE_DEBUG_MODEL:
 		DebugModelScene_Initialize(Direct3D_GetDevice(), Direct3D_GetDeviceContext());
 		break;
+	case SCENE_VOTE:
+		Vote_Initialize(Direct3D_GetDevice(), Direct3D_GetDeviceContext());
+		break;
 	default:
 		break;
 	}
@@ -88,6 +92,9 @@ void Update(void)
 		break;
 	case SCENE_DEBUG_MODEL:
 		DebugModelScene_Update();
+		break;
+	case SCENE_VOTE:
+		Vote_Update();
 		break;
 	default:
 		break;
@@ -125,6 +132,9 @@ void Draw(void)
 	case SCENE_DEBUG_MODEL:
 		DebugModelScene_Draw();
 		break;
+	case SCENE_VOTE:
+		Vote_Draw();
+		break;
 	default:
 		break;
 	}
@@ -160,6 +170,9 @@ void Finalize(void)
 		break;
 	case SCENE_DEBUG_MODEL:
 		DebugModelScene_Finalize();
+		break;
+	case SCENE_VOTE:
+		Vote_Finalize();
 		break;
 	default:
 		break;

@@ -1,4 +1,4 @@
-﻿#include "sprite.h"
+#include "sprite.h"
 #include "keyboard.h"
 #include "fade.h"
 #include "debug_ostream.h"
@@ -29,8 +29,6 @@ void WinAnim_SetResultData(float time, int combo)
 	g_ResultComboValue = combo;
 	g_HasResultData = true;
 	
-	// デバッグ出力：値が正しく渡されたか確認
-	hal::dout << "WinAnim_SetResultData called: time=" << time << ", combo=" << combo << std::endl;
 }
 
 // Winアニメ用タイマー
@@ -164,9 +162,6 @@ void Animation_Win_Update(void)
 		{
 			Result_SetTimerValue(g_ResultTimeValue);
 			Result_SetCombo(g_ResultComboValue);
-			
-			// デバッグ出力
-			hal::dout << "Passed to Result (skip): time=" << g_ResultTimeValue << ", combo=" << g_ResultComboValue << std::endl;
 		}
 		
 		StartFade(SCENE_RESULT);
@@ -178,9 +173,6 @@ void Animation_Win_Update(void)
 		{
 			Result_SetTimerValue(g_ResultTimeValue);
 			Result_SetCombo(g_ResultComboValue);
-			
-			// デバッグ出力
-			hal::dout << "Passed to Result (auto): time=" << g_ResultTimeValue << ", combo=" << g_ResultComboValue << std::endl;
 		}
 		
 		StartFade(SCENE_RESULT);

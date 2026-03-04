@@ -388,18 +388,6 @@ void clipToWindow(void)
 
 void Mouse_DebugLog(void)
 {
-    const char* modeStr = (gMode == MOUSE_POSITION_MODE_RELATIVE) ? "RELATIVE" : "ABSOLUTE";
-    hal::dout
-        << "[MOUSE]"
-        << " mode=" << modeStr
-        << " state.x=" << gState.x
-        << " state.y=" << gState.y
-        << " lastX=" << gLastX
-        << " lastY=" << gLastY
-        << " relX=" << (gRelativeX == INT32_MAX ? -1 : gRelativeX)
-        << " relY=" << (gRelativeY == INT32_MAX ? -1 : gRelativeY)
-        << " inFocus=" << (int)gInFocus
-        << std::endl;
 }
 
 void Mouse_ReacquireFocus(void)

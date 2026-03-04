@@ -6,6 +6,7 @@
 #include "keyboard.h"
 #include "fade.h"
 #include "UI_scarecombo.h"
+#include "UI_messageframe.h"
 #include "field.h"
 #include "define.h"
 //#include "sprite.h"
@@ -29,10 +30,9 @@ static Sprite* g_PossessGuideBG = nullptr;
 
 static Sprite* g_FloorNumberBG = nullptr;
 static Number* g_FloorNumber = nullptr;
-static Sprite* g_FloorTextF = nullptr;
 
-//// 残り時間表示用仮
-//static Number* g_RemainingTimeNum = nullptr;
+//!@ 仮で残り時間表示
+static Number* g_RemainingTimeNum = nullptr;
 
 // クリックガイド用
 static Sprite* g_GuideClick = nullptr;
@@ -49,6 +49,8 @@ static int g_TutorialLastFloor = -1;
 static Sprite* g_pTutorialBG = nullptr;
 static FontRenderer* g_pTutorialFont = nullptr;
 
+static MessageFrame* g_pMessageFrame = nullptr;
+
 static std::string g_LastPossessGuideText = "";//文字列記憶
 
 // 各階層のゲージ値を保存する配列
@@ -56,7 +58,7 @@ static float g_FloorGaugeValues[MAP_FLOORS];
 // 前フレームの階層を記憶しておく変数
 static int g_LastFrameFloor = 0;
 // 全階の残り時	間の累計（リザルト用）
-static float	 g_AccumulatedTime		 = 0.0f;
+static float	 g_AccumulatedTime = 0.0f;
 
 
 // 3D座標 -> 2Dスクリーン座標変換
@@ -107,15 +109,6 @@ void UI_Initialize(void)
 		CLOCK_MIN, CLOCK_MAX
 	);
 
-	//// クリックガイド
-	//g_GuideClick = new Sprite(
-	//	{ SCREEN_WIDTH / 2.0f, SCREEN_HEIGHT / 2.0f + 100.0f },
-	//	{ 100.0f, 100.0f },
-	//	0.0f,
-	//	{ 1.0f, 1.0f, 1.0f, 0.0f },
-	//	BLENDSTATE_ALFA,
-	//	L"asset\\texture\\click_guide.png"
-	//);
 
 	// 階層移動ガイド(数字)
 	g_GuideFloorNum = new Number(
@@ -126,16 +119,6 @@ void UI_Initialize(void)
 		L"asset\\texture\\num.png",
 		5, 3,
 		25.0f
-	);
-
-	// 階層移動ガイド(F)
-	g_GuideFloorF = new Sprite(
-		{ 0.0f, 0.0f },
-		{ 40.0f, 40.0f },
-		0.0f,
-		{ 1.0f, 1.0f, 0.0f, 1.0f },
-		BLENDSTATE_ALFA,
-		L"asset\\texture\\floor_f.png"
 	);
 
 	g_ScareGauge = new Gauge(
@@ -149,17 +132,7 @@ void UI_Initialize(void)
 		2, 0
 	);
 
-	g_Reticle = new Sprite(
-		{ SCREEN_WIDTH / 2.0f, SCREEN_HEIGHT / 2.0f },
-		{ 30.0f, 30.0f },
-		0.0f,
-		{ 1.0f, 1.0f, 1.0f, 0.5f },
-		BLENDSTATE_ALFA,
-		L"asset\\texture\\grass.png"
-	);
-
 	// 現在の階層表示
-
 	g_FloorNumberBG = new Sprite(
 		{ CLOCK_POS_X, CLOCK_POS_Y + 200.0f },
 		{ 200.0f, 200.0f },
@@ -168,39 +141,18 @@ void UI_Initialize(void)
 		BLENDSTATE_ALFA,
 		L"asset\\texture\\kanban.png"
 	);
-	
+
 	g_FloorNumber = new Number(
-		{ CLOCK_POS_X - 30.0f, CLOCK_POS_Y + 240.0f },
+		{ CLOCK_POS_X, CLOCK_POS_Y + 240.0f },
 		{ 60.0f, 60.0f },
 		{ 1.0f, 1.0f, 1.0f, 1.0f },
 		BLENDSTATE_ALFA,
 		L"asset\\texture\\num.png",
 		5, 3,
-		40.0f
+		50.0f
 	);
 	g_FloorNumber->SetNumber(1);
-
-	g_FloorTextF = new Sprite(
-		{ CLOCK_POS_X + 30.0f, CLOCK_POS_Y + 240.0f },
-		{ 60.0f, 60.0f },
-		0.0f,
-		{ 1.0f, 1.0f, 1.0f, 1.0f },
-		BLENDSTATE_ALFA,
-		L"asset\\texture\\floor_f.png"
-	);
-
-	//// 残り時間の数字表示（仮実装）
-	//g_RemainingTimeNum = new Number(
-	//	{ CLOCK_POS_X + 30.0f, CLOCK_POS_Y - 10.0f },
-	//	{ 40.0f, 40.0f },
-	//	{ 1.0f, 1.0f, 0.0f, 1.0f },
-	//	BLENDSTATE_ALFA,
-	//	L"asset\\texture\\num.png",
-	//	5, 3,
-	//	28.0f,
-	//	2
-	//);
-	//g_RemainingTimeNum->SetNumber(static_cast<int>(CLOCK_MAX));
+	g_FloorNumber->SetShowF(true);
 
 	// ゲージ管理を初期化
 	for (int i = 0; i < MAP_FLOORS; i++)
@@ -228,16 +180,10 @@ void UI_Initialize(void)
 		""
 	);
 
-	g_PossessGuideBG = new Sprite(
+	g_pMessageFrame = new MessageFrame(
 		{ SCREEN_WIDTH / 2.0f, SCREEN_HEIGHT - 100.0f },
-		{ 980.0f, 95.0f },
-		0.0f,
-		{ 0.0f, 0.0f, 0.0f, 0.0f },
-		BLENDSTATE_ALFA,
-		L"asset\\texture\\fade.png"
+		L"asset\\texture\\massageframe.png"
 	);
-
-	//hal::dout << g_ScareGauge->GetValue() << std::endl;
 }
 
 //----------------------------
@@ -260,7 +206,7 @@ void UI_Update(void)
 		{
 			g_ScareGauge->SetValue(g_FloorGaugeValues[currentFloor]);
 		}
-				
+
 		g_LastFrameFloor = currentFloor;
 	}
 	// --- 敗北条件 ---
@@ -275,7 +221,7 @@ void UI_Update(void)
 	}
 #endif
 
-	if(timeEnded || g_ScareGauge->GetValue() <= 0.0f)
+	if (timeEnded || g_ScareGauge->GetValue() <= 0.0f)
 	{
 		//float remainingTime = CLOCK_MAX - g_Clock->GetTime();
 		//if (remainingTime < 0.0f) remainingTime = 0.0f;
@@ -284,27 +230,13 @@ void UI_Update(void)
 		//hal::dout << "LOSE! time=" << remainingTime << std::endl;
 		StartFade(SCENE_ANM_LOSE);
 	}
-	//if (timeEnded || g_ScareGauge->GetValue() <= 0.0f)
-	//{
-
-	//	hal::dout << "敗北条件を満たしました" << std::endl;
-	//	StartFade(SCENE_ANM_LOSE);
-	//}
 
 	UI_ScareCombo_Update();
-	
+
 	if (g_FloorNumber)
 	{
 		g_FloorNumber->SetNumber(Field_GetCurrentFloor() + 1);
 	}
-
-	//// 残り時間の数字を更新//（仮実装：秒単位で表示）
-	//if (g_RemainingTimeNum && g_Clock)
-	//{
-	//	int remaining = static_cast<int>(CLOCK_MAX - g_Clock->GetTime());
-	//	if (remaining < 0) remaining = 0;
-	//	g_RemainingTimeNum->SetNumber(remaining);
-	//}
 
 	Ghost* ghost = GetGhost();
 
@@ -351,9 +283,9 @@ void UI_Update(void)
 					FURNITURE_ACTION action = pFurniture->GetActionType();
 					switch (action)
 					{
-					case ACTION_SCARE: g_PossessGuideText = "スペースで驚かせ"; break;
-					case ACTION_LURE:  g_PossessGuideText = "スペースで引き寄せ"; break;
-					case ACTION_STOP:  g_PossessGuideText = "スペースで気絶"; break;
+					case ACTION_SCARE: g_PossessGuideText = "[スペース] 驚かせ"; break;
+					case ACTION_LURE:  g_PossessGuideText = "[スペース] 引き寄せ [WASD] ゆっくり移動"; break;
+					case ACTION_STOP:  g_PossessGuideText = "[スペース] 気絶"; break;
 					}
 				}
 			}
@@ -396,15 +328,15 @@ void UI_Update(void)
 		}
 	}
 
-	if (g_PossessGuideBG)
+	if (g_pMessageFrame)
 	{
 		if (!g_PossessGuideText.empty())
 		{
-			g_PossessGuideBG->SetColor({ 0.0f, 0.0f, 0.0f, 0.55f });
+			g_pMessageFrame->ShowFrame(g_PossessGuideText.size() / 2);
 		}
 		else
 		{
-			g_PossessGuideBG->SetColor({ 0.0f, 0.0f, 0.0f, 0.0f });
+			g_pMessageFrame->HideFrame();
 		}
 	}
 
@@ -463,40 +395,6 @@ void UI_Update(void)
 		}
 	}
 
-	// クリックガイドの点滅
-	if (onStairs)
-	{
-		static float flash = 0.0f;
-		flash += 0.1f;
-		float alpha = 0.5f + sinf(flash) * 0.5f;
-
-		// SetColor には XMFLOAT4 を渡す
-		if (g_GuideClick)
-			g_GuideClick->SetColor(XMFLOAT4(1.0f, 1.0f, 1.0f, alpha));
-	}
-	else
-	{
-		if (g_GuideClick)
-			g_GuideClick->SetColor(XMFLOAT4(1.0f, 1.0f, 1.0f, 0.0f));
-	}
-
-	//// 残り時間表示の更新//（仮実装：秒単位で表示）
-	//if (g_RemainingTimeNum)
-	//{
-	//	float remainingTime = CLOCK_MAX - g_Clock->GetTime();
-	//	if (remainingTime < 0.0f) remainingTime = 0.0f;
-	//	g_RemainingTimeNum->SetNumber((int)remainingTime);
-	//}
-
-	//if (Keyboard_IsKeyDownTrigger(KK_Q))
-	//{
-	//	// デバッグ用：ゲージを満タンにする
-	//	if (g_ScareGauge)
-	//	{
-	//		g_ScareGauge->SetValue(g_ScareGauge->GetMaxValue());
-	//	}
-	//}
-
 	//if (Keyboard_IsKeyDownTrigger(KK_F))
 	//{
 	//	//Debug用
@@ -518,13 +416,9 @@ void UI_Draw(void)
 
 	if (g_FloorNumberBG) g_FloorNumberBG->Draw();
 	if (g_FloorNumber) g_FloorNumber->Draw();
-	if (g_FloorTextF) g_FloorTextF->Draw();
-
 	if (g_Clock) g_Clock->Draw();
 	if (g_ScareGauge) g_ScareGauge->Draw();
-	//if (g_RemainingTimeNum) g_RemainingTimeNum->Draw();//（仮実装：残り時間表示）
-
-	if (g_PossessGuideBG) g_PossessGuideBG->Draw();
+	if (g_pMessageFrame) g_pMessageFrame->Draw();
 	if (g_PossessGuideFont) g_PossessGuideFont->Draw();
 }
 
@@ -535,20 +429,14 @@ void UI_Finalize(void)
 {
 	delete g_Clock;
 	delete g_ScareGauge;
-	delete g_Reticle;
 	UI_ScareCombo_Finalize();
 
 	if (g_PossessGuideFont) { delete g_PossessGuideFont; g_PossessGuideFont = nullptr; }
-	if (g_PossessGuideBG) { delete g_PossessGuideBG; g_PossessGuideBG = nullptr; }
-
+	if (g_pMessageFrame) { delete g_pMessageFrame; g_pMessageFrame = nullptr; }
 	if (g_FloorNumberBG) { delete g_FloorNumberBG; g_FloorNumberBG = nullptr; }
 	if (g_FloorNumber) { delete g_FloorNumber; g_FloorNumber = nullptr; }
-	if (g_FloorTextF) { delete g_FloorTextF; g_FloorTextF = nullptr; }
-
 	if (g_GuideClick) { delete g_GuideClick; g_GuideClick = nullptr; }
 	if (g_GuideFloorNum) { delete g_GuideFloorNum; g_GuideFloorNum = nullptr; }
-	if (g_GuideFloorF) { delete g_GuideFloorF; g_GuideFloorF = nullptr; }
-	//if (g_RemainingTimeNum) { delete g_RemainingTimeNum; g_RemainingTimeNum = nullptr; }//（仮実装：残り時間表示）
 }
 
 void AddScareGauge(float value)
@@ -613,7 +501,6 @@ void UI_AccumulateFloorTime(void)
 		float remainingTime = CLOCK_MAX - g_Clock->GetTime();
 		if (remainingTime < 0.0f) remainingTime = 0.0f;
 		g_AccumulatedTime += remainingTime;
-		hal::dout << "AccumulateFloorTime: " << remainingTime << " total=" << g_AccumulatedTime << std::endl;
 	}
 }
 

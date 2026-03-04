@@ -124,7 +124,7 @@ public:
 
 	// インスタンスごとに描画する
 	//　描画するテクスチャ番号を引数で指定（デフォルト0）
-	void Draw()
+	virtual void Draw()
 	{
 		Sprite_Split_Draw(m_Position, m_Scale, m_Rotation, m_Color, m_BlendState, m_Texture, m_DivideX, m_DivideY, m_TextureNumber);
 	}

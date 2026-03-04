@@ -46,11 +46,15 @@ protected:
 	bool m_IsWallLight;
 	PointLight* m_pPointLight;
 
+	// 暖炉用炎ビルボード（ID:57 のみ使用）
+	bool m_HasFireBillboard;
+	Billboard m_FireBillboard;
+
 public:
 	// コンストラクタ
 	Furniture(const XMFLOAT3& pos, const XMFLOAT3& scale, const XMFLOAT3& rot, const char* pass, FURNITURE_ACTION actionType = ACTION_SCARE, int blockID = 0)
 		: Sprite3D(pos, scale, rot, pass),
-		Jump(0.01f, 0.2f, pos.y), // 地面の高さyで初期化
+		Jump(0.01f, 0.2f, pos.y),
 		m_DistanceToGhost(0.0f),
 		m_ActionType(actionType),
 		m_IsActing(false),
@@ -61,12 +65,28 @@ public:
 		m_IsTargeted(false),
 		m_IsGhostTarget(false),
 		m_IsWallLight(false),
-		m_pPointLight(nullptr)
+		m_pPointLight(nullptr),
+		m_HasFireBillboard(false),
+		m_Billboard({ pos.x, pos.y + 1.0f, pos.z }, { 1.0f, 1.0f }, { 0.0f, 0.0f, 0.0f })
 	{
-		// ビルボードの初期化 (サイズを大きくし、位置は後でUpdateで調整する)
-		m_Billboard.Initialize({ pos.x, pos.y + 1.0f, pos.z }, { 1.0f, 1.0f }, { 0,0,0 });
-		// ライティング無効化を有効にして、アイコンを常に明るく表示
 		m_Billboard.SetIgnoreLighting(true);
+
+		// 暖炉（ID:57）の場合、炎の板ポリゴンを初期化
+		if (blockID == 57)
+		{
+			m_HasFireBillboard = true;
+			m_FireBillboard.Initialize(
+				{ pos.x, pos.y + CAMPFIRE_FIRE_OFFSET_Y, pos.z },
+				{ CAMPFIRE_FIRE_SIZE_W, CAMPFIRE_FIRE_SIZE_H },
+				{ 0.0f, rot.y, 0.0f },
+				true
+			);
+			m_FireBillboard.SetIgnoreLighting(true);
+			m_FireBillboard.SetBillboardMode(false);
+			m_FireBillboard.SetWallFadeEnabled(false);
+			m_FireBillboard.SetTexture("asset\\texture\\danrofire.png");
+			m_FireBillboard.SetUVAnimation(2, 0.4f);
+		}
 
 		// 壁掛けライト（ID:70）の場合、ポイントライトを生成
 		if (blockID == 70)
@@ -76,9 +96,9 @@ public:
 				TRUE,
 				XMFLOAT4(pos.x, pos.y + 0.5f, pos.z, 1.0f),
 				XMFLOAT4(0.0f, -1.0f, 0.0f, 0.0f),
-				XMFLOAT4(1.0f, 0.85f, 0.6f, 1.0f), // 暖色系の光
-				5.0f,  // 範囲
-				1.5f   // 強度
+				XMFLOAT4(1.0f, 0.85f, 0.6f, 1.0f),
+				5.0f,
+				1.5f
 			);
 		}
 	}
@@ -132,3 +152,5 @@ bool FurnitureScareStart(int index);
 bool FurnitureScareEnded(int index);
 bool IsFurnitureBlock(int id);
 void Furniture_SetLight(void);
+float Furniture_GetResistanceMultiplier(int blockID);
+void Furniture_IncrementUseCount(int blockID);

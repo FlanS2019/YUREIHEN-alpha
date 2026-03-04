@@ -437,7 +437,6 @@ void Ghost_Update(void)
 		if (g_Ghost)
 		{
 			XMFLOAT3 pos = g_Ghost->GetPos();
-			hal::dout << "Ghost Position: { " << pos.x << "f, " << pos.y << "f, " << pos.z << "f }" << std::endl;
 		}
 
 		// 現在のSCENEを名前付きで出力
@@ -449,7 +448,6 @@ void Ghost_Update(void)
 		SCENE currentScene = GetScene();
 		const char* sceneName = (currentScene >= 0 && currentScene < SCENE_MAX)
 			? sceneNames[currentScene] : "UNKNOWN";
-		hal::dout << "Scene: " << sceneName << " (" << (int)currentScene << ")" << std::endl;
 	}
 
 	if (g_Ghost)
@@ -547,6 +545,12 @@ void Ghost::ScareStart(void)
 	Furniture* pFurniture = GetFurniture(m_InRangeFurnitureNum);
 	if (!pFurniture) return;
 
+	// 家具IDごとの耐性倍率を取得し、使用回数をインクリメント
+	int furnitureBlockID = pFurniture->GetBlockID();
+	float resistanceMult = Furniture_GetResistanceMultiplier(furnitureBlockID);
+	Furniture_IncrementUseCount(furnitureBlockID);
+
+
 	if (g_pScareSound)
 	{
 		PlaySound(g_pScareSound, false);
@@ -642,7 +646,13 @@ void Ghost::ScareStart(void)
 			else if (busterCount >= 3) {
 				addScore *= 0.6f; // 3人なら 60% にさらにダウン
 			}
-			AddScareGauge(addScore);
+			addScore *= resistanceMult; // 家具耐性による減衰
+			{
+				float prevGauge = UI_GetScareGauge();
+				AddScareGauge(addScore);
+				float nextGauge = UI_GetScareGauge();
+				float actualAdd = nextGauge - prevGauge;
+			}
 			// ゲージMAXの判定は Game_Update 内の通常ループで倒す
 		}
 		break;
@@ -655,12 +665,18 @@ void Ghost::ScareStart(void)
 		if (Busters_IsAnyInRange(ghostPos, lureRange))
 		{
 			BustersLured(ghostPos, lureRange);
-			if (!m_HasIncreasedMultiplier)
+				if (!m_HasIncreasedMultiplier)
+				{
+					ScareComboUP();
+					m_HasIncreasedMultiplier = true;
+				}
 			{
-				ScareComboUP();
-				m_HasIncreasedMultiplier = true;
+				float lureAdd = SCORE_LURE * UI_ScareCombo_GetNumber() * resistanceMult;
+				float prevGauge = UI_GetScareGauge();
+				AddScareGauge(lureAdd);
+				float nextGauge = UI_GetScareGauge();
+				float actualAdd = nextGauge - prevGauge;
 			}
-			AddScareGauge(SCORE_LURE * UI_ScareCombo_GetNumber());
 		}
 		break;
 	}
@@ -670,12 +686,18 @@ void Ghost::ScareStart(void)
 		if (Busters_IsAnyInRange(ghostPos, BUSTERS_STOP_RANGE))
 		{
 			BustersStopped();
-			if (!m_HasIncreasedMultiplier)
+				if (!m_HasIncreasedMultiplier)
+				{
+					ScareComboUP();
+					m_HasIncreasedMultiplier = true;
+				}
 			{
-				ScareComboUP();
-				m_HasIncreasedMultiplier = true;
+				float stopAdd = SCORE_STOP * UI_ScareCombo_GetNumber() * resistanceMult;
+				float prevGauge = UI_GetScareGauge();
+				AddScareGauge(stopAdd);
+				float nextGauge = UI_GetScareGauge();
+				float actualAdd = nextGauge - prevGauge;
 			}
-			AddScareGauge(SCORE_STOP * UI_ScareCombo_GetNumber());
 		}
 		break;
 	}
@@ -873,7 +895,12 @@ Ghost* GetGhost(void)
 
 XMFLOAT3 GetGhostStartPos(void)
 {
-	switch (START_FLOOR - 1)
+	return GetGhostStartPos(START_FLOOR - 1);
+}
+
+XMFLOAT3 GetGhostStartPos(int floor)
+{
+	switch (floor)
 	{
 	case 0:
 		return { GHOST_START_POS_FLOOR1_X, GHOST_POS_Y, GHOST_START_POS_FLOOR1_Z };

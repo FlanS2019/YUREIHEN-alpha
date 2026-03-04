@@ -73,7 +73,18 @@ public:
 	bool IsRunToStairsDone(void) const { return m_RunToStairsDone; }
 	
 	BUSTERS_STATE GetState(void) const { return m_State; }
+	int GetTargetFurnitureIndex(void) const { return m_TargetFurnitureIndex; }
+	int GetWaitTimer(void) const { return m_WaitTimer; }
+	int GetStuckTimer(void) const { return m_StuckTimer; }
+	int GetPathCount(void) const { return (int)m_PathList.size(); }
+	XMFLOAT3 GetNextPathNode(void) const { return m_PathList.empty() ? XMFLOAT3(0,0,0) : m_PathList[0]; }
 	void ReduceWaitTimer(int amount) { m_WaitTimer -= amount; if (m_WaitTimer < 0) m_WaitTimer = 0; }
+	float GetDistanceToGhost(void) const { return m_DistanceToGhost; }
+	int GetKeepStateTimer(void) const { return m_KeepStateTimer; }
+	int GetDetectionGraceTimer(void) const { return m_DetectionGraceTimer; }
+	int GetReactionCooldown(void) const { return m_ReactionCooldown; }
+	bool GetHasLureTarget(void) const { return m_HasLureTarget; }
+	int GetLureStayTimer(void) const { return m_LureStayTimer; }
 
 	PointLight* GetHeadlight(void) const { return m_pHeadlight; }
 	void SetIsGhostDiscover(bool discover);

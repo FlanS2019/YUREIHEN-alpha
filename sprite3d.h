@@ -88,7 +88,6 @@ public:
 			}
 			else
 			{
-				hal::dout << "Sprite3D::Draw() : GLBモデルが読み込まれていません。" << std::endl;
 			}
 		}
 		else
@@ -106,7 +105,6 @@ public:
 			}
 			else
 			{
-				hal::dout << "Sprite3D::Draw() : モデルが読み込まれていません。" << std::endl;
 			}
 		}
 	}

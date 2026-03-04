@@ -1,4 +1,4 @@
-﻿/*==============================================================================
+/*==============================================================================
 
    Direct3Dの初期化関連 [direct3d.cpp]
 --------------------------------------------------------------------------------
@@ -390,7 +390,6 @@ bool configureBackBuffer()
 	hr = g_pSwapChain->GetBuffer(0, __uuidof(ID3D11Texture2D), (void**)&back_buffer_pointer);
 
     if (FAILED(hr)) {
-		hal::dout << "バックバッファの取得に失敗しました" << std::endl;
         return false;
     }
 
@@ -399,7 +398,6 @@ bool configureBackBuffer()
 
     if (FAILED(hr)) {
         back_buffer_pointer->Release();
-        hal::dout << "バックバッファのレンダーターゲットビューの生成に失敗しました" << std::endl;
         return false;
     }
 
@@ -424,7 +422,6 @@ bool configureBackBuffer()
 	hr = g_pDevice->CreateTexture2D(&depth_stencil_desc, nullptr, &g_pDepthStencilBuffer);
 
 	if (FAILED(hr)) {
-		hal::dout << "デプスステンシルバッファの生成に失敗しました" << std::endl;
 		return false;
 	}
 
@@ -437,7 +434,6 @@ bool configureBackBuffer()
 	hr = g_pDevice->CreateDepthStencilView(g_pDepthStencilBuffer, &depth_stencil_view_desc, &g_pDepthStencilView);
 
 	if (FAILED(hr)) {
-		hal::dout << "デプスステンシルビューの生成に失敗しました" << std::endl;
 		return false;
 	}
 
