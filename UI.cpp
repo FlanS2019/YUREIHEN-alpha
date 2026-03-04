@@ -514,3 +514,11 @@ float UI_GetAccumulatedTime(void)
 {
 	return g_AccumulatedTime;
 }
+
+void UI_RefreshTimerForPause(void)
+{
+	if (g_Clock)
+	{
+		g_Clock->RefreshLastUpdateTime();
+	}
+}

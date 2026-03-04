@@ -74,6 +74,8 @@ public:
 	float GetTime() const { return m_Time; }
 	void SetTime(float time) { m_Time = time; }
 	void Reset() { m_Time = m_MinTime; m_LastUpdateTime = timeGetTime(); }
+	// ポーズ復帰用：最終更新時刻を現在時刻にリセットし、ポーズ中の経過時間をスキップする
+	void RefreshLastUpdateTime() { m_LastUpdateTime = timeGetTime(); }
 };
 
 #define GAUGE_SIZE (450.0f)
@@ -322,5 +324,7 @@ void UI_Draw(void);
 void UI_DecreaseRemainingTime(float penaltySeconds);
 void UI_ResetTimer(void);
 void UI_AccumulateFloorTime(void);	// 現在?の残り時間を累積する（リセット前に呼ぶ）
-// ファイル末尾（#pragma once ブロック内）に追加
 float UI_GetAccumulatedTime(void);
+
+// ポーズ復帰時にタイマーの最終更新時刻をリフレッシュする
+void UI_RefreshTimerForPause(void);
