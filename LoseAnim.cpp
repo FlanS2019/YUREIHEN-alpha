@@ -3,6 +3,7 @@
 #include "fade.h"
 #include "define.h"
 #include "LoseAnim.h"
+#include "UI_RetryMenu.h"
 #include "mouse.h"
 #include "sound.h"
 #include <timeapi.h>
@@ -40,10 +41,17 @@ static const float LOGO_TILT_DELAY = 0.15f;       // 着地後、傾き開始ま
 static const float LOGO_TILT_DURATION = 0.12f;    // 「かくっ」と傾く時間（秒）
 static const float LOGO_TILT_ANGLE = 15.0f;       // 右斜め傾き角度（度）
 
+static const float LOSE_ANIM_DURATION = 4.0f; // Loseアニメの再生時間（秒）
+
 float Animation_Lose_GetElapsedTime(void)
 {
 	if (g_LoseStartTime == 0) return 0.0f;
 	return (timeGetTime() - g_LoseStartTime) / 1000.0f;
+}
+
+bool Animation_Lose_IsFinished(void)
+{
+	return Animation_Lose_GetElapsedTime() >= LOSE_ANIM_DURATION;
 }
 
 void Animation_Lose_Initialize(ID3D11Device* pDevice, ID3D11DeviceContext* pContext)
@@ -206,15 +214,11 @@ void Animation_Lose_Update(void)
 			}
 		}
 	}
-	//自動でタイトルに戻る（約4秒後）
-	if(elapsed > 4.0f)
+
+	// アニメ完了後にリトライメニューを表示
+	if (Animation_Lose_IsFinished() && !UI_RetryMenu_IsActive())
 	{
-		StartFade(SCENE_TITLE);
-	}
-	// スペースキーでタイトルへ
-	if (Keyboard_IsKeyDownTrigger(KK_SPACE))
-	{
-		StartFade(SCENE_TITLE);
+		UI_RetryMenu_Show();
 	}
 }
 

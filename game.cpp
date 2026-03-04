@@ -28,6 +28,8 @@ using namespace DirectX;
 #include "UI_ScareCombo.h"
 #include "WinAnim.h"
 #include "UI_ScareCombo.h"
+#include "UI_RetryMenu.h"
+#include "LoseAnim.h"
 #include <windows.h>
 #include <string>
 #include <cmath>
@@ -36,6 +38,17 @@ static AmbientLight* g_pAmbientLight = nullptr;
 static SoundData* g_pBGM = nullptr;
 
 static int g_NextFloorID = -1;
+
+// =================================================================
+// 敗北アニメーションの状態管理
+// =================================================================
+enum LOSE_ANIM_STATE
+{
+	LOSE_NONE = 0,
+	LOSE_FADEOUT,
+	LOSE_PLAYING,
+};
+static LOSE_ANIM_STATE g_LoseAnimState = LOSE_NONE;
 
 // =================================================================
 // フロア降下アニメーションのステートマシン
@@ -173,6 +186,9 @@ void Game_Initialize(ID3D11Device* pDevice, ID3D11DeviceContext* pContext)
 	g_LerpStartAtPos = { 0.0f, 0.0f, 0.0f };
 	g_CamLerpT = 0.0f;
 
+	// 敗北アニメ初期化
+	g_LoseAnimState = LOSE_NONE;
+
 	g_pAmbientLight = new AmbientLight(XMFLOAT4(0.3f, 0.3f, 0.3f, 1.0f));
 
 	Camera_Initialize();
@@ -192,6 +208,7 @@ void Game_Initialize(ID3D11Device* pDevice, ID3D11DeviceContext* pContext)
 
 	UI_PauseMenu_Initialize(pDevice, pContext);
 	UI_Tutorial_Initialize(pDevice, pContext);
+	UI_RetryMenu_Initialize(pDevice, pContext);
 
 	Mouse_SetMode(MOUSE_POSITION_MODE_RELATIVE);
 	Mouse_SetVisible(false);
@@ -200,6 +217,43 @@ void Game_Initialize(ID3D11Device* pDevice, ID3D11DeviceContext* pContext)
 void Game_Update(void)
 {
 	FADESTAT fadeState = GetFadeState();
+
+	// -------------------------------------------------------
+	// リトライメニュー表示中はゲーム更新を止める
+	// -------------------------------------------------------
+	if (UI_RetryMenu_IsActive())
+	{
+		UI_RetryMenu_Update();
+		return;
+	}
+
+	// -------------------------------------------------------
+	// 敗北アニメーション再生中
+	// -------------------------------------------------------
+	if (g_LoseAnimState != LOSE_NONE)
+	{
+		// -------------------------------------------------------
+		// 敗北アニメーション（フェード遷移＋再生）
+		// -------------------------------------------------------
+		if (g_LoseAnimState == LOSE_FADEOUT)
+		{
+			// フェードアウト完了を待つ
+			if (fadeState == FADE_MAX)
+			{
+				// Loseアニメーションを初期化・再生開始
+				Animation_Lose_Initialize(Direct3D_GetDevice(), Direct3D_GetDeviceContext());
+				Fade_StartIn();
+				g_LoseAnimState = LOSE_PLAYING;
+			}
+			return;
+		}
+
+		if (g_LoseAnimState == LOSE_PLAYING)
+		{
+			Animation_Lose_Update();
+			return;
+		}
+	}
 
 	// -------------------------------------------------------
 	// フロア降下アニメーションのステートマシン
@@ -235,12 +289,8 @@ void Game_Update(void)
 					// 変身中の場合は強制解除する
 					Ghost_ForceExitTransform();
 
-					// 補間の開始注視点 = 俯瞰カメラが向いていた注視点（atPos = 最後のバスターズ位置付近）
-					// ※ PreTransformPos に設定すると終点と同じになり補間が無意味になるため使わない
 					g_LerpStartAtPos = atPos;
 
-					// Camera_SetTargetPos の m_targetPos を PreTransformPos に設定しておく
-					// （補間終点の計算に使われる）
 					{
 						Ghost* ghostForAt = GetGhost();
 						if (ghostForAt)
@@ -275,7 +325,6 @@ void Game_Update(void)
 				Ghost* ghostLerp = GetGhost();
 				if (ghostLerp && ghostLerp->m_InvincibleTimer > 0) ghostLerp->m_InvincibleTimer--;
 
-				// 補間の終点：PreTransformPos（変身キー押下時の実座標）に基づいて計算する
 				XMFLOAT3 dstCamPos = { 0.0f, 0.0f, 0.0f };
 				XMFLOAT3 dstAtPos  = { 0.0f, 0.0f, 0.0f };
 				if (ghostLerp)
@@ -294,7 +343,6 @@ void Game_Update(void)
 					dstCamPos = { targetPos.x + camX, targetPos.y + camY, targetPos.z + camZ };
 				}
 
-				// 現在フレームのカメラ位置・注視点を補間して適用
 				Camera* cam = GetCamera();
 				XMFLOAT3 camPos =
 				{
@@ -311,8 +359,6 @@ void Game_Update(void)
 				if (cam) cam->UpdateView(camPos, atPos);
 				Shader_SetCameraPos(camPos);
 
-				// 終了判定：カメラ位置が終点から2m以内 or T>=1.0 になったら
-				// ゴーストとカメラtargetPosをPreTransformPosに同期して通常カメラに戻す
 				float ex = camPos.x - dstCamPos.x;
 				float ey = camPos.y - dstCamPos.y;
 				float ez = camPos.z - dstCamPos.z;
@@ -342,7 +388,6 @@ void Game_Update(void)
 			return;
 
 		case FLOOR_EXIT_PLAYER_WALK:
-			// プレイヤーが操作して階段(ID5/6)の上に乗ったらフェードして移行
 			{
 				SetFloorExitMarkerVisible(true);
 				Camera_Update();
@@ -368,22 +413,18 @@ void Game_Update(void)
 			return;
 
 		case FLOOR_EXIT_FADEIN:
-			// フェードアウト完了後にフロア移行＋バスターズ生成してフェードイン
 			if (fadeState == FADE_MAX)
 			{
 				SetFloorExitMarkerVisible(false);
-		if (g_FloorBeforeExit == END_FLOOR - 1 || g_FloorBeforeExit == 0)
+				if (g_FloorBeforeExit == END_FLOOR - 1 || g_FloorBeforeExit == 0)
 				{
-					// クリア階の残り時間を累積してからリザルトへ
 					UI_AccumulateFloorTime();
-					// ★ 累積時間とコンボをWinAnimに渡す（修正：ここで明示的に呼ぶ）
 					{
 						extern float UI_GetAccumulatedTime(void);
 						extern int UI_ScareCombo_GetNumber(void);
 						WinAnim_SetResultData(UI_GetAccumulatedTime(), UI_ScareCombo_GetNumber());
 					}
 
-					// クリア階 or 1階 → 勝利シーンへ遷移
 					g_FloorExitState     = FLOOR_EXIT_NONE;
 					g_FloorExitTimer     = 0;
 					g_OverviewFrameCount = 0;
@@ -391,34 +432,30 @@ void Game_Update(void)
 					g_FloorExitAnimRequested = false;
 					g_FloorBeforeExit    = -1;
 					SetScene(SCENE_ANM_WIN);
-					Fade_StartIn(); // フェードイン開始（画面が真っ黒のまま止まるのを防ぐ）
+					Fade_StartIn();
 				}
 				else
 				{
-				// フロア移行：プレイヤーを下の階へ移動
 					int nextFloor = g_FloorBeforeExit - 1;
-					// ★ 3階（チュートリアル階）はタイマーが動いていないため累積しない
 					if (g_FloorBeforeExit != (START_FLOOR - 1))
 					{
 						UI_AccumulateFloorTime();
 					}
-				Ghost* ghost = GetGhost();
-				if (ghost)
-				{
-					Field_ChangeFloor(nextFloor);
-					XMFLOAT3 spawnPos = GetGhostStartPos(nextFloor);
-					ghost->ResetPos();       // 移動量（速度）をリセットしてから座標を設定
-					ghost->SetPos(spawnPos);
-					Camera_SetTargetPos(spawnPos);
-				}
-					// 下の階にバスターズを生成
+					Ghost* ghost = GetGhost();
+					if (ghost)
+					{
+						Field_ChangeFloor(nextFloor);
+						XMFLOAT3 spawnPos = GetGhostStartPos(nextFloor);
+						ghost->ResetPos();
+						ghost->SetPos(spawnPos);
+						Camera_SetTargetPos(spawnPos);
+					}
 					Busters_SpawnOnFloor(nextFloor);
 					UI_ResetScareGauge();
 					UI_ResetTimer();
 					AddScareGauge(BUSTERS_DEFOURT_GAUGE);
 					Fade_StartIn();
-					// フェードイン完了後に通常処理が再開したタイミングでマウスを戻す
-				g_NeedRestoreMouseMode = true;
+					g_NeedRestoreMouseMode = true;
 					g_FloorExitState     = FLOOR_EXIT_NONE;
 					g_FloorExitTimer     = 0;
 					g_FloorTransferDone  = false;
@@ -570,12 +607,28 @@ void Game_Draw(void)
 	}
 	UI_PauseMenu_Draw();
 
+	// 敗北アニメーション再生中は全画面にLoseアニメを描画
+	if (g_LoseAnimState == LOSE_PLAYING)
+	{
+		Animation_Lose_Draw();
+	}
+
+	UI_RetryMenu_Draw();
+
 	Sprite_EndDraw2D();
 }
 
 void Game_Finalize(void)
 {
 	SetFloorExitMarkerVisible(false);
+
+	// 敗北アニメが再生中なら解放
+	if (g_LoseAnimState == LOSE_PLAYING)
+	{
+		Animation_Lose_Finalize();
+		g_LoseAnimState = LOSE_NONE;
+	}
+
 	if (g_pBGM) {
 		StopSound(g_pBGM);
 		UnloadSound(g_pBGM);
@@ -589,6 +642,7 @@ void Game_Finalize(void)
 
 	UI_PauseMenu_Finalize();
 	UI_Tutorial_Finalize();
+	UI_RetryMenu_Finalize();
 
 	Camera_Finalize();
 	Ghost_Finalize();
@@ -600,4 +654,36 @@ void Game_Finalize(void)
 	DebugDraw_Finalize();
 
 	TutorialObject_Finalize();
+}
+
+// =================================================================
+// 敗北アニメーション関連
+// =================================================================
+bool Game_IsLoseAnimActive(void)
+{
+	return g_LoseAnimState != LOSE_NONE;
+}
+
+void Game_StartLoseAnim(void)
+{
+	if (g_LoseAnimState != LOSE_NONE) return;
+
+	// ゲームBGMを停止
+	if (g_pBGM) StopSound(g_pBGM);
+
+	// フェードアウト開始（SCENE_NONEでシーン遷移なし）
+	StartFade(SCENE_NONE);
+	g_LoseAnimState = LOSE_FADEOUT;
+}
+
+void Game_EndLoseAnim(void)
+{
+	if (g_LoseAnimState == LOSE_PLAYING)
+	{
+		Animation_Lose_Finalize();
+	}
+	g_LoseAnimState = LOSE_NONE;
+
+	// ゲームBGMを再開
+	if (g_pBGM) PlaySound(g_pBGM, true);
 }

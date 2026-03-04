@@ -11,3 +11,6 @@ void Animation_Lose_Finalize(void);
 
 // 敗北アニメーション時の経過時間を取得
 float Animation_Lose_GetElapsedTime(void);
+
+// 敗北アニメーションの再生が完了したか（4秒経過）
+bool Animation_Lose_IsFinished(void);

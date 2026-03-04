@@ -1888,9 +1888,6 @@ void Busters_DoFloorTransition(void)
 	// ゲージをリセット
 	UI_ResetScareGauge();
 
-	// 0.0以下で敗北になるのでとりあえず回復
-	AddScareGauge(BUSTERS_DEFOURT_GAUGE);
-
 	int nextFloor = currentFloor - 1;
 
 	// 階層に応じて増やる人数を決める

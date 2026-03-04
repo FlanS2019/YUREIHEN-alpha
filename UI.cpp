@@ -17,6 +17,7 @@
 #include "WinAnim.h"
 #include "game.h"
 #include "Tutorial_Object.h"
+#include "UI_RetryMenu.h"
 
 // グローバル変数
 static Timer* g_Clock = nullptr;
@@ -221,14 +222,9 @@ void UI_Update(void)
 	}
 #endif
 
-	if (timeEnded || g_ScareGauge->GetValue() <= 0.0f)
+	if ((timeEnded || g_ScareGauge->GetValue() <= 0.0f) && !UI_RetryMenu_IsActive() && !Game_IsLoseAnimActive())
 	{
-		//float remainingTime = CLOCK_MAX - g_Clock->GetTime();
-		//if (remainingTime < 0.0f) remainingTime = 0.0f;
-		//Result_SetTimerValue(remainingTime); // 結果画面にタイマーの値を渡す
-		//Result_SetCombo(UI_ScareCombo_GetNumber()); // 結果画面にコンボ数を渡す
-		//hal::dout << "LOSE! time=" << remainingTime << std::endl;
-		StartFade(SCENE_ANM_LOSE);
+		Game_StartLoseAnim();
 	}
 
 	UI_ScareCombo_Update();
