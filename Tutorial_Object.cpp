@@ -735,6 +735,11 @@ void TutorialObject_Initialize(void)
 		"asset\\model\\enban.fbx"
 	);
 
+	if (g_pEnban)
+	{
+		g_pEnban->SetColor(0.0f, 1.0f, 0.0f, 0.5f);
+	}
+
 	g_EnbanTouched   = false;
 	g_PianoPossessed = false;
 	g_BustersStunned = false; // 追加：バスターズスタンフラグのリセット
@@ -788,7 +793,7 @@ void TutorialObject_Update(void)
 		float dx = gPos.x - ePos.x;
 		float dz = gPos.z - ePos.z;
 
-		float enbanRadius = g_pEnban->GetScale().x * 0.2f;
+		float enbanRadius = g_pEnban->GetScale().x * 0.5f;
 		if (sqrtf(dx * dx + dz * dz) <= enbanRadius)
 		{
 			g_EnbanTouched = true;
