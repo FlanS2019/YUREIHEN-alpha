@@ -521,10 +521,10 @@ void Result_Update(void)
 		}
 	}
 
-	// 演出完了後のみタイトルへ遷移
+	// 演出完了後のみ投票シーンへ遷移
 	if (g_ResultPhase == PHASE_DONE && Keyboard_IsKeyDown(KK_SPACE))
 	{
-		StartFade(SCENE_TITLE);
+		StartFade(SCENE_VOTE);
 	}
 }
 

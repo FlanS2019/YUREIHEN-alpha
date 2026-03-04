@@ -355,6 +355,14 @@ void Furniture::Update(void)
 	}
 
 	m_Billboard.Update();
+
+	// 暖炉の炎ビルボード更新
+	if (m_HasFireBillboard)
+	{
+		XMFLOAT3 basePos = GetPos();
+		m_FireBillboard.SetPos({ basePos.x, basePos.y + CAMPFIRE_FIRE_OFFSET_Y, basePos.z });
+		m_FireBillboard.Update();
+	}
 }
 
 void Furniture::Draw(void)
@@ -385,6 +393,12 @@ void Furniture::Draw(void)
 	Sprite3D::Draw();
 
 	m_Billboard.Draw();
+
+	// 暖炉の炎ビルボード描画
+	if (m_HasFireBillboard)
+	{
+		m_FireBillboard.Draw();
+	}
 }
 
 void Furniture::StartAction(void)

@@ -183,13 +183,14 @@ protected:
 	XMFLOAT2 m_DigitSize;   // 1桁あたりのサイズ
 	float m_DigitSpacing;   // 桁間の間隔
 	bool m_ShowMultiplier;  // 倍数接頭子「x」を表示するかどうか
+	bool m_ShowSuffix;      // 接尾詞「F」を表示するかどうか
 	int m_MinDigits;        // 最小桁数（0パディング用）
 	XMFLOAT4 m_Color;       // 色（Spriteと同様）
 
 public:
 	Number(const XMFLOAT2& pos, const XMFLOAT2& digitSize, const XMFLOAT4& col, BLENDSTATE bstate, const wchar_t* texturePath, int divideX, int divideY, float spacing, int minDigits = 1)
 		: SplitSprite(pos, digitSize, 0.0f, col, bstate, texturePath, divideX, divideY),
-		m_Number(0), m_DigitSize(digitSize), m_DigitSpacing(spacing), m_ShowMultiplier(false), m_MinDigits(minDigits), m_Color(col)
+		m_Number(0), m_DigitSize(digitSize), m_DigitSpacing(spacing), m_ShowMultiplier(false), m_ShowSuffix(false), m_MinDigits(minDigits), m_Color(col)
 	{
 	}
 
@@ -204,6 +205,13 @@ public:
 	void SetShowX(bool show)
 	{
 		m_ShowMultiplier = show;
+		UpdateDigitTextures();
+	}
+
+	// 接尾詞「F」を表示するかどうかを設定
+	void SetShowF(bool show)
+	{
+		m_ShowSuffix = show;
 		UpdateDigitTextures();
 	}
 
@@ -257,23 +265,30 @@ public:
 				m_DigitTextures.push_back(digits[i]);
 			}
 		}
+
+		// 接尾詞「F」を表示する場合
+		if (m_ShowSuffix)
+		{
+			m_DigitTextures.push_back(11); // テクスチャ番号11は「F」
+		}
 	}
 
 	// Number クラスの Draw メソッドを改善
 	void Draw()
 	{
-		// テクスチャのUV座標の端をクリップするためにオフセットを追加
 		XMFLOAT2 originalPos = m_Position;
-		XMFLOAT2 currentPos = m_Position;
+
+		int count = static_cast<int>(m_DigitTextures.size());
+		// 全体幅の半分だけ右にオフセットして中央揃えにする
+		float totalWidth = (count - 1) * m_DigitSpacing;
+		XMFLOAT2 currentPos = { m_Position.x + totalWidth * 0.5f, m_Position.y };
 
 		// 右から左へ描画
-		for (int i = static_cast<int>(m_DigitTextures.size()) - 1; i >= 0; --i)
+		for (int i = count - 1; i >= 0; --i)
 		{
 			m_TextureNumber = m_DigitTextures[i];
-			// 座標を整数値に丸める（ピクセル単位での正確な配置）
 			m_Position.x = floorf(currentPos.x);
 			m_Position.y = floorf(currentPos.y);
-			// 色を反映
 			SplitSprite::m_Color = m_Color;
 			SplitSprite::Draw();
 			currentPos.x -= m_DigitSpacing;
@@ -286,6 +301,7 @@ public:
 	// ゲッター・セッター
 	int GetNumber() const { return m_Number; }
 	bool GetShowMultiplier() const { return m_ShowMultiplier; }
+	bool GetShowSuffix() const { return m_ShowSuffix; }
 	void SetDigitSpacing(float spacing) { m_DigitSpacing = spacing; }
 	void SetMinDigits(int minDigits) { m_MinDigits = minDigits; UpdateDigitTextures(); }
 	void AddNumber(int value) { SetNumber(m_Number + value); }
@@ -306,11 +322,5 @@ void UI_Draw(void);
 void UI_DecreaseRemainingTime(float penaltySeconds);
 void UI_ResetTimer(void);
 void UI_AccumulateFloorTime(void);	// 現在?の残り時間を累積する（リセット前に呼ぶ）
-
-// 現在の階層を取得（看板用）
-int UI_GetCurrentFloor(void);
-
-bool UI_CheckWinCondition(void);
-
 // ファイル末尾（#pragma once ブロック内）に追加
 float UI_GetAccumulatedTime(void);
