@@ -37,7 +37,6 @@ void Font_InitializeGlobalData()
 	FILE* f = nullptr;
 	fopen_s(&f, "asset/font/KaiseiDecol-Medium.ttf", "rb");
 	if (!f) {
-		OutputDebugStringA("Font_InitializeGlobalData: Failed to open font file\n");
 		return;
 	}
 
@@ -48,7 +47,6 @@ void Font_InitializeGlobalData()
 	g_pGlobalFontData = (unsigned char*)malloc(size);
 	if (!g_pGlobalFontData) {
 		fclose(f);
-		OutputDebugStringA("Font_InitializeGlobalData: Failed to allocate memory\n");
 		return;
 	}
 
@@ -56,7 +54,6 @@ void Font_InitializeGlobalData()
 	fclose(f);
 	g_GlobalFontDataSize = size;
 
-	OutputDebugStringA("Font_InitializeGlobalData: Font data loaded successfully\n");
 }
 
 void Font_FinalizeGlobalData()
@@ -114,13 +111,11 @@ bool FontRenderer::BakeAtlas() {
 	ID3D11Device* pDevice = Direct3D_GetDevice();
 
 	if (!pDevice) {
-		OutputDebugStringA("FontRenderer::BakeAtlas: pDevice is nullptr\n");
 		return false;
 	}
 
 	// グローバルフォントデータを確認
 	if (g_pGlobalFontData == nullptr || g_GlobalFontDataSize == 0) {
-		OutputDebugStringA("FontRenderer::BakeAtlas: Global font data not initialized\n");
 		return false;
 	}
 
@@ -333,7 +328,6 @@ bool FontRenderer::AddGlyphToAtlas(int glyphIndex) {
 	}
 
 	if (m_AtlasNextY + glyph_height > m_AtlasHeight) {
-		OutputDebugStringA("FontRenderer::AddGlyphToAtlas: Atlas is full\n");
 		return false;
 	}
 

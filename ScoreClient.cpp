@@ -26,7 +26,6 @@ static bool LoadServerConfig(std::string& outIP, int& outPort)
 	std::ifstream file("server_config.txt");
 	if (!file.is_open())
 	{
-		hal::dout << "[ScoreClient] server_config.txt が見つかりません。デフォルト値を使用します。" << std::endl;
 		return false;
 	}
 
@@ -35,7 +34,6 @@ static bool LoadServerConfig(std::string& outIP, int& outPort)
 
 	if (!std::getline(file, ip) || ip.empty())
 	{
-		hal::dout << "[ScoreClient] IPアドレスの読み込みに失敗しました。" << std::endl;
 		return false;
 	}
 
@@ -57,7 +55,6 @@ static bool LoadServerConfig(std::string& outIP, int& outPort)
 	std::string portStr;
 	if (!std::getline(file, portStr) || portStr.empty())
 	{
-		hal::dout << "[ScoreClient] ポート番号の読み込みに失敗しました。" << std::endl;
 		return false;
 	}
 
@@ -67,7 +64,6 @@ static bool LoadServerConfig(std::string& outIP, int& outPort)
 	}
 	catch (...)
 	{
-		hal::dout << "[ScoreClient] ポート番号のパースに失敗しました。" << std::endl;
 		return false;
 	}
 
@@ -83,19 +79,15 @@ bool Score_SendToServer(int score)
 	int         serverPort = DEFAULT_PORT;
 	LoadServerConfig(serverIP, serverPort);
 
-	hal::dout << "[ScoreClient] 接続先: " << serverIP << ":" << serverPort << std::endl;
-
 	WSADATA wsaData;
 	if (WSAStartup(MAKEWORD(2, 2), &wsaData) != 0)
 	{
-		hal::dout << "[ScoreClient] WSAStartup failed" << std::endl;
 		return false;
 	}
 
 	SOCKET sock = socket(AF_INET, SOCK_STREAM, 0);
 	if (sock == INVALID_SOCKET)
 	{
-		hal::dout << "[ScoreClient] socket failed" << std::endl;
 		WSACleanup();
 		return false;
 	}
@@ -107,7 +99,6 @@ bool Score_SendToServer(int score)
 
 	if (connect(sock, (sockaddr*)&serverAddr, sizeof(serverAddr)) == SOCKET_ERROR)
 	{
-		hal::dout << "[ScoreClient] connect failed. Error: " << WSAGetLastError() << std::endl;
 		closesocket(sock);
 		WSACleanup();
 		return false;
@@ -123,15 +114,12 @@ bool Score_SendToServer(int score)
 			0);
 		if (sent == SOCKET_ERROR)
 		{
-			hal::dout << "[ScoreClient] send failed" << std::endl;
 			closesocket(sock);
 			WSACleanup();
 			return false;
 		}
 		totalSent += sent;
 	}
-
-	hal::dout << "[ScoreClient] Score sent: " << score << std::endl;
 
 	closesocket(sock);
 	WSACleanup();

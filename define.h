@@ -60,7 +60,7 @@
 
 //=== フィールド関連定数 ===
 #define MAP_FLOORS (3)
-#define START_FLOOR (3)// 階の数字をそのまま入れる（使用時に-1）
+#define START_FLOOR (2)// 階の数字をそのまま入れる（使用時に-1）
 #define END_FLOOR (1) // この階で恐怖ゲージMAXクリア
 
 //=== Camera 関連定数 ===
@@ -110,7 +110,7 @@
 #define LURE_POSSESSED_SPEED_RATIO (0.5f)
 #define GHOST_START_POS_FLOOR1_X (-3.0f)
 #define GHOST_START_POS_FLOOR1_Z (-10.0f)
-#define GHOST_START_POS_FLOOR2_X (-10.0f)
+#define GHOST_START_POS_FLOOR2_X (-11.0f)
 #define GHOST_START_POS_FLOOR2_Z (-11.0f)
 #define GHOST_START_POS_FLOOR3_X (-4.0f)
 #define GHOST_START_POS_FLOOR3_Z (4.0f)
