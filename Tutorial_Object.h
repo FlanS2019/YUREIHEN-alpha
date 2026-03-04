@@ -12,6 +12,7 @@
 #include "define.h"
 #include "TutorialFlag.h"
 #include "component.h"
+#include <vector>
 using namespace DirectX;
 
 // =================================================================
@@ -85,22 +86,22 @@ private:
 // =================================================================
 // 目的地マーカークラス
 // 指定ワールド座標の頭上でビルボード（下向き矢印）がぴょんぴょんする
+// 複数座標に対応：SetPositions() で全箇所のBillboardを一括表示
+// 2D矢印は最も近い座標のみを対象にする
 // =================================================================
 class TutorialMarker
 {
 private:
-	XMFLOAT3 m_BasePos;     // マーカーのワールド座標（地面位置）
-	Billboard* m_Arrow;     // 下向き矢印ビルボード
-	Sprite* m_ScreenArrow;  // 画面外時の2D矢印
-	float m_BobTimer;       // バウンスアニメーション用タイマー
-	bool  m_Visible;        // 表示フラグ
-	bool  m_UseScreenArrow; // 画面外表示中か
+	XMFLOAT3 m_BasePos;                     // 単一座標用（後方互換）
+	std::vector<XMFLOAT3> m_PosList;        // 複数座標リスト
+	std::vector<Billboard*> m_Arrows;       // 複数Billboard
+	Billboard* m_Arrow;                     // 単一Billboard（後方互換・m_PosList使用時は未使用）
+	Sprite* m_ScreenArrow;                  // 画面外時の2D矢印
+	float m_BobTimer;                       // バウンスアニメーション用タイマー
+	bool  m_Visible;                        // 表示フラグ
+	bool  m_UseScreenArrow;                 // 画面外表示中か
 	XMFLOAT2 m_ScreenArrowPos;
 	float m_ScreenArrowRot;
-
-	// 定数は define.h のマクロを使用
-	// TUTORIAL_MARKER_SIZE / TUTORIAL_MARKER_BOB_AMP
-	// TUTORIAL_MARKER_BOB_SPEED / TUTORIAL_MARKER_BASE_HEIGHT
 
 public:
 	TutorialMarker();
@@ -111,9 +112,17 @@ public:
 	void Draw(void);
 	void Draw2D(void);
 
+	// 単一座標セット（従来通り）
 	void SetPos(const XMFLOAT3& pos);
+
+	// 複数座標セット：全Billboard をこのリストで置き換える
+	void SetPositions(const std::vector<XMFLOAT3>& positions);
+
 	void SetVisible(bool visible) { m_Visible = visible; }
 	bool GetVisible(void) const   { return m_Visible; }
+
+private:
+	void RebuildArrows(void);
 };
 
 // チュートリアル用オブジェクト（円盤等）の初期化・更新・描画・終了

@@ -1,5 +1,6 @@
 ﻿#pragma execution_character_set("utf-8")
 #include <cmath>
+#include <vector>
 #include <DirectXMath.h>
 using namespace DirectX;
 #include "Tutorial_Object.h"
@@ -56,6 +57,10 @@ TutorialMarker::~TutorialMarker()
 		delete m_Arrow;
 		m_Arrow = nullptr;
 	}
+	for (Billboard* b : m_Arrows)
+		delete b;
+	m_Arrows.clear();
+
 	if (m_ScreenArrow)
 	{
 		delete m_ScreenArrow;
@@ -89,22 +94,80 @@ void TutorialMarker::Initialize(const XMFLOAT3& pos)
 	);
 }
 
+// 複数座標対応：m_PosList を元にBillboard配列を作り直す
+void TutorialMarker::RebuildArrows(void)
+{
+	for (Billboard* b : m_Arrows)
+		delete b;
+	m_Arrows.clear();
+
+	for (const XMFLOAT3& pos : m_PosList)
+	{
+		Billboard* b = new Billboard();
+		b->Initialize(
+			{ pos.x, pos.y + TUTORIAL_MARKER_BASE_HEIGHT, pos.z },
+			{ TUTORIAL_MARKER_SIZE, TUTORIAL_MARKER_SIZE },
+			{ 0.0f, 0.0f, 0.0f },
+			true
+		);
+		b->SetIcon(BILLBOARD_ICON::DESTINATION);
+		m_Arrows.push_back(b);
+	}
+}
+
+void TutorialMarker::SetPos(const XMFLOAT3& pos)
+{
+	m_BasePos = pos;
+	// 複数座標モードをクリアして単一座標に戻す
+	m_PosList.clear();
+	RebuildArrows();
+	m_PosList.push_back(pos);
+	RebuildArrows();
+}
+
+void TutorialMarker::SetPositions(const std::vector<XMFLOAT3>& positions)
+{
+	m_PosList = positions;
+	if (!m_PosList.empty())
+		m_BasePos = m_PosList[0];
+	RebuildArrows();
+}
+
 void TutorialMarker::Update(void)
 {
-	if (!m_Arrow || !m_Visible) return;
+	// 使用するリスト（複数優先）
+	const bool useMulti = !m_PosList.empty() && !m_Arrows.empty();
+
+	if (!m_Visible) return;
+	if (!useMulti && !m_Arrow) return;
 
 	const float dt = 1.0f / 60.0f;
 	m_BobTimer += TUTORIAL_MARKER_BOB_SPEED * dt;
-
 	float offsetY = sinf(m_BobTimer) * TUTORIAL_MARKER_BOB_AMP;
 
-	XMFLOAT3 arrowPos = {
-		m_BasePos.x,
-		m_BasePos.y + TUTORIAL_MARKER_BASE_HEIGHT + offsetY,
-		m_BasePos.z
-	};
-	m_Arrow->SetPos(arrowPos);
-	m_Arrow->Update();
+	if (useMulti)
+	{
+		for (size_t i = 0; i < m_PosList.size() && i < m_Arrows.size(); ++i)
+		{
+			XMFLOAT3 arrowPos = {
+				m_PosList[i].x,
+				m_PosList[i].y + TUTORIAL_MARKER_BASE_HEIGHT + offsetY,
+				m_PosList[i].z
+			};
+			m_Arrows[i]->SetPos(arrowPos);
+			m_Arrows[i]->Update();
+		}
+	}
+	else
+	{
+		XMFLOAT3 arrowPos = {
+			m_BasePos.x,
+			m_BasePos.y + TUTORIAL_MARKER_BASE_HEIGHT + offsetY,
+			m_BasePos.z
+		};
+		m_Arrow->SetPos(arrowPos);
+		m_Arrow->Update();
+	}
 
 	m_UseScreenArrow = false;
 
@@ -115,17 +178,57 @@ void TutorialMarker::Update(void)
 	XMMATRIX proj = cam->GetProjection();
 	XMMATRIX viewProj = view * proj;
 
-	XMVECTOR posVec = XMVectorSet(m_BasePos.x, m_BasePos.y + TUTORIAL_MARKER_BASE_HEIGHT, m_BasePos.z, 1.0f);
-	XMVECTOR clipPos = XMVector3TransformCoord(posVec, viewProj);
+	// 2D矢印：最も近い座標（画面外のもの）を選ぶ
+	Ghost* ghost = GetGhost();
+	XMFLOAT3 ghostPos = ghost ? ghost->GetPos() : XMFLOAT3(0.0f, 0.0f, 0.0f);
 
-	XMFLOAT3 ndc;
-	XMStoreFloat3(&ndc, clipPos);
+	// 全座標を確認して「画面外かつ最もゴーストに近い」ものを選ぶ
+	float bestDistSq = -1.0f;
+	int bestIdx = -1;
 
-	bool isBehind = (ndc.z < 0.0f || ndc.z > 1.0f);
-	bool outOfScreen = (ndc.x < -1.0f || ndc.x > 1.0f || ndc.y < -1.0f || ndc.y > 1.0f);
+	auto checkPos = [&](int idx, const XMFLOAT3& pos) {
+		XMVECTOR posVec = XMVectorSet(pos.x, pos.y + TUTORIAL_MARKER_BASE_HEIGHT, pos.z, 1.0f);
+		XMVECTOR clipPos = XMVector3TransformCoord(posVec, viewProj);
+		XMFLOAT3 ndc;
+		XMStoreFloat3(&ndc, clipPos);
 
-	if (isBehind || outOfScreen)
+		bool isBehind = (ndc.z < 0.0f || ndc.z > 1.0f);
+		bool outOfScreen = (ndc.x < -1.0f || ndc.x > 1.0f || ndc.y < -1.0f || ndc.y > 1.0f);
+
+		if (isBehind || outOfScreen)
+		{
+			float dx = pos.x - ghostPos.x;
+			float dz = pos.z - ghostPos.z;
+			float distSq = dx * dx + dz * dz;
+			if (bestIdx == -1 || distSq < bestDistSq)
+			{
+				bestDistSq = distSq;
+				bestIdx = idx;
+			}
+		}
+	};
+
+	if (useMulti)
 	{
+		for (int i = 0; i < (int)m_PosList.size(); ++i)
+			checkPos(i, m_PosList[i]);
+	}
+	else
+	{
+		checkPos(0, m_BasePos);
+	}
+
+	if (bestIdx >= 0)
+	{
+		const XMFLOAT3& targetPos = useMulti ? m_PosList[bestIdx] : m_BasePos;
+
+		XMVECTOR posVec = XMVectorSet(targetPos.x, targetPos.y + TUTORIAL_MARKER_BASE_HEIGHT, targetPos.z, 1.0f);
+		XMVECTOR clipPos = XMVector3TransformCoord(posVec, viewProj);
+		XMFLOAT3 ndc;
+		XMStoreFloat3(&ndc, clipPos);
+
+		bool isBehind = (ndc.z < 0.0f || ndc.z > 1.0f);
+
 		m_UseScreenArrow = true;
 
 		float screenX = (ndc.x + 1.0f) * 0.5f * SCREEN_WIDTH;
@@ -165,11 +268,24 @@ void TutorialMarker::Update(void)
 
 void TutorialMarker::Draw(void)
 {
-	if (!m_Arrow || !m_Visible || m_UseScreenArrow) return;
+	if (!m_Visible) return;
+
+	const bool useMulti = !m_PosList.empty() && !m_Arrows.empty();
 
 	SetDepthTest(false);
 	Shader_Begin();
-	m_Arrow->Draw();
+
+	if (useMulti)
+	{
+		for (size_t i = 0; i < m_Arrows.size(); ++i)
+			m_Arrows[i]->Draw();
+	}
+	else
+	{
+		if (m_Arrow && !m_UseScreenArrow)
+			m_Arrow->Draw();
+	}
+
 	SetDepthTest(true);
 }
 
@@ -177,11 +293,6 @@ void TutorialMarker::Draw2D(void)
 {
 	if (!m_Visible || !m_UseScreenArrow || !m_ScreenArrow) return;
 	m_ScreenArrow->Draw();
-}
-
-void TutorialMarker::SetPos(const XMFLOAT3& pos)
-{
-	m_BasePos = pos;
 }
 
 // =================================================================
@@ -531,12 +642,17 @@ void TutorialBusters::Update(void)
 	// アイコン更新
 	if (m_Icon)
 	{
-		switch (m_State)
+		// 調査中（ピアノ前で待機中）は CHECK アイコンをキープする
+		bool keepCheck = (m_State == TB_SUSPICION && m_WaitTimer > 0 && m_HasTarget);
+		if (!keepCheck)
 		{
-		case TB_IDLE:      m_Icon->SetIcon(BILLBOARD_ICON::NONE);     break;
-		case TB_SUSPICION: m_Icon->SetIcon(BILLBOARD_ICON::QUESTION); break;
-		case TB_CHASE:     m_Icon->SetIcon(BILLBOARD_ICON::ALERT);    break;
-		case TB_STUN:      m_Icon->SetIcon(BILLBOARD_ICON::STUN);     break;
+			switch (m_State)
+			{
+			case TB_IDLE:      m_Icon->SetIcon(BILLBOARD_ICON::NONE);     break;
+			case TB_SUSPICION: m_Icon->SetIcon(BILLBOARD_ICON::QUESTION); break;
+			case TB_CHASE:     m_Icon->SetIcon(BILLBOARD_ICON::ALERT);    break;
+			case TB_STUN:      m_Icon->SetIcon(BILLBOARD_ICON::STUN);     break;
+			}
 		}
 
 		XMFLOAT3 iconPos = m_Position;
