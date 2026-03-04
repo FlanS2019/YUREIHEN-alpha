@@ -47,7 +47,7 @@ static const float    TIME_BIG_LABEL_FONT = 55.0f;//フォントサイズ
 static const XMFLOAT2 TIME_BIG_LABEL_POS = { SCREEN_WIDTH / 2.0f - 130.0f, SCREEN_HEIGHT / 2.0f + 130.0f };//スコアのラベル位置
 
 // 下部の小さい最終位置　時間の結果
-static const XMFLOAT2 TIME_SMALL_POS = { SCREEN_WIDTH / 2.0f + 265.0f, SCREEN_HEIGHT / 2.0f - 13.0f };
+static const XMFLOAT2 TIME_SMALL_POS = { SCREEN_WIDTH / 2.0f + 230.0f, SCREEN_HEIGHT / 2.0f - 13.0f };
 static const XMFLOAT2 TIME_SMALL_SIZE = { 35.0f, 35.0f };
 static const float    TIME_SMALL_SPACING = 30.0f;//桁間のスペース
 static const float    TIME_SMALL_LABEL_FONT = 33.0f;//フォントサイズ
