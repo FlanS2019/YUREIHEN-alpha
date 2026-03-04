@@ -332,7 +332,7 @@ void UI_Update(void)
 	{
 		if (!g_PossessGuideText.empty())
 		{
-			g_pMessageFrame->ShowFrame(g_PossessGuideText.size() * 0.5f);
+			g_pMessageFrame->ShowFrame(g_PossessGuideText.size() / 2);
 		}
 		else
 		{
