@@ -552,6 +552,9 @@ void UI_PauseMenu_Draw(void)
 	// 操作説明画像を表示中
 	if (g_IsShowingTutoImage)
 	{
+		// ゲームUIと混ざらないよう背景を先に描画する
+		if (g_pPauseBG) g_pPauseBG->Draw();
+
 		// FontRenderer::Draw()がShader_SetMaterialColorを書き換えるため、
 		// Sprite描画前に白にリセットする
 		Shader_SetMaterialColor({ 1.0f, 1.0f, 1.0f, 1.0f });
