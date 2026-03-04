@@ -33,7 +33,7 @@ void Vote_Initialize(ID3D11Device* pDevice, ID3D11DeviceContext* pContext)
 		{ SCREEN_WIDTH, SCREEN_HEIGHT },
 		0.0f,
 		{ 1.0f, 1.0f, 1.0f, 1.0f },
-		BLENDSTATE_ALPHA,
+		BLENDSTATE_ALFA,
 		L"asset\\texture\\frame.png"
 	);
 
@@ -43,7 +43,7 @@ void Vote_Initialize(ID3D11Device* pDevice, ID3D11DeviceContext* pContext)
 		{ 250.0f, 250.0f },
 		0.0f,
 		{ 1.0f, 1.0f, 1.0f, 1.0f },
-		BLENDSTATE_ALPHA,
+		BLENDSTATE_ALFA,
 		L"asset\\texture\\qr.png"
 	);
 
