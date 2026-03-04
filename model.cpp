@@ -1,4 +1,4 @@
-#define NOMINMAX
+﻿#define NOMINMAX
 
 #include "model.h"
 #include "texture.h"
@@ -642,6 +642,18 @@ MODEL* ModelLoad(const char* FileName)
 		aiTexture* aitexture = model->AiScene->mTextures[i];
 		if (!aitexture) continue;
 
+		// テクスチャ名を取得してログ出力
+		std::string texFileName;
+		if (aitexture->mFilename.length > 0)
+		{
+			texFileName = aitexture->mFilename.data;
+		}
+		else
+		{
+			texFileName = std::string("*") + std::to_string(i);
+		}
+		hal::dout << "[Model] Embedded Texture[" << i << "]: " << texFileName.c_str() << "\n";
+
 		ID3D11ShaderResourceView* texture = nullptr;
 		TexMetadata metadata;
 		ScratchImage image;
@@ -710,6 +722,15 @@ MODEL* ModelLoad(const char* FileName)
 		}
 	}
 
+	// ===== 顔差し替え用テクスチャの読み込み =====
+	model->FaceTextures[FACE_BIBIRI] = LoadTexture(L"asset\\texture\\Busters_bibiri.png");
+	hal::dout << "[Model] Face texture BIBIRI: " << (model->FaceTextures[FACE_BIBIRI] ? "OK" : "FAILED") << "\n";
+
+	model->FaceTextures[FACE_ODOROKI] = LoadTexture(L"asset\\texture\\Busters_odoroki.png");
+	hal::dout << "[Model] Face texture ODOROKI: " << (model->FaceTextures[FACE_ODOROKI] ? "OK" : "FAILED") << "\n";
+
+	model->CurrentFaceType = FACE_BIBIRI;
+
 	// ダミー白テクスチャ（テクスチャなしメッシュ用）をモデルごとに読み込み
 	model->WhiteTexture = LoadTexture(L"asset\\texture\\fade.png");
 	if (!model->WhiteTexture)
@@ -719,9 +740,65 @@ MODEL* ModelLoad(const char* FileName)
 	// メッシュごとのテクスチャをプリキャッシュ
 	for (unsigned int m = 0; m < model->AiScene->mNumMeshes; m++)
 	{
-		if (model->MeshMaterials[m].hasTexture && model->Texture.count(model->MeshMaterials[m].texturePath))
+		model->MeshMaterials[m].isFaceMesh = false;
+
+		if (model->MeshMaterials[m].hasTexture)
 		{
-			model->MeshMaterials[m].textureView = model->Texture[model->MeshMaterials[m].texturePath];
+			std::string texPath = model->MeshMaterials[m].texturePath;
+
+			// テクスチャパスからファイル名部分を抽出
+			std::string fileName = texPath;
+			size_t slashPos = texPath.find_last_of("/\\");
+			if (slashPos != std::string::npos)
+			{
+				fileName = texPath.substr(slashPos + 1);
+			}
+
+			// 埋め込みテクスチャ参照（"*0"等）の場合、シーンから元ファイル名を取得
+			if (texPath.size() > 0 && texPath[0] == '*')
+			{
+				int texIdx = atoi(texPath.c_str() + 1);
+				if (texIdx >= 0 && (unsigned int)texIdx < model->AiScene->mNumTextures)
+				{
+					const aiTexture* pTex = model->AiScene->mTextures[texIdx];
+					if (pTex->mFilename.length > 0)
+					{
+						std::string embName(pTex->mFilename.data);
+						size_t pos = embName.find_last_of("/\\");
+						if (pos != std::string::npos)
+							fileName = embName.substr(pos + 1);
+						else
+							fileName = embName;
+					}
+				}
+			}
+
+			hal::dout << "[Model] Mesh[" << m << "] Texture: " << fileName.c_str() << " (path: " << texPath.c_str() << ")\n";
+
+			// 「Busters_5」を含むか判定（大文字小文字無視）
+			std::string lowerName = fileName;
+			for (auto& c : lowerName) c = (char)tolower((unsigned char)c);
+			bool isBusters5 = (lowerName.find("busters_5") != std::string::npos);
+
+			if (isBusters5)
+			{
+				// 顔テクスチャ差し替え対象としてマーク
+				model->MeshMaterials[m].isFaceMesh = true;
+
+				// デフォルト顔テクスチャを設定
+				ID3D11ShaderResourceView* faceTex = model->FaceTextures[model->CurrentFaceType];
+				model->MeshMaterials[m].textureView = faceTex ? faceTex : model->WhiteTexture;
+
+				hal::dout << "[Model] Mesh[" << m << "] -> Face mesh (Busters_5 replaced)\n";
+			}
+			else if (model->Texture.count(texPath))
+			{
+				model->MeshMaterials[m].textureView = model->Texture[texPath];
+			}
+			else
+			{
+				model->MeshMaterials[m].textureView = model->WhiteTexture;
+			}
 		}
 		else
 		{
@@ -761,7 +838,7 @@ void ModelRelease(MODEL* model)
 		if (model->VertexBuffer[m])
 			model->VertexBuffer[m]->Release();
 		if (model->IndexBuffer[m])
-			model->IndexBuffer[m]->Release();
+		model->IndexBuffer[m]->Release();
 		if (model->SkinnedVertexBuffer && model->SkinnedVertexBuffer[m])
 			model->SkinnedVertexBuffer[m]->Release();
 	}
@@ -776,6 +853,16 @@ void ModelRelease(MODEL* model)
 	{
 		if (pair.second)
 			pair.second->Release();
+	}
+
+	// 顔差し替え用テクスチャの解放
+	for (int i = 0; i < FACE_TYPE_MAX; i++)
+	{
+		if (model->FaceTextures[i])
+		{
+			model->FaceTextures[i]->Release();
+			model->FaceTextures[i] = nullptr;
+		}
 	}
 
 	if (model->WhiteTexture)
@@ -979,4 +1066,27 @@ XMFLOAT4 ModelGetAverageMaterialColor(MODEL* model)
 	}
 
 	return XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f);
+}
+
+//==============================================================================
+// 顔テクスチャの切り替え
+//==============================================================================
+void ModelSetFaceType(MODEL* model, FaceType type)
+{
+	if (!model) return;
+	if (type < 0 || type >= FACE_TYPE_MAX) return;
+
+	model->CurrentFaceType = type;
+
+	// 顔メッシュのテクスチャを更新
+	ID3D11ShaderResourceView* faceTex = model->FaceTextures[type];
+	if (!faceTex) faceTex = model->WhiteTexture;
+
+	for (unsigned int m = 0; m < model->AiScene->mNumMeshes; m++)
+	{
+		if (model->MeshMaterials[m].isFaceMesh)
+		{
+			model->MeshMaterials[m].textureView = faceTex;
+		}
+	}
 }
