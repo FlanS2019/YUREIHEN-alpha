@@ -339,7 +339,7 @@ void Furniture::Update(void)
 	m_Billboard.SetPos(pos);
 
 	// 距離判定 (Ghost検出範囲の1.5倍 未満かつクールタイム中でないかつアクション中でない場合に表示)
-	if (m_DistanceToGhost < (FURNITURE_DETECTION_RANGE * 1.5f) && !IsCoolingDown() && !GetIsActing())
+	if (m_DistanceToGhost < (FURNITURE_DETECTION_RANGE * FURNITURE_BILLBOARD_RANGE) && !IsCoolingDown() && !GetIsActing())
 	{
 		switch (m_ActionType)
 		{

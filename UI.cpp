@@ -244,7 +244,7 @@ void UI_Update(void)
 	g_PossessGuideText = "";
 	if (Game_IsFloorExitAnimActive())
 	{
-		g_PossessGuideText = "下の階に逃げたバスターズを追いかけよう！";
+		g_PossessGuideText = "バスターズ「うわーっ！」逃げろ～！";
 	}
 	else if (ghost)
 	{
