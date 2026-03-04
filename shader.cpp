@@ -84,7 +84,6 @@ bool Shader_Initialize(ID3D11Device* pDevice, ID3D11DeviceContext* pContext)
 	HRESULT hr;
 
 	if (!pDevice || !pContext) {
-		hal::dout << "Shader_Initialize() : 与えられたデバイスかコンテキストが不正です" << std::endl;
 		return false;
 	}
 
@@ -110,7 +109,6 @@ bool Shader_Initialize(ID3D11Device* pDevice, ID3D11DeviceContext* pContext)
 	hr = g_pDevice->CreateVertexShader(vsbinary_pointer, filesize, nullptr, &g_pVertexShader);
 
 	if (FAILED(hr)) {
-		hal::dout << "Shader_Initialize() : 頂点シェーダーの作成に失敗しました" << std::endl;
 		MessageBox(nullptr, L"頂点シェーダーの作成に失敗しました", L"エラー", MB_OK);
 		delete[] vsbinary_pointer;
 		return false;
@@ -130,7 +128,6 @@ bool Shader_Initialize(ID3D11Device* pDevice, ID3D11DeviceContext* pContext)
 	delete[] vsbinary_pointer;
 
 	if (FAILED(hr)) {
-		hal::dout << "Shader_Initialize() : 頂点レイアウトの作成に失敗しました" << std::endl;
 		MessageBox(nullptr, L"頂点レイアウトの作成に失敗しました", L"エラー", MB_OK);
 		return false;
 	}
@@ -185,7 +182,6 @@ bool Shader_Initialize(ID3D11Device* pDevice, ID3D11DeviceContext* pContext)
 	delete[] psbinary_pointer;
 
 	if (FAILED(hr)) {
-		hal::dout << "Shader_Initialize() : ピクセルシェーダーの作成に失敗しました" << std::endl;
 		MessageBox(nullptr, L"ピクセルシェーダーの作成に失敗しました", L"エラー", MB_OK);
 		return false;
 	}
@@ -243,10 +239,8 @@ bool Shader_Initialize(ID3D11Device* pDevice, ID3D11DeviceContext* pContext)
 			};
 			hr = g_pDevice->CreateInputLayout(skinLayout, ARRAYSIZE(skinLayout), skin_pointer, skin_filesize, &g_pSkinningInputLayout);
 			if (FAILED(hr)) {
-				hal::dout << "Shader_Initialize() : スキニング頂点レイアウトの作成に失敗" << std::endl;
 			}
 		} else {
-			hal::dout << "Shader_Initialize() : スキニング頂点シェーダーの作成に失敗" << std::endl;
 		}
 		delete[] skin_pointer;
 
@@ -258,7 +252,6 @@ bool Shader_Initialize(ID3D11Device* pDevice, ID3D11DeviceContext* pContext)
 		boneBufDesc.ByteWidth = sizeof(XMFLOAT4X4) * 256;
 		g_pDevice->CreateBuffer(&boneBufDesc, nullptr, &g_pBoneConstantBuffer);
 	} else {
-		hal::dout << "Shader_Initialize() : shader_vertex_skinning.cso が見つかりません" << std::endl;
 	}
 
 	return true;

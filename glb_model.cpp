@@ -1,4 +1,4 @@
-﻿//==============================================================================
+//==============================================================================
 // GLBモデル読み込み・描画クラス [glb_model.cpp]
 // Assimp + DirectX 11 による .glb (glTF Binary) 専用ローダー
 //==============================================================================
@@ -48,18 +48,15 @@ bool GlbModel::Load(const char* filePath, ID3D11Device* pDevice, ID3D11DeviceCon
 {
 	if (m_IsLoaded)
 	{
-		hal::dout << "[GlbModel] Already loaded. Release first." << std::endl;
 		return false;
 	}
 
 	DWORD dwAttrib = GetFileAttributesA(filePath);
 	if (dwAttrib == INVALID_FILE_ATTRIBUTES || (dwAttrib & FILE_ATTRIBUTE_DIRECTORY))
 	{
-		hal::dout << "[GlbModel] File not found: " << filePath << std::endl;
 		return false;
 	}
 
-	hal::dout << "[GlbModel] Loading: " << filePath << std::endl;
 
 	// プロパティストアを作成してスケールを100倍に設定（GLBはcm単位、FBXはm単位のため）
 	aiPropertyStore* props = aiCreatePropertyStore();
@@ -79,24 +76,18 @@ bool GlbModel::Load(const char* filePath, ID3D11Device* pDevice, ID3D11DeviceCon
 	if (!m_pScene || !m_pScene->mRootNode)
 	{
 		const char* err = aiGetErrorString();
-		hal::dout << "[GlbModel] Assimp error: " << err << std::endl;
 		return false;
 	}
 
-	hal::dout << "[GlbModel] Meshes: " << m_pScene->mNumMeshes
-		<< ", Materials: " << m_pScene->mNumMaterials
-		<< ", EmbeddedTextures: " << m_pScene->mNumTextures << std::endl;
 
 	if (!LoadEmbeddedTextures(m_pScene, pDevice))
 	{
-		hal::dout << "[GlbModel] Warning: some embedded textures failed to load." << std::endl;
 	}
 
 	m_pWhiteTexture = LoadTexture(L"asset\\texture\\fade.png");
 
 	if (!ProcessMeshes(m_pScene, pDevice))
 	{
-		hal::dout << "[GlbModel] Failed to process meshes." << std::endl;
 		Release();
 		return false;
 	}
@@ -104,7 +95,6 @@ bool GlbModel::Load(const char* filePath, ID3D11Device* pDevice, ID3D11DeviceCon
 	SetupMeshMaterials(m_pScene);
 
 	m_IsLoaded = true;
-	hal::dout << "[GlbModel] Load complete. MeshCount=" << m_Meshes.size() << std::endl;
 	return true;
 }
 
@@ -205,7 +195,6 @@ bool GlbModel::ProcessMeshes(const aiScene* pScene, ID3D11Device* pDevice)
 
 		if (pMesh->mNumVertices == 0 || glbMesh.indexCount == 0)
 		{
-			hal::dout << "[GlbModel] Mesh[" << m << "] skipped (0 vertices or indices)." << std::endl;
 			continue;
 		}
 
@@ -221,7 +210,6 @@ bool GlbModel::ProcessMeshes(const aiScene* pScene, ID3D11Device* pDevice)
 			HRESULT hr = pDevice->CreateBuffer(&bd, &sd, &glbMesh.pVertexBuffer);
 			if (FAILED(hr))
 			{
-				hal::dout << "[GlbModel] Failed to create VB for mesh " << m << std::endl;
 				return false;
 			}
 		}
@@ -238,14 +226,10 @@ bool GlbModel::ProcessMeshes(const aiScene* pScene, ID3D11Device* pDevice)
 			HRESULT hr = pDevice->CreateBuffer(&bd, &sd, &glbMesh.pIndexBuffer);
 			if (FAILED(hr))
 			{
-				hal::dout << "[GlbModel] Failed to create IB for mesh " << m << std::endl;
 				return false;
 			}
 		}
 
-		hal::dout << "[GlbModel] Mesh[" << m << "]: "
-			<< pMesh->mNumVertices << " verts, "
-			<< glbMesh.indexCount << " indices" << std::endl;
 	}
 
 	return true;
@@ -292,7 +276,6 @@ bool GlbModel::LoadEmbeddedTextures(const aiScene* pScene, ID3D11Device* pDevice
 
 				if (FAILED(hr))
 				{
-					hal::dout << "[GlbModel] Failed to load compressed embedded texture[" << i << "]" << std::endl;
 					allSucceeded = false;
 				}
 			}
@@ -332,7 +315,6 @@ bool GlbModel::LoadEmbeddedTextures(const aiScene* pScene, ID3D11Device* pDevice
 
 				if (FAILED(hr))
 				{
-					hal::dout << "[GlbModel] Failed to load raw embedded texture[" << i << "]" << std::endl;
 					allSucceeded = false;
 				}
 			}
@@ -346,7 +328,6 @@ bool GlbModel::LoadEmbeddedTextures(const aiScene* pScene, ID3D11Device* pDevice
 
 			m_EmbeddedTextures[texName] = pSRV;
 
-			hal::dout << "[GlbModel] Embedded texture[" << i << "] loaded: " << texName << std::endl;
 		}
 	}
 

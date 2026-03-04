@@ -1,4 +1,4 @@
-﻿#include "busters.h"
+#include "busters.h"
 #include "billboard.h"
 #include "Camera.h"
 #include "debug_ostream.h"
@@ -191,10 +191,6 @@ void Busters::Update(void)
 		float radY = XMConvertToRadians(currentRot);
 		float radY90 = XMConvertToRadians(currentRot + 90.0f);
 		
-		hal::dout << "[DEBUG ROT] GetRot().y=" << currentRot 
-		          << " | cos/sin(rot)=(" << cosf(radY) << ", " << sinf(radY) << ")"
-		          << " | cos/sin(rot+90)=(" << cosf(radY90) << ", " << sinf(radY90) << ")"
-		          << std::endl;
 		
 		// ヘッドライト更新のみ行う
 		if (m_pHeadlight)
@@ -211,7 +207,6 @@ void Busters::Update(void)
 			m_pHeadlight->SetRange(15.0f);
 			
 			// ライト方向もデバッグログに出力
-			hal::dout << "  LightDir: (" << dirX << ", -0.3, " << dirZ << ")" << std::endl;
 		}
 		
 		// アイコン更新
@@ -509,21 +504,58 @@ void Busters::Update(void)
 
 	case BUSTERS_SEARCH: // 探索
 
+		// 至近距離チェック：ターゲット家具が1.5m以内なら壁判定を無視して即到着とみなす
+		if (m_TargetFurnitureIndex != -1)
+		{
+			Furniture* nearTarget = GetFurniture(m_TargetFurnitureIndex);
+			if (nearTarget && nearTarget->GetBlockID() != 13)
+			{
+				float ndx = nearTarget->GetPos().x - m_Position.x;
+				float ndz = nearTarget->GetPos().z - m_Position.z;
+				if (ndx * ndx + ndz * ndz < 2.0f * 2.0f)
+				{
+					// 壁チェックY値を床面に揃えて行う（空中家具のY値を無視）
+					XMFLOAT3 targetFloorPos = { nearTarget->GetPos().x, m_Position.y, nearTarget->GetPos().z };
+					if (Field_CheckWallBetween(m_Position, targetFloorPos))
+					{
+						m_TargetFurnitureIndex = -1;
+						m_PathList.clear();
+						m_State = BUSTERS_WAIT_RESELECT;
+						m_WaitTimer = 60;
+						ClearIgnoreRelayDoors();
+					}
+					else
+					{
+						m_TargetFurnitureIndex = -1;
+						m_PathList.clear();
+						m_WaitTimer = 300;
+						m_StuckTimer = 0;
+						ClearIgnoreRelayDoors();
+					}
+					break;
+				}
+			}
+		}
+
 		if (m_TargetFurnitureIndex == -1 || m_PathList.empty())
 		{
 			if (m_TargetFurnitureIndex == -1)
 			{
-				Furniture* targetFurniture = nullptr;
-				int loopCount = 0;
-
-				while (loopCount < 100)
+				int furnitureCount = GetFurnitureCount();
+				if (furnitureCount > 0)
 				{
-					m_TargetFurnitureIndex = rand() % FURNITURE_NUM;
-					targetFurniture = GetFurniture(m_TargetFurnitureIndex);
+					Furniture* targetFurniture = nullptr;
+					int loopCount = 0;
 
-					// ドア(13)以外の家具を選ぶ
-					if (targetFurniture && targetFurniture->GetBlockID() != 13) break;
-					loopCount++;
+					while (loopCount < 100)
+					{
+						m_TargetFurnitureIndex = rand() % furnitureCount;
+						targetFurniture = GetFurniture(m_TargetFurnitureIndex);
+
+						// ドア(13)以外の家具を選ぶ（ACTION_NONEの家具も調査対象）
+						if (targetFurniture && targetFurniture->GetBlockID() != 13) break;
+						loopCount++;
+					}
 				}
 			}
 
@@ -537,7 +569,7 @@ void Busters::Update(void)
 
 				if (hasWall)
 				{
-				float minDist = 999999.0f;
+					float minDist = 999999.0f;
 
 					for (int i = 0; i < FURNITURE_NUM; i++) {
 						Furniture* f = GetFurniture(i);
@@ -546,7 +578,6 @@ void Busters::Update(void)
 						{
 							XMFLOAT3 dPos = f->GetPos();
 
-							// 現在地からドアへ、かつドアから目標への直線ルートが可能かチェック
 							bool canReachDoor = !Field_CheckWallBetween(m_Position, dPos);
 							bool canReachTarget = !Field_CheckWallBetween(dPos, targetPos);
 
@@ -554,11 +585,11 @@ void Busters::Update(void)
 							{
 								float d1x = dPos.x - m_Position.x;
 								float d1z = dPos.z - m_Position.z;
-								float distToDoor = sqrtf(d1x * d1x + d1z * d1z); // 現在地〜ドアの距離
+								float distToDoor = sqrtf(d1x * d1x + d1z * d1z);
 
 								float d2x = targetPos.x - dPos.x;
 								float d2z = targetPos.z - dPos.z;
-								float distToTarget = sqrtf(d2x * d2x + d2z * d2z); // ドア〜目標の距離
+								float distToTarget = sqrtf(d2x * d2x + d2z * d2z);
 
 								float totalDist = distToDoor + distToTarget;
 
@@ -571,31 +602,42 @@ void Busters::Update(void)
 					}
 
 					if (bestDoorIndex != -1) {
-						// 最適なドアを中継地点に設定する
 						destination = GetFurniture(bestDoorIndex)->GetPos();
 					}
 				}
 
-				float dx = destination.x - m_Position.x;
-				float dz = destination.z - m_Position.z;
-				float dist = sqrtf(dx * dx + dz * dz);
-
+				// destinationがドアでない場合、家具の周围4方向で床があり壁でない最近傍マスを到達点に採用
 				bool isTargetDoor = (destination.x != targetPos.x || destination.z != targetPos.z);
-
-				if (dist > 0.0f && !isTargetDoor)
+				if (!isTargetDoor)
 				{
-					// 本物の家具を目指す時だけ手前で止まる
-					float offset = 0.6f;
-					destination.x -= (dx / dist) * offset;
-					destination.z -= (dz / dist) * offset;
+					const float offsets[4][2] = { {0,1},{0,-1},{1,0},{-1,0} };
+					float bestAdjacentDist = FLT_MAX;
+					XMFLOAT3 bestAdjacentPos = targetPos;
+					bool foundAdjacent = false;
+					for (int oi = 0; oi < 4; oi++)
+					{
+						XMFLOAT3 candidate = { targetPos.x + offsets[oi][0], targetPos.y, targetPos.z + offsets[oi][1] };
+						if (Field_IsWall(candidate.x, candidate.z)) continue;
+						if (Field_IsNoFloor(candidate.x, candidate.z)) continue;
+						float cdx = candidate.x - m_Position.x;
+						float cdz = candidate.z - m_Position.z;
+						float cdist = cdx * cdx + cdz * cdz;
+						if (cdist < bestAdjacentDist)
+						{
+							bestAdjacentDist = cdist;
+							bestAdjacentPos = candidate;
+							foundAdjacent = true;
+						}
+					}
+					if (foundAdjacent)
+						destination = bestAdjacentPos;
 				}
 
-				// 目的地への経路を生成（destinationを使用してドア経由の経路を作成）
+				// 目的地への経路を生成
 				bool destinationHasWall = Field_CheckWallBetween(m_Position, destination);
-				
+
 				if (destinationHasWall && bestDoorIndex == -1)
 				{
-					// ドアを経由してもアクセス不可の場合は、このターゲットを諦める
 					m_TargetFurnitureIndex = -1;
 					m_State = BUSTERS_WAIT_RESELECT;
 					m_WaitTimer = 60;
@@ -605,7 +647,6 @@ void Busters::Update(void)
 					m_PathList = Field_FindPath(m_Position, destination);
 					if (m_PathList.empty())
 					{
-						// 経路が見つからない（壁の中などで行けない）場合は、壁に究っ込まずに潔く諦める
 						m_TargetFurnitureIndex = -1;
 						m_State = BUSTERS_WAIT_RESELECT;
 						m_WaitTimer = 60;
@@ -613,7 +654,6 @@ void Busters::Update(void)
 					}
 					else if (bestDoorIndex != -1)
 					{
-						// 経路生成に成功した時だけドアを除外リストに追加する
 						AddIgnoreRelayDoor(bestDoorIndex);
 					}
 				}
@@ -781,7 +821,7 @@ void Busters::Update(void)
 				float fdx = target->GetPos().x - m_Position.x;
 				float fdz = target->GetPos().z - m_Position.z;
 
-				if (fdx * fdx + fdz * fdz < 1.5f * 1.5f)
+				if (fdx * fdx + fdz * fdz < 2.0f * 2.0f)
 				{
 					forceArrive = true;
 				}
@@ -802,8 +842,23 @@ void Busters::Update(void)
 						if (target) {
 							float tdx = target->GetPos().x - m_Position.x;
 							float tdz = target->GetPos().z - m_Position.z;
-							// 目標家具から1.5m以内にいれば到着とみなす
-							if (tdx * tdx + tdz * tdz < 1.5f * 1.5f) {
+							// 目標家具から2.0m以内にいれば到着とみなす
+							if (tdx * tdx + tdz * tdz < 2.0f * 2.0f) {
+								reached = true;
+							}
+						}
+					}
+
+					// パスが空になったがまだ近くにいない場合も、
+					// ターゲットが存在してかつ壁がないなら到着扱いにする
+					if (!reached && m_PathList.empty() && m_TargetFurnitureIndex != -1)
+					{
+						Furniture* target = GetFurniture(m_TargetFurnitureIndex);
+						if (target)
+						{
+							XMFLOAT3 targetFloorPos = { target->GetPos().x, m_Position.y, target->GetPos().z };
+							if (!Field_CheckWallBetween(m_Position, targetFloorPos))
+							{
 								reached = true;
 							}
 						}
@@ -857,21 +912,19 @@ void Busters::Update(void)
 		{
 			m_StuckTimer++;
 			// 移動不可になったら即座に経路を再計算する
-			if (m_StuckTimer > 15)
+			if (m_StuckTimer > 15 && !m_PathList.empty())
 			{
-			if (!m_PathList.empty())
-				{
 				m_PathList.erase(m_PathList.begin());
 				m_StuckTimer = 0;
-				}
-				else if (m_State == BUSTERS_SEARCH && m_TargetFurnitureIndex != -1)
-				{
-					// 経路のないスタックも処理
-					m_TargetFurnitureIndex = -1;
-					m_State = BUSTERS_WAIT_RESELECT;
-					m_WaitTimer = 60;
-					m_StuckTimer = 0;
-				}
+			}
+			else if (m_StuckTimer > 60 && m_State == BUSTERS_SEARCH)
+			{
+				m_TargetFurnitureIndex = -1;
+				m_PathList.clear();
+				m_State = BUSTERS_WAIT_RESELECT;
+				m_WaitTimer = 60;
+				m_StuckTimer = 0;
+				ClearIgnoreRelayDoors();
 			}
 		}
 		else
@@ -1560,6 +1613,82 @@ void Busters_Update(void)
 			buster->Update();
 		}
 	}
+
+#if defined(_DEBUG)
+	// ===== バスターズデバッグログ（1フレームに1回） =====
+	if (currentFloor >= 0 && currentFloor < MAP_FLOORS)
+	{
+		const char* stateNames[] = {
+			"SEARCH", "WAIT_RESELECT", "SUSPICION", "CHASE", "STUN", "LURED", "RUN_TO_STAIRS"
+		};
+
+		Ghost* ghost = GetGhost();
+		XMFLOAT3 ghostPos = ghost ? ghost->GetPos() : XMFLOAT3(0, 0, 0);
+		bool ghostInvincible = ghost ? ghost->IsInvincible() : false;
+
+		int idx = 0;
+		for (Busters* buster : g_BustersList[currentFloor])
+		{
+			BUSTERS_STATE st = buster->GetState();
+			XMFLOAT3 pos = buster->GetPos();
+			int targetIdx = buster->GetTargetFurnitureIndex();
+			int waitTimer = buster->GetWaitTimer();
+			int stuckTimer = buster->GetStuckTimer();
+			int pathCount = buster->GetPathCount();
+			int keepTimer = buster->GetKeepStateTimer();
+			int graceTimer = buster->GetDetectionGraceTimer();
+			int reactionCD = buster->GetReactionCooldown();
+			float rotY = buster->GetRot().y;
+
+			const char* stName = (st >= 0 && st <= 6) ? stateNames[st] : "UNKNOWN";
+
+			// ---- 行1: 基本情報 ----
+
+			// ---- 行2: ゴーストとの関係 ----
+			if (ghost)
+			{
+				float gdx = ghostPos.x - pos.x;
+				float gdz = ghostPos.z - pos.z;
+				float ghostDist = sqrtf(gdx * gdx + gdz * gdz);
+				bool hasWallToGhost = Field_CheckWallBetween(pos, ghostPos);
+				bool inChase = buster->IsTargetInFOV(ghostPos, BUSTERS_PATROL_RANGH);
+				bool inSusp  = buster->IsTargetInFOV(ghostPos, BUSTERS_SUSPICION_RANGE);
+			}
+
+			// ---- 行3: ターゲット家具の詳細 ----
+			if (targetIdx != -1)
+			{
+				Furniture* tf = GetFurniture(targetIdx);
+				if (tf)
+				{
+					XMFLOAT3 tpos = tf->GetPos();
+					float fdx = tpos.x - pos.x;
+					float fdz = tpos.z - pos.z;
+					float dist = sqrtf(fdx * fdx + fdz * fdz);
+					bool hasWall = Field_CheckWallBetween(pos, tpos);
+				}
+			}
+
+			// ---- 行4: 経路の先頭ノード ----
+			if (pathCount > 0)
+			{
+				XMFLOAT3 nextNode = buster->GetNextPathNode();
+				float ndx = nextNode.x - pos.x;
+				float ndz = nextNode.z - pos.z;
+				float nodeDist = sqrtf(ndx * ndx + ndz * ndz);
+			}
+
+			// ---- 行5: 誘引状態の詳細 ----
+			if (st == BUSTERS_LURED)
+			{
+				XMFLOAT3 lurePos = {}; // 誘引目標座標はGetHasLureTargetで存在確認済み
+			}
+
+			idx++;
+		}
+	}
+	// ===== デバッグログ終了 =====
+#endif
 }
 
 void Busters_Draw(void)

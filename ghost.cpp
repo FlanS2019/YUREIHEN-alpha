@@ -1,4 +1,4 @@
-﻿#include "ghost.h"
+#include "ghost.h"
 using namespace DirectX;
 #include "sprite.h"
 #include "sprite3d.h"
@@ -437,7 +437,6 @@ void Ghost_Update(void)
 		if (g_Ghost)
 		{
 			XMFLOAT3 pos = g_Ghost->GetPos();
-			hal::dout << "Ghost Position: { " << pos.x << "f, " << pos.y << "f, " << pos.z << "f }" << std::endl;
 		}
 
 		// 現在のSCENEを名前付きで出力
@@ -449,7 +448,6 @@ void Ghost_Update(void)
 		SCENE currentScene = GetScene();
 		const char* sceneName = (currentScene >= 0 && currentScene < SCENE_MAX)
 			? sceneNames[currentScene] : "UNKNOWN";
-		hal::dout << "Scene: " << sceneName << " (" << (int)currentScene << ")" << std::endl;
 	}
 
 	if (g_Ghost)
@@ -654,9 +652,6 @@ void Ghost::ScareStart(void)
 				AddScareGauge(addScore);
 				float nextGauge = UI_GetScareGauge();
 				float actualAdd = nextGauge - prevGauge;
-				hal::dout << "[SCARE] FurnitureID=" << furnitureBlockID
-					<< " Gauge: " << prevGauge << " -> " << nextGauge
-					<< " (+" << actualAdd << ")" << std::endl;
 			}
 			// ゲージMAXの判定は Game_Update 内の通常ループで倒す
 		}
@@ -681,9 +676,6 @@ void Ghost::ScareStart(void)
 				AddScareGauge(lureAdd);
 				float nextGauge = UI_GetScareGauge();
 				float actualAdd = nextGauge - prevGauge;
-				hal::dout << "[LURE] FurnitureID=" << furnitureBlockID
-					<< " Gauge: " << prevGauge << " -> " << nextGauge
-					<< " (+" << actualAdd << ")" << std::endl;
 			}
 		}
 		break;
@@ -705,9 +697,6 @@ void Ghost::ScareStart(void)
 				AddScareGauge(stopAdd);
 				float nextGauge = UI_GetScareGauge();
 				float actualAdd = nextGauge - prevGauge;
-				hal::dout << "[STOP] FurnitureID=" << furnitureBlockID
-					<< " Gauge: " << prevGauge << " -> " << nextGauge
-					<< " (+" << actualAdd << ")" << std::endl;
 			}
 		}
 		break;

@@ -30,7 +30,6 @@ bool Shader_Initialize(ID3D11Device* pDevice, ID3D11DeviceContext* pContext)
 
 	// デバイスとデバイスコンテキストのチェック
 	if (!pDevice || !pContext) {
-		hal::dout << "Shader_Initialize() : 与えられたデバイスかコンテキストが不正です" << std::endl;
 		return false;
 	}
 
@@ -62,7 +61,6 @@ bool Shader_Initialize(ID3D11Device* pDevice, ID3D11DeviceContext* pContext)
 	hr = g_pDevice->CreateVertexShader(vsbinary_pointer, filesize, nullptr, &g_pVertexShader);
 
 	if (FAILED(hr)) {
-		hal::dout << "Shader_Initialize() : 頂点シェーダーの作成に失敗しました" << std::endl;
 		delete[] vsbinary_pointer; // メモリリークしないようにバイナリデータのバッファを解放
 		return false;
 	}
@@ -83,7 +81,6 @@ bool Shader_Initialize(ID3D11Device* pDevice, ID3D11DeviceContext* pContext)
 	delete[] vsbinary_pointer; // バイナリデータのバッファを解放
 
 	if (FAILED(hr)) {
-		hal::dout << "Shader_Initialize() : 頂点レイアウトの作成に失敗しました" << std::endl;
 		return false;
 	}
 
@@ -117,7 +114,6 @@ bool Shader_Initialize(ID3D11Device* pDevice, ID3D11DeviceContext* pContext)
 	delete[] psbinary_pointer; // バイナリデータのバッファを解放
 
 	if (FAILED(hr)) {
-		hal::dout << "Shader_Initialize() : ピクセルシェーダーの作成に失敗しました" << std::endl;
 		return false;
 	}
 

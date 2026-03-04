@@ -630,19 +630,6 @@ void UI_Tutorial_Update(void)
 
 	if (g_IsTutorial)
 	{
-#if defined(DEBUG) || defined(_DEBUG)
-		{
-			static bool s_PrevLeft = false;
-			Mouse_State ms;
-			Mouse_GetState(&ms);
-			if (ms.leftButton && !s_PrevLeft)
-			{
-				hal::dout << "{" << ms.x << "," << ms.y << "}" << std::endl;
-			}
-			s_PrevLeft = ms.leftButton;
-		}
-#endif
-
 	switch (g_State)
 	{
 	case TutorialState::FadeIn:

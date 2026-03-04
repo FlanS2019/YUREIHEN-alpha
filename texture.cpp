@@ -13,9 +13,6 @@ ID3D11ShaderResourceView* LoadTexture(const wchar_t* texpass)
 	HRESULT hr = LoadFromWICFile(texpass, WIC_FLAGS_FORCE_SRGB, &metadata, image);
 	if (FAILED(hr))
 	{
-		wchar_t msg[512];
-		swprintf_s(msg, L"LoadFromWICFile failed: hr=0x%08X path=%ls\n", static_cast<unsigned int>(hr), texpass ? texpass : L"(null)");
-		OutputDebugStringW(msg);
 		return nullptr;
 	}
 
@@ -30,9 +27,6 @@ ID3D11ShaderResourceView* LoadTexture(const wchar_t* texpass)
 
 	if (FAILED(hr) || g_Texture == nullptr)
 	{
-		wchar_t msg[512];
-		swprintf_s(msg, L"CreateShaderResourceView failed: hr=0x%08X path=%ls\n", static_cast<unsigned int>(hr), texpass ? texpass : L"(null)");
-		OutputDebugStringW(msg);
 		// 失敗時は NULL を返す（呼び出し側でフォールバック処理を行う）
 		return nullptr;
 	}

@@ -212,9 +212,7 @@ static void SetKakeruAlpha(float alpha)
 // -------------------------------------------------------
 void Result_Initialize(ID3D11Device* pDevice, ID3D11DeviceContext* pContext)
 {
-	hal::dout << "Result Initialize Called" << std::endl;
-
-	// フェード演出をリセット
+// フェード演出をリセット
 	g_ResultPhase = PHASE_TIME_BIG;
 	g_PhaseAlpha = 0.0f;
 	g_WaitCounter = 0;

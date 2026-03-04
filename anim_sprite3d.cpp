@@ -1,4 +1,4 @@
-﻿#include "model.h"
+#include "model.h"
 #include "anim_sprite3d.h"
 #include "shader.h"
 #include "camera.h"
@@ -132,13 +132,11 @@ void AnimSprite3D::InitializeBones()
 {
 	if (!m_Model || !m_Model->AiScene)
 	{
-		hal::dout << "AnimSprite3D: Model or AiScene is null" << std::endl;
 		return;
 	}
 
 	m_BoneCount = m_Model->TotalBoneCount;
 
-	hal::dout << "AnimSprite3D: Initialized " << m_BoneCount << " bones (from model)" << std::endl;
 
 	for (unsigned int i = 0; i < BoneMatrices::MAX_BONES; i++)
 	{
@@ -265,7 +263,6 @@ void AnimSprite3D::UpdateAnimation(float dt)
 			m_BlendState.isBlending = false;
 			SetAnimationClip(m_BlendState.targetClip);
 			PlayAnimation(m_AnimState.loop);
-			hal::dout << "Animation blend completed" << std::endl;
 		}
 	}
 
@@ -395,7 +392,6 @@ void AnimSprite3D::Draw(void)
 	}
 	else
 	{
-		hal::dout << "AnimSprite3D::Draw() : Model not loaded" << std::endl;
 	}
 }
 
@@ -412,10 +408,6 @@ AnimationClip AnimSprite3D::ExtractAnimationFromAssimp(const aiAnimation* aiAnim
         clip.tps = 24.0;
     }
     
-    hal::dout << "ExtractAnimationFromAssimp: duration=" << clip.duration 
-              << " tps=" << clip.tps 
-              << " numChannels=" << aiAnim->mNumChannels 
-              << " boneCount=" << m_BoneCount << std::endl;
     
     // チャンネルインデックスをそのままトラックインデックスとして使用
     // RenderNodeAnimationのNodeToAnimIndex（ノード名→チャンネルインデックス）と一致させる
@@ -455,7 +447,6 @@ AnimationClip AnimSprite3D::ExtractAnimationFromAssimp(const aiAnimation* aiAnim
         }
     }
     
-    hal::dout << "  Final trackSize=" << clip.tracks.size() << std::endl;
     
     return clip;
 }
@@ -494,7 +485,6 @@ bool AnimSprite3D::PlayAnimationByName(const char* animName, bool loop)
 {
     if (!m_Model || !m_Model->AiScene || !animName)
     {
-        hal::dout << "PlayAnimationByName: Invalid model" << std::endl;
         return false;
     }
 
@@ -504,7 +494,6 @@ bool AnimSprite3D::PlayAnimationByName(const char* animName, bool loop)
         return true;  // 既に再生中なので成功として扱う
     }
 
-    hal::dout << "PlayAnimationByName: Looking for '" << animName << "', numAnimations=" << m_Model->AiScene->mNumAnimations << std::endl;
 
     // FBX内から名前でアニメーションを検索（完全一致 → 部分一致の順）
     aiAnimation* foundAnim = nullptr;
@@ -513,9 +502,6 @@ bool AnimSprite3D::PlayAnimationByName(const char* animName, bool loop)
     for (unsigned int i = 0; i < m_Model->AiScene->mNumAnimations; i++)
     {
         aiAnimation* aiAnim = m_Model->AiScene->mAnimations[i];
-        hal::dout << "  Animation " << i << ": name='" << aiAnim->mName.data 
-                  << "' duration=" << aiAnim->mDuration 
-                  << " channels=" << aiAnim->mNumChannels << std::endl;
         
         if (strcmp(aiAnim->mName.data, animName) == 0)
         {
@@ -533,7 +519,6 @@ bool AnimSprite3D::PlayAnimationByName(const char* animName, bool loop)
             std::string name = aiAnim->mName.data;
             if (name.find(animName) != std::string::npos)
             {
-                hal::dout << "  -> Partial match found: '" << name << "'" << std::endl;
                 foundAnim = aiAnim;
                 break;
             }
@@ -544,7 +529,6 @@ bool AnimSprite3D::PlayAnimationByName(const char* animName, bool loop)
     if (!foundAnim && m_Model->AiScene->mNumAnimations == 1)
     {
         foundAnim = m_Model->AiScene->mAnimations[0];
-        hal::dout << "  -> Only one animation available, using: '" << foundAnim->mName.data << "'" << std::endl;
     }
 
     if (foundAnim)
@@ -557,12 +541,10 @@ bool AnimSprite3D::PlayAnimationByName(const char* animName, bool loop)
         }
 
         AnimationClip clip = ExtractAnimationFromAssimp(foundAnim);
-        hal::dout << "  -> Extracted: tps=" << clip.tps << " duration=" << clip.duration << " tracks=" << clip.tracks.size() << std::endl;
         
         // 別のアニメーションが再生中の場合、ブレンド遷移を開始
         if (m_AnimState.play && m_AnimState.currentAnimName != animName)
         {
-            hal::dout << "Animation: Blending from '" << m_AnimState.currentAnimName << "' to '" << animName << "'" << std::endl;
             
             m_BlendState.previousState = m_AnimState;
             m_BlendState.targetClip = clip;
@@ -580,11 +562,9 @@ bool AnimSprite3D::PlayAnimationByName(const char* animName, bool loop)
         m_AnimState.currentAnimName = animName;
         m_AnimState.loop = loop;
         
-        hal::dout << "Animation '" << animName << "' started" << std::endl;
         return true;
     }
 
-    hal::dout << "Animation '" << animName << "' not found" << std::endl;
     return false;
 }
 
@@ -610,7 +590,6 @@ bool AnimSprite3D::PlayAnimationByIndex(unsigned int index, bool loop)
 {
     if (!m_Model || !m_Model->AiScene || index >= m_Model->AiScene->mNumAnimations)
     {
-        hal::dout << "AnimSprite3D::PlayAnimationByIndex() - Invalid animation index: " << index << std::endl;
         return false;
     }
 
@@ -628,8 +607,6 @@ bool AnimSprite3D::PlayAnimationByIndex(unsigned int index, bool loop)
     PlayAnimation(loop);
     m_AnimState.currentAnimName = aiAnim->mName.data;
 
-    hal::dout << "AnimSprite3D::PlayAnimationByIndex() - Playing animation at index " << index 
-              << " (name: " << aiAnim->mName.data << ")" << std::endl;
     return true;
 }
 

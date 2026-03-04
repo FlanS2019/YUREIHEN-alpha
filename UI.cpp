@@ -496,7 +496,6 @@ void UI_AccumulateFloorTime(void)
 		float remainingTime = CLOCK_MAX - g_Clock->GetTime();
 		if (remainingTime < 0.0f) remainingTime = 0.0f;
 		g_AccumulatedTime += remainingTime;
-		hal::dout << "AccumulateFloorTime: " << remainingTime << " total=" << g_AccumulatedTime << std::endl;
 	}
 }
 
