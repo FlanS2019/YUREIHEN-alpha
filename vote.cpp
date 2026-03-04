@@ -30,13 +30,12 @@ void Vote_Initialize(ID3D11Device* pDevice, ID3D11DeviceContext* pContext)
 	Font_InitializeGlobalData();
 	// ガイド文字（左側）
 	g_pVoteGuideFont = new FontRenderer(
-		{ SCREEN_WIDTH / 4.0f, SCREEN_HEIGHT / 2.0f + 80.0f },
-		35.0f,
+		{ SCREEN_WIDTH - 300.0f, SCREEN_HEIGHT - 33.0f },
+		45.0f,
 		0.0f,
 		{ 1.0f, 1.0f, 1.0f, 1.0f },
 		"スペースキーでタイトルに戻る"
 	);
-
 
 	Mouse_SetMode(MOUSE_POSITION_MODE_ABSOLUTE);
 	Mouse_SetVisible(true);
