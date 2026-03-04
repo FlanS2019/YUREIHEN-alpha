@@ -18,9 +18,27 @@ Billboard::Billboard()
 	: m_Pos(0, 0, 0), m_Size(1, 1), m_Rot(0, 0, 0), m_IsDoubleSided(false),
 	m_Texture(nullptr), m_VertexBuffer(nullptr), m_VertexCount(0),
 	m_CurrentIconType(BILLBOARD_ICON::NONE),
-	m_IgnoreLighting(true) // デフォルトでライティング無効化
+	m_IgnoreLighting(true),
+	m_UVAnimEnabled(false), m_UVFrameCount(1), m_UVCurrentFrame(0),
+	m_UVInterval(0.4f), m_UVTimer(0.0f),
+	m_IsBillboardMode(true),
+	m_WallFadeEnabled(true)
 {
 	m_Color = XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f);
+}
+
+Billboard::Billboard(XMFLOAT3 pos, XMFLOAT2 size, XMFLOAT3 rot, bool isDoubleSided)
+	: m_Pos(pos), m_Size(size), m_Rot(rot), m_IsDoubleSided(isDoubleSided),
+	m_Texture(nullptr), m_VertexBuffer(nullptr), m_VertexCount(0),
+	m_CurrentIconType(BILLBOARD_ICON::NONE),
+	m_IgnoreLighting(true),
+	m_UVAnimEnabled(false), m_UVFrameCount(1), m_UVCurrentFrame(0),
+	m_UVInterval(0.4f), m_UVTimer(0.0f),
+	m_IsBillboardMode(true),
+	m_WallFadeEnabled(true)
+{
+	m_Color = XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f);
+	CreateBuffer();
 }
 
 Billboard::~Billboard()
@@ -40,12 +58,17 @@ void Billboard::Initialize(XMFLOAT3 pos, XMFLOAT2 size, XMFLOAT3 rot, bool isDou
 	m_Rot = rot;
 	m_IsDoubleSided = isDoubleSided;
 	m_Color = XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f);
-	m_IgnoreLighting = true; // ライティング無効化を有効
+	m_IgnoreLighting = true;
+	m_UVAnimEnabled = false;
+	m_UVFrameCount = 1;
+	m_UVCurrentFrame = 0;
+	m_UVInterval = 0.4f;
+	m_UVTimer = 0.0f;
+	m_IsBillboardMode = true;
+	m_WallFadeEnabled = true;
 
 	// バッファ作成
 	CreateBuffer();
-
-	// 最初は非表示
 	SetIcon(BILLBOARD_ICON::NONE);
 }
 
@@ -117,7 +140,33 @@ void Billboard::SetTexture(const char* texturePath)
 	}
 }
 
+void Billboard::SetUVAnimation(int frameCount, float interval)
+{
+	m_UVAnimEnabled = true;
+	m_UVFrameCount = (frameCount > 0) ? frameCount : 1;
+	m_UVInterval = (interval > 0.0f) ? interval : 0.4f;
+	m_UVCurrentFrame = 0;
+	m_UVTimer = 0.0f;
+	// 初期フレームのUVでバッファを更新
+	float uMin = (float)m_UVCurrentFrame / (float)m_UVFrameCount;
+	float uMax = (float)(m_UVCurrentFrame + 1) / (float)m_UVFrameCount;
+	CreateBufferWithUV(uMin, uMax);
+}
+
+void Billboard::DisableUVAnimation()
+{
+	m_UVAnimEnabled = false;
+	m_UVCurrentFrame = 0;
+	m_UVTimer = 0.0f;
+	CreateBuffer();
+}
+
 void Billboard::CreateBuffer(void)
+{
+	CreateBufferWithUV(0.0f, 1.0f);
+}
+
+void Billboard::CreateBufferWithUV(float uMin, float uMax)
 {
 	if (m_VertexBuffer) { m_VertexBuffer->Release(); m_VertexBuffer = nullptr; }
 
@@ -129,22 +178,22 @@ void Billboard::CreateBuffer(void)
 	XMFLOAT4 vertexColor = m_IgnoreLighting ? XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f) : XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f);
 
 	// 表面
-	vList.push_back({ { -w,  h, 0.0f }, { 0.0f, 0.0f, -1.0f }, vertexColor, { 0.0f, 0.0f } });
-	vList.push_back({ {  w,  h, 0.0f }, { 0.0f, 0.0f, -1.0f }, vertexColor, { 1.0f, 0.0f } });
-	vList.push_back({ { -w, -h, 0.0f }, { 0.0f, 0.0f, -1.0f }, vertexColor, { 0.0f, 1.0f } });
-	vList.push_back({ { -w, -h, 0.0f }, { 0.0f, 0.0f, -1.0f }, vertexColor, { 0.0f, 1.0f } });
-	vList.push_back({ {  w,  h, 0.0f }, { 0.0f, 0.0f, -1.0f }, vertexColor, { 1.0f, 0.0f } });
-	vList.push_back({ {  w, -h, 0.0f }, { 0.0f, 0.0f, -1.0f }, vertexColor, { 1.0f, 1.0f } });
+	vList.push_back({ { -w,  h, 0.0f }, { 0.0f, 0.0f, -1.0f }, vertexColor, { uMin, 0.0f } });
+	vList.push_back({ {  w,  h, 0.0f }, { 0.0f, 0.0f, -1.0f }, vertexColor, { uMax, 0.0f } });
+	vList.push_back({ { -w, -h, 0.0f }, { 0.0f, 0.0f, -1.0f }, vertexColor, { uMin, 1.0f } });
+	vList.push_back({ { -w, -h, 0.0f }, { 0.0f, 0.0f, -1.0f }, vertexColor, { uMin, 1.0f } });
+	vList.push_back({ {  w,  h, 0.0f }, { 0.0f, 0.0f, -1.0f }, vertexColor, { uMax, 0.0f } });
+	vList.push_back({ {  w, -h, 0.0f }, { 0.0f, 0.0f, -1.0f }, vertexColor, { uMax, 1.0f } });
 
 	// 裏面
 	if (m_IsDoubleSided)
 	{
-		vList.push_back({ {  w,  h, 0.0f }, { 0.0f, 0.0f, 1.0f }, vertexColor, { 1.0f, 0.0f } });
-		vList.push_back({ { -w,  h, 0.0f }, { 0.0f, 0.0f, 1.0f }, vertexColor, { 0.0f, 0.0f } });
-		vList.push_back({ {  w, -h, 0.0f }, { 0.0f, 0.0f, 1.0f }, vertexColor, { 1.0f, 1.0f } });
-		vList.push_back({ {  w, -h, 0.0f }, { 0.0f, 0.0f, 1.0f }, vertexColor, { 1.0f, 1.0f } });
-		vList.push_back({ { -w,  h, 0.0f }, { 0.0f, 0.0f, 1.0f }, vertexColor, { 0.0f, 0.0f } });
-		vList.push_back({ { -w, -h, 0.0f }, { 0.0f, 0.0f, 1.0f }, vertexColor, { 0.0f, 1.0f } });
+		vList.push_back({ {  w,  h, 0.0f }, { 0.0f, 0.0f, 1.0f }, vertexColor, { uMax, 0.0f } });
+		vList.push_back({ { -w,  h, 0.0f }, { 0.0f, 0.0f, 1.0f }, vertexColor, { uMin, 0.0f } });
+		vList.push_back({ {  w, -h, 0.0f }, { 0.0f, 0.0f, 1.0f }, vertexColor, { uMax, 1.0f } });
+		vList.push_back({ {  w, -h, 0.0f }, { 0.0f, 0.0f, 1.0f }, vertexColor, { uMax, 1.0f } });
+		vList.push_back({ { -w,  h, 0.0f }, { 0.0f, 0.0f, 1.0f }, vertexColor, { uMin, 0.0f } });
+		vList.push_back({ { -w, -h, 0.0f }, { 0.0f, 0.0f, 1.0f }, vertexColor, { uMin, 1.0f } });
 	}
 
 	m_VertexCount = (int)vList.size();
@@ -165,31 +214,33 @@ void Billboard::CreateBuffer(void)
 
 void Billboard::Update(void)
 {
-	// アニメーション用
+	if (!m_UVAnimEnabled || m_UVFrameCount <= 1) return;
+
+	m_UVTimer += 1.0f / 60.0f;
+	if (m_UVTimer >= m_UVInterval)
+	{
+		m_UVTimer -= m_UVInterval;
+		m_UVCurrentFrame = (m_UVCurrentFrame + 1) % m_UVFrameCount;
+
+		float uMin = (float)m_UVCurrentFrame / (float)m_UVFrameCount;
+		float uMax = (float)(m_UVCurrentFrame + 1) / (float)m_UVFrameCount;
+		CreateBufferWithUV(uMin, uMax);
+	}
 }
 
 void Billboard::Draw(void)
 {
 	if (!m_VertexBuffer || !m_Texture) return;
 
-	// 状態の設定
 	SetBlendState(BLENDSTATE_ALFA);
 	SetDepthTest(false);
 	Direct3D_SetViewport3D();
 
 	Shader_Begin();
 
-	// 1. カメラ情報の取得
 	XMMATRIX view = GetCamera()->GetView();
 	XMMATRIX proj = GetCamera()->GetProjection();
 
-	// カメラ座標の取得（ビルボード回転用）
-	XMVECTOR det;
-	XMMATRIX invView = XMMatrixInverse(&det, view);
-	invView.r[3] = XMVectorSet(0.0f, 0.0f, 0.0f, 1.0f);
-	XMMATRIX matBillboard = invView;
-
-	// 2. ワールド行列の作成
 	XMMATRIX matScale = XMMatrixScaling(m_Size.x, m_Size.y, 1.0f);
 	XMMATRIX matRot = XMMatrixRotationRollPitchYaw(
 		XMConvertToRadians(m_Rot.x),
@@ -198,25 +249,34 @@ void Billboard::Draw(void)
 	);
 	XMMATRIX matTrans = XMMatrixTranslation(m_Pos.x, m_Pos.y, m_Pos.z);
 
-	// ワールド行列の完成
-	XMMATRIX world = matScale * matRot * matBillboard * matTrans;
+	XMMATRIX world;
+	if (m_IsBillboardMode)
+	{
+		// カメラ追従ビルボード
+		XMVECTOR det;
+		XMMATRIX invView = XMMatrixInverse(&det, view);
+		invView.r[3] = XMVectorSet(0.0f, 0.0f, 0.0f, 1.0f);
+		world = matScale * matRot * invView * matTrans;
+	}
+	else
+	{
+		// 固定板ポリゴン（m_Rot.y で向きを固定）
+		world = matScale * matRot * matTrans;
+	}
 
-	// 3. ワールド・ビュー・プロジェクションを全部かけ合わせる (WVP行列)
 	XMMATRIX wvp = world * view * proj;
 
 	Shader_SetMatrix(wvp);
 	Shader_SetWorldMatrix(world);
 
-	// 壁裏にいる場合は半透明にする
 	float alpha = 1.0f;
 	Camera* cam = GetCamera();
-	if (cam && Field_CheckWallBetween(cam->GetPos(), m_Pos))
+	if (m_WallFadeEnabled && cam && Field_CheckWallBetween(cam->GetPos(), m_Pos))
 	{
 		alpha = 0.45f;
 	}
 	Shader_SetMaterialColor({ 1.0f, 1.0f, 1.0f, alpha });
 
-	// 4. 描画
 	ID3D11DeviceContext* context = Direct3D_GetDeviceContext();
 	UINT stride = sizeof(BILLBOARD_VERTEX);
 	UINT offset = 0;
@@ -226,6 +286,5 @@ void Billboard::Draw(void)
 
 	context->Draw(m_VertexCount, 0);
 
-	// 状態を戻す
 	SetDepthTest(true);
 }

@@ -60,7 +60,7 @@
 
 //=== フィールド関連定数 ===
 #define MAP_FLOORS (3)
-#define START_FLOOR (3)// 階の数字をそのまま入れる（使用時に-1）
+#define START_FLOOR (2)// 階の数字をそのまま入れる（使用時に-1）
 #define END_FLOOR (1) // この階で恐怖ゲージMAXクリア
 
 //=== Camera 関連定数 ===
@@ -73,6 +73,11 @@
 //=== Furniture 関連定数 ===
 #define FURNITURE_NUM (500)
 #define FURNITURE_DETECTION_RANGE (5.0f) // Ghost検出範囲
+
+// 暖炉の炎パラメータ（ここで一元管理）
+#define CAMPFIRE_FIRE_SIZE_W   (2.0f)  // 炎の横サイズ
+#define CAMPFIRE_FIRE_SIZE_H   (2.0f)  // 炎の縦サイズ
+#define CAMPFIRE_FIRE_OFFSET_Y (0.5f)  // 暖炉基準の Y オフセット
 
 //=== Busters 関連定数 ===
 #define BUSTERS_MOVE_SPEED_SEARCH    (0.05f) // 探索速度

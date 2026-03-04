@@ -328,17 +328,15 @@ void UI_Update(void)
 		}
 	}
 
-	if (g_PossessGuideBG)
+	if (g_pMessageFrame)
 	{
 		if (!g_PossessGuideText.empty())
 		{
 			g_pMessageFrame->ShowFrame(g_PossessGuideText.size() * 0.5f);
-
 		}
 		else
 		{
 			g_pMessageFrame->HideFrame();
-
 		}
 	}
 

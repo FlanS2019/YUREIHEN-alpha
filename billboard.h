@@ -22,6 +22,7 @@ class Billboard
 {
 public:
 	Billboard();
+	Billboard(XMFLOAT3 pos, XMFLOAT2 size, XMFLOAT3 rot, bool isDoubleSided = false);
 	~Billboard();
 
 	// 初期化
@@ -37,6 +38,13 @@ public:
 
 	// 任意の画像パスを指定したい場合用
 	void SetTexture(const char* texturePath);
+
+
+	// --- UVアニメーション ---
+	// frameCount: 横方向のコマ数, interval: 1コマあたりの秒数
+	void SetUVAnimation(int frameCount, float interval);
+	// UVアニメーションを無効化する
+	void DisableUVAnimation();
 
 
 	// --- 基本セッター・ゲッター ---
@@ -56,6 +64,14 @@ public:
 	void SetIgnoreLighting(bool ignore) { m_IgnoreLighting = ignore; }
 	bool GetIgnoreLighting(void) const { return m_IgnoreLighting; }
 
+	// 壁越し半透明オプション（false にすると壁の裏でも透過しない）
+	void SetWallFadeEnabled(bool enable) { m_WallFadeEnabled = enable; }
+	bool GetWallFadeEnabled(void) const { return m_WallFadeEnabled; }
+
+	// ビルボードモード切り替え（true=カメラ追従、false=固定板ポリゴン）
+	void SetBillboardMode(bool enable) { m_IsBillboardMode = enable; }
+	bool GetBillboardMode(void) const { return m_IsBillboardMode; }
+
 private:
 	ID3D11Buffer* m_VertexBuffer;
 	ID3D11ShaderResourceView* m_Texture;
@@ -72,5 +88,16 @@ private:
 	// 現在のアイコンタイプを覚えておく
 	BILLBOARD_ICON m_CurrentIconType;
 
+	// UVアニメーション
+	bool  m_UVAnimEnabled;   // UVアニメーション有効フラグ
+	int   m_UVFrameCount;    // 横方向のコマ数
+	int   m_UVCurrentFrame;  // 現在のコマ番号
+	float m_UVInterval;      // 1コマあたりの秒数
+	float m_UVTimer;         // 経過時間
+
 	void CreateBuffer(void);
+	void CreateBufferWithUV(float uMin, float uMax); // UV指定バッファ作成
+
+	bool m_IsBillboardMode;    // true=ビルボード、false=固定板ポリゴン
+	bool m_WallFadeEnabled;    // true=壁越しで半透明、false=壁越しでも不透明
 };
