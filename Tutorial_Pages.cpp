@@ -146,7 +146,7 @@ void Tutorial_Pages_Init()
 	AddPage_Camera({ SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2 - 100.0f }, 220.0f,
 		{ "「誘引」の家具",
 		  "？のアイコンだよ。バスターずを引き寄せられる！",
-		  "家具状態でもちょっと移動できる。「霊撃」の家具の近くに移動して引き寄せよう" },
+		  "家具状態で移動できる。家具「霊撃」の近くに移動してみよう" },
 		{ -13.5f, 3.0f, 14.5f }, { -13.5f, 0.2f, 10.5f },
 		{ SCREEN_WIDTH / 2, SCREEN_HEIGHT - 170.0f }
 	);
@@ -170,7 +170,7 @@ void Tutorial_Pages_Init()
 	TutorialPage_EnableAllFurniturePossessionPhase();
 
 	AddPage({ SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2 }, 0.0f, {
-		"チュートリアルはここまで！。"
+		"チュートリアルはここまで！",
 		"どうやらバスターずは隣の部屋に行ったみたい。",
 		"次の部屋で憑依したり引き寄せたり……色々試してみて！",
 		});
