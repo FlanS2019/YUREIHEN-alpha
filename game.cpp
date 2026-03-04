@@ -398,17 +398,15 @@ void Game_Update(void)
 					{
 						UI_AccumulateFloorTime();
 					}
-					Ghost* ghost = GetGhost();
-					if (ghost)
-					{
-						float ghostY = ghost->GetPos().y;
-						Field_ChangeFloor(nextFloor);
-						XMFLOAT3 spawnPos = (nextFloor == 0)
-							? XMFLOAT3(0.0f, ghostY, -11.0f)
-							: ghost->GetPos();
-						ghost->SetPos(spawnPos);
-						Camera_SetTargetPos(spawnPos);
-					}
+				Ghost* ghost = GetGhost();
+				if (ghost)
+				{
+					Field_ChangeFloor(nextFloor);
+					XMFLOAT3 spawnPos = GetGhostStartPos(nextFloor);
+					ghost->ResetPos();       // 移動量（速度）をリセットしてから座標を設定
+					ghost->SetPos(spawnPos);
+					Camera_SetTargetPos(spawnPos);
+				}
 					// 下の階にバスターズを生成
 					Busters_SpawnOnFloor(nextFloor);
 					UI_ResetScareGauge();

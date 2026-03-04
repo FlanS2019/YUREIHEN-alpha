@@ -1,4 +1,4 @@
-#include "ghost.h"
+﻿#include "ghost.h"
 using namespace DirectX;
 #include "sprite.h"
 #include "sprite3d.h"
@@ -895,7 +895,12 @@ Ghost* GetGhost(void)
 
 XMFLOAT3 GetGhostStartPos(void)
 {
-	switch (START_FLOOR - 1)
+	return GetGhostStartPos(START_FLOOR - 1);
+}
+
+XMFLOAT3 GetGhostStartPos(int floor)
+{
+	switch (floor)
 	{
 	case 0:
 		return { GHOST_START_POS_FLOOR1_X, GHOST_POS_Y, GHOST_START_POS_FLOOR1_Z };
