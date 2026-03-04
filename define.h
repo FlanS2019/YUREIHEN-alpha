@@ -113,8 +113,8 @@
 #define FLOOR_COOLDOWN_TIME (2.0f) // 階層移動のクールダウン時間（秒）
 #define GHOST_POS_Y (0.5f)
 #define LURE_POSSESSED_SPEED_RATIO (0.5f)
-#define GHOST_START_POS_FLOOR1_X (-3.0f)
-#define GHOST_START_POS_FLOOR1_Z (-10.0f)
+#define GHOST_START_POS_FLOOR1_X (-1.0f)
+#define GHOST_START_POS_FLOOR1_Z (-12.0f)
 #define GHOST_START_POS_FLOOR2_X (-11.0f)
 #define GHOST_START_POS_FLOOR2_Z (-11.0f)
 #define GHOST_START_POS_FLOOR3_X (-4.0f)

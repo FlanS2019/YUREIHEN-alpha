@@ -50,6 +50,11 @@ static std::vector<MAPDATA> g_CeilingList;
 #define CEILING_TEXTURE_NUM (3)
 static ID3D11ShaderResourceView* g_CeilingTextures[CEILING_TEXTURE_NUM];
 
+// ガラステクスチャ（角・辺の2種類）
+// blockID 301=角(garasukado.png), 302=辺(garasuhen.png)
+#define GLASS_TEXTURE_NUM (2)
+static ID3D11ShaderResourceView* g_GlassTextures[GLASS_TEXTURE_NUM];
+
 static int g_CurrentFloor = START_FLOOR - 1;
 
 // 壁判定の有効/無効フラグ（デバッグシーン等で無効化する）
@@ -222,6 +227,30 @@ void LoadMapData(int floor)
 
 				data.currentScale = 1.0f;
 
+				// ガラスブロック（ID=18）に縦方向3x3パターンを適用
+				// 行=y%3（高さ）、列=壁の幅方向（前後面ならx%3、左右面ならz%3）
+				// 四隅=角テクスチャ(blockID=301)、4辺=辺テクスチャ(blockID=302)、中央=非表示
+				if (mcID == 18)
+				{
+					int py = y % 3; // 行（高さ方向）
+					// 壁の幅方向を判定: 前後面(face0/3)が見える→X軸が幅、左右面(face1/4)が見える→Z軸が幅
+					bool faceZ = data.drawFace[0] || data.drawFace[3];
+					int ph = faceZ ? (x % 3) : (z % 3); // 列（幅方向）
+					// パターン: 1=角, 2=辺, 0=中央
+					static const int s_glassPattern[3][3] = {
+						{ 1, 2, 1 },
+						{ 2, 0, 2 },
+						{ 1, 2, 1 },
+					};
+					int patVal = s_glassPattern[py][ph];
+
+					// 中央ブロックは非表示
+					if (patVal == 0) continue;
+
+				// blockID: 301=角, 302=辺
+					data.blockID = 300 + patVal;
+				}
+
 				g_MapList.push_back(data);
 			}
 		}
@@ -296,6 +325,24 @@ void LoadMapData(int floor)
 					data.blockID = mcID;
 					data.mapY = y;
 					data.currentScale = 1.0f;
+
+					// ガラスブロック（ID=18）に縦方向3x3パターンを適用
+					if (mcID == 18)
+					{
+						int py = y % 3;
+						bool faceZ = data.drawFace[0] || data.drawFace[3];
+						int ph = faceZ ? (x % 3) : (z % 3);
+						static const int s_glassPattern[3][3] = {
+							{ 1, 2, 1 },
+							{ 2, 0, 2 },
+							{ 1, 2, 1 },
+						};
+						int patVal = s_glassPattern[py][ph];
+
+						if (patVal == 0) continue;
+
+						data.blockID = 300 + patVal;
+					}
 
 					g_SubFloorMapList.push_back(data);
 				}
@@ -422,6 +469,10 @@ void Field_Initialize(ID3D11Device* pDevice, ID3D11DeviceContext* pContext)
 	g_CeilingTextures[0] = LoadTexture(L"asset\\texture\\kabeue.png");
 	g_CeilingTextures[1] = LoadTexture(L"asset\\texture\\tenjou_kado.png");
 	g_CeilingTextures[2] = LoadTexture(L"asset\\texture\\tenjou_hen.png");
+
+	// ガラステクスチャ（角・辺）
+	g_GlassTextures[0] = LoadTexture(L"asset\\texture\\garasukado.png");
+	g_GlassTextures[1] = LoadTexture(L"asset\\texture\\garasuhen.png");
 
 	g_CurrentFloor = START_FLOOR - 1; // 3階スタート
 	ResetTutorialWallsOnFloor3();
@@ -664,6 +715,12 @@ void Field_Draw(void)
 			else if (mapData.mapY == 2) nextSRV = g_BlockTextures[3];  // tunagime.png
 			else nextSRV = g_BlockTextures[4];                         // kabeue.png
 		}
+		else if (mapData.blockID == 301 || mapData.blockID == 302) {
+			// ガラス専用テクスチャ（blockID 301=角, 302=辺）
+			int idx = mapData.blockID - 301;
+			if (idx < 0 || idx >= GLASS_TEXTURE_NUM || g_GlassTextures[idx] == nullptr) nextSRV = g_BlockTextures[18];
+			else nextSRV = g_GlassTextures[idx];
+		}
 		else {
 			int id = mapData.blockID;
 			if (id <= 0 || id >= MAX_BLOCK_TYPES || g_BlockTextures[id] == nullptr) nextSRV = g_BlockTextures[0];
@@ -733,7 +790,13 @@ void Field_Draw(void)
 			if (mapData.no == FIELD_STAIRS_UP || mapData.no == FIELD_STAIRS_DOWN) {
 				nextSRV = g_TextureStairs;
 			}
-			else if (mapData.blockID >= 200) {
+			else if (mapData.blockID == 301 || mapData.blockID == 302) {
+				// ガラス専用テクスチャ（blockID 301=角, 302=辺）
+				int idx = mapData.blockID - 301;
+				if (idx < 0 || idx >= GLASS_TEXTURE_NUM || g_GlassTextures[idx] == nullptr) nextSRV = g_BlockTextures[18];
+				else nextSRV = g_GlassTextures[idx];
+			}
+			else if (mapData.blockID >= 200 && mapData.blockID < 300) {
 				// 天井専用テクスチャ（blockID = 200 + index）
 				int idx = mapData.blockID - 200;
 				if (idx < 0 || idx >= CEILING_TEXTURE_NUM || g_CeilingTextures[idx] == nullptr) nextSRV = g_CeilingTextures[0];
@@ -762,6 +825,9 @@ void Field_Draw(void)
 			}
 
 			XMMATRIX world = XMMatrixTranslation(mapData.pos.x, mapData.pos.y, mapData.pos.z);
+			if (mapData.rotY != 0.0f) {
+				world = XMMatrixRotationY(XMConvertToRadians(mapData.rotY)) * world;
+			}
 			XMFLOAT4X4 m;
 			XMStoreFloat4x4(&m, XMMatrixTranspose(world));
 
@@ -834,6 +900,7 @@ void Field_Finalize(void)
 	for (int i = 0; i < MAX_BLOCK_TYPES; i++) SAFE_RELEASE(g_BlockTextures[i]);
 	SAFE_RELEASE(g_TextureStairs);
 	for (int i = 0; i < CEILING_TEXTURE_NUM; i++) SAFE_RELEASE(g_CeilingTextures[i]);
+	for (int i = 0; i < GLASS_TEXTURE_NUM; i++) SAFE_RELEASE(g_GlassTextures[i]);
 	g_MapList.clear();
 	g_SubFloorMapList.clear();
 	g_CeilingList.clear();

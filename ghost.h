@@ -135,3 +135,4 @@ void Ghost_ForceExitTransform(void);  // 変身を強制解除してGS_MOVINGに
 // Ghostのゲッター
 Ghost* GetGhost(void);
 XMFLOAT3 GetGhostStartPos(void);
+XMFLOAT3 GetGhostStartPos(int floor);
