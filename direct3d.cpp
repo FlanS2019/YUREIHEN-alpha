@@ -1,4 +1,4 @@
-/*==============================================================================
+﻿/*==============================================================================
 
    Direct3Dの初期化関連 [direct3d.cpp]
 --------------------------------------------------------------------------------
@@ -68,6 +68,7 @@ bool Direct3D_Initialize(HWND hWnd)
 	*/
 
 	UINT device_flags = 0;
+	device_flags |= D3D11_CREATE_DEVICE_BGRA_SUPPORT;
 
 #if defined(DEBUG) || defined(_DEBUG)
     //device_flags |= D3D11_CREATE_DEVICE_DEBUG;
