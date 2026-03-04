@@ -53,14 +53,14 @@
 #define TUT_PAGECOUNT_OFFSET_Y (-65.0f)                 // バーからページ数表示へのYオフセット
 
 //=== TutorialMarker 関連定数 ===
-#define TUTORIAL_MARKER_SIZE        (2.4f)  // 矢印ビルボードのサイズ（幅・高さ）
+#define TUTORIAL_MARKER_SIZE        (1.4f)  // 矢印ビルボードのサイズ（幅・高さ）
 #define TUTORIAL_MARKER_BOB_AMP     (0.25f) // バウンス振幅（上下の振れ幅）
 #define TUTORIAL_MARKER_BOB_SPEED   (3.0f)  // バウンス速度（rad/s）
 #define TUTORIAL_MARKER_BASE_HEIGHT (2.0f)  // 地面からの基本高さ
 
 //=== フィールド関連定数 ===
 #define MAP_FLOORS (3)
-#define START_FLOOR (2)// 階の数字をそのまま入れる（使用時に-1）
+#define START_FLOOR (3)// 階の数字をそのまま入れる（使用時に-1）
 #define END_FLOOR (1) // この階で恐怖ゲージMAXクリア
 
 //=== Camera 関連定数 ===
@@ -106,7 +106,7 @@
 #define SCARE_RANGE (12.0f)		// 恐怖範囲
 #define SCARE_COMBO_BASE_RADIUS (5.0f)
 #define SCARE_COMBO_RADIUS_STEP (0.7f)
-#define GHOST_MOVEMENT_SPEED (0.01f
+#define GHOST_MOVEMENT_SPEED (0.01f)
 #define GHOST_ACCELERATION (0.010f)
 #define GHOST_DECELERATION (0.98f)
 #define GHOST_MAX_SPEED (0.10f)

@@ -95,7 +95,21 @@ static void SetFloorExitMarkerVisible(bool visible)
 	if (!marker) return;
 	if (visible)
 	{
-		marker->SetPos(g_StairsPosForAnim);
+		// 全階段座標をリストで渡す（全ブロックにBillboard表示）
+		std::vector<XMFLOAT3> stairsList;
+		if (g_FloorBeforeExit == 0)
+		{
+			stairsList = Field_GetFloor1ExitPositions(g_FloorBeforeExit);
+		}
+		else if (g_FloorBeforeExit > 0)
+		{
+			stairsList = Field_GetStairsExitPositions(g_FloorBeforeExit);
+		}
+		// フォールバック：リストが空なら g_StairsPosForAnim の単一座標を使う
+		if (stairsList.empty())
+			stairsList.push_back(g_StairsPosForAnim);
+
+		marker->SetPositions(stairsList);
 	}
 	marker->SetVisible(visible);
 }
@@ -547,14 +561,13 @@ void Game_Draw(void)
 		Busters_Draw();
 	}
 
-	if (Field_GetCurrentFloor() == 2)
-	{
-		TutorialObject_Draw();
-	}
-
 	Furniture_Draw();
 	Ghost_Draw();
 	DebugDraw_Draw();
+
+	// TutorialObject_Draw はマーカー（矢印）を全フロアで描画するため常時呼ぶ
+	// 内部で3階専用オブジェクト（バスターズ・円盤）は Field_GetCurrentFloor() == 2 のときのみ描画される
+	TutorialObject_Draw();
 
 	SetDepthTest(false);
 
