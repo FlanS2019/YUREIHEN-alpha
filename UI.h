@@ -9,9 +9,9 @@
 using namespace DirectX;
 
 
-#define CLOCK_POS_X (120.0f)
-#define CLOCK_POS_Y (120.0f)
-#define CLOCK_SIZE (300.0f)
+#define CLOCK_POS_X (100.0f)
+#define CLOCK_POS_Y (100.0f)
+#define CLOCK_SIZE (250.0f)
 #define CLOCK_MIN (0.0f)
 #define CLOCK_MAX (120.0f)
 
@@ -76,7 +76,7 @@ public:
 	void Reset() { m_Time = m_MinTime; m_LastUpdateTime = timeGetTime(); }
 };
 
-#define GAUGE_SIZE (500.0f)
+#define GAUGE_SIZE (450.0f)
 #define GAUGE_BAR_PURPLE (1)
 #define GAUGE_BAR_YELLOW (2)
 #define GAUGE_BAR_FRAME (0)

@@ -122,7 +122,7 @@ void UI_Initialize(void)
 	);
 
 	g_ScareGauge = new Gauge(
-		{ SCREEN_WIDTH - 270.0f, 70.0f },
+		{ SCREEN_WIDTH - 250.0f, 50.0f },
 		{ GAUGE_SIZE, GAUGE_SIZE },
 		{ 1.0f, 1.0f, 1.0f, 1.0f },
 		BLENDSTATE_ALFA,
@@ -134,7 +134,7 @@ void UI_Initialize(void)
 
 	// 現在の階層表示
 	g_FloorNumberBG = new Sprite(
-		{ CLOCK_POS_X, CLOCK_POS_Y + 200.0f },
+		{ CLOCK_POS_X, CLOCK_POS_Y + 160.0f },
 		{ 200.0f, 200.0f },
 		0.0f,
 		{ 1.0f, 1.0f, 1.0f, 1.0f },
@@ -143,7 +143,7 @@ void UI_Initialize(void)
 	);
 
 	g_FloorNumber = new Number(
-		{ CLOCK_POS_X, CLOCK_POS_Y + 240.0f },
+		{ CLOCK_POS_X, CLOCK_POS_Y + 200.0f },
 		{ 60.0f, 60.0f },
 		{ 1.0f, 1.0f, 1.0f, 1.0f },
 		BLENDSTATE_ALFA,
@@ -244,7 +244,14 @@ void UI_Update(void)
 	g_PossessGuideText = "";
 	if (Game_IsFloorExitAnimActive())
 	{
-		g_PossessGuideText = "バスターズ「うわーっ！」逃げろ～！";
+		if (Game_IsCamOverrideActive())
+		{
+			g_PossessGuideText = "バスターず「うわーっ！逃げろ～！」";
+		}
+		else
+		{
+			g_PossessGuideText = "下の階に逃げたバスターズを追いかけよう！";
+		}
 	}
 	else if (ghost)
 	{

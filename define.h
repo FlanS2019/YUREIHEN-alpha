@@ -122,8 +122,8 @@
 #define GHOST_START_POS_FLOOR3_Z (4.0f)
 
 //=== Minimap 関連定数 ===
-#define MINIMAP_POS_OFFSET   (150.0f) 
-#define BLOCK_SIZE      (10.0f)  
+#define MINIMAP_POS_OFFSET   (110.0f) 
+#define BLOCK_SIZE      (7.0f)  
 #define VIEW_RANGE      (13) 
 
 //=== スコア関連定数 ===
