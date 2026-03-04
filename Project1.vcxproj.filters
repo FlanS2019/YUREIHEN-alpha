@@ -47,6 +47,7 @@
     <ClCompile Include="glb_model.cpp" />
     <ClCompile Include="ScoreClient.cpp" />
     <ClCompile Include="UI_messageframe.h" />
+    <ClCompile Include="vote.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="animation.h" />
@@ -103,6 +104,7 @@
     <ClInclude Include="debug_model_scene.h" />
     <ClInclude Include="glb_model.h" />
     <ClInclude Include="ScoreClient.h" />
+    <ClInclude Include="vote.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="convert_to_utf8bom.ps1" />

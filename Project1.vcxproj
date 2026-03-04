@@ -195,6 +195,7 @@
     <ClCompile Include="UI_scarecombo.cpp" />
     <ClCompile Include="UI_Tutorial.cpp" />
     <ClCompile Include="WinAnim.cpp" />
+    <ClCompile Include="vote.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="animation.h" />
@@ -247,6 +248,7 @@
     <ClInclude Include="UI_Tutorial.h" />
     <ClInclude Include="UI_Tutorial_Internal.h" />
     <ClInclude Include="WinAnim.h" />
+    <ClInclude Include="vote.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include=".github\workflows\release.yml" />
