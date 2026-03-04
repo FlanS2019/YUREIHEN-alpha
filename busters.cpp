@@ -606,7 +606,7 @@ void Busters::Update(void)
 					}
 				}
 
-				// destinationがドアでない場合、家具の周围4方向で床があり壁でない最近傍マスを到達点に採用
+				// destinationがドアでない場合、家具の周囲4方向で床があり壁でない最近傍マスを到達点に採用
 				bool isTargetDoor = (destination.x != targetPos.x || destination.z != targetPos.z);
 				if (!isTargetDoor)
 				{
@@ -969,7 +969,7 @@ bool IsObstacle(float x, float z, float radius, int ignoreFurnitureIndex = -1)
 	// 壁の判定 (中心と4隅をチェックしてめり込みを防ぐ)
 	// 1マスの狭い通路で引っかからないよう、コーナー判定の半径を少し小さくする
 	float checkR = radius * 0.4f;
-	if (IsWallBlock(x, z) ||
+	if (IsWallBlock(x, z)||
 		IsWallBlock(x + checkR, z + checkR) ||
 		IsWallBlock(x + checkR, z - checkR) ||
 		IsWallBlock(x - checkR, z + checkR) ||
@@ -1098,7 +1098,7 @@ void Busters::CheckState(void)
 	bool inSuspicionArea = IsTargetInFOV(ghost->GetPos(), suspicionRange);
 
 
-	// --- 状態遷移ロジック ---
+	// --- 状態遷移ロジック ---	
 
 	// 優先度高：追跡範囲 (壁なし かつ 視野内)
 	if (!hasWall && inChaseArea)
@@ -1372,6 +1372,18 @@ void Busters::OnScared(void)
 
 void Busters::OnLured(XMFLOAT3 targetPos)
 {
+    // バスターズが家具の原点にめり込まないよう、現在位置からの方向に沿って手前に止まる座標を計算する
+    const float LURE_STOP_DISTANCE = 1.5f;
+    float dx = targetPos.x - m_Position.x;
+    float dz = targetPos.z - m_Position.z;
+    float dist = sqrtf(dx * dx + dz * dz);
+    if (dist > LURE_STOP_DISTANCE)
+    {
+        float ratio = (dist - LURE_STOP_DISTANCE) / dist;
+        targetPos.x = m_Position.x + dx * ratio;
+        targetPos.z = m_Position.z + dz * ratio;
+    }
+
     m_State = BUSTERS_LURED;
     this->SetColor(0.0f, 1.0f, 1.0f, 1.0f); // シアン
     m_WaitTimer = 0;
@@ -1881,7 +1893,7 @@ void Busters_DoFloorTransition(void)
 
 	int nextFloor = currentFloor - 1;
 
-	// 階層に応じて増やす人数を決める
+	// 階層に応じて増やる人数を決める
 	int addCount = 0;
 	if (nextFloor == 1) addCount = 1; // 2階へ行くとき： +1人
 	if (nextFloor == 0) addCount = 2; // 1階へ行くとき： +2人
@@ -2030,8 +2042,6 @@ void Busters_SpawnAt(const XMFLOAT3& pos, int floorIndex)
 	}
 }
 
-
-
 void Busters::Draw(void)
 {
 	// バスターズ（ボーンあり）を描画
@@ -2046,7 +2056,6 @@ void Busters::Draw(void)
 			// ビルボード描画
 		m_Icon->Draw();
 	}
-
 }
 
 // =================================================================
