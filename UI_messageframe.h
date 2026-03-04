@@ -22,19 +22,29 @@ protected:
 	bool m_Use;
 	int m_DigitNum; // 表示する数値の桁数
 	int m_PatternWidth; // 横棒を何回伸ばすか
+	int m_OffsetX;
 	XMFLOAT2 m_FramePos;
+	Sprite* m_BG;
 public:
 	MessageFrame() = delete;
 	MessageFrame(const XMFLOAT2& framepos, const wchar_t* texturePath)
-		: SplitSprite(framepos, { FRAME_PATTAN_SIZE, FRAME_PATTAN_SIZE }, 0.0f, { 1.0f,1.0f,1.0f,1.0f }, BLENDSTATE_ALFA, texturePath, FRAME_DEVIDE_X, FRAME_DEVIDE_Y), m_DigitNum(), m_PatternWidth(), m_Use(false), m_FramePos(framepos)
+		: SplitSprite(framepos, { FRAME_PATTAN_SIZE, FRAME_PATTAN_SIZE }, 0.0f, { 1.0f,1.0f,1.0f,1.0f }, BLENDSTATE_ALFA, texturePath, FRAME_DEVIDE_X, FRAME_DEVIDE_Y), m_DigitNum(), m_PatternWidth(), m_OffsetX(), m_Use(false), m_FramePos(framepos)
 	{
-	};
+		m_BG = new Sprite(framepos, {}, 0, { 0,0,0,0.5f }, BLENDSTATE_ALFA, L"asset\\texture\\fade.png");
+	}
 
 	void ShowFrame(int digit)
 	{
 		m_Use = true;
 		m_DigitNum = digit;
 		m_PatternWidth = (digit - 1) / FRAME_DIGIT_PATTERN + 1; // 1マスあたりの桁数で割って切り上げ
+		if (m_PatternWidth <= 2)m_PatternWidth = 2; //最低2マス伸ばす
+
+		// 枠全体の横幅の半分を引いてm_FramePosを中心に中央揃え
+		float totalWidth = (m_PatternWidth + 2) * FRAME_PATTAN_SIZE;
+		m_OffsetX = totalWidth / 2 - FRAME_PATTAN_SIZE / 2;
+
+		m_BG->SetSize({ m_PatternWidth * FRAME_PATTAN_SIZE + FRAME_PATTAN_SIZE / 2, FRAME_PATTAN_SIZE * 2 - FRAME_PATTAN_SIZE / 2 });
 	};
 
 	void HideFrame()
@@ -48,9 +58,7 @@ public:
 	{
 		if (!m_Use)return;
 
-		// 枠全体の横幅の半分を引いてm_FramePosを中心に中央揃え
-		float totalWidth = (m_PatternWidth + 2) * FRAME_PATTAN_SIZE;
-		float offsetX = totalWidth / 2.0f - FRAME_PATTAN_SIZE / 2.0f;
+		m_BG->Draw();
 
 		for (int y = 0; y < 3; y++)
 		{
@@ -62,6 +70,7 @@ public:
 					continue;
 				}
 
+				//一列目
 				if (x == 0)
 				{
 					// 左列
@@ -102,8 +111,22 @@ public:
 				}
 				else if (y == 0)
 				{
-					// 上横棒
-					m_TextureNumber = 1;
+					//幽霊
+					if (x == 1)
+					{
+						m_TextureNumber = 2;
+					}
+					//バスターず
+					else if (x == m_PatternWidth)
+					{
+						m_TextureNumber = 3;
+					}
+					else
+					{
+						// 上横棒
+						m_TextureNumber = 1;
+
+					}
 					m_Rotation = 0.0f;
 				}
 				else if (y == 2)
@@ -113,7 +136,7 @@ public:
 					m_Rotation = 180.0f;
 				}
 
-				m_Position.x = m_FramePos.x + (FRAME_PATTAN_SIZE * x) - offsetX;
+				m_Position.x = m_FramePos.x + (FRAME_PATTAN_SIZE * x) - m_OffsetX;
 				m_Position.y = m_FramePos.y + (FRAME_PATTAN_SIZE * (y - 1));
 
 				Sprite_Split_Draw(m_Position, m_Scale, m_Rotation, m_Color, m_BlendState, m_Texture, m_DivideX, m_DivideY, m_TextureNumber);

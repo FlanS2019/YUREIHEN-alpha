@@ -233,7 +233,7 @@ void Billboard::Draw(void)
 	if (!m_VertexBuffer || !m_Texture) return;
 
 	SetBlendState(BLENDSTATE_ALFA);
-	SetDepthTest(false);
+	SetDepthTest(!m_WallFadeEnabled); // 壁越し透過無効ならデプステスト有効
 	Direct3D_SetViewport3D();
 
 	Shader_Begin();
@@ -286,5 +286,5 @@ void Billboard::Draw(void)
 
 	context->Draw(m_VertexCount, 0);
 
-	SetDepthTest(true);
+	SetDepthTest(true); // 常に戻す
 }
