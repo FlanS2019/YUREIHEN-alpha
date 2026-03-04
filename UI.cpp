@@ -400,6 +400,11 @@ void UI_Update(void)
 	//	//Debug用
 	//	StartFade(SCENE_ANM_WIN);
 	//}
+	//if (Keyboard_IsKeyDownTrigger(KK_L))
+	//{
+	//	//Debug用
+	//	StartFade(SCENE_ANM_LOSE);
+	//}
 }
 
 //----------------------------

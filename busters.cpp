@@ -1,4 +1,4 @@
-#include "busters.h"
+﻿#include "busters.h"
 #include "billboard.h"
 #include "Camera.h"
 #include "debug_ostream.h"
@@ -1550,6 +1550,22 @@ XMFLOAT3 GetRandomBusterPos(int floor)
 				// field.cpp の計算式に合わせる: (x - W/2, z - H/2)
 				float wx = (float)gx - MAP_WIDTH / 2.0f;
 				float wz = MAP_LENGTH / 2.0f - (float)gz;
+
+				// プレイヤー初期位置から8マス以内にはスポーンしない
+				float ghostStartX = 0.0f, ghostStartZ = 0.0f;
+				switch (floor)
+				{
+				case 0: ghostStartX = GHOST_START_POS_FLOOR1_X; ghostStartZ = GHOST_START_POS_FLOOR1_Z; break;
+				case 1: ghostStartX = GHOST_START_POS_FLOOR2_X; ghostStartZ = GHOST_START_POS_FLOOR2_Z; break;
+				case 2: ghostStartX = GHOST_START_POS_FLOOR3_X; ghostStartZ = GHOST_START_POS_FLOOR3_Z; break;
+				}
+				float dx = wx - ghostStartX;
+				float dz = wz - ghostStartZ;
+				if (dx * dx + dz * dz < 8.0f * 8.0f)
+				{
+					attempts++;
+					continue;
+				}
 
 				return { wx, BUSTERS_HEIGHT, wz };
 			}
