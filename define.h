@@ -112,6 +112,7 @@
 #define GHOST_MAX_SPEED (0.10f)
 #define FLOOR_COOLDOWN_TIME (2.0f) // 階層移動のクールダウン時間（秒）
 #define GHOST_POS_Y (0.5f)
+#define GHOST_FADE_SPEED (0.03f)  // フェードの速度（1フレームあたりのアルファ変化量）
 #define LURE_POSSESSED_SPEED_RATIO (0.5f)
 #define GHOST_START_POS_FLOOR1_X (-1.0f)
 #define GHOST_START_POS_FLOOR1_Z (-12.0f)

@@ -17,6 +17,13 @@ enum GHOST_STATE
 	GS_CAUGHT,
 };
 
+enum GHOST_FADE_STATE
+{
+	GHOST_FADE_NONE,		// フェードなし
+	GHOST_FADE_OUT,			// フェードアウト中（変身時に薄くなる）
+	GHOST_FADE_IN,			// フェードイン中（変身解除時に現れる）
+};
+
 // Ghost クラス
 class Ghost : public Sprite3D
 {
@@ -40,6 +47,9 @@ public:
 	int m_EscapeTapCount;      // SPACEキーを連打した回数
 	int m_CaughtPenaltyTimer;  // 毎秒ペナルティを与えるためのタイマー
 	int m_ScareCooldown;       // 驚かしアクションのクールタイム
+
+	GHOST_FADE_STATE m_FadeState;  // フェード状態
+	float m_FadeAlpha;             // フェード用アルファ値 (1.0=完全表示, 0.0=完全透明)
 
 	void SetIsIlluminated(bool isIlluminated) { m_IsIlluminated = isIlluminated; }
 
@@ -68,7 +78,9 @@ public:
 		m_CaughtPenaltyTimer(0),
 		m_ScareCooldown(0),
 		m_pRangeCircle(nullptr),
-		m_pLight(nullptr)
+		m_pLight(nullptr),
+		m_FadeState(GHOST_FADE_NONE),
+		m_FadeAlpha(1.0f)
 	{
 	}
 
@@ -90,7 +102,21 @@ public:
 	// Sprite3DのDrawをオーバーライド
 	void Draw(void) override
 	{
-		if (m_IsDraw)
+		if (!m_IsDraw && m_FadeState == GHOST_FADE_NONE)
+			return;
+
+		// フェード中はアルファブレンドで半透明描画
+		if (m_FadeAlpha < 1.0f)
+		{
+			SetBlendState(BLENDSTATE_ALFA);
+			SetDepthWrite(false);
+			XMFLOAT4 origColor = GetModelColor();
+			SetColor(origColor.x, origColor.y, origColor.z, m_FadeAlpha);
+			Sprite3D::Draw();
+			ResetColor();
+			SetDepthWrite(true);
+		}
+		else
 		{
 			Sprite3D::Draw();
 		}
@@ -112,6 +138,12 @@ public:
 	void SetState(GHOST_STATE state) { m_State = state; }
 	void SetIsDraw(bool isDraw) { m_IsDraw = isDraw; }
 	void SetInvincible(int frames) { m_InvincibleTimer = frames; }
+
+	// フェード制御
+	void StartFadeOut(void) { m_FadeState = GHOST_FADE_OUT; }
+	void StartFadeIn(void) { m_FadeState = GHOST_FADE_IN; m_FadeAlpha = 0.0f; m_IsDraw = true; }
+	bool IsFading(void) const { return m_FadeState != GHOST_FADE_NONE; }
+	GHOST_FADE_STATE GetFadeState(void) const { return m_FadeState; }
 
 	// 公開メソッド
 	void FurnitureSearch(void);	// 家具検知と色変更
