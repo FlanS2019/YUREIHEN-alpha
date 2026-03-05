@@ -488,10 +488,10 @@ void Result_Update(void)
 
 			// --- スコアフェードイン ---
 		case PHASE_SCORE:
-			// ★ スコアが確定したタイミングで1回だけサーバーへ送信
+			// ★ スコアが確定したタイミングで1回だけローカルに保存
 			if (!g_ScoreSent)
 			{
-				Score_SendToServer(GetResultScore());
+				Score_SaveLocal(GetResultScore());
 				g_ScoreSent = true;
 			}
 			g_PhaseAlpha += FADE_SPEED;

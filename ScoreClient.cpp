@@ -125,3 +125,16 @@ bool Score_SendToServer(int score)
 	WSACleanup();
 	return true;
 }
+
+// ローカルスコア（サーバー不要）
+static int g_LocalScore = 0;
+
+void Score_SaveLocal(int score)
+{
+	g_LocalScore = score;
+}
+
+int Score_GetLocal()
+{
+	return g_LocalScore;
+}
