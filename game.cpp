@@ -262,6 +262,12 @@ void Game_Update(void)
 	{
 		fadeState = GetFadeState();
 
+		UI_PauseMenu_Update();
+		if (UI_PauseMenu_IsPaused())
+		{
+			return;
+		}
+
 		switch (g_FloorExitState)
 		{
 		case FLOOR_EXIT_OVERVIEW:
@@ -686,4 +692,17 @@ void Game_EndLoseAnim(void)
 
 	// ゲームBGMを再開
 	if (g_pBGM) PlaySound(g_pBGM, true);
+}
+
+// =================================================================
+// チュートリアル等でのフロア強制スキップ用
+// =================================================================
+void Game_ForceSkipFloor(void)
+{
+	int currentFloor = Field_GetCurrentFloor();
+	if (currentFloor <= 0) return;
+
+	g_FloorBeforeExit = currentFloor;
+	StartFade(SCENE_NONE);
+	g_FloorExitState = FLOOR_EXIT_FADEIN;
 }
