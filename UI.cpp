@@ -398,9 +398,9 @@ void UI_Update(void)
 		}
 	}
 
-	if (Keyboard_IsKeyDownTrigger(KK_F))
+	if (Keyboard_IsKeyDownTrigger(KK_P))
 	{
-		if(Keyboard_IsKeyDownTrigger(KK_D))
+		if(Keyboard_IsKeyDownTrigger(KK_O))
 		{		//3桁のスコアを適当にセット（Time=50, Combo=5 → Score=250）
 			WinAnim_SetResultData(150.0f, 5);
 
