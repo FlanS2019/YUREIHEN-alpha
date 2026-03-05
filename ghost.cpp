@@ -296,27 +296,6 @@ void Ghost_Update(void)
 		g_Ghost->m_ScareCooldown--;
 	}
 
-	// フェード更新処理
-	if (g_Ghost->m_FadeState == GHOST_FADE_OUT)
-	{
-		g_Ghost->m_FadeAlpha -= GHOST_FADE_SPEED;
-		if (g_Ghost->m_FadeAlpha <= 0.0f)
-		{
-			g_Ghost->m_FadeAlpha = 0.0f;
-			g_Ghost->m_FadeState = GHOST_FADE_NONE;
-			g_Ghost->SetIsDraw(false);
-		}
-	}
-	else if (g_Ghost->m_FadeState == GHOST_FADE_IN)
-	{
-		g_Ghost->m_FadeAlpha += GHOST_FADE_SPEED;
-		if (g_Ghost->m_FadeAlpha >= 1.0f)
-		{
-			g_Ghost->m_FadeAlpha = 1.0f;
-			g_Ghost->m_FadeState = GHOST_FADE_NONE;
-		}
-	}
-
 	// 「前フレームで照らされていて、今フレームは照らされていない」＝ 脱出成功
 	//if (g_Ghost->m_PrevIsIlluminated && !g_Ghost->m_IsIlluminated)
 	//{
@@ -331,24 +310,16 @@ void Ghost_Update(void)
 	{
 	case GS_MOVING:
 		g_Ghost->SetIsDraw(true);
-		// フェードイン中は移動不可
-		if (!g_Ghost->IsFading())
-		{
-			g_Ghost->Move();
-			g_Ghost->FurnitureSearch();
-			g_Ghost->FloorMove();
-		}
+		g_Ghost->Move();
+		g_Ghost->FurnitureSearch();
+		g_Ghost->FloorMove();
 		break;
 
 	case GS_FURNITURE_FOUND:
 		g_Ghost->SetIsDraw(true);
-		// フェードイン中は移動不可
-		if (!g_Ghost->IsFading())
-		{
-			g_Ghost->Move();
-			g_Ghost->FurnitureSearch();
-			g_Ghost->FloorMove();
-		}
+		g_Ghost->Move();
+		g_Ghost->FurnitureSearch();
+		g_Ghost->FloorMove();
 
 		if (Keyboard_IsKeyDownTrigger(KK_SPACE))
 		{
@@ -362,7 +333,7 @@ void Ghost_Update(void)
 			g_Ghost->SetIsTransformed(true);
 			g_Ghost->SetVelocity({ 0.0f, 0.0f, 0.0f });
 			g_Ghost->m_HasIncreasedMultiplier = false;
-			g_Ghost->StartFadeOut(); // 変身時にフェードアウト開始
+			g_Ghost->SetIsDraw(false);
 		}
 		break;
 
@@ -382,31 +353,27 @@ void Ghost_Update(void)
 			}
 		}
 
-		// フェードアウト中は驚かし・変身解除を受け付けない
-		if (!g_Ghost->IsFading())
+		if (Keyboard_IsKeyDownTrigger(KK_SPACE))
 		{
-			if (Keyboard_IsKeyDownTrigger(KK_SPACE))
+			if (TutorialObject_IsScareEnabled() && CanTriggerScareNow() && g_Ghost->m_ScareCooldown <= 0)
 			{
-				if (TutorialObject_IsScareEnabled() && CanTriggerScareNow() && g_Ghost->m_ScareCooldown <= 0)
-				{
-					g_Ghost->SetState(GS_SCARE);
-					g_Ghost->ScareStart();
-				}
+				g_Ghost->SetState(GS_SCARE);
+				g_Ghost->ScareStart();
 			}
+		}
 
-			if (Keyboard_IsKeyDownTrigger(KK_E))
-			{
+		if (Keyboard_IsKeyDownTrigger(KK_E))
+		{
 
-				UpdateRangeCircleState();
+			UpdateRangeCircleState();
 
-				// 変身解除後、壁や家具に埋まらない安全な隣接マスへ移動させる
-				XMFLOAT3 exitPos = CalcSafeExitPos(g_Ghost->GetPos());
+			// 変身解除後、壁や家具に埋まらない安全な隣接マスへ移動させる
+			XMFLOAT3 exitPos = CalcSafeExitPos(g_Ghost->GetPos());
 
-				g_Ghost->ResetPos();
-				g_Ghost->SetPos(exitPos);
-				g_Ghost->SetState(GS_MOVING);
-				g_Ghost->StartFadeIn(); // 変身解除時にフェードイン開始
-			}
+			g_Ghost->ResetPos();
+			g_Ghost->SetPos(exitPos);
+			g_Ghost->SetState(GS_MOVING);
+			g_Ghost->SetIsDraw(true);
 		}
 		break;
 
@@ -425,14 +392,12 @@ void Ghost_Update(void)
 			g_Ghost->SetPos(scareExitPos);
 			g_Ghost->SetState(GS_MOVING);
 			g_Ghost->m_ScareCooldown = 60; // 驚かし後1秒のクールタイム
-			g_Ghost->StartFadeIn(); // 驚かし終了後にフェードイン開始
+			g_Ghost->SetIsDraw(true);
 		}
 		break;
 
 	case GS_CAUGHT:
 		g_Ghost->SetIsDraw(true);
-		g_Ghost->m_FadeAlpha = 1.0f;
-		g_Ghost->m_FadeState = GHOST_FADE_NONE;
 
 		// 移動も家具検知もさせない（完全に行動不能）
 
@@ -551,14 +516,10 @@ void Ghost::Transforming(void)
 	Furniture* pFurniture = GetFurniture(m_InRangeFurnitureNum);
 	if (pFurniture)
 	{
-		// フェードアウト中はその場に留まり、消えてから家具の位置に移動する
-		if (m_FadeState != GHOST_FADE_OUT)
-		{
-			// XZ座標のみ家具に合わせる（Y座標は変更しない）
-			XMFLOAT3 furniturePos = pFurniture->GetPos();
-			SetPosX(furniturePos.x);
-			SetPosZ(furniturePos.z);
-		}
+		// XZ座標のみ家具に合わせる（Y座標は変更しない）
+		XMFLOAT3 furniturePos = pFurniture->GetPos();
+		SetPosX(furniturePos.x);
+		SetPosZ(furniturePos.z);
 	}
 
 	Busters* pBuster = GetBusters();
@@ -932,8 +893,6 @@ void Ghost_ForceExitTransform(void)
 
 	g_Ghost->SetState(GS_MOVING);
 	g_Ghost->SetIsDraw(true);
-	g_Ghost->m_FadeAlpha = 1.0f;
-	g_Ghost->m_FadeState = GHOST_FADE_NONE;
 }
 
 Ghost* GetGhost(void)
