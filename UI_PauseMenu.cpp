@@ -15,6 +15,7 @@ using namespace DirectX;
 #include <windows.h>
 #include <string>
 #include "shader.h"
+#include "UI.h"
 
 // ==========================================
 // ポーズ画面用の変数
@@ -119,6 +120,7 @@ void UI_PauseMenu_Initialize(ID3D11Device* pDevice, ID3D11DeviceContext* pContex
 		Mouse_SetMode(MOUSE_POSITION_MODE_RELATIVE);
 		ShowCursor(FALSE);
 		g_PauseMouseStateChangedFlag = false;
+		UI_RefreshTimerForPause();
 	});
 	g_MenuButtons[0] = { bx - 150.0f, by - 25.0f, 300.0f, 50.0f, 0 };
 
@@ -353,6 +355,7 @@ void UI_PauseMenu_Update(void)
 			Mouse_SetMode(MOUSE_POSITION_MODE_RELATIVE);
 			ShowCursor(FALSE);
 			g_PauseMouseStateChangedFlag = false;
+			UI_RefreshTimerForPause();
 		}
 	}
 
@@ -603,6 +606,7 @@ void UI_PauseMenu_SetPause(bool isPause)
 		Mouse_SetMode(MOUSE_POSITION_MODE_RELATIVE);
 		ShowCursor(FALSE);
 		g_PauseMouseStateChangedFlag = false;
+		UI_RefreshTimerForPause();
 	}
 }
 

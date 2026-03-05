@@ -73,6 +73,7 @@
 //=== Furniture 関連定数 ===
 #define FURNITURE_NUM (500)
 #define FURNITURE_DETECTION_RANGE (5.0f) // Ghost検出範囲
+#define FURNITURE_BILLBOARD_RANGE (3.0f) // ビルボード表示範囲の掛け率
 
 // 暖炉の炎パラメータ（ここで一元管理）
 #define CAMPFIRE_FIRE_SIZE_W   (2.0f)  // 炎の横サイズ
@@ -122,8 +123,8 @@
 #define GHOST_START_POS_FLOOR3_Z (4.0f)
 
 //=== Minimap 関連定数 ===
-#define MINIMAP_POS_OFFSET   (150.0f) 
-#define BLOCK_SIZE      (10.0f)  
+#define MINIMAP_POS_OFFSET   (110.0f) 
+#define BLOCK_SIZE      (7.0f)  
 #define VIEW_RANGE      (13) 
 
 //=== スコア関連定数 ===
@@ -134,8 +135,8 @@
 #define BUSTER_GAUGE_REDUCTION (0.05f) // バスターに見つかったときのゲージ減少値（1フレームあたり）
 
 //=== 家具耐性（慣れ）関連定数 ===
-#define FURNITURE_RESISTANCE_DECAY  (0.8f)  // 同じ家具IDで使うたびに掛かる減衰率（1回目100%→2回目80%→...）
-#define FURNITURE_RESISTANCE_MIN    (0.2f)  // 減衰の下限（最低でもこの倍率は保証する）
+#define FURNITURE_RESISTANCE_DECAY  (0.85f)  // 同じ家具IDで使うたびに掛かる減衰率（1回目100%→2回目80%→...）
+#define FURNITURE_RESISTANCE_MIN    (0.4f)  // 減衰の下限（最低でもこの倍率は保証する）
 
 //=== UI_ScareCombo 関連定数 ===
 #define SCARECOMBO_POS_X (SCREEN_WIDTH - 110.0f)

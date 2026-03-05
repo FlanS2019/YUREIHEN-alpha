@@ -17,6 +17,7 @@
 #include "WinAnim.h"
 #include "game.h"
 #include "Tutorial_Object.h"
+#include "UI_RetryMenu.h"
 
 // グローバル変数
 static Timer* g_Clock = nullptr;
@@ -122,7 +123,7 @@ void UI_Initialize(void)
 	);
 
 	g_ScareGauge = new Gauge(
-		{ SCREEN_WIDTH - 270.0f, 70.0f },
+		{ SCREEN_WIDTH - 250.0f, 50.0f },
 		{ GAUGE_SIZE, GAUGE_SIZE },
 		{ 1.0f, 1.0f, 1.0f, 1.0f },
 		BLENDSTATE_ALFA,
@@ -134,7 +135,7 @@ void UI_Initialize(void)
 
 	// 現在の階層表示
 	g_FloorNumberBG = new Sprite(
-		{ CLOCK_POS_X, CLOCK_POS_Y + 200.0f },
+		{ CLOCK_POS_X, CLOCK_POS_Y + 160.0f },
 		{ 200.0f, 200.0f },
 		0.0f,
 		{ 1.0f, 1.0f, 1.0f, 1.0f },
@@ -143,7 +144,7 @@ void UI_Initialize(void)
 	);
 
 	g_FloorNumber = new Number(
-		{ CLOCK_POS_X, CLOCK_POS_Y + 240.0f },
+		{ CLOCK_POS_X, CLOCK_POS_Y + 200.0f },
 		{ 60.0f, 60.0f },
 		{ 1.0f, 1.0f, 1.0f, 1.0f },
 		BLENDSTATE_ALFA,
@@ -221,14 +222,9 @@ void UI_Update(void)
 	}
 #endif
 
-	if (timeEnded || g_ScareGauge->GetValue() <= 0.0f)
+	if ((timeEnded || g_ScareGauge->GetValue() <= 0.0f) && !UI_RetryMenu_IsActive() && !Game_IsLoseAnimActive())
 	{
-		//float remainingTime = CLOCK_MAX - g_Clock->GetTime();
-		//if (remainingTime < 0.0f) remainingTime = 0.0f;
-		//Result_SetTimerValue(remainingTime); // 結果画面にタイマーの値を渡す
-		//Result_SetCombo(UI_ScareCombo_GetNumber()); // 結果画面にコンボ数を渡す
-		//hal::dout << "LOSE! time=" << remainingTime << std::endl;
-		StartFade(SCENE_ANM_LOSE);
+		Game_StartLoseAnim();
 	}
 
 	UI_ScareCombo_Update();
@@ -244,7 +240,14 @@ void UI_Update(void)
 	g_PossessGuideText = "";
 	if (Game_IsFloorExitAnimActive())
 	{
-		g_PossessGuideText = "下の階に逃げたバスターズを追いかけよう！";
+		if (Game_IsCamOverrideActive())
+		{
+			g_PossessGuideText = "バスターず「うわーっ！逃げろ～！」";
+		}
+		else
+		{
+			g_PossessGuideText = "下の階に逃げたバスターズを追いかけよう！";
+		}
 	}
 	else if (ghost)
 	{
@@ -395,10 +398,18 @@ void UI_Update(void)
 		}
 	}
 
-	//if (Keyboard_IsKeyDownTrigger(KK_F))
+	if (Keyboard_IsKeyDownTrigger(KK_F))
+	{
+		//3桁のスコアを適当にセット（Time=50, Combo=5 → Score=250）
+		WinAnim_SetResultData(150.0f, 5);
+
+		//Debug用
+		StartFade(SCENE_ANM_WIN);
+	}
+	//if (Keyboard_IsKeyDownTrigger(KK_L))
 	//{
 	//	//Debug用
-	//	StartFade(SCENE_ANM_WIN);
+	//	StartFade(SCENE_ANM_LOSE);
 	//}
 }
 
@@ -502,4 +513,12 @@ void UI_AccumulateFloorTime(void)
 float UI_GetAccumulatedTime(void)
 {
 	return g_AccumulatedTime;
+}
+
+void UI_RefreshTimerForPause(void)
+{
+	if (g_Clock)
+	{
+		g_Clock->RefreshLastUpdateTime();
+	}
 }

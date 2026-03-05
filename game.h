@@ -31,4 +31,13 @@ bool  Game_IsFloorExitAnimActive(void);
 // PLAYER_WALKはカメラ追従を再開するためfalseを返す
 bool  Game_IsCamOverrideActive(void);
 
+// 敗北アニメーション中かどうか
+bool  Game_IsLoseAnimActive(void);
+
+// 敗北アニメーションを開始する
+void  Game_StartLoseAnim(void);
+
+// 敗北アニメーションを終了しリソースを解放する（リトライメニューから呼ぶ）
+void  Game_EndLoseAnim(void);
+
 #endif // GAME_H

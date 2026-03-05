@@ -1,127 +1,136 @@
 ﻿#include "sprite.h"
 #include "keyboard.h"
 #include "fade.h"
-#include "debug_ostream.h"
 #include "define.h"
 #include "LoseAnim.h"
+#include "UI_RetryMenu.h"
 #include "mouse.h"
 #include "sound.h"
 #include <timeapi.h>
-#include <cmath>	// 揺れ用の sinf（揺れを消す場合は残しても問題ありません）
+#include <cmath>
 #pragma comment(lib, "winmm.lib")
 using namespace DirectX;
 
-// グローバル変数
-static ID3D11Device* g_pDevice = NULL;
-static ID3D11DeviceContext* g_pContext = NULL;
-
 //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-// Lose Animation (負けアニメーション)
+// Lose Animation (負けアニメーション) — 描画のみ
 //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-Sprite* g_LoseBgSprite = nullptr;		// 背景（Losehaikei）
-Sprite* g_LoseGhostSprite = nullptr;	// ゴーストエフェクト（LoseGhost）
-Sprite* g_LoseInkSprite = nullptr;		// インク画像（Loseink）
-Sprite* g_LoseAnimeLogoSprite = nullptr;		// インク画像（LoseAnimeLogo）
-Sprite* g_LoseVinetSprite = nullptr;	// 新規：ビネットオーバーレイ（LoseVinet）※追加
+static Sprite* g_LoseBgSprite = nullptr;        // 背景（LoseEDBasuta）
+static Sprite* g_LoseGhostSprite = nullptr;     // ゴースト（LoseEDGhost）
+static Sprite* g_LoseRopeSprite = nullptr;      // ロープ（LoseEDrope）
+static Sprite* g_LoseAnimeLogoSprite = nullptr; // ロゴ（LoseAnimeLogo）
+static Sprite* g_LoseVinetSprite = nullptr;     // ビネットオーバーレイ（LoseVinet）
+static Sprite* g_Losehaikei = nullptr;     // 追加：背景（Losehaikei）
 
 static DWORD g_LoseStartTime = 0;
-static const float GHOST_APPEAR_TIME = 0.8f;	// ゴースト表示開始時間（秒）
-static const float GHOST_FADE_DURATION = 0.6f; // ゴーストのフェードインにかける時間（秒）
-static const float INK_DROP_START_TIME = 1.2f;	// インク降下開始時間（秒）
-static const float INK_DROP_DURATION = 1.0f;	// インク降下時間（秒）
-static float g_LoseInkInitialY = 0.0f;	// インク画像の初期Y座標
-
-// インクスプライトのベース位置（Updateで揺らすために保持）
-static float g_LoseInkBaseX = 0.0f;
-static float g_LoseInkBaseY = 0.0f;
-
-// （垂れ幕用パラメータは残すが、今回は使用しない）
-static const float INK_HANG_START_TIME = INK_DROP_START_TIME;
-static const float INK_HANG_DURATION = 1.0f;
-static float g_LoseInkFullHeight = 1080.0f;
-static float g_LoseInkTopY = 0.0f;
-
 static SoundData* g_pBGM = nullptr;
+
+// ゴースト・ロープの基準位置（Initialize時に設定）
+static float g_GhostBaseY = 0.0f;
+static float g_RopeBaseY = 0.0f;
+static float g_GhostBaseX = 0.0f;
+static float g_RopeBaseX = 0.0f;
+
+// ロゴ降下アニメーション用
+static float g_LogoBaseX = 0.0f;
+static float g_LogoBaseY = 0.0f;
+static float g_LogoStartY = 0.0f;
+static const float LOGO_DROP_DELAY = 0.5f;    // 降下開始までの遅延（秒）
+static const float LOGO_DROP_DURATION = 1.2f;  // 降下にかける時間（秒）
+static const float LOGO_TOTAL_ROTATION = 720.0f; // 降下中の総回転角（度）
+static const float LOGO_TILT_DELAY = 0.15f;       // 着地後、傾き開始までの溜め（秒）
+static const float LOGO_TILT_DURATION = 0.12f;    // 「かくっ」と傾く時間（秒）
+static const float LOGO_TILT_ANGLE = 15.0f;       // 右斜め傾き角度（度）
+
+static const float LOSE_ANIM_DURATION = 4.0f; // Loseアニメの再生時間（秒）
 
 float Animation_Lose_GetElapsedTime(void)
 {
 	if (g_LoseStartTime == 0) return 0.0f;
+	return (timeGetTime() - g_LoseStartTime) / 1000.0f;
+}
 
-	DWORD currentTime = timeGetTime();
-	DWORD elapsedTime = currentTime - g_LoseStartTime;
-	return elapsedTime / 1000.0f;  // ミリ秒から秒に変換
+bool Animation_Lose_IsFinished(void)
+{
+	return Animation_Lose_GetElapsedTime() >= LOSE_ANIM_DURATION;
 }
 
 void Animation_Lose_Initialize(ID3D11Device* pDevice, ID3D11DeviceContext* pContext)
 {
-	// 背景スプライト
+	// 背景（LoseEDBasuta）
 	g_LoseBgSprite = new Sprite(
-		{ SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2 },	// 位置
-		{ 1280, 1080 },								// サイズ
-		0.0f,										// 回転（度）
-		{ 1.0f, 1.0f, 1.0f, 1.0f },				// 色
-		BLENDSTATE_ALFA,							// BlendState
-		L"asset\\yureihen\\LoseAnim\\Losehaikei.png"		// テクスチャパス
-	);
-
-	// ビネットオーバーレイ（LoseVinet）を生成
-	// 画面サイズに合わせ、少し透過させてオーバーレイにする
-	g_LoseVinetSprite = new Sprite(
-		{ SCREEN_WIDTH/2, SCREEN_HEIGHT/2},	// 位置（画面中央）
-		{ 1280, 1080 },			// サイズ（画面サイズに合わせる）
-		0.0f,										// 回転
-		{ 1.0f, 1.0f, 1.0f, 0.85f },				// 色（アルファを少し下げる）
-		BLENDSTATE_ALFA,							// BlendState
-		L"asset\\yureihen\\LoseAnim\\LoseVinet.PNG"	// テクスチャパス
-	);
-
-	// ゴーストスプライト（初期は透明）
-	float ghostNativePixelSize = 1028.0f;
-	float ghostScaleFactor = 0.4f;
-	float ghostDisplaySize = ghostNativePixelSize * ghostScaleFactor;
-
-	g_LoseGhostSprite = new Sprite(
-		{ SCREEN_WIDTH * 0.47f, SCREEN_HEIGHT * 0.45f },	// 位置（光の中央）
-		{ 1028, 1028 },				// サイズ 
-		0.0f,											// 回転（度）
-		{ 1.0f, 1.0f, 1.0f, 0.0f },					// 色（初期は完全透明）
-		BLENDSTATE_ALFA,								// BlendState
-		L"asset\\yureihen\\LoseAnim\\LoseGhost.png"				// テクスチャパス
-	);
-
-	// インクの開始Yを画面外上部に設定（画像高さの半分分上）
-	g_LoseInkInitialY = -(1028.0f * 0.5f);
-
-	// インク画像（初期位置を画面外上部にして、初期は透明にしておく）
-	g_LoseAnimeLogoSprite = new Sprite(
-		{ SCREEN_WIDTH / 2, g_LoseInkInitialY },
-		{ 1028, 1028 }, // 画像本来のサイズ
+		{ SCREEN_WIDTH / 2 + 100, SCREEN_HEIGHT / 2 -50 },
+		{ 1080, 1080 },
 		0.0f,
-		{ 1.0f, 1.0f, 1.0f, 0.0f }, // 初期は透明（表示されないようにする）
+		{ 1.0f, 1.0f, 1.0f, 1.0f },
+		BLENDSTATE_ALFA,
+		L"asset\\yureihen\\LoseAnim\\LoseEDBasuta.png"
+	);
+
+	// ゴースト・ロープの基準位置を記憶
+	g_GhostBaseX = SCREEN_WIDTH / 2 + 100;
+	g_GhostBaseY = SCREEN_HEIGHT / 2 - 50;
+	g_RopeBaseX  = SCREEN_WIDTH / 2 + 100;
+	g_RopeBaseY  = SCREEN_HEIGHT / 2 - 50;
+
+	// ロープ（LoseEDrope）
+	g_LoseRopeSprite = new Sprite(
+		{ g_RopeBaseX, g_RopeBaseY },
+		{ 1080, 1080 },
+		0.0f,
+		{ 1.0f, 1.0f, 1.0f, 1.0f },
+		BLENDSTATE_ALFA,
+		L"asset\\yureihen\\LoseAnim\\LoseEDrope.png"
+	);
+
+	// ゴースト（LoseEDGhost）
+	g_LoseGhostSprite = new Sprite(
+		{ g_GhostBaseX, g_GhostBaseY },
+		{ 1080, 1080 },
+		0.0f,
+		{ 1.0f, 1.0f, 1.0f, 1.0f },
+		BLENDSTATE_ALFA,
+		L"asset\\yureihen\\LoseAnim\\LoseEDGhost.png"
+	);
+
+	// ロゴ（LoseAnimeLogo）— 画面外上部から降下するため初期Yを上に設定
+	g_LogoBaseX = SCREEN_WIDTH / 2 - 90;
+	g_LogoBaseY = SCREEN_HEIGHT / 2 + 50;
+	g_LogoStartY = -600.0f;
+	g_LoseAnimeLogoSprite = new Sprite(
+		{ g_LogoBaseX, g_LogoStartY },
+		{ 1028, 1028 },
+		0.0f,
+		{ 1.0f, 1.0f, 1.0f, 0.0f },
 		BLENDSTATE_ALFA,
 		L"asset\\yureihen\\LoseAnim\\LoseAnimeLogo.png"
 	);
 
-	// LoseInk を画面中央に表示する（今回はスプライト全体を上から下へ移動させる）
-	g_LoseInkBaseX = SCREEN_WIDTH / 2;   // 中央 X
-	g_LoseInkBaseY = SCREEN_HEIGHT / 2;  // 目標の中央 Y
-
-	// スプライト全体で降りてくるので、サイズは画像本来のサイズに設定し、初期は画面外上に配置
-	g_LoseInkSprite = new Sprite(
-		{ g_LoseInkBaseX, g_LoseInkInitialY }, // 画面外上
-		{ 1280, 1080 },                       // サイズ（固定）
+	// ビネットオーバーレイ（LoseVinet）
+	g_LoseVinetSprite = new Sprite(
+		{ SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2 },
+		{ 1280, 1080 },
 		0.0f,
-		{ 1.0f, 1.0f, 1.0f, 1.0f },
+		{ 1.0f, 1.0f, 1.0f, 0.85f },
 		BLENDSTATE_ALFA,
-		L"asset\\yureihen\\LoseAnim\\LoseInk.png"
+		L"asset\\yureihen\\LoseAnim\\LoseVinet.PNG"
 	);
+
+	// ビネットオーバーレイ（LoseVinet）
+	g_Losehaikei = new Sprite(
+		{ SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2 },
+		{ 1536,947 },
+		0.0f,
+		{ 1.0f, 1.0f, 1.0f, 1.0f },//
+		BLENDSTATE_ALFA,
+		L"asset\\yureihen\\LoseAnim\\haikei1.PNG"
+	);
+
 	// サウンド再生
-	g_pBGM = LoadMP3("asset/sound/bgm/HauntedHalloween.mp3");
+	g_pBGM = LoadMP3("asset/sound/bgm/sad _loose_or result .mp3");
 	if (g_pBGM) {
 		PlaySound(g_pBGM, true);
 	}
 
-	// アニメーション画面ではマウスカーソルを表示・絶対モードに設定
 	Mouse_SetMode(MOUSE_POSITION_MODE_ABSOLUTE);
 	Mouse_SetVisible(true);
 
@@ -130,150 +139,108 @@ void Animation_Lose_Initialize(ID3D11Device* pDevice, ID3D11DeviceContext* pCont
 
 void Animation_Lose_Update(void)
 {
-	if (g_LoseStartTime == 0) return; // 初期化前ガード
+	float elapsed = Animation_Lose_GetElapsedTime();
 
-	DWORD currentTime = timeGetTime();
-	DWORD elapsedTime = currentTime - g_LoseStartTime;
-	float elapsedSeconds = elapsedTime / 1000.0f;
-
-	// ========================
-	// ゴーストのフェードイン処理（開始遅延 + 指定時間でフェード）
-	// ========================
+	// ゴースト浮遊：ゆっくり上下に揺れる
 	if (g_LoseGhostSprite)
 	{
-		if (elapsedSeconds < GHOST_APPEAR_TIME)
-		{
-			// ゴースト表示開始前は完全透明
-			g_LoseGhostSprite->SetColor({ 1.0f, 1.0f, 1.0f, 0.0f });
-		}
-		else
-		{
-			float fadeElapsed = elapsedSeconds - GHOST_APPEAR_TIME;
-			if (fadeElapsed < GHOST_FADE_DURATION)
-			{
-				// 進行度 0..1
-				float progress = fadeElapsed / GHOST_FADE_DURATION;
-
-				// イージング（緩やかに出現させる）
-				float eased = progress * progress; // ease-in
-
-				g_LoseGhostSprite->SetColor({ 1.0f, 1.0f, 1.0f, eased });
-			}
-			else
-			{
-				// フェード完了
-				g_LoseGhostSprite->SetColor({ 1.0f, 1.0f, 1.0f, 1.0f });
-			}
-		}
+		float bobY = sinf(elapsed * 1.2f) * 8.0f;          // 振幅8px、周期約5.2秒
+		float swayX = sinf(elapsed * 0.7f) * 3.0f;          // 横にわずかに揺れる
+		g_LoseGhostSprite->SetPosX(g_GhostBaseX + swayX);
+		g_LoseGhostSprite->SetPosY(g_GhostBaseY + bobY);
 	}
 
-	// ========================
-	// インク画像の降下アニメーション（LoseAnimeLogoSprite）
-	// ========================
+	// ロープ揺れ：ゴーストの動きに少し遅れて追従（位相をずらす）
+	if (g_LoseRopeSprite)
+	{
+		float ropeBobY = sinf(elapsed * 1.2f - 0.4f) * 5.0f;  // 振幅5px、ゴーストより小さく遅れる
+		float ropeSwayX = sinf(elapsed * 0.7f - 0.3f) * 2.0f;  // 横揺れも少し遅延
+		g_LoseRopeSprite->SetPosX(g_RopeBaseX + ropeSwayX);
+		g_LoseRopeSprite->SetPosY(g_RopeBaseY + ropeBobY);
+	}
+
+	// ロゴ降下：回転しながら上から降りてくる
 	if (g_LoseAnimeLogoSprite)
 	{
-		if (elapsedSeconds >= INK_DROP_START_TIME)
+		if (elapsed < LOGO_DROP_DELAY)
 		{
-			float inkElapsedTime = elapsedSeconds - INK_DROP_START_TIME;
-
-			if (inkElapsedTime <= INK_DROP_DURATION)
-			{
-				// 降下の進行度（0.0 ～ 1.0）
-				float progress = inkElapsedTime / INK_DROP_DURATION;
-
-				// イージング関数（加速度的に落ちる効果）
-				float easedProgress = progress * progress;
-
-				// 画面上部から画面中央付近までの移動距離
-				float startY = g_LoseInkInitialY;			// 開始位置（画面外）
-				float endY = SCREEN_HEIGHT * 0.35f;			// 終了位置（画面中央より少し上）
-				float currentY = startY + (endY - startY) * easedProgress;
-
-				// インク画像のY座標を更新（SetPosY を使用）
-				g_LoseAnimeLogoSprite->SetPosY(currentY);
-
-				// フェードイン効果
-				float inkAlpha = progress;
-				g_LoseAnimeLogoSprite->SetColor({ 1.0f, 1.0f, 1.0f, inkAlpha });
-			}
-			else
-			{
-				// 降下完了後は完全表示・位置固定
-				g_LoseAnimeLogoSprite->SetPosY(SCREEN_HEIGHT * 0.35f);
-				g_LoseAnimeLogoSprite->SetColor({ 1.0f, 1.0f, 1.0f, 1.0f });
-			}
-		}
-	}
-
-	// ========================
-	// LoseInk：スプライト全体を上から下へ降ろす（垂れ幕ではなく移動）
-	// ========================
-	if (g_LoseInkSprite)
-	{
-		// 水平位置は中央に固定
-		g_LoseInkSprite->SetPosX(g_LoseInkBaseX);
-
-		// 降下開始タイミングから終了までの進行度で Y を補間
-		if (elapsedSeconds >= INK_DROP_START_TIME)
-		{
-			float dropElapsed = elapsedSeconds - INK_DROP_START_TIME;
-			float duration = INK_DROP_DURATION;
-			float progress = dropElapsed / duration;
-			if (progress > 1.0f) progress = 1.0f;
-
-			// イージング（やわらかい ease-out）
-			float t = 1.0f - (1.0f - progress) * (1.0f - progress);
-
-			// 開始位置は画面外上（g_LoseInkInitialY）、終了位置は画面中央付近
-			float startY = g_LoseInkInitialY;
-			float endY = SCREEN_HEIGHT * 0.5f; // 中央に落ち着かせる（好みで調整可）
-			float currentY = startY + (endY - startY) * t;
-
-			g_LoseInkSprite->SetPosY(currentY);
+			g_LoseAnimeLogoSprite->SetPosY(g_LogoStartY);
+			g_LoseAnimeLogoSprite->SetColor({ 1.0f, 1.0f, 1.0f, 0.0f });
+			g_LoseAnimeLogoSprite->SetRot(0.0f);
 		}
 		else
 		{
-			// 開始前は画面外上に固定
-			g_LoseInkSprite->SetPosY(g_LoseInkInitialY);
+			float dropElapsed = elapsed - LOGO_DROP_DELAY;
+			if (dropElapsed < LOGO_DROP_DURATION)
+			{
+				float t = dropElapsed / LOGO_DROP_DURATION;
+				// ease-out（減速して着地）
+				float eased = 1.0f - (1.0f - t) * (1.0f - t);
+				// Y座標：画面外上部 → 目標位置
+				float currentY = g_LogoStartY + (g_LogoBaseY - g_LogoStartY) * eased;
+				g_LoseAnimeLogoSprite->SetPosY(currentY);
+				// 回転：降下中に回る
+				g_LoseAnimeLogoSprite->SetRot(LOGO_TOTAL_ROTATION * eased);
+				// フェードイン
+				float alpha = t;
+				if (alpha > 1.0f) alpha = 1.0f;
+				g_LoseAnimeLogoSprite->SetColor({ 1.0f, 1.0f, 1.0f, alpha });
+			}
+			else
+			{
+				// 降下完了後：「かくっ」と右斜めに傾く
+				g_LoseAnimeLogoSprite->SetPosY(g_LogoBaseY);
+				g_LoseAnimeLogoSprite->SetColor({ 1.0f, 1.0f, 1.0f, 1.0f });
+
+				float tiltElapsed = dropElapsed - LOGO_DROP_DURATION;
+				if (tiltElapsed < LOGO_TILT_DELAY)
+				{
+					// 溜め：回転停止したまま一瞬止まる
+					g_LoseAnimeLogoSprite->SetRot(LOGO_TOTAL_ROTATION);
+				}
+				else if (tiltElapsed < LOGO_TILT_DELAY + LOGO_TILT_DURATION)
+				{
+					// 「かくっ」と傾く
+					float tt = (tiltElapsed - LOGO_TILT_DELAY) / LOGO_TILT_DURATION;
+					// ease-out で素早く傾いて止まる
+					float easedTilt = 1.0f - (1.0f - tt) * (1.0f - tt);
+					g_LoseAnimeLogoSprite->SetRot(LOGO_TOTAL_ROTATION + LOGO_TILT_ANGLE * easedTilt);
+				}
+				else
+				{
+					// 傾き完了：固定
+					g_LoseAnimeLogoSprite->SetRot(LOGO_TOTAL_ROTATION + LOGO_TILT_ANGLE);
+				}
+			}
 		}
 	}
 
-	if(elapsedSeconds >= 3.0f)	// 3秒経過後に入力受付開始
+	// アニメ完了後にリトライメニューを表示
+	if (Animation_Lose_IsFinished() && !UI_RetryMenu_IsActive())
 	{
-		StartFade(SCENE_TITLE);
+		UI_RetryMenu_Show();
 	}
-	// ENTERキーでスキップデバッグ用
-	if (Keyboard_IsKeyDownTrigger(KK_SPACE))
-	{
-		StartFade(SCENE_TITLE);
-	}
-
-	// ENTERキーでゲームへ戻る
-	//if (Keyboard_IsKeyDownTrigger(KK_E))
-	//{
-	//	StartFade(SCENE_ANM_LOSE_ED);
-	//}
 }
 
 void Animation_Lose_Draw(void)
 {
-	if (g_LoseBgSprite) g_LoseBgSprite->Draw();		// 背景
-	if (g_LoseAnimeLogoSprite) g_LoseAnimeLogoSprite->Draw();	// アニメロゴ（降下）
-	if (g_LoseInkSprite) g_LoseInkSprite->Draw();	// インク（NULL チェック）
-	if (g_LoseGhostSprite) g_LoseGhostSprite->Draw();	// ゴースト（前面）
-
-	// ビネットは最前面に描画（オーバーレイ）
-	if (g_LoseVinetSprite) g_LoseVinetSprite->Draw();
+	if (g_Losehaikei)     g_Losehaikei->Draw();     // 背景
+	if (g_LoseBgSprite)        g_LoseBgSprite->Draw();        // 背景
+	if (g_LoseRopeSprite)      g_LoseRopeSprite->Draw();      // ロープ
+	if (g_LoseGhostSprite)     g_LoseGhostSprite->Draw();     // ゴースト
+	if (g_LoseAnimeLogoSprite) g_LoseAnimeLogoSprite->Draw();	// ロゴ
+	if (g_LoseVinetSprite)     g_LoseVinetSprite->Draw();     // ビネット（最前面）
 }
 
 void Animation_Lose_Finalize(void)
 {
-	delete g_LoseBgSprite; g_LoseBgSprite = nullptr;
-	delete g_LoseGhostSprite; g_LoseGhostSprite = nullptr;
+	delete g_LoseBgSprite;        g_LoseBgSprite = nullptr;
+	delete g_LoseGhostSprite;     g_LoseGhostSprite = nullptr;
+	delete g_LoseRopeSprite;      g_LoseRopeSprite = nullptr;
 	delete g_LoseAnimeLogoSprite; g_LoseAnimeLogoSprite = nullptr;
-	delete g_LoseInkSprite; g_LoseInkSprite = nullptr;
-	delete g_LoseVinetSprite; g_LoseVinetSprite = nullptr; // ビネット解放（追加）
-	// BGM解放
+	delete g_LoseVinetSprite;     g_LoseVinetSprite = nullptr;
+	delete g_Losehaikei;     g_Losehaikei = nullptr;
+
 	if (g_pBGM) {
 		StopSound(g_pBGM);
 		UnloadSound(g_pBGM);

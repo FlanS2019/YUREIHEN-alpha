@@ -51,7 +51,7 @@ void Tutorial_Pages_Init()
 		});
 
 	// --- 移動操作テストプレイ ---
-	SetTutorialMarker(true, { -5.0f, 0.5f, 17.0f });
+	SetTutorialMarker(true, { -4.5f, 0.5f, 17.0f });
 	SetEnbanVisible(true);
 	AddPage_Play(
 		{ "[W][A][S][D] 移動・[マウス] 視点" },
@@ -76,7 +76,7 @@ void Tutorial_Pages_Init()
 	);
 
 	// --- ピアノ憑依テストプレイ ---
-	SetTutorialMarker(true, { -23.0f, 2.0f, 16.5f });
+	SetTutorialMarker(true, { -23.0f, 1.5f, 16.5f });
 	SetCameraFocusPoint({ -15.0f, 1.0f, 16.5f });
 	AddPage_Play(
 		{ "[W][A][S][D]移動・[マウス]視点・[スペースキー]憑依" },
@@ -127,7 +127,7 @@ void Tutorial_Pages_Init()
 		"驚かせが連鎖すると、恐怖ゲージの上昇幅は増え、驚かせ範囲は広くなるよ！",
 		});
 
-	StartTutorialBusterExit({ -23.0f, BUSTERS_HEIGHT, -8.0f });
+	StartTutorialBusterExit({ -20.0f, BUSTERS_HEIGHT, -8.0f });
 
 	AddPage({ SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2 }, 0.0f, {
 		"次は、家具できること！"
@@ -136,7 +136,7 @@ void Tutorial_Pages_Init()
 
 	//幽撃
 	AddPage_Camera({ SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2 - 100.0f }, 250.0f,
-		{ "「幽撃」の家具",
+		{ "「霊撃」の家具",
 		  "！のアイコンだよ。バスターずを驚かせられる！" },
 		{ -20.0f, 2.0f, 12.5f }, { -10.0f, 2.0f, 12.5f },
 		{ SCREEN_WIDTH / 2, SCREEN_HEIGHT - 100.0f }
@@ -146,7 +146,7 @@ void Tutorial_Pages_Init()
 	AddPage_Camera({ SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2 - 100.0f }, 220.0f,
 		{ "「誘引」の家具",
 		  "？のアイコンだよ。バスターずを引き寄せられる！",
-		  "家具状態でもちょっと移動できる。「幽撃」の家具の近くに移動して引き寄せよう" },
+		  "家具状態で移動できる。家具「霊撃」の近くに移動してみよう" },
 		{ -13.5f, 3.0f, 14.5f }, { -13.5f, 0.2f, 10.5f },
 		{ SCREEN_WIDTH / 2, SCREEN_HEIGHT - 170.0f }
 	);
@@ -162,18 +162,15 @@ void Tutorial_Pages_Init()
 
 	// 壁番号2（ID:14）を無効化する
 	SetTutorialWall(2, false);
-
-	// 最後の部屋に通常の探索機能付きバスターズを出現させる
-	StartNormalBusters({ -10.0f, BUSTERS_HEIGHT, -5.0f });
-
 	// 壁番号3（ID:15）を無効化する
 	SetTutorialWall(3, false);
-
+	// 最後の部屋に通常の探索機能付きバスターズを出現させる
+	StartNormalBusters({ -10.0f, BUSTERS_HEIGHT, -5.0f });
 	//ここで全ての家具に憑依できるようにする
 	TutorialPage_EnableAllFurniturePossessionPhase();
 
 	AddPage({ SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2 }, 0.0f, {
-		"チュートリアルはここまで！。"
+		"チュートリアルはここまで！",
 		"どうやらバスターずは隣の部屋に行ったみたい。",
 		"次の部屋で憑依したり引き寄せたり……色々試してみて！",
 		});

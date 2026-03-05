@@ -14,6 +14,16 @@
 using namespace DirectX;
 #include	"direct3d.h"
 
+//==============================================================================
+// 顔テクスチャ差し替え用列挙型
+//==============================================================================
+enum FaceType
+{
+	FACE_BIBIRI = 0,	// デフォルト顔 (Busters_bibiri.png)
+	FACE_ODOROKI,		// 驚き顔 (Busters_odoroki.png)
+
+	FACE_TYPE_MAX
+};
 
 // ボーン行列情報構造体
 struct BoneMatrices
@@ -64,6 +74,7 @@ struct MODEL
 		bool hasTexture;
 		std::string texturePath;
 		ID3D11ShaderResourceView* textureView;
+		bool isFaceMesh = false;  // 顔テクスチャ差し替え対象かどうか
 	}* MeshMaterials;
 
 	// 白テクスチャ（テクスチャ無しメッシュ用）
@@ -74,6 +85,10 @@ struct MODEL
 
 	int RefCount = 0;			// 参照カウンタ
 	std::string FilePath;		// キャッシュ識別用のファイルパス
+
+	// 顔差し替え用テクスチャ
+	ID3D11ShaderResourceView* FaceTextures[FACE_TYPE_MAX] = {};
+	FaceType CurrentFaceType = FACE_BIBIRI;  // デフォルトはbibiri
 };
 
 
@@ -92,3 +107,6 @@ void ModelCalculateBoneMatrices(MODEL* model, double animationTime, BoneMatrices
 
 XMFLOAT3 ModelGetSize(MODEL* model);
 XMFLOAT4 ModelGetAverageMaterialColor(MODEL* model);
+
+// 顔テクスチャを切り替える
+void ModelSetFaceType(MODEL* model, FaceType type);
