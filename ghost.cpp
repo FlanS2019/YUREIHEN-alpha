@@ -291,6 +291,11 @@ void Ghost_Update(void)
 		g_Ghost->m_InvincibleTimer--;
 	}
 
+	if (g_Ghost->m_ScareCooldown > 0)
+	{
+		g_Ghost->m_ScareCooldown--;
+	}
+
 	// 「前フレームで照らされていて、今フレームは照らされていない」＝ 脱出成功
 	//if (g_Ghost->m_PrevIsIlluminated && !g_Ghost->m_IsIlluminated)
 	//{
@@ -328,11 +333,11 @@ void Ghost_Update(void)
 			g_Ghost->SetIsTransformed(true);
 			g_Ghost->SetVelocity({ 0.0f, 0.0f, 0.0f });
 			g_Ghost->m_HasIncreasedMultiplier = false;
+			g_Ghost->SetIsDraw(false);
 		}
 		break;
 
 	case GS_TRANSFORM:
-		g_Ghost->SetIsDraw(false);
 		UpdateLureFurnitureMovement();
 		g_Ghost->Transforming();
 
@@ -350,7 +355,7 @@ void Ghost_Update(void)
 
 		if (Keyboard_IsKeyDownTrigger(KK_SPACE))
 		{
-			if (TutorialObject_IsScareEnabled() && CanTriggerScareNow())
+			if (TutorialObject_IsScareEnabled() && CanTriggerScareNow() && g_Ghost->m_ScareCooldown <= 0)
 			{
 				g_Ghost->SetState(GS_SCARE);
 				g_Ghost->ScareStart();
@@ -368,11 +373,11 @@ void Ghost_Update(void)
 			g_Ghost->ResetPos();
 			g_Ghost->SetPos(exitPos);
 			g_Ghost->SetState(GS_MOVING);
+			g_Ghost->SetIsDraw(true);
 		}
 		break;
 
 	case GS_SCARE:
-		g_Ghost->SetIsDraw(false);
 		g_Ghost->Transforming();
 
 		// 家具のジャンプが終わったら移動状態に戻る
@@ -386,6 +391,8 @@ void Ghost_Update(void)
 			g_Ghost->ResetPos();
 			g_Ghost->SetPos(scareExitPos);
 			g_Ghost->SetState(GS_MOVING);
+			g_Ghost->m_ScareCooldown = 60; // 驚かし後1秒のクールタイム
+			g_Ghost->SetIsDraw(true);
 		}
 		break;
 
