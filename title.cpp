@@ -17,6 +17,7 @@
 #include <d3d10.h>
 #include <string>
 #include <cmath>
+#include "WinAnim.h"
 using namespace DirectX;
 
 #pragma comment(lib, "mfplat.lib")
@@ -512,6 +513,15 @@ void Title_Update(void)
 	{
 		StartFade(SCENE_RESULT);
 	}
+	if (Keyboard_IsKeyDownTrigger(KK_F))
+	{
+		//3桁のスコアを適当にセット（Time=50, Combo=5 → Score=250）
+		WinAnim_SetResultData(350.0f, 5);
+
+		//Debug用
+		StartFade(SCENE_ANM_WIN);
+	}
+
 }
 
 void Title_Draw(void)
