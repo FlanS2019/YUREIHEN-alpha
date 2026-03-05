@@ -398,14 +398,16 @@ void UI_Update(void)
 		}
 	}
 
-	//if (Keyboard_IsKeyDownTrigger(KK_F))
-	//{
-	//	//3桁のスコアを適当にセット（Time=50, Combo=5 → Score=250）
-	//	WinAnim_SetResultData(150.0f, 5);
+	if (Keyboard_IsKeyDownTrigger(KK_F))
+	{
+		if(Keyboard_IsKeyDownTrigger(KK_D))
+		{		//3桁のスコアを適当にセット（Time=50, Combo=5 → Score=250）
+			WinAnim_SetResultData(150.0f, 5);
 
-	//	//Debug用
-	//	StartFade(SCENE_ANM_WIN);
-	//}
+			//Debug用
+			StartFade(SCENE_ANM_WIN);
+		}
+	}
 	//if (Keyboard_IsKeyDownTrigger(KK_L))
 	//{
 	//	//Debug用
