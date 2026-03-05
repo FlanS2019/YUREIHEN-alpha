@@ -263,146 +263,6 @@ void LoadMapData(int floor)
 				data.blockID = mcID;
 				data.mapY = y;
 
-				// ガラスブロック(18/19)の回転角を窓パターン内の位置から決定
-				if (mcID == 18 || mcID == 19) {
-					auto isGlass = [&](int gy, int gz, int gx) -> bool {
-						int gid = GetMapBlockID(floor, gy, gz, gx);
-						return (gid == 18 || gid == 19);
-					};
-
-					// 窓がZ軸方向の壁(北壁/南壁)かX軸方向の壁(東壁/西壁)かを判定
-					bool hasGlassX = isGlass(y, z, x - 1) || isGlass(y, z, x + 1);
-					bool hasGlassZ = isGlass(y, z - 1, x) || isGlass(y, z + 1, x);
-					bool isZWall = hasGlassX || !hasGlassZ;
-
-					int winH = 1, winW = 1;
-					int row = 0, col = 0;
-
-					if (isZWall) {
-						// Z軸方向の壁（北壁/南壁）: Y-X平面でFloodFill
-						int minX = x, maxX = x, minY = y, maxY = y;
-						{
-							bool visited[MAP_HEIGHT][MAP_WIDTH] = {};
-							struct Pos { int py, px; };
-							std::queue<Pos> q;
-							q.push({y, x});
-							visited[y][x] = true;
-							while (!q.empty()) {
-								Pos cur = q.front(); q.pop();
-								if (cur.px < minX) minX = cur.px;
-								if (cur.px > maxX) maxX = cur.px;
-								if (cur.py < minY) minY = cur.py;
-								if (cur.py > maxY) maxY = cur.py;
-								int dx[] = {1,-1,0,0};
-								int dy[] = {0,0,1,-1};
-								for (int d = 0; d < 4; d++) {
-									int nx = cur.px + dx[d];
-									int ny = cur.py + dy[d];
-									if (nx < 0 || nx >= MAP_W || ny < 0 || ny >= MAP_HEIGHT) continue;
-									if (visited[ny][nx]) continue;
-									if (!isGlass(ny, z, nx)) continue;
-									visited[ny][nx] = true;
-									q.push({ny, nx});
-								}
-							}
-						}
-						winH = maxY - minY + 1;
-						winW = maxX - minX + 1;
-						row = maxY - y;
-						col = x - minX;
-					} else {
-						// X軸方向の壁（東壁/西壁）: Y-Z平面でFloodFill
-						int minZ = z, maxZ = z, minY = y, maxY = y;
-						{
-							bool visited[MAP_HEIGHT][MAP_LENGTH] = {};
-							struct Pos { int py, pz; };
-							std::queue<Pos> q;
-							q.push({y, z});
-							visited[y][z] = true;
-							while (!q.empty()) {
-								Pos cur = q.front(); q.pop();
-								if (cur.pz < minZ) minZ = cur.pz;
-								if (cur.pz > maxZ) maxZ = cur.pz;
-								if (cur.py < minY) minY = cur.py;
-								if (cur.py > maxY) maxY = cur.py;
-								int dz[] = {1,-1,0,0};
-								int dy[] = {0,0,1,-1};
-								for (int d = 0; d < 4; d++) {
-									int nz = cur.pz + dz[d];
-									int ny = cur.py + dy[d];
-									if (nz < 0 || nz >= MAP_H || ny < 0 || ny >= MAP_HEIGHT) continue;
-									if (visited[ny][nz]) continue;
-									if (!isGlass(ny, nz, x)) continue;
-									visited[ny][nz] = true;
-									q.push({ny, nz});
-								}
-							}
-						}
-						winH = maxY - minY + 1;
-						winW = maxZ - minZ + 1;
-						row = maxY - y;
-						col = z - minZ;
-					}
-
-					// Z軸方向の壁（北壁/南壁）用テーブル
-					static const float glassRotTable3x3[3][3] = {
-						{ 270.0f,   0.0f,   0.0f },
-						{ 270.0f,   0.0f,  90.0f },
-						{ 180.0f, 180.0f,  90.0f },
-					};
-					static const float glassRotTable4x3[4][3] = {
-						{ 270.0f,   0.0f,   0.0f },
-						{ 270.0f,  -1.0f,  90.0f },
-						{ 270.0f,  -1.0f,  90.0f },
-						{ 180.0f, 180.0f,  90.0f },
-					};
-					static const float glassRotTable4x4[4][4] = {
-						{ 270.0f,   0.0f,   0.0f,   0.0f },
-						{ 270.0f,  -1.0f,  -1.0f,  90.0f },
-						{ 270.0f,  -1.0f,  -1.0f,  90.0f },
-						{ 180.0f, 180.0f, 180.0f,  90.0f },
-					};
-					// X軸方向の壁（東壁/西壁）用テーブル（4x3を90度回転）
-					static const float glassRotTableZ3x3[3][3] = {
-						{   0.0f,  90.0f,  90.0f },
-						{   0.0f,  90.0f,   0.0f },
-						{ 270.0f, 270.0f,   0.0f },
-					};
-					static const float glassRotTableZ3x4[3][4] = {
-						{   0.0f,  90.0f,  90.0f,  90.0f },
-						{   0.0f,  -1.0f,  -1.0f,   0.0f },
-						{ 270.0f, 270.0f, 270.0f,   0.0f },
-					};
-
-					float glassRot = 0.0f;
-					bool glassHide = false;
-					if (isZWall) {
-						if (winH == 3 && winW == 3 && row >= 0 && row < 3 && col >= 0 && col < 3) {
-							glassRot = glassRotTable3x3[row][col];
-							if (glassRot < -0.5f) glassHide = true;
-						} else if (winH == 4 && winW == 3 && row >= 0 && row < 4 && col >= 0 && col < 3) {
-							glassRot = glassRotTable4x3[row][col];
-							if (glassRot < -0.5f) glassHide = true;
-						} else if (winH == 4 && winW == 4 && row >= 0 && row < 4 && col >= 0 && col < 4) {
-							glassRot = glassRotTable4x4[row][col];
-							if (glassRot < -0.5f) glassHide = true;
-						}
-					} else {
-						if (winH == 3 && winW == 3 && row >= 0 && row < 3 && col >= 0 && col < 3) {
-							glassRot = glassRotTableZ3x3[row][col];
-							if (glassRot < -0.5f) glassHide = true;
-						} else if (winH == 3 && winW == 4 && row >= 0 && row < 3 && col >= 0 && col < 4) {
-							glassRot = glassRotTableZ3x4[row][col];
-							if (glassRot < -0.5f) glassHide = true;
-						}
-					}
-					if (glassHide) {
-						continue;
-					} else {
-						data.rotY = glassRot;
-					}
-				}
-
 				data.currentScale = 1.0f;
 
 				g_MapList.push_back(data);
@@ -526,146 +386,6 @@ void LoadMapData(int floor)
 					data.mapY = y;
 					data.currentScale = 1.0f;
 
-				// ガラスブロック(18/19)の回転角を窓パターン内の位置から決定
-					if (mcID == 18 || mcID == 19) {
-						auto isSG = [&](int gy, int gz, int gx) -> bool {
-							if (gy<0||gy>=MAP_HEIGHT||gz<0||gz>=MAP_H||gx<0||gx>=MAP_W) return false;
-							int gid=Floor1[gy][gz][gx]; return (gid==18||gid==19);
-						};
-
-						// 窓がZ軸方向の壁かX軸方向の壁かを判定
-						bool hasGlassX = isSG(y, z, x - 1) || isSG(y, z, x + 1);
-						bool hasGlassZ = isSG(y, z - 1, x) || isSG(y, z + 1, x);
-						bool isZWall = hasGlassX || !hasGlassZ;
-
-						int winH = 1, winW = 1;
-						int row = 0, col = 0;
-
-						if (isZWall) {
-							// Z軸方向の壁: Y-X平面でFloodFill
-							int minX = x, maxX = x, minY = y, maxY = y;
-							{
-								bool visited[MAP_HEIGHT][MAP_WIDTH] = {};
-								struct Pos { int py, px; };
-								std::queue<Pos> q;
-								q.push({y, x});
-								visited[y][x] = true;
-								while (!q.empty()) {
-									Pos cur = q.front(); q.pop();
-									if (cur.px < minX) minX = cur.px;
-									if (cur.px > maxX) maxX = cur.px;
-									if (cur.py < minY) minY = cur.py;
-									if (cur.py > maxY) maxY = cur.py;
-									int dx[] = {1,-1,0,0};
-									int dy[] = {0,0,1,-1};
-									for (int d = 0; d < 4; d++) {
-										int nx = cur.px + dx[d];
-										int ny = cur.py + dy[d];
-										if (nx < 0 || nx >= MAP_W || ny < 0 || ny >= MAP_HEIGHT) continue;
-										if (visited[ny][nx]) continue;
-										if (!isSG(ny, z, nx)) continue;
-										visited[ny][nx] = true;
-										q.push({ny, nx});
-									}
-								}
-							}
-							winH = maxY - minY + 1;
-							winW = maxX - minX + 1;
-							row = maxY - y;
-							col = x - minX;
-						} else {
-							// X軸方向の壁: Y-Z平面でFloodFill
-							int minZ = z, maxZ = z, minY = y, maxY = y;
-							{
-								bool visited[MAP_HEIGHT][MAP_LENGTH] = {};
-								struct Pos { int py, pz; };
-								std::queue<Pos> q;
-								q.push({y, z});
-								visited[y][z] = true;
-								while (!q.empty()) {
-									Pos cur = q.front(); q.pop();
-									if (cur.pz < minZ) minZ = cur.pz;
-									if (cur.pz > maxZ) maxZ = cur.pz;
-									if (cur.py < minY) minY = cur.py;
-									if (cur.py > maxY) maxY = cur.py;
-									int dz[] = {1,-1,0,0};
-									int dy[] = {0,0,1,-1};
-									for (int d = 0; d < 4; d++) {
-										int nz = cur.pz + dz[d];
-										int ny = cur.py + dy[d];
-										if (nz < 0 || nz >= MAP_H || ny < 0 || ny >= MAP_HEIGHT) continue;
-										if (visited[ny][nz]) continue;
-										if (!isSG(ny, nz, x)) continue;
-										visited[ny][nz] = true;
-										q.push({ny, nz});
-									}
-								}
-							}
-							winH = maxY - minY + 1;
-							winW = maxZ - minZ + 1;
-							row = maxY - y;
-							col = z - minZ;
-						}
-
-						// Z軸方向の壁（北壁/南壁）用テーブル
-						static const float glassRotTable3x3[3][3] = {
-							{ 270.0f,   0.0f,   0.0f },
-							{ 270.0f,   0.0f,  90.0f },
-							{ 180.0f, 180.0f,  90.0f },
-						};
-						static const float glassRotTable4x3[4][3] = {
-							{ 270.0f,   0.0f,   0.0f },
-							{ 270.0f,  -1.0f,  90.0f },
-							{ 270.0f,   0.0f,  90.0f },
-							{ 180.0f, 180.0f,  90.0f },
-						};
-						static const float glassRotTable4x4[4][4] = {
-							{ 270.0f,   0.0f,   0.0f,   0.0f },
-							{ 270.0f,  -1.0f,  -1.0f,  90.0f },
-							{ 270.0f,  -1.0f,  -1.0f,  90.0f },
-							{ 180.0f, 180.0f, 180.0f,  90.0f },
-						};
-						// X軸方向の壁（東壁/西壁）用テーブル（4x3を90度回転）
-						static const float glassRotTableZ3x3[3][3] = {
-							{   0.0f,  90.0f,  90.0f },
-							{   0.0f,  90.0f,   0.0f },
-							{ 270.0f, 270.0f,   0.0f },
-						};
-						static const float glassRotTableZ3x4[3][4] = {
-							{   0.0f,  90.0f,  90.0f,  90.0f },
-							{   0.0f,  -1.0f,  -1.0f,   0.0f },
-							{ 270.0f, 270.0f, 270.0f,   0.0f },
-						};
-
-						float glassRot = 0.0f;
-						bool glassHide = false;
-						if (isZWall) {
-							if (winH == 3 && winW == 3 && row >= 0 && row < 3 && col >= 0 && col < 3) {
-								glassRot = glassRotTable3x3[row][col];
-								if (glassRot < -0.5f) glassHide = true;
-							} else if (winH == 4 && winW == 3 && row >= 0 && row < 4 && col >= 0 && col < 3) {
-								glassRot = glassRotTable4x3[row][col];
-								if (glassRot < -0.5f) glassHide = true;
-							} else if (winH == 4 && winW == 4 && row >= 0 && row < 4 && col >= 0 && col < 4) {
-								glassRot = glassRotTable4x4[row][col];
-								if (glassRot < -0.5f) glassHide = true;
-							}
-						} else {
-							if (winH == 3 && winW == 3 && row >= 0 && row < 3 && col >= 0 && col < 3) {
-								glassRot = glassRotTableZ3x3[row][col];
-								if (glassRot < -0.5f) glassHide = true;
-							} else if (winH == 3 && winW == 4 && row >= 0 && row < 3 && col >= 0 && col < 4) {
-								glassRot = glassRotTableZ3x4[row][col];
-								if (glassRot < -0.5f) glassHide = true;
-							}
-						}
-						if (glassHide) {
-							continue;
-						} else {
-							data.rotY = glassRot;
-						}
-					}
-
 						g_SubFloorMapList.push_back(data);
 				}
 			}
@@ -781,8 +501,8 @@ void Field_Initialize(ID3D11Device* pDevice, ID3D11DeviceContext* pContext)
 	g_BlockTextures[15] = LoadTexture(L"asset\\texture\\wood.png");      // ID 15
 	g_BlockTextures[16] = LoadTexture(L"asset\\texture\\green.png");	 // ID 16
 	g_BlockTextures[17] = LoadTexture(L"asset\\texture\\tairu.png");	 // ID 17
-	g_BlockTextures[18] = LoadTexture(L"asset\\texture\\garasukado.png"); // ID 18 ガラス角
-	g_BlockTextures[19] = LoadTexture(L"asset\\texture\\garasuhen.png");  // ID 19 ガラス辺
+	g_BlockTextures[18] = LoadTexture(L"asset\\texture\\garasu.png"); // ID 18 ガラス
+	g_BlockTextures[19] = LoadTexture(L"asset\\texture\\garasu.png"); // ID 19 ガラス
 
 	if (g_BlockTextures[0] == nullptr) g_BlockTextures[0] = LoadTexture(L"asset\\texture\\grass.png");
 
@@ -1092,8 +812,6 @@ void Field_Draw(void)
 
 		if (clipPos.z < 0.0f || clipPos.z > 1.0f) continue;
 
-		// ガラスブロックは後で別パスで描画するのでスキップ
-		if (mapData.blockID == 18 || mapData.blockID == 19) continue;
 
 		ID3D11ShaderResourceView* nextSRV = nullptr;
 		if (mapData.no == FIELD_STAIRS_UP || mapData.no == FIELD_STAIRS_DOWN) {
@@ -1141,87 +859,6 @@ void Field_Draw(void)
 	}
 	FlushBatch();
 
-	// ガラスブロック専用描画パス（面を中心位置に描画、UV回転で角/辺テクスチャの向きを制御）
-	{
-		// rotIndex(0~3)ごとに分けて描画（UV回転済みバッファが異なるため）
-		for (int rotIdx = 0; rotIdx < 4; rotIdx++) {
-			currentSRV = nullptr;
-			for (int i = 0; i < 6; i++) batchListFace[i].clear();
-
-			auto FlushGlass = [&](void) {
-				if (currentSRV == nullptr) return;
-				for (int face = 0; face < 6; face++) {
-					if (batchListFace[face].empty()) continue;
-					D3D11_MAPPED_SUBRESOURCE msr;
-					if (SUCCEEDED(g_pContext->Map(g_InstanceBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &msr))) {
-						memcpy(msr.pData, batchListFace[face].data(), sizeof(XMFLOAT4X4) * batchListFace[face].size());
-						g_pContext->Unmap(g_InstanceBuffer, 0);
-					}
-					UINT strides[2] = { sizeof(Vertex3D), sizeof(XMFLOAT4X4) };
-					UINT offsets[2] = { 0, 0 };
-					ID3D11Buffer* vbs[2] = { g_GlassVertexBuffer[rotIdx], g_InstanceBuffer };
-					g_pContext->IASetVertexBuffers(0, 2, vbs, strides, offsets);
-					g_pContext->IASetIndexBuffer(g_IndexBuffer, DXGI_FORMAT_R32_UINT, 0);
-					g_pContext->PSSetShaderResources(0, 1, &currentSRV);
-					UINT startIndex = face * 6;
-					g_pContext->DrawIndexedInstanced(6, (UINT)batchListFace[face].size(), startIndex, 0, 0);
-					batchListFace[face].clear();
-				}
-			};
-
-			float targetRotY = rotIdx * 90.0f;
-
-			for (const auto& mapData : g_MapList)
-			{
-				if (mapData.isHidden) continue;
-				if (mapData.blockID != 18 && mapData.blockID != 19) continue;
-				if (!g_DebugShowWalls && mapData.pos.y >= 0.0f) continue;
-
-				// rotYが一致するブロックだけ処理
-				int r = (int)(mapData.rotY / 90.0f) & 3;
-				if (r != rotIdx) continue;
-
-				XMVECTOR vPos = XMLoadFloat3(&mapData.pos);
-				XMVECTOR vToPos = XMVectorSubtract(vPos, vCamPos);
-				float distSq;
-				XMStoreFloat(&distSq, XMVector3LengthSq(vToPos));
-				if (distSq > 2500.0f) continue;
-				float dot;
-				XMStoreFloat(&dot, XMVector3Dot(vToPos, vForward));
-				if (dot < -2.0f) continue;
-				XMVECTOR vClipPos = XMVector3TransformCoord(vPos, VP);
-				XMFLOAT3 clipPos;
-				XMStoreFloat3(&clipPos, vClipPos);
-				if (clipPos.x < -1.2f || clipPos.x > 1.2f || clipPos.y < -1.8f || clipPos.y > 1.8f) continue;
-				if (clipPos.z < 0.0f || clipPos.z > 1.0f) continue;
-
-				int id = mapData.blockID;
-				ID3D11ShaderResourceView* nextSRV = (id > 0 && id < MAX_BLOCK_TYPES && g_BlockTextures[id]) ? g_BlockTextures[id] : g_BlockTextures[0];
-
-				bool overLimit = false;
-				for (int i = 0; i < 6; i++) {
-					if (batchListFace[i].size() >= MAX_INSTANCES - 1) overLimit = true;
-				}
-				if (nextSRV != currentSRV || overLimit) {
-					FlushGlass();
-					currentSRV = nextSRV;
-				}
-
-				// ガラスのrotYはUV回転で処理するため、ワールド行列にはrotYを適用しない
-				XMMATRIX world = XMMatrixTranslation(mapData.pos.x, mapData.pos.y, mapData.pos.z);
-				if (hasBaseRot) {
-					world = baseRotMtx * world;
-				}
-				XMFLOAT4X4 m;
-				XMStoreFloat4x4(&m, XMMatrixTranspose(world));
-				for (int i = 0; i < 6; i++) {
-					if (mapData.drawFace[i]) batchListFace[i].push_back(m);
-				}
-			}
-			FlushGlass();
-		}
-	}
-
 	// 2階の場合: Z=0～17真下のFloor1を描画（当たり判定なし）
 	if (!g_SubFloorMapList.empty())
 	{
@@ -1230,8 +867,6 @@ void Field_Draw(void)
 
 		for (const auto& mapData : g_SubFloorMapList)
 		{
-			// ガラスブロックは後のガラス専用パスで描画
-			if (mapData.blockID == 18 || mapData.blockID == 19) continue;
 
 			XMVECTOR vPos = XMLoadFloat3(&mapData.pos);
 			XMVECTOR vToPos = XMVectorSubtract(vPos, vCamPos);
@@ -1300,83 +935,6 @@ void Field_Draw(void)
 		}
 		FlushBatch();
 
-		// SubFloorのガラスブロック専用パス（UV回転対応）
-		for (int rotIdx = 0; rotIdx < 4; rotIdx++) {
-			currentSRV = nullptr;
-			for (int i = 0; i < 6; i++) batchListFace[i].clear();
-
-			auto FlushSubGlass = [&](void) {
-				if (currentSRV == nullptr) return;
-				for (int face = 0; face < 6; face++) {
-					if (batchListFace[face].empty()) continue;
-					D3D11_MAPPED_SUBRESOURCE msr;
-					if (SUCCEEDED(g_pContext->Map(g_InstanceBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &msr))) {
-						memcpy(msr.pData, batchListFace[face].data(), sizeof(XMFLOAT4X4) * batchListFace[face].size());
-						g_pContext->Unmap(g_InstanceBuffer, 0);
-					}
-					UINT strides[2] = { sizeof(Vertex3D), sizeof(XMFLOAT4X4) };
-					UINT offsets[2] = { 0, 0 };
-					ID3D11Buffer* vbs[2] = { g_GlassVertexBuffer[rotIdx], g_InstanceBuffer };
-					g_pContext->IASetVertexBuffers(0, 2, vbs, strides, offsets);
-					g_pContext->IASetIndexBuffer(g_IndexBuffer, DXGI_FORMAT_R32_UINT, 0);
-					g_pContext->PSSetShaderResources(0, 1, &currentSRV);
-					UINT startIndex = face * 6;
-					g_pContext->DrawIndexedInstanced(6, (UINT)batchListFace[face].size(), startIndex, 0, 0);
-					batchListFace[face].clear();
-				}
-			};
-
-			float targetRotY = rotIdx * 90.0f;
-
-			for (const auto& mapData : g_SubFloorMapList)
-			{
-				if (mapData.blockID != 18 && mapData.blockID != 19) continue;
-
-				int r = (int)(mapData.rotY / 90.0f) & 3;
-				if (r != rotIdx) continue;
-
-				XMVECTOR vPos = XMLoadFloat3(&mapData.pos);
-				XMVECTOR vToPos = XMVectorSubtract(vPos, vCamPos);
-
-				float distSq;
-				XMStoreFloat(&distSq, XMVector3LengthSq(vToPos));
-				if (distSq > 2500.0f) continue;
-
-				float dot;
-				XMStoreFloat(&dot, XMVector3Dot(vToPos, vForward));
-				if (dot < -2.0f) continue;
-
-				XMVECTOR vClipPos = XMVector3TransformCoord(vPos, VP);
-				XMFLOAT3 clipPos;
-				XMStoreFloat3(&clipPos, vClipPos);
-
-				float marginX = 0.2f;
-				float marginY = 0.8f;
-				if (clipPos.x < -1.0f - marginX || clipPos.x > 1.0f + marginX ||
-					clipPos.y < -1.0f - marginY || clipPos.y > 1.0f + marginY) continue;
-				if (clipPos.z < 0.0f || clipPos.z > 1.0f) continue;
-
-				int id = mapData.blockID;
-				ID3D11ShaderResourceView* nextSRV = (id > 0 && id < MAX_BLOCK_TYPES && g_BlockTextures[id]) ? g_BlockTextures[id] : g_BlockTextures[0];
-
-				bool overLimit = false;
-				for (int i = 0; i < 6; i++) {
-					if (batchListFace[i].size() >= MAX_INSTANCES - 1) overLimit = true;
-				}
-				if (nextSRV != currentSRV || overLimit) {
-					FlushSubGlass();
-					currentSRV = nextSRV;
-				}
-
-				XMMATRIX world = XMMatrixTranslation(mapData.pos.x, mapData.pos.y, mapData.pos.z);
-				XMFLOAT4X4 m;
-				XMStoreFloat4x4(&m, XMMatrixTranspose(world));
-				for (int i = 0; i < 6; i++) {
-					if (mapData.drawFace[i]) batchListFace[i].push_back(m);
-				}
-			}
-			FlushSubGlass();
-		}
 	}
 
 	// 天井描画（1階・2階・3階）
