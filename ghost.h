@@ -39,6 +39,7 @@ public:
 
 	int m_EscapeTapCount;      // SPACEキーを連打した回数
 	int m_CaughtPenaltyTimer;  // 毎秒ペナルティを与えるためのタイマー
+	int m_ScareCooldown;       // 驚かしアクションのクールタイム
 
 	void SetIsIlluminated(bool isIlluminated) { m_IsIlluminated = isIlluminated; }
 
@@ -65,6 +66,7 @@ public:
 		m_PreTransformPos(0.0f, 0.0f, 0.0f),
 		m_EscapeTapCount(0),
 		m_CaughtPenaltyTimer(0),
+		m_ScareCooldown(0),
 		m_pRangeCircle(nullptr),
 		m_pLight(nullptr)
 	{
